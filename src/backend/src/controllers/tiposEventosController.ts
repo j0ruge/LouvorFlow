@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
-class tipoEventoController {
+class TipoEventoController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const tiposEventos = await prisma.tipos_Eventos.findMany({
@@ -142,4 +142,4 @@ class tipoEventoController {
     }
 }
 
-export default new tipoEventoController();
+export default new TipoEventoController();

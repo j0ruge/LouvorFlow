@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
-class funcaoController {
+class FuncaoController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const funcoes = await prisma.funcoes.findMany({
@@ -142,4 +142,4 @@ class funcaoController {
     }
 }
 
-export default new funcaoController();
+export default new FuncaoController();

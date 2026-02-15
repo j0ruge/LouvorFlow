@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
-class tagController {
+class TagController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const tags = await prisma.tags.findMany({
@@ -142,4 +142,4 @@ class tagController {
     }
 }
 
-export default new tagController();
+export default new TagController();

@@ -5,7 +5,7 @@ function createPrismaClient() {
     return new PrismaClient().$extends({
         query: {
             integrantes: {
-                async $allOperations({ model, operation, args, query }) {
+                async $allOperations({ args, query }) {
                     const result = await query(args);
                     const strip = (value: unknown): unknown => {
                         if (value && typeof value === 'object' && !Array.isArray(value)) {
