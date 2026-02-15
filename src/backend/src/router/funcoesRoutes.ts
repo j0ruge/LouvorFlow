@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import funcoesController from '../controllers/funcoesController.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.get('/', funcoesController.index);
 router.get('/:id', funcoesController.show);

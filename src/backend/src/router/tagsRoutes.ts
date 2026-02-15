@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import tagsController from '../controllers/tagsController.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.get('/', tagsController.index);
 router.get('/:id', tagsController.show);

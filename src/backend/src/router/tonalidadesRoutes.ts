@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import tonalidadesController from '../controllers/tonalidadesController.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.get('/', tonalidadesController.index);
 router.get('/:id', tonalidadesController.show);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import musicasController from '../controllers/musicasController.js';
 
-const router = Router();
+const router: Router = Router();
 
 // Base CRUD
 router.get('/', musicasController.index);

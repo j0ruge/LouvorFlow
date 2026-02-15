@@ -1,3 +1,4 @@
+import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 import { randomInt } from 'crypto';
 import bcrypt from 'bcryptjs';
@@ -8,10 +9,26 @@ const INTEGRANTE_PUBLIC_SELECT = {
     doc_id: true,
     email: true,
     telefone: true
-};
+} as const;
+
+interface IdNome {
+    id: string;
+    nome: string;
+}
+
+interface IntegranteWithFuncoes {
+    id: string;
+    nome: string;
+    doc_id: string;
+    email: string;
+    telefone: string | null;
+    Integrantes_Funcoes: {
+        integrantes_funcoes_funcao_id_fkey: IdNome;
+    }[];
+}
 
 class integranteController {
-    async index(req, res) {
+    async index(req: Request, res: Response): Promise<void> {
         try {
             const integrantes = await prisma.integrantes.findMany({
                 select: {
@@ -26,24 +43,25 @@ class integranteController {
                 }
             });
 
-            const result = integrantes.map(i => ({
+            const result = integrantes.map((i: IntegranteWithFuncoes) => ({
                 ...i,
                 funcoes: i.Integrantes_Funcoes.map(f => f.integrantes_funcoes_funcao_id_fkey),
                 Integrantes_Funcoes: undefined
             }));
 
-            return res.status(200).json(result);
+            res.status(200).json(result);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar integrantes"] });
+            res.status(500).json({ errors: ["Erro ao buscar integrantes"] });
         }
     }
 
-    async show(req, res) {
+    async show(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                return;
             }
 
             const integrante = await prisma.integrantes.findUnique({
@@ -61,7 +79,8 @@ class integranteController {
             });
 
             if (!integrante) {
-                return res.status(404).json({ errors: ["O integrante não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O integrante não foi encontrado ou não existe"] });
+                return;
             }
 
             const result = {
@@ -70,24 +89,26 @@ class integranteController {
                 Integrantes_Funcoes: undefined
             };
 
-            return res.status(200).json(result);
+            res.status(200).json(result);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar integrante"] });
+            res.status(500).json({ errors: ["Erro ao buscar integrante"] });
         }
     }
 
-    async create(req, res) {
+    async create(req: Request, res: Response): Promise<void> {
         try {
             const { nome, doc_id, email, senha, telefone } = req.body;
 
             if (!nome || !doc_id || !email || !senha) {
-                return res.status(400).json({ errors: ["Dados não enviados"] });
+                res.status(400).json({ errors: ["Dados não enviados"] });
+                return;
             }
 
             const integranteExistente = await prisma.integrantes.findUnique({ where: { doc_id } });
 
             if (integranteExistente) {
-                return res.status(409).json({ errors: ["Já existe um integrante com esse doc_id"] });
+                res.status(409).json({ errors: ["Já existe um integrante com esse doc_id"] });
+                return;
             }
 
             const randomSalt = randomInt(10, 16);
@@ -98,35 +119,47 @@ class integranteController {
                 select: INTEGRANTE_PUBLIC_SELECT
             });
 
-            return res.status(201).json({
+            res.status(201).json({
                 msg: "Integrante criado com sucesso",
                 integrante: novoIntegrante
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao criar integrante"] });
+            res.status(500).json({ errors: ["Erro ao criar integrante"] });
         }
     }
 
-    async update(req, res) {
+    async update(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                return;
             }
 
             const integranteExistente = await prisma.integrantes.findUnique({ where: { id } });
 
             if (!integranteExistente) {
-                return res.status(404).json({ errors: ["Integrante com esse ID não existe ou não foi encontrado"] });
+                res.status(404).json({ errors: ["Integrante com esse ID não existe ou não foi encontrado"] });
+                return;
             }
 
             if (Object.keys(req.body).length === 0) {
-                return res.status(400).json({ errors: ["Nenhum dado enviado"] });
+                res.status(400).json({ errors: ["Nenhum dado enviado"] });
+                return;
             }
 
             const { nome, doc_id, email, senha, telefone } = req.body;
-            const updateData = {};
+
+            if (doc_id !== undefined) {
+                const duplicado = await prisma.integrantes.findFirst({ where: { doc_id, NOT: { id } } });
+                if (duplicado) {
+                    res.status(409).json({ errors: ["Já existe um integrante com esse doc_id"] });
+                    return;
+                }
+            }
+
+            const updateData: Record<string, unknown> = {};
             if (nome !== undefined) updateData.nome = nome;
             if (doc_id !== undefined) updateData.doc_id = doc_id;
             if (email !== undefined) updateData.email = email;
@@ -143,21 +176,22 @@ class integranteController {
                 select: INTEGRANTE_PUBLIC_SELECT
             });
 
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Integrante editado com sucesso",
                 integrante
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao editar integrante"] });
+            res.status(500).json({ errors: ["Erro ao editar integrante"] });
         }
     }
 
-    async delete(req, res) {
+    async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                res.status(400).json({ errors: ["ID de integrante não enviado"] });
+                return;
             }
 
             const integrante = await prisma.integrantes.findUnique({
@@ -166,22 +200,23 @@ class integranteController {
             });
 
             if (!integrante) {
-                return res.status(404).json({ errors: ["O integrante não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O integrante não foi encontrado ou não existe"] });
+                return;
             }
 
             await prisma.integrantes.delete({ where: { id } });
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Integrante deletado com sucesso",
                 integrante
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao deletar integrante"] });
+            res.status(500).json({ errors: ["Erro ao deletar integrante"] });
         }
     }
 
     // --- Junction: Funcoes (integrantes_funcoes) ---
 
-    async listFuncoes(req, res) {
+    async listFuncoes(req: Request<{ integranteId: string }>, res: Response): Promise<void> {
         try {
             const { integranteId } = req.params;
 
@@ -194,19 +229,32 @@ class integranteController {
                 }
             });
 
-            return res.status(200).json(funcoes.map(f => f.integrantes_funcoes_funcao_id_fkey));
+            res.status(200).json(funcoes.map(f => f.integrantes_funcoes_funcao_id_fkey));
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar funções do integrante"] });
+            res.status(500).json({ errors: ["Erro ao buscar funções do integrante"] });
         }
     }
 
-    async addFuncao(req, res) {
+    async addFuncao(req: Request<{ integranteId: string }>, res: Response): Promise<void> {
         try {
             const { integranteId } = req.params;
             const { funcao_id } = req.body;
 
             if (!funcao_id) {
-                return res.status(400).json({ errors: ["ID da função é obrigatório"] });
+                res.status(400).json({ errors: ["ID da função é obrigatório"] });
+                return;
+            }
+
+            const integranteExiste = await prisma.integrantes.findUnique({ where: { id: integranteId } });
+            if (!integranteExiste) {
+                res.status(404).json({ errors: ["Integrante não encontrado"] });
+                return;
+            }
+
+            const funcaoExiste = await prisma.funcoes.findUnique({ where: { id: funcao_id } });
+            if (!funcaoExiste) {
+                res.status(404).json({ errors: ["Função não encontrada"] });
+                return;
             }
 
             const existente = await prisma.integrantes_Funcoes.findUnique({
@@ -214,20 +262,21 @@ class integranteController {
             });
 
             if (existente) {
-                return res.status(409).json({ errors: ["Registro duplicado"] });
+                res.status(409).json({ errors: ["Registro duplicado"] });
+                return;
             }
 
             await prisma.integrantes_Funcoes.create({
                 data: { musico_id: integranteId, funcao_id }
             });
 
-            return res.status(201).json({ msg: "Função adicionada ao integrante com sucesso" });
+            res.status(201).json({ msg: "Função adicionada ao integrante com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao adicionar função ao integrante"] });
+            res.status(500).json({ errors: ["Erro ao adicionar função ao integrante"] });
         }
     }
 
-    async removeFuncao(req, res) {
+    async removeFuncao(req: Request<{ integranteId: string; funcaoId: string }>, res: Response): Promise<void> {
         try {
             const { integranteId, funcaoId } = req.params;
 
@@ -236,13 +285,14 @@ class integranteController {
             });
 
             if (!registro) {
-                return res.status(404).json({ errors: ["Registro não encontrado"] });
+                res.status(404).json({ errors: ["Registro não encontrado"] });
+                return;
             }
 
             await prisma.integrantes_Funcoes.delete({ where: { id: registro.id } });
-            return res.status(200).json({ msg: "Função removida do integrante com sucesso" });
+            res.status(200).json({ msg: "Função removida do integrante com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao remover função do integrante"] });
+            res.status(500).json({ errors: ["Erro ao remover função do integrante"] });
         }
     }
 }

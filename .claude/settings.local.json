@@ -1,25 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git fetch:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/create-new-feature.ps1 -Json -Number 1 -ShortName \"schema-api-alignment\" \"Align project schema, backend APIs and frontend with current ER model\")",
-      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
-      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
-      "Bash(npx prisma validate:*)",
-      "Bash(npx prisma migrate dev:*)",
-      "Bash(npx prisma migrate diff:*)",
-      "Bash(npx prisma db push:*)",
-      "Bash(docker ps:*)",
-      "Bash(taskkill:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx:*)",
-      "Bash(node_modules/.bin/tsc:*)",
-      "Bash(npm run build:*)",
-      "Bash(ls:*)",
-      "Bash(npm ls:*)",
+      "Bash(npm run:*)",
       "Bash(npm install:*)",
-      "WebSearch",
-      "WebFetch(domain:www.prisma.io)"
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(docker compose:*)",
+      "Read(src/**)",
+      "Read(specs/**)",
+      "Read(infra/**)",
+      "Read(doc/**)",
+      "Read(CLAUDE.md)",
+      "Read(.gitignore)",
+      "Write(src/**)",
+      "Write(specs/**)",
+      "Write(infra/**)",
+      "Edit(src/**)",
+      "Edit(specs/**)",
+      "Edit(infra/**)",
+      "Edit(CLAUDE.md)"
     ]
   }
 }

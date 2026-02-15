@@ -111,8 +111,8 @@ Verify: Open browser, sidebar should show "LouvorFlow" (not "EscalaCanto").
 | File | Change |
 |------|--------|
 | `src/backend/prisma/schema.prisma` | Added Tags, Musicas_Tags, telefone, unique constraints |
-| `src/backend/index.js` | Fixed imports, removed duplicate middleware |
-| `src/backend/src/app.js` | Fixed imports, added CORS, /api prefix, all routes |
+| `src/backend/index.ts` | Fixed imports, removed duplicate middleware |
+| `src/backend/src/app.ts` | Fixed imports, added CORS, /api prefix, all routes |
 | `src/backend/src/controllers/*` | 6 new + 2 refactored controllers |
 | `src/backend/src/routes/*` | 6 new + 1 modified route files |
 | `src/frontend/src/components/AppSidebar.tsx` | "EscalaCanto" → "LouvorFlow" |

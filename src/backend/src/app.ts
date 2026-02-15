@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
 
 import homeRoutes from './router/homeRoutes.js';
@@ -12,17 +12,19 @@ import tiposEventosRoutes from './router/tiposEventosRoutes.js';
 import eventosRoutes from './router/eventosRoutes.js';
 
 class App {
+    app: Express;
+
     constructor() {
         this.app = express();
         this.middlewares();
         this.routes();
     }
-    middlewares() {
+    middlewares(): void {
         this.app.use(cors());
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.json());
     }
-    routes() {
+    routes(): void {
         this.app.use('/', homeRoutes);
         this.app.use('/api/artistas', artistasRoutes);
         this.app.use('/api/integrantes', integrantesRoutes);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import eventosController from '../controllers/eventosController.js';
 
-const router = Router();
+const router: Router = Router();
 
 // Base CRUD
 router.get('/', eventosController.index);

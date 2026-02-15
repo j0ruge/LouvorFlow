@@ -2,7 +2,7 @@ import 'dotenv/config';
 import app from './src/app.js';
 import prisma from './prisma/cliente.js';
 
-(async () => {
+(async (): Promise<void> => {
     try {
         await prisma.$connect();
         console.log('Conectado ao banco de dados com sucesso!');
@@ -11,7 +11,7 @@ import prisma from './prisma/cliente.js';
     }
 })();
 
-const PORT = process.env.PORT;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);
