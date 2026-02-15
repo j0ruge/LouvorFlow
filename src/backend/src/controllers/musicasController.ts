@@ -103,7 +103,7 @@ function formatMusica(m: MusicaRaw): Musica {
     };
 }
 
-class musicaController {
+class MusicaController {
     // --- Base CRUD ---
 
     async index(req: Request, res: Response): Promise<void> {
@@ -599,4 +599,4 @@ class musicaController {
     }
 }
 
-export default new musicaController();
+export default new MusicaController();

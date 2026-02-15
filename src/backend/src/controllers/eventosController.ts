@@ -139,7 +139,7 @@ function formatEventoShow(e: EventoShowRaw) {
     };
 }
 
-class eventoController {
+class EventoController {
     // --- Base CRUD ---
 
     async index(req: Request, res: Response): Promise<void> {
@@ -498,4 +498,4 @@ class eventoController {
     }
 }
 
-export default new eventoController();
+export default new EventoController();
