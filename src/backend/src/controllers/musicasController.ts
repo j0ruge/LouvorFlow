@@ -79,6 +79,12 @@ interface Musica {
     funcoes: IdNome[];
 }
 
+/**
+ * Convert a raw music record into the normalized `Musica` shape.
+ *
+ * @param m - Raw music record with nested relation fields produced by the database query
+ * @returns A `Musica` object containing `id`, `nome`, `tonalidade`, `tags`, `versoes` (each with `id`, `artista`, `bpm`, `cifras`, `lyrics`, `link_versao`), and `funcoes`
+ */
 function formatMusica(m: MusicaRaw): Musica {
     return {
         id: m.id,
