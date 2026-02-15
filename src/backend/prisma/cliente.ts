@@ -7,13 +7,13 @@ function createPrismaClient() {
             integrantes: {
                 async $allOperations({ model, operation, args, query }) {
                     const result = await query(args);
-                    const strip = (obj: Record<string, unknown>): Record<string, unknown> => {
-                        if (obj && typeof obj === 'object') delete obj.senha;
-                        return obj;
+                    const strip = (value: unknown): unknown => {
+                        if (value && typeof value === 'object' && !Array.isArray(value)) {
+                            delete (value as { senha?: unknown }).senha;
+                        }
+                        return value;
                     };
-                    return Array.isArray(result)
-                        ? result.map(strip as (value: unknown) => unknown)
-                        : strip(result as Record<string, unknown>);
+                    return Array.isArray(result) ? result.map(strip) : strip(result);
                 }
             }
         }
