@@ -29,7 +29,13 @@ _(Skipped — project structure, dependencies, and database are already configur
 
 ### Schema Changes (US2)
 
-- [ ] T001 [US2] Update Prisma schema in `src/backend/prisma/schema.prisma` — add `Tags` model (id, nome UNIQUE, created_at, updated_at), add `Musicas_Tags` model (id, musica_id FK, tag_id FK, composite unique on musica_id+tag_id), add `telefone String? @db.VarChar(20)` to `Integrantes` model, add `@unique` on `Funcoes.nome` and `Tonalidades.tom`, add `@@unique` composite constraints on all 6 junction tables (artistas_musicas, eventos_musicas, eventos_integrantes, integrantes_funcoes, musicas_funcoes, musicas_tags), add `Musicas_Tags` relation to both `Musicas` and `Tags` models
+- [ ] T001 [US2] Update Prisma schema in `src/backend/prisma/schema.prisma` — all changes below go into a **single migration** (see T002):
+  - [ ] T001a — Add `Tags` model (`id`, `nome` `@unique`, `created_at`, `updated_at`)
+  - [ ] T001b — Add `Musicas_Tags` model (`id`, `musica_id` FK → `Musicas`, `tag_id` FK → `Tags`, `@@unique([musica_id, tag_id])`)
+  - [ ] T001c — Add `telefone String? @db.VarChar(20)` to `Integrantes` model
+  - [ ] T001d — Add `@unique` on `Funcoes.nome`, `Tonalidades.tom`, and `Tags.nome`
+  - [ ] T001e — Add `@@unique` composite constraints on all 6 junction tables: `artistas_musicas` (artista_id + musica_id), `eventos_musicas` (evento_id + musica_id), `eventos_integrantes` (evento_id + integrante_id), `integrantes_funcoes` (integrante_id + funcao_id), `musicas_funcoes` (musica_id + funcao_id), `musicas_tags` (musica_id + tag_id)
+  - [ ] T001f — Add `Musicas_Tags` relation fields on both `Musicas` (has-many `musicas_tags`) and `Tags` (has-many `musicas_tags`) models
 - [ ] T002 [US2] Run Prisma migration and regenerate client — execute `npx prisma migrate dev --name add_tags_telefone_uniques` then `npx prisma generate` from `src/backend/`
 
 ### Backend Structural Refactoring (US3)
@@ -141,16 +147,19 @@ US4 (Frontend) ────────────┘
 ### Parallel Opportunities
 
 **Phase 2** — 4 tasks in parallel:
+
 ```
 T003 (index.js) || T004 (app.js) || T005 (artistasController) || T006 (integrantesController)
 ```
 
 **Phase 3** — Lookup CRUDs:
+
 ```
 T008 (tonalidades) || T009 (funcoes) || T010 (tags) || T011 (tiposEventos)
 ```
 
 **Phase 3** — Complex entities + junctions (3 parallel streams):
+
 ```
 Stream A: T012 (musicas CRUD) → T014 (versoes) → T015 (tags) → T016 (funcoes)
 Stream B: T013 (eventos CRUD) → T017 (musicas) → T018 (integrantes)
@@ -158,6 +167,7 @@ Stream C: T019 (integrantes funcoes) — independent
 ```
 
 **Phase 4** — All frontend tasks:
+
 ```
 T021 (sidebar) || T022 (songs) || T023 (members) || T024 (scales) || T025 (dashboard)
 ```

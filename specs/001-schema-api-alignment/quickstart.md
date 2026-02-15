@@ -10,7 +10,7 @@ cd infra/postgres
 docker compose up -d
 ```
 
-Verify: `docker ps` should show `escala_canto_db` on port 35432.
+Verify: `docker ps` should show `louvorflow_db` on port 35432.
 
 ## 2. Install Dependencies
 
@@ -80,16 +80,19 @@ curl -X POST http://localhost:3000/api/tags \
   -d '{"nome": "Adoração"}'
 
 # Create a musica (use the tonalidade id from step above)
+# → Copy the `id` field from the tonalidade response and replace <TONALIDADE_ID>
 curl -X POST http://localhost:3000/api/musicas \
   -H "Content-Type: application/json" \
   -d '{"nome": "Reckless Love", "fk_tonalidade": "<TONALIDADE_ID>"}'
 
 # Tag the musica (use the tag id and musica id from above)
+# → Copy the `id` from the musica response → <MUSICA_ID>, and from the tag response → <TAG_ID>
 curl -X POST http://localhost:3000/api/musicas/<MUSICA_ID>/tags \
   -H "Content-Type: application/json" \
   -d '{"tag_id": "<TAG_ID>"}'
 
 # Verify musica returns with relations
+# → Reuse the same <MUSICA_ID> from above
 curl http://localhost:3000/api/musicas/<MUSICA_ID>
 # Should include tonalidade and tags in response
 ```
