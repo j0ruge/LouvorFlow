@@ -7,36 +7,36 @@ import { Music, Plus, Search, Guitar } from "lucide-react";
 const Songs = () => {
   const songs = [
     {
-      id: 1,
-      title: "Reckless Love",
-      artist: "Cory Asbury",
-      key: "C",
-      bpm: 72,
-      tags: ["Adoração", "Lenta"],
+      id: "1",
+      nome: "Reckless Love",
+      tonalidade: { id: "t1", tom: "C" },
+      versoes: [{ id: "v1", artista: { id: "a1", nome: "Cory Asbury" }, bpm: 72, cifras: null }],
+      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg2", nome: "Lenta" }],
+      funcoes: [{ id: "f1", nome: "Vocal" }],
     },
     {
-      id: 2,
-      title: "Goodness of God",
-      artist: "Bethel Music",
-      key: "G",
-      bpm: 68,
-      tags: ["Adoração", "Edificação"],
+      id: "2",
+      nome: "Goodness of God",
+      tonalidade: { id: "t2", tom: "G" },
+      versoes: [{ id: "v2", artista: { id: "a2", nome: "Bethel Music" }, bpm: 68, cifras: null }],
+      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg3", nome: "Edificação" }],
+      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f2", nome: "Teclado" }],
     },
     {
-      id: 3,
-      title: "Way Maker",
-      artist: "Sinach",
-      key: "D",
-      bpm: 136,
-      tags: ["Celebração", "Animada"],
+      id: "3",
+      nome: "Way Maker",
+      tonalidade: { id: "t3", tom: "D" },
+      versoes: [{ id: "v3", artista: { id: "a3", nome: "Sinach" }, bpm: 136, cifras: null }],
+      tags: [{ id: "tg4", nome: "Celebração" }, { id: "tg5", nome: "Animada" }],
+      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f3", nome: "Bateria" }],
     },
     {
-      id: 4,
-      title: "Oceans",
-      artist: "Hillsong United",
-      key: "Dm",
-      bpm: 74,
-      tags: ["Adoração", "Intimista"],
+      id: "4",
+      nome: "Oceans",
+      tonalidade: { id: "t4", tom: "Dm" },
+      versoes: [{ id: "v4", artista: { id: "a4", nome: "Hillsong United" }, bpm: 74, cifras: null }],
+      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg6", nome: "Intimista" }],
+      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f4", nome: "Violão" }],
     },
   ];
 
@@ -81,27 +81,29 @@ const Songs = () => {
                     <Music className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground">{song.title}</h3>
-                    <p className="text-sm text-muted-foreground">{song.artist}</p>
+                    <h3 className="font-semibold text-foreground">{song.nome}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {song.versoes[0]?.artista.nome}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2">
                     <Guitar className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">{song.key}</span>
+                    <span className="text-sm font-medium text-foreground">{song.tonalidade.tom}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {song.bpm} BPM
+                    {song.versoes[0]?.bpm} BPM
                   </div>
                   <div className="flex gap-2">
                     {song.tags.map((tag) => (
                       <Badge
-                        key={tag}
+                        key={tag.id}
                         variant="secondary"
                         className="bg-primary/10 text-primary hover:bg-primary/20"
                       >
-                        {tag}
+                        {tag.nome}
                       </Badge>
                     ))}
                   </div>

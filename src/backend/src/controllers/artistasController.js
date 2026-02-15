@@ -1,148 +1,137 @@
-import prisma from '../../prisma/cliente';
+import prisma from '../../prisma/cliente.js';
+
 class artistaController {
-    // Mostrar lista de artistas
     async index(req, res) {
         try {
-            const artistasBuscados = await prisma.artistas.findMany({
-                select: {
-                    id: true,
-                    nome: true
-                }
+            const artistas = await prisma.artistas.findMany({
+                select: { id: true, nome: true }
             });
-            return res.status(200).json(artistasBuscados);
+            return res.status(200).json(artistas);
         } catch (error) {
-            return res.status(500).json({ errors: 'Erro ao buscar artistas' });
+            return res.status(500).json({ errors: ["Erro ao buscar artistas"] });
         }
     }
 
-    // Mostrar detalhes de um artista
     async show(req, res) {
         try {
             const { id } = req.params;
-            
-            // Verifica se o id foi enviado
+
             if (!id) {
-                return res.status(400).json({errors: 'ID de artista não enviado'})
+                return res.status(400).json({ errors: ["ID de artista não enviado"] });
             }
 
-            const artistaBuscado = await prisma.artistas.findUnique({ 
-                where: { id } ,
+            const artista = await prisma.artistas.findUnique({
+                where: { id },
                 select: {
                     id: true,
-                    nome: true
-            }});
+                    nome: true,
+                    musicas: {
+                        select: {
+                            id: true,
+                            musica_id: true,
+                            bpm: true,
+                            cifras: true,
+                            lyrics: true,
+                            link_versao: true,
+                            artistas_musicas_musica_id_fkey: {
+                                select: { id: true, nome: true }
+                            }
+                        }
+                    }
+                }
+            });
 
-            // Verifica se o artista existe
-            if (!artistaBuscado) {
-                return res.status(404).json({ errors: ['O artista não foi encontrado ou não existe'] });
+            if (!artista) {
+                return res.status(404).json({ errors: ["O artista não foi encontrado ou não existe"] });
             }
 
-            return res.status(200).json(artistaBuscado);
+            return res.status(200).json(artista);
         } catch (error) {
-            return res.status(500).json({ errors: 'Erro ao buscar artista' });
+            return res.status(500).json({ errors: ["Erro ao buscar artista"] });
         }
     }
 
-    // Criar um novo artista
     async create(req, res) {
         try {
             const { nome } = req.body;
 
-            // Verifica se o nome foi enviado
             if (!nome) {
-                return res.status(400).json({ errors: 'Nome do artista é obrigatório' });
+                return res.status(400).json({ errors: ["Nome do artista é obrigatório"] });
             }
 
             const artistaExistente = await prisma.artistas.findUnique({ where: { nome } });
 
-            // Verifica se já existe um artista com o mesmo nome
             if (artistaExistente) {
-                return res.status(409).json({ errors: 'Já existe um artista com esse nome' });
+                return res.status(409).json({ errors: ["Já existe um artista com esse nome"] });
             }
 
-            const novoArtista = await prisma.artistas.create({ data: { nome }});
-            const artistaCriado = await prisma.artistas.findUnique({ 
-                where: { id: novoArtista.id },
-                select: {
-                    id: true,
-                    nome: true
-                }
+            const novoArtista = await prisma.artistas.create({ data: { nome } });
+            return res.status(201).json({
+                msg: "Artista criado com sucesso",
+                artista: { id: novoArtista.id, nome: novoArtista.nome }
             });
-            return res.status(201).json({msg: "Artista criado com sucesso",
-                                        artistaCriado});
         } catch (error) {
-            return res.status(500).json({ errors: 'Erro ao criar artista' });
+            return res.status(500).json({ errors: ["Erro ao criar artista"] });
         }
     }
 
-    // Atualizar um artista existente
     async update(req, res) {
         try {
             const { id } = req.params;
-            
-            // Verifica se o id foi enviado
+
             if (!id) {
-                return res.status(400).json({errors: 'ID de artista não enviado'})
+                return res.status(400).json({ errors: ["ID de artista não enviado"] });
             }
 
             const artistaExistente = await prisma.artistas.findUnique({ where: { id } });
 
-            // Verifica se já existe um artista com o mesmo nome
             if (!artistaExistente) {
-                return res.status(409).json({ errors: 'Artista com esse ID não existe ou não foi encontrado' });
+                return res.status(404).json({ errors: ["Artista com esse ID não existe ou não foi encontrado"] });
             }
 
             const { nome } = req.body;
 
-            // Verifica se o nome foi enviado
             if (!nome) {
-                return res.status(400).json({ errors: 'Nome do artista é obrigatório' });
+                return res.status(400).json({ errors: ["Nome do artista é obrigatório"] });
             }
 
-            const artistaEditado = await prisma.artistas.update({ 
+            const artista = await prisma.artistas.update({
                 where: { id },
-                data: { nome }});
-            const artistaNovoEditado = await prisma.artistas.findUnique({ 
-                where: { id: artistaEditado.id },
-                select: {
-                    id: true,
-                    nome: true
-                }
+                data: { nome }
             });
-            return res.status(201).json({msg: "Artista editado com sucesso",
-                                        artistaNovoEditado});
+            return res.status(200).json({
+                msg: "Artista editado com sucesso",
+                artista: { id: artista.id, nome: artista.nome }
+            });
         } catch (error) {
-            return res.status(500).json({ errors: 'Erro ao editar artista' });
+            return res.status(500).json({ errors: ["Erro ao editar artista"] });
         }
     }
 
-    // Deletar um artista
     async delete(req, res) {
         try {
             const { id } = req.params;
-            
-            // Verifica se o id foi enviado
+
             if (!id) {
-                return res.status(400).json({errors: 'ID de artista não enviado'})
+                return res.status(400).json({ errors: ["ID de artista não enviado"] });
             }
 
-            const artistaDeletado = await prisma.artistas.findUnique({ 
+            const artista = await prisma.artistas.findUnique({
                 where: { id },
-                select: {
-                    id: true,
-                    nome: true
-            }});
+                select: { id: true, nome: true }
+            });
 
-            // Verifica se o artista existe
-            if (!artistaDeletado) {
-                return res.status(404).json({ errors: ['O artista não foi encontrado ou não existe'] });
+            if (!artista) {
+                return res.status(404).json({ errors: ["O artista não foi encontrado ou não existe"] });
             }
 
             await prisma.artistas.delete({ where: { id } });
-            return res.status(200).json({msg: "Artista deletado com sucesso",
-                                        artistaDeletado});
+            return res.status(200).json({
+                msg: "Artista deletado com sucesso",
+                artista
+            });
         } catch (error) {
-            return res.status(500).json({ errors: 'Erro ao buscar artista' });
+            return res.status(500).json({ errors: ["Erro ao deletar artista"] });
         }
     }
 }

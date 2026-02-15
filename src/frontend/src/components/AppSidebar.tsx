@@ -38,7 +38,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <Music className="h-6 w-6 text-sidebar-foreground" />
-            <h2 className="text-lg font-bold text-sidebar-foreground">EscalaCanto</h2>
+            <h2 className="text-lg font-bold text-sidebar-foreground">LouvorFlow</h2>
           </div>
         )}
         {collapsed && (

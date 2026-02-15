@@ -34,9 +34,31 @@ const Dashboard = () => {
   ];
 
   const recentScales = [
-    { date: "2024-11-17", service: "Culto de Celebração", songs: 6, status: "Confirmada" },
-    { date: "2024-11-20", service: "Culto de Oração", songs: 4, status: "Pendente" },
-    { date: "2024-11-24", service: "Culto de Domingo", songs: 7, status: "Confirmada" },
+    {
+      data: "2024-11-17T10:00:00Z",
+      tipoEvento: { id: "te1", nome: "Culto de Celebração" },
+      musicas: [{ id: "m1", nome: "Reckless Love" }, { id: "m2", nome: "Goodness of God" }, { id: "m3", nome: "Way Maker" }],
+      integrantes: [{ id: "i1", nome: "João Silva" }, { id: "i2", nome: "Maria Santos" }],
+    },
+    {
+      data: "2024-11-20T19:00:00Z",
+      tipoEvento: { id: "te2", nome: "Culto de Oração" },
+      musicas: [{ id: "m4", nome: "Oceans" }, { id: "m1", nome: "Reckless Love" }],
+      integrantes: [{ id: "i2", nome: "Maria Santos" }, { id: "i3", nome: "Pedro Costa" }],
+    },
+    {
+      data: "2024-11-24T10:00:00Z",
+      tipoEvento: { id: "te3", nome: "Culto de Domingo" },
+      musicas: [{ id: "m2", nome: "Goodness of God" }, { id: "m3", nome: "Way Maker" }, { id: "m4", nome: "Oceans" }, { id: "m1", nome: "Reckless Love" }],
+      integrantes: [{ id: "i3", nome: "Carlos Lima" }, { id: "i2", nome: "Maria Santos" }, { id: "i4", nome: "Ana Oliveira" }],
+    },
+  ];
+
+  const trendingSongs = [
+    { nome: "Reckless Love", tonalidade: { id: "t1", tom: "C" }, count: 12 },
+    { nome: "Goodness of God", tonalidade: { id: "t2", tom: "G" }, count: 10 },
+    { nome: "Way Maker", tonalidade: { id: "t3", tom: "D" }, count: 8 },
+    { nome: "Oceans", tonalidade: { id: "t4", tom: "Dm" }, count: 6 },
   ];
 
   return (
@@ -87,19 +109,13 @@ const Dashboard = () => {
                   className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
                 >
                   <div className="space-y-1">
-                    <p className="font-medium text-foreground">{scale.service}</p>
+                    <p className="font-medium text-foreground">{scale.tipoEvento.nome}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(scale.date).toLocaleDateString('pt-BR')} • {scale.songs} músicas
+                      {new Date(scale.data).toLocaleDateString('pt-BR')} • {scale.musicas.length} músicas • {scale.integrantes.length} integrantes
                     </p>
                   </div>
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      scale.status === "Confirmada"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-accent/10 text-accent"
-                    }`}
-                  >
-                    {scale.status}
+                  <div className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    {scale.tipoEvento.nome}
                   </div>
                 </div>
               ))}
@@ -116,7 +132,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {["Reckless Love", "Goodness of God", "Way Maker", "Oceans"].map((song, index) => (
+              {trendingSongs.map((song, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
@@ -126,8 +142,8 @@ const Dashboard = () => {
                       {index + 1}
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{song}</p>
-                      <p className="text-sm text-muted-foreground">Tocada {12 - index * 2}x</p>
+                      <p className="font-medium text-foreground">{song.nome}</p>
+                      <p className="text-sm text-muted-foreground">Tom: {song.tonalidade.tom} • Tocada {song.count}x</p>
                     </div>
                   </div>
                 </div>

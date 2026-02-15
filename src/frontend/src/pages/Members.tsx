@@ -8,76 +8,61 @@ import { Users, Plus, Search, Mail, Phone } from "lucide-react";
 const Members = () => {
   const members = [
     {
-      id: 1,
-      name: "João Silva",
-      role: "Ministro",
+      id: "1",
+      nome: "João Silva",
+      doc_id: "123.456.789-00",
       email: "joao@exemplo.com",
-      phone: "(11) 98765-4321",
-      instruments: ["Vocal", "Violão"],
+      telefone: "(11) 98765-4321",
+      funcoes: [{ id: "f1", nome: "Ministro" }, { id: "f2", nome: "Violão" }],
     },
     {
-      id: 2,
-      name: "Maria Santos",
-      role: "Cantora",
+      id: "2",
+      nome: "Maria Santos",
+      doc_id: "234.567.890-11",
       email: "maria@exemplo.com",
-      phone: "(11) 98765-4322",
-      instruments: ["Vocal"],
+      telefone: "(11) 98765-4322",
+      funcoes: [{ id: "f3", nome: "Vocal" }],
     },
     {
-      id: 3,
-      name: "Pedro Costa",
-      role: "Músico",
+      id: "3",
+      nome: "Pedro Costa",
+      doc_id: "345.678.901-22",
       email: "pedro@exemplo.com",
-      phone: "(11) 98765-4323",
-      instruments: ["Bateria", "Percussão"],
+      telefone: "(11) 98765-4323",
+      funcoes: [{ id: "f4", nome: "Bateria" }, { id: "f5", nome: "Percussão" }],
     },
     {
-      id: 4,
-      name: "Ana Oliveira",
-      role: "Cantora",
+      id: "4",
+      nome: "Ana Oliveira",
+      doc_id: "456.789.012-33",
       email: "ana@exemplo.com",
-      phone: "(11) 98765-4324",
-      instruments: ["Vocal", "Teclado"],
+      telefone: "(11) 98765-4324",
+      funcoes: [{ id: "f3", nome: "Vocal" }, { id: "f6", nome: "Teclado" }],
     },
     {
-      id: 5,
-      name: "Carlos Lima",
-      role: "Músico",
+      id: "5",
+      nome: "Carlos Lima",
+      doc_id: "567.890.123-44",
       email: "carlos@exemplo.com",
-      phone: "(11) 98765-4325",
-      instruments: ["Guitarra", "Baixo"],
+      telefone: "(11) 98765-4325",
+      funcoes: [{ id: "f7", nome: "Guitarra" }, { id: "f8", nome: "Baixo" }],
     },
     {
-      id: 6,
-      name: "Lucas Pereira",
-      role: "Músico",
+      id: "6",
+      nome: "Lucas Pereira",
+      doc_id: "678.901.234-55",
       email: "lucas@exemplo.com",
-      phone: "(11) 98765-4326",
-      instruments: ["Teclado", "Piano"],
+      telefone: "(11) 98765-4326",
+      funcoes: [{ id: "f6", nome: "Teclado" }, { id: "f9", nome: "Piano" }],
     },
   ];
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (nome: string) => {
+    return nome
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase();
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "Ministro":
-        return "bg-primary/10 text-primary";
-      case "Cantora":
-      case "Cantor":
-        return "bg-secondary/10 text-secondary";
-      case "Músico":
-      case "Música":
-        return "bg-accent/10 text-accent";
-      default:
-        return "bg-muted text-muted-foreground";
-    }
   };
 
   return (
@@ -117,16 +102,13 @@ const Members = () => {
                 <div className="flex items-start gap-4">
                   <Avatar className="h-14 w-14 border-2 border-primary/20">
                     <AvatarFallback className="bg-gradient-primary text-white font-semibold text-lg">
-                      {getInitials(member.name)}
+                      {getInitials(member.nome)}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h3 className="font-semibold text-foreground text-lg">{member.name}</h3>
-                      <Badge className={`mt-1 ${getRoleBadgeColor(member.role)}`}>
-                        {member.role}
-                      </Badge>
+                      <h3 className="font-semibold text-foreground text-lg">{member.nome}</h3>
                     </div>
 
                     <div className="space-y-2">
@@ -134,20 +116,22 @@ const Members = () => {
                         <Mail className="h-4 w-4" />
                         <span>{member.email}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-4 w-4" />
-                        <span>{member.phone}</span>
-                      </div>
+                      {member.telefone && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="h-4 w-4" />
+                          <span>{member.telefone}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {member.instruments.map((instrument) => (
+                      {member.funcoes.map((funcao) => (
                         <Badge
-                          key={instrument}
+                          key={funcao.id}
                           variant="outline"
                           className="text-xs"
                         >
-                          {instrument}
+                          {funcao.nome}
                         </Badge>
                       ))}
                     </div>

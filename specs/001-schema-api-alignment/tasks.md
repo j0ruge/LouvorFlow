@@ -29,22 +29,22 @@ _(Skipped — project structure, dependencies, and database are already configur
 
 ### Schema Changes (US2)
 
-- [ ] T001 [US2] Update Prisma schema in `src/backend/prisma/schema.prisma` — all changes below go into a **single migration** (see T002):
-  - [ ] T001a — Add `Tags` model (`id`, `nome` `@unique`, `created_at`, `updated_at`)
-  - [ ] T001b — Add `Musicas_Tags` model (`id`, `musica_id` FK → `Musicas`, `tag_id` FK → `Tags`, `@@unique([musica_id, tag_id])`)
-  - [ ] T001c — Add `telefone String? @db.VarChar(20)` to `Integrantes` model
-  - [ ] T001d — Add `@unique` on `Funcoes.nome`, `Tonalidades.tom`, and `Tags.nome`
-  - [ ] T001e — Add `@@unique` composite constraints on all 6 junction tables: `artistas_musicas` (artista_id + musica_id), `eventos_musicas` (evento_id + musica_id), `eventos_integrantes` (evento_id + integrante_id), `integrantes_funcoes` (integrante_id + funcao_id), `musicas_funcoes` (musica_id + funcao_id), `musicas_tags` (musica_id + tag_id)
-  - [ ] T001f — Add `Musicas_Tags` relation fields on both `Musicas` (has-many `musicas_tags`) and `Tags` (has-many `musicas_tags`) models
-- [ ] T002 [US2] Run Prisma migration and regenerate client — execute `npx prisma migrate dev --name add_tags_telefone_uniques` then `npx prisma generate` from `src/backend/`
+- [x] T001 [US2] Update Prisma schema in `src/backend/prisma/schema.prisma` — all changes below go into a **single migration** (see T002):
+  - [x] T001a — Add `Tags` model (`id`, `nome` `@unique`, `created_at`, `updated_at`)
+  - [x] T001b — Add `Musicas_Tags` model (`id`, `musica_id` FK → `Musicas`, `tag_id` FK → `Tags`, `@@unique([musica_id, tag_id])`)
+  - [x] T001c — Add `telefone String? @db.VarChar(20)` to `Integrantes` model
+  - [x] T001d — Add `@unique` on `Funcoes.nome`, `Tonalidades.tom`, and `Tags.nome`
+  - [x] T001e — Add `@@unique` composite constraints on all 6 junction tables: `artistas_musicas` (artista_id + musica_id), `eventos_musicas` (evento_id + musica_id), `eventos_integrantes` (evento_id + integrante_id), `integrantes_funcoes` (integrante_id + funcao_id), `musicas_funcoes` (musica_id + funcao_id), `musicas_tags` (musica_id + tag_id)
+  - [x] T001f — Add `Musicas_Tags` relation fields on both `Musicas` (has-many `musicas_tags`) and `Tags` (has-many `musicas_tags`) models
+- [x] T002 [US2] Run Prisma migration and regenerate client — execute `npx prisma migrate dev --name add_tags_telefone_uniques` then `npx prisma generate` from `src/backend/`
 
 ### Backend Structural Refactoring (US3)
 
-- [ ] T003 [P] [US3] Refactor `src/backend/index.js` — replace `require('dotenv').config()` with `import 'dotenv/config'`, replace `const express = require('express')` and `const cors = require('cors')` with ES import syntax, remove `app.use(cors())` and `app.use(express.json())` (these move to app.js), keep only: dotenv import, app import, prisma import, database connection IIFE, and `app.listen()`
-- [ ] T004 [P] [US3] Refactor `src/backend/src/app.js` — replace `const express = require('express')` with `import express from 'express'`, add `import cors from 'cors'`, add `this.app.use(cors())` as first middleware (before urlencoded and json), change route mounting from `this.app.use('/artistas', ...)` to `this.app.use('/api/artistas', ...)` and `this.app.use('/integrantes', ...)` to `this.app.use('/api/integrantes', ...)`
-- [ ] T005 [P] [US3] Refactor `src/backend/src/controllers/artistasController.js` — change all error responses from `{ errors: 'string' }` and `{ errors: ['array'] }` to consistent `{ errors: ["message"] }` array format per FR-008a; verify response structure matches contract in `contracts/base-entities.md`
-- [ ] T006 [P] [US3] Refactor `src/backend/src/controllers/integrantesController.js` — remove `senha` from all Prisma `select` objects (replace with `{ id: true, nome: true, doc_id: true, email: true, telefone: true }`), add `telefone` to all select/response shapes, change all error responses to `{ errors: ["message"] }` array format, remove unused `const { randomInt } = require('crypto')` and `const bcrypt = require('bcryptjs')` — replace with ES import syntax `import { randomInt } from 'crypto'` and `import bcrypt from 'bcryptjs'`
-- [ ] T007 [US3] Verify refactored backend starts successfully — run `npm run dev` from `src/backend/`, confirm `GET /api/artistas` returns 200, confirm `GET /api/integrantes` returns 200 without `senha` field, confirm old paths `/artistas` and `/integrantes` return 404
+- [x] T003 [P] [US3] Refactor `src/backend/index.js` — replace `require('dotenv').config()` with `import 'dotenv/config'`, replace `const express = require('express')` and `const cors = require('cors')` with ES import syntax, remove `app.use(cors())` and `app.use(express.json())` (these move to app.js), keep only: dotenv import, app import, prisma import, database connection IIFE, and `app.listen()`
+- [x] T004 [P] [US3] Refactor `src/backend/src/app.js` — replace `const express = require('express')` with `import express from 'express'`, add `import cors from 'cors'`, add `this.app.use(cors())` as first middleware (before urlencoded and json), change route mounting from `this.app.use('/artistas', ...)` to `this.app.use('/api/artistas', ...)` and `this.app.use('/integrantes', ...)` to `this.app.use('/api/integrantes', ...)`
+- [x] T005 [P] [US3] Refactor `src/backend/src/controllers/artistasController.js` — change all error responses from `{ errors: 'string' }` and `{ errors: ['array'] }` to consistent `{ errors: ["message"] }` array format per FR-008a; verify response structure matches contract in `contracts/base-entities.md`
+- [x] T006 [P] [US3] Refactor `src/backend/src/controllers/integrantesController.js` — remove `senha` from all Prisma `select` objects (replace with `{ id: true, nome: true, doc_id: true, email: true, telefone: true }`), add `telefone` to all select/response shapes, change all error responses to `{ errors: ["message"] }` array format, remove unused `const { randomInt } = require('crypto')` and `const bcrypt = require('bcryptjs')` — replace with ES import syntax `import { randomInt } from 'crypto'` and `import bcrypt from 'bcryptjs'`
+- [x] T007 [US3] Verify refactored backend starts successfully — run `npm run dev` from `src/backend/`, confirm `GET /api/artistas` returns 200, confirm `GET /api/integrantes` returns 200 without `senha` field, confirm old paths `/artistas` and `/integrantes` return 404
 
 **Checkpoint**: Schema updated, migration applied, backend structure clean. Ready for new endpoints.
 
@@ -58,34 +58,34 @@ _(Skipped — project structure, dependencies, and database are already configur
 
 ### Lookup Entity CRUDs (parallel — different files, identical pattern)
 
-- [ ] T008 [P] [US1] Create tonalidades CRUD controller and routes — `src/backend/src/controllers/tonalidadesController.js` (class-based, index/show/create/update/delete, unique `tom` validation, error format `{ errors: [] }`) and `src/backend/src/routes/tonalidadesRoutes.js` (GET /, GET /:id, POST /, PUT /:id, DELETE /:id). Follow contract in `contracts/base-entities.md` Tonalidades section
-- [ ] T009 [P] [US1] Create funcoes CRUD controller and routes — `src/backend/src/controllers/funcoesController.js` (unique `nome` validation) and `src/backend/src/routes/funcoesRoutes.js`. Follow contract in `contracts/base-entities.md` Funcoes section
-- [ ] T010 [P] [US1] Create tags CRUD controller and routes — `src/backend/src/controllers/tagsController.js` (unique `nome` validation) and `src/backend/src/routes/tagsRoutes.js`. Follow contract in `contracts/base-entities.md` Tags section
-- [ ] T011 [P] [US1] Create tipos_eventos CRUD controller and routes — `src/backend/src/controllers/tiposEventosController.js` (unique `nome` validation) and `src/backend/src/routes/tiposEventosRoutes.js`. Follow contract in `contracts/base-entities.md` Tipos_Eventos section
+- [x] T008 [P] [US1] Create tonalidades CRUD controller and routes — `src/backend/src/controllers/tonalidadesController.js` (class-based, index/show/create/update/delete, unique `tom` validation, error format `{ errors: [] }`) and `src/backend/src/routes/tonalidadesRoutes.js` (GET /, GET /:id, POST /, PUT /:id, DELETE /:id). Follow contract in `contracts/base-entities.md` Tonalidades section
+- [x] T009 [P] [US1] Create funcoes CRUD controller and routes — `src/backend/src/controllers/funcoesController.js` (unique `nome` validation) and `src/backend/src/routes/funcoesRoutes.js`. Follow contract in `contracts/base-entities.md` Funcoes section
+- [x] T010 [P] [US1] Create tags CRUD controller and routes — `src/backend/src/controllers/tagsController.js` (unique `nome` validation) and `src/backend/src/routes/tagsRoutes.js`. Follow contract in `contracts/base-entities.md` Tags section
+- [x] T011 [P] [US1] Create tipos_eventos CRUD controller and routes — `src/backend/src/controllers/tiposEventosController.js` (unique `nome` validation) and `src/backend/src/routes/tiposEventosRoutes.js`. Follow contract in `contracts/base-entities.md` Tipos_Eventos section
 
 ### Complex Entity CRUDs (parallel with each other — different files)
 
-- [ ] T012 [P] [US1] Create musicas base CRUD controller and routes — `src/backend/src/controllers/musicasController.js` (index/show/create/update/delete with Prisma `include` for tonalidade, tags, artistas_musicas with artista, and musicas_funcoes with funcao in GET responses) and `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/base-entities.md` Musicas section
-- [ ] T013 [P] [US1] Create eventos base CRUD controller and routes — `src/backend/src/controllers/eventosController.js` (index/show/create/update/delete with Prisma `include` for tipo_evento, eventos_musicas with musica, and eventos_integrantes with integrante in GET responses) and `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/base-entities.md` Eventos section
+- [x] T012 [P] [US1] Create musicas base CRUD controller and routes — `src/backend/src/controllers/musicasController.js` (index/show/create/update/delete with Prisma `include` for tonalidade, tags, artistas_musicas with artista, and musicas_funcoes with funcao in GET responses) and `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/base-entities.md` Musicas section
+- [x] T013 [P] [US1] Create eventos base CRUD controller and routes — `src/backend/src/controllers/eventosController.js` (index/show/create/update/delete with Prisma `include` for tipo_evento, eventos_musicas with musica, and eventos_integrantes with integrante in GET responses) and `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/base-entities.md` Eventos section
 
 ### Junction Endpoints for Musicas (sequential — same files as T012)
 
-- [ ] T014 [US1] Add versoes (artistas_musicas) junction endpoints to musicas — add listVersoes/addVersao/updateVersao/removeVersao methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/PUT/DELETE `/:musicaId/versoes` routes to `src/backend/src/routes/musicasRoutes.js`. Enforce composite unique (artista_id + musica_id), return 409 on duplicate. Follow contract in `contracts/junction-endpoints.md` Versoes section
-- [ ] T015 [US1] Add tags (musicas_tags) junction endpoints to musicas — add listTags/addTag/removeTag methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/DELETE `/:musicaId/tags` routes to `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Musicas_Tags section
-- [ ] T016 [US1] Add funcoes (musicas_funcoes) junction endpoints to musicas — add listFuncoes/addFuncao/removeFuncao methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/DELETE `/:musicaId/funcoes` routes to `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Musicas_Funcoes section
+- [x] T014 [US1] Add versoes (artistas_musicas) junction endpoints to musicas — add listVersoes/addVersao/updateVersao/removeVersao methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/PUT/DELETE `/:musicaId/versoes` routes to `src/backend/src/routes/musicasRoutes.js`. Enforce composite unique (artista_id + musica_id), return 409 on duplicate. Follow contract in `contracts/junction-endpoints.md` Versoes section
+- [x] T015 [US1] Add tags (musicas_tags) junction endpoints to musicas — add listTags/addTag/removeTag methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/DELETE `/:musicaId/tags` routes to `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Musicas_Tags section
+- [x] T016 [US1] Add funcoes (musicas_funcoes) junction endpoints to musicas — add listFuncoes/addFuncao/removeFuncao methods to `src/backend/src/controllers/musicasController.js`, add GET/POST/DELETE `/:musicaId/funcoes` routes to `src/backend/src/routes/musicasRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Musicas_Funcoes section
 
 ### Junction Endpoints for Eventos (sequential — same files as T013)
 
-- [ ] T017 [US1] Add musicas (eventos_musicas) junction endpoints to eventos — add listMusicas/addMusica/removeMusica methods to `src/backend/src/controllers/eventosController.js`, add GET/POST/DELETE `/:eventoId/musicas` routes to `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Eventos_Musicas section
-- [ ] T018 [US1] Add integrantes (eventos_integrantes) junction endpoints to eventos — add listIntegrantes/addIntegrante/removeIntegrante methods to `src/backend/src/controllers/eventosController.js`, add GET/POST/DELETE `/:eventoId/integrantes` routes to `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Eventos_Integrantes section
+- [x] T017 [US1] Add musicas (eventos_musicas) junction endpoints to eventos — add listMusicas/addMusica/removeMusica methods to `src/backend/src/controllers/eventosController.js`, add GET/POST/DELETE `/:eventoId/musicas` routes to `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Eventos_Musicas section
+- [x] T018 [US1] Add integrantes (eventos_integrantes) junction endpoints to eventos — add listIntegrantes/addIntegrante/removeIntegrante methods to `src/backend/src/controllers/eventosController.js`, add GET/POST/DELETE `/:eventoId/integrantes` routes to `src/backend/src/routes/eventosRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Eventos_Integrantes section
 
 ### Junction Endpoints for Integrantes (parallel with T014-T018 — different files)
 
-- [ ] T019 [P] [US1] Add funcoes (integrantes_funcoes) junction endpoints to integrantes — add listFuncoes/addFuncao/removeFuncao methods to `src/backend/src/controllers/integrantesController.js`, add GET/POST/DELETE `/:integranteId/funcoes` routes to `src/backend/src/routes/integrantesRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Integrantes_Funcoes section
+- [x] T019 [P] [US1] Add funcoes (integrantes_funcoes) junction endpoints to integrantes — add listFuncoes/addFuncao/removeFuncao methods to `src/backend/src/controllers/integrantesController.js`, add GET/POST/DELETE `/:integranteId/funcoes` routes to `src/backend/src/routes/integrantesRoutes.js`. Follow contract in `contracts/junction-endpoints.md` Integrantes_Funcoes section
 
 ### Route Registration
 
-- [ ] T020 [US1] Register all new routes in `src/backend/src/app.js` — import musicasRoutes, tonalidadesRoutes, funcoesRoutes, tagsRoutes, tiposEventosRoutes, eventosRoutes and mount them under `/api/musicas`, `/api/tonalidades`, `/api/funcoes`, `/api/tags`, `/api/tipos-eventos`, `/api/eventos` respectively
+- [x] T020 [US1] Register all new routes in `src/backend/src/app.js` — import musicasRoutes, tonalidadesRoutes, funcoesRoutes, tagsRoutes, tiposEventosRoutes, eventosRoutes and mount them under `/api/musicas`, `/api/tonalidades`, `/api/funcoes`, `/api/tags`, `/api/tipos-eventos`, `/api/eventos` respectively
 
 **Checkpoint**: All 8 base entities and 6 junction tables have working API endpoints. US1 is fully functional and testable via quickstart.md smoke commands.
 
@@ -99,11 +99,11 @@ _(Skipped — project structure, dependencies, and database are already configur
 
 ### Implementation (all parallel — different files)
 
-- [ ] T021 [P] [US4] Update `src/frontend/src/components/AppSidebar.tsx` — change "EscalaCanto" to "LouvorFlow" in the sidebar header text (appears in both collapsed and expanded states)
-- [ ] T022 [P] [US4] Update `src/frontend/src/pages/Songs.tsx` — restructure mock data from flat `{ id, title, artist, key, bpm, tags }` to ER-aligned shape: `{ id, nome, tonalidade: { id, tom }, versoes: [{ id, artista: { id, nome }, bpm, cifras }], tags: [{ id, nome }] }`. Update JSX to render from new shape (song.nome, song.tonalidade.tom, song.versoes[0].artista.nome, etc.)
-- [ ] T023 [P] [US4] Update `src/frontend/src/pages/Members.tsx` — replace mock data from `{ id, name, role, email, phone, instruments }` to ER-aligned shape: `{ id, nome, doc_id, email, telefone, funcoes: [{ id, nome }] }`. Remove `phone` and `instruments` fields, add `telefone` and `funcoes` array. Update JSX to render funcoes as badges instead of instruments
-- [ ] T024 [P] [US4] Update `src/frontend/src/pages/Scales.tsx` — replace mock data from `{ id, date, service, minister, singers, musicians, songs, status }` to ER-aligned shape: `{ id, data, descricao, tipoEvento: { id, nome }, musicas: [{ id, nome }], integrantes: [{ id, nome, funcoes: [{ nome }] }] }`. Update JSX to render from new shape
-- [ ] T025 [P] [US4] Update `src/frontend/src/pages/Dashboard.tsx` — align stats mock data to use entity counts matching API shapes; update recent scales section to use `{ data, tipoEvento: { nome }, musicas: [...], integrantes: [...] }` shape; update trending songs to use `{ nome, tonalidade: { tom } }` shape
+- [x] T021 [P] [US4] Update `src/frontend/src/components/AppSidebar.tsx` — change "EscalaCanto" to "LouvorFlow" in the sidebar header text (appears in both collapsed and expanded states)
+- [x] T022 [P] [US4] Update `src/frontend/src/pages/Songs.tsx` — restructure mock data from flat `{ id, title, artist, key, bpm, tags }` to ER-aligned shape: `{ id, nome, tonalidade: { id, tom }, versoes: [{ id, artista: { id, nome }, bpm, cifras }], tags: [{ id, nome }] }`. Update JSX to render from new shape (song.nome, song.tonalidade.tom, song.versoes[0].artista.nome, etc.)
+- [x] T023 [P] [US4] Update `src/frontend/src/pages/Members.tsx` — replace mock data from `{ id, name, role, email, phone, instruments }` to ER-aligned shape: `{ id, nome, doc_id, email, telefone, funcoes: [{ id, nome }] }`. Remove `phone` and `instruments` fields, add `telefone` and `funcoes` array. Update JSX to render funcoes as badges instead of instruments
+- [x] T024 [P] [US4] Update `src/frontend/src/pages/Scales.tsx` — replace mock data from `{ id, date, service, minister, singers, musicians, songs, status }` to ER-aligned shape: `{ id, data, descricao, tipoEvento: { id, nome }, musicas: [{ id, nome }], integrantes: [{ id, nome, funcoes: [{ nome }] }] }`. Update JSX to render from new shape
+- [x] T025 [P] [US4] Update `src/frontend/src/pages/Dashboard.tsx` — align stats mock data to use entity counts matching API shapes; update recent scales section to use `{ data, tipoEvento: { nome }, musicas: [...], integrantes: [...] }` shape; update trending songs to use `{ nome, tonalidade: { tom } }` shape
 
 **Checkpoint**: All frontend pages display data matching ER model entities. Sidebar reads "LouvorFlow".
 
@@ -113,8 +113,8 @@ _(Skipped — project structure, dependencies, and database are already configur
 
 **Purpose**: Final validation across all stories.
 
-- [ ] T026 Run quickstart.md smoke test — start database, backend, and frontend; execute all curl commands from `specs/001-schema-api-alignment/quickstart.md`; verify all endpoints return expected responses
-- [ ] T027 Final validation sweep — grep all `src/backend/` files for `require(` to confirm zero CommonJS imports; grep `integrantesController.js` for `senha` to confirm it only appears in password hashing logic (create/update), never in select/response; verify all routes use `/api/` prefix; confirm `{ errors: [] }` format in all controllers
+- [x] T026 Run quickstart.md smoke test — start database, backend, and frontend; execute all curl commands from `specs/001-schema-api-alignment/quickstart.md`; verify all endpoints return expected responses
+- [x] T027 Final validation sweep — grep all `src/backend/` files for `require(` to confirm zero CommonJS imports; grep `integrantesController.js` for `senha` to confirm it only appears in password hashing logic (create/update), never in select/response; verify all routes use `/api/` prefix; confirm `{ errors: [] }` format in all controllers
 
 ---
 
