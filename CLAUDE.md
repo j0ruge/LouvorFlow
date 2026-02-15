@@ -1,4 +1,4 @@
-
+﻿
 # Padrão de Arquitetura
 
 ## Visão Geral
