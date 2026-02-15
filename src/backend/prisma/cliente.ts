@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
-// R-005: Safety net — strip `senha` from all Integrantes query results
+/**
+ * Creates a PrismaClient instance extended so that all integrantes query results have the `senha` field removed.
+ *
+ * @returns A PrismaClient augmented with a query-level extension that strips the `senha` property from integrantes query results.
+ */
 function createPrismaClient() {
     return new PrismaClient().$extends({
         query: {
