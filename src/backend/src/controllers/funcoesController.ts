@@ -1,23 +1,25 @@
+import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
 class funcaoController {
-    async index(req, res) {
+    async index(req: Request, res: Response): Promise<void> {
         try {
             const funcoes = await prisma.funcoes.findMany({
                 select: { id: true, nome: true }
             });
-            return res.status(200).json(funcoes);
+            res.status(200).json(funcoes);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar funções"] });
+            res.status(500).json({ errors: ["Erro ao buscar funções"] });
         }
     }
 
-    async show(req, res) {
+    async show(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de função não enviado"] });
+                res.status(400).json({ errors: ["ID de função não enviado"] });
+                return;
             }
 
             const funcao = await prisma.funcoes.findUnique({
@@ -26,27 +28,30 @@ class funcaoController {
             });
 
             if (!funcao) {
-                return res.status(404).json({ errors: ["A função não foi encontrada ou não existe"] });
+                res.status(404).json({ errors: ["A função não foi encontrada ou não existe"] });
+                return;
             }
 
-            return res.status(200).json(funcao);
+            res.status(200).json(funcao);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar função"] });
+            res.status(500).json({ errors: ["Erro ao buscar função"] });
         }
     }
 
-    async create(req, res) {
+    async create(req: Request, res: Response): Promise<void> {
         try {
             const { nome } = req.body;
 
             if (!nome) {
-                return res.status(400).json({ errors: ["Nome da função é obrigatório"] });
+                res.status(400).json({ errors: ["Nome da função é obrigatório"] });
+                return;
             }
 
             const existente = await prisma.funcoes.findUnique({ where: { nome } });
 
             if (existente) {
-                return res.status(409).json({ errors: ["Já existe uma função com esse nome"] });
+                res.status(409).json({ errors: ["Já existe uma função com esse nome"] });
+                return;
             }
 
             const nova = await prisma.funcoes.create({
@@ -54,33 +59,36 @@ class funcaoController {
                 select: { id: true, nome: true }
             });
 
-            return res.status(201).json({
+            res.status(201).json({
                 msg: "Função criada com sucesso",
                 funcao: nova
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao criar função"] });
+            res.status(500).json({ errors: ["Erro ao criar função"] });
         }
     }
 
-    async update(req, res) {
+    async update(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de função não enviado"] });
+                res.status(400).json({ errors: ["ID de função não enviado"] });
+                return;
             }
 
             const existente = await prisma.funcoes.findUnique({ where: { id } });
 
             if (!existente) {
-                return res.status(404).json({ errors: ["Função com esse ID não existe ou não foi encontrada"] });
+                res.status(404).json({ errors: ["Função com esse ID não existe ou não foi encontrada"] });
+                return;
             }
 
             const { nome } = req.body;
 
             if (!nome) {
-                return res.status(400).json({ errors: ["Nome da função é obrigatório"] });
+                res.status(400).json({ errors: ["Nome da função é obrigatório"] });
+                return;
             }
 
             const funcao = await prisma.funcoes.update({
@@ -89,21 +97,22 @@ class funcaoController {
                 select: { id: true, nome: true }
             });
 
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Função editada com sucesso",
                 funcao
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao editar função"] });
+            res.status(500).json({ errors: ["Erro ao editar função"] });
         }
     }
 
-    async delete(req, res) {
+    async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de função não enviado"] });
+                res.status(400).json({ errors: ["ID de função não enviado"] });
+                return;
             }
 
             const funcao = await prisma.funcoes.findUnique({
@@ -112,16 +121,17 @@ class funcaoController {
             });
 
             if (!funcao) {
-                return res.status(404).json({ errors: ["A função não foi encontrada ou não existe"] });
+                res.status(404).json({ errors: ["A função não foi encontrada ou não existe"] });
+                return;
             }
 
             await prisma.funcoes.delete({ where: { id } });
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Função deletada com sucesso",
                 funcao
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao deletar função"] });
+            res.status(500).json({ errors: ["Erro ao deletar função"] });
         }
     }
 }

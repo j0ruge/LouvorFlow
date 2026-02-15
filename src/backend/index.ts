@@ -2,7 +2,7 @@ import 'dotenv/config';
 import app from './src/app.js';
 import prisma from './prisma/cliente.js';
 
-(async () => {
+(async (): Promise<void> => {
     try {
         await prisma.$connect();
         console.log('Conectado ao banco de dados com sucesso!');

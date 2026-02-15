@@ -1,23 +1,25 @@
+import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
 class tipoEventoController {
-    async index(req, res) {
+    async index(req: Request, res: Response): Promise<void> {
         try {
             const tiposEventos = await prisma.tipos_Eventos.findMany({
                 select: { id: true, nome: true }
             });
-            return res.status(200).json(tiposEventos);
+            res.status(200).json(tiposEventos);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar tipos de eventos"] });
+            res.status(500).json({ errors: ["Erro ao buscar tipos de eventos"] });
         }
     }
 
-    async show(req, res) {
+    async show(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                return;
             }
 
             const tipoEvento = await prisma.tipos_Eventos.findUnique({
@@ -26,27 +28,30 @@ class tipoEventoController {
             });
 
             if (!tipoEvento) {
-                return res.status(404).json({ errors: ["O tipo de evento não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O tipo de evento não foi encontrado ou não existe"] });
+                return;
             }
 
-            return res.status(200).json(tipoEvento);
+            res.status(200).json(tipoEvento);
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar tipo de evento"] });
+            res.status(500).json({ errors: ["Erro ao buscar tipo de evento"] });
         }
     }
 
-    async create(req, res) {
+    async create(req: Request, res: Response): Promise<void> {
         try {
             const { nome } = req.body;
 
             if (!nome) {
-                return res.status(400).json({ errors: ["Nome do tipo de evento é obrigatório"] });
+                res.status(400).json({ errors: ["Nome do tipo de evento é obrigatório"] });
+                return;
             }
 
             const existente = await prisma.tipos_Eventos.findUnique({ where: { nome } });
 
             if (existente) {
-                return res.status(409).json({ errors: ["Já existe um tipo de evento com esse nome"] });
+                res.status(409).json({ errors: ["Já existe um tipo de evento com esse nome"] });
+                return;
             }
 
             const novo = await prisma.tipos_Eventos.create({
@@ -54,33 +59,36 @@ class tipoEventoController {
                 select: { id: true, nome: true }
             });
 
-            return res.status(201).json({
+            res.status(201).json({
                 msg: "Tipo de evento criado com sucesso",
                 tipoEvento: novo
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao criar tipo de evento"] });
+            res.status(500).json({ errors: ["Erro ao criar tipo de evento"] });
         }
     }
 
-    async update(req, res) {
+    async update(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                return;
             }
 
             const existente = await prisma.tipos_Eventos.findUnique({ where: { id } });
 
             if (!existente) {
-                return res.status(404).json({ errors: ["Tipo de evento com esse ID não existe ou não foi encontrado"] });
+                res.status(404).json({ errors: ["Tipo de evento com esse ID não existe ou não foi encontrado"] });
+                return;
             }
 
             const { nome } = req.body;
 
             if (!nome) {
-                return res.status(400).json({ errors: ["Nome do tipo de evento é obrigatório"] });
+                res.status(400).json({ errors: ["Nome do tipo de evento é obrigatório"] });
+                return;
             }
 
             const tipoEvento = await prisma.tipos_Eventos.update({
@@ -89,21 +97,22 @@ class tipoEventoController {
                 select: { id: true, nome: true }
             });
 
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Tipo de evento editado com sucesso",
                 tipoEvento
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao editar tipo de evento"] });
+            res.status(500).json({ errors: ["Erro ao editar tipo de evento"] });
         }
     }
 
-    async delete(req, res) {
+    async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de tipo de evento não enviado"] });
+                return;
             }
 
             const tipoEvento = await prisma.tipos_Eventos.findUnique({
@@ -112,16 +121,17 @@ class tipoEventoController {
             });
 
             if (!tipoEvento) {
-                return res.status(404).json({ errors: ["O tipo de evento não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O tipo de evento não foi encontrado ou não existe"] });
+                return;
             }
 
             await prisma.tipos_Eventos.delete({ where: { id } });
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Tipo de evento deletado com sucesso",
                 tipoEvento
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao deletar tipo de evento"] });
+            res.status(500).json({ errors: ["Erro ao deletar tipo de evento"] });
         }
     }
 }

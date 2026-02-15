@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import tiposEventosController from '../controllers/tiposEventosController.js';
 
-const router = Router();
+const router: Router = Router();
 
 router.get('/', tiposEventosController.index);
 router.get('/:id', tiposEventosController.show);

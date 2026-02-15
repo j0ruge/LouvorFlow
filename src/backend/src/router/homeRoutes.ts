@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import homeController from '../controllers/homeController.js';
 
-const router = Router();
+const router: Router = Router();
 
 // Rotas de Home
 router.get('/', homeController.index);

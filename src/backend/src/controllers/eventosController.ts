@@ -1,3 +1,4 @@
+import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
 const EVENTO_INDEX_SELECT = {
@@ -21,7 +22,7 @@ const EVENTO_INDEX_SELECT = {
             }
         }
     }
-};
+} as const;
 
 const EVENTO_SHOW_SELECT = {
     id: true,
@@ -60,9 +61,49 @@ const EVENTO_SHOW_SELECT = {
             }
         }
     }
-};
+} as const;
 
-function formatEventoIndex(e) {
+interface IdNome {
+    id: string;
+    nome: string;
+}
+
+interface IdTom {
+    id: string;
+    tom: string;
+}
+
+interface EventoIndexRaw {
+    id: string;
+    data: Date;
+    descricao: string;
+    eventos_fk_tipo_evento_fkey: IdNome | null;
+    Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
+    Eventos_Integrantes: { eventos_integrantes_musico_id_fkey: IdNome }[];
+}
+
+interface EventoShowMusica {
+    id: string;
+    nome: string;
+    musicas_fk_tonalidade_fkey: IdTom | null;
+}
+
+interface EventoShowIntegrante {
+    id: string;
+    nome: string;
+    Integrantes_Funcoes: { integrantes_funcoes_funcao_id_fkey: IdNome }[];
+}
+
+interface EventoShowRaw {
+    id: string;
+    data: Date;
+    descricao: string;
+    eventos_fk_tipo_evento_fkey: IdNome | null;
+    Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
+    Eventos_Integrantes: { eventos_integrantes_musico_id_fkey: EventoShowIntegrante }[];
+}
+
+function formatEventoIndex(e: EventoIndexRaw) {
     return {
         id: e.id,
         data: e.data,
@@ -73,7 +114,7 @@ function formatEventoIndex(e) {
     };
 }
 
-function formatEventoShow(e) {
+function formatEventoShow(e: EventoShowRaw) {
     return {
         id: e.id,
         data: e.data,
@@ -101,25 +142,26 @@ function formatEventoShow(e) {
 class eventoController {
     // --- Base CRUD ---
 
-    async index(req, res) {
+    async index(req: Request, res: Response): Promise<void> {
         try {
             const eventos = await prisma.eventos.findMany({
                 select: EVENTO_INDEX_SELECT,
                 orderBy: { data: 'desc' }
             });
 
-            return res.status(200).json(eventos.map(formatEventoIndex));
+            res.status(200).json(eventos.map(formatEventoIndex));
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar eventos"] });
+            res.status(500).json({ errors: ["Erro ao buscar eventos"] });
         }
     }
 
-    async show(req, res) {
+    async show(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de evento não enviado"] });
+                return;
             }
 
             const evento = await prisma.eventos.findUnique({
@@ -128,26 +170,28 @@ class eventoController {
             });
 
             if (!evento) {
-                return res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                return;
             }
 
-            return res.status(200).json(formatEventoShow(evento));
+            res.status(200).json(formatEventoShow(evento));
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar evento"] });
+            res.status(500).json({ errors: ["Erro ao buscar evento"] });
         }
     }
 
-    async create(req, res) {
+    async create(req: Request, res: Response): Promise<void> {
         try {
             const { data, fk_tipo_evento, descricao } = req.body;
-            const errors = [];
+            const errors: string[] = [];
 
             if (!data) errors.push("Data do evento é obrigatória");
             if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
             if (!descricao) errors.push("Descrição do evento é obrigatória");
 
             if (errors.length > 0) {
-                return res.status(400).json({ errors });
+                res.status(400).json({ errors });
+                return;
             }
 
             const evento = await prisma.eventos.create({
@@ -162,7 +206,7 @@ class eventoController {
                 }
             });
 
-            return res.status(201).json({
+            res.status(201).json({
                 msg: "Evento criado com sucesso",
                 evento: {
                     id: evento.id,
@@ -172,26 +216,28 @@ class eventoController {
                 }
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao criar evento"] });
+            res.status(500).json({ errors: ["Erro ao criar evento"] });
         }
     }
 
-    async update(req, res) {
+    async update(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de evento não enviado"] });
+                return;
             }
 
             const existente = await prisma.eventos.findUnique({ where: { id } });
 
             if (!existente) {
-                return res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                return;
             }
 
             const { data, fk_tipo_evento, descricao } = req.body;
-            const updateData = {};
+            const updateData: Record<string, unknown> = {};
             if (data !== undefined) updateData.data = new Date(data);
             if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
             if (descricao !== undefined) updateData.descricao = descricao;
@@ -209,7 +255,7 @@ class eventoController {
                 }
             });
 
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Evento editado com sucesso",
                 evento: {
                     id: evento.id,
@@ -219,16 +265,17 @@ class eventoController {
                 }
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao editar evento"] });
+            res.status(500).json({ errors: ["Erro ao editar evento"] });
         }
     }
 
-    async delete(req, res) {
+    async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const { id } = req.params;
 
             if (!id) {
-                return res.status(400).json({ errors: ["ID de evento não enviado"] });
+                res.status(400).json({ errors: ["ID de evento não enviado"] });
+                return;
             }
 
             const evento = await prisma.eventos.findUnique({
@@ -237,22 +284,23 @@ class eventoController {
             });
 
             if (!evento) {
-                return res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                res.status(404).json({ errors: ["O evento não foi encontrado ou não existe"] });
+                return;
             }
 
             await prisma.eventos.delete({ where: { id } });
-            return res.status(200).json({
+            res.status(200).json({
                 msg: "Evento deletado com sucesso",
                 evento
             });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao deletar evento"] });
+            res.status(500).json({ errors: ["Erro ao deletar evento"] });
         }
     }
 
     // --- Junction: Musicas (eventos_musicas) ---
 
-    async listMusicas(req, res) {
+    async listMusicas(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId } = req.params;
 
@@ -271,7 +319,7 @@ class eventoController {
                 }
             });
 
-            return res.status(200).json(musicas.map(m => {
+            res.status(200).json(musicas.map(m => {
                 const musica = m.eventos_musicas_musicas_id_fkey;
                 return {
                     id: musica.id,
@@ -280,17 +328,18 @@ class eventoController {
                 };
             }));
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar músicas do evento"] });
+            res.status(500).json({ errors: ["Erro ao buscar músicas do evento"] });
         }
     }
 
-    async addMusica(req, res) {
+    async addMusica(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId } = req.params;
             const { musicas_id } = req.body;
 
             if (!musicas_id) {
-                return res.status(400).json({ errors: ["ID da música é obrigatório"] });
+                res.status(400).json({ errors: ["ID da música é obrigatório"] });
+                return;
             }
 
             const existente = await prisma.eventos_Musicas.findUnique({
@@ -298,20 +347,21 @@ class eventoController {
             });
 
             if (existente) {
-                return res.status(409).json({ errors: ["Registro duplicado"] });
+                res.status(409).json({ errors: ["Registro duplicado"] });
+                return;
             }
 
             await prisma.eventos_Musicas.create({
                 data: { evento_id: eventoId, musicas_id }
             });
 
-            return res.status(201).json({ msg: "Música adicionada ao evento com sucesso" });
+            res.status(201).json({ msg: "Música adicionada ao evento com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao adicionar música ao evento"] });
+            res.status(500).json({ errors: ["Erro ao adicionar música ao evento"] });
         }
     }
 
-    async removeMusica(req, res) {
+    async removeMusica(req: Request<{ eventoId: string; musicaId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId, musicaId } = req.params;
 
@@ -320,19 +370,20 @@ class eventoController {
             });
 
             if (!registro) {
-                return res.status(404).json({ errors: ["Registro não encontrado"] });
+                res.status(404).json({ errors: ["Registro não encontrado"] });
+                return;
             }
 
             await prisma.eventos_Musicas.delete({ where: { id: registro.id } });
-            return res.status(200).json({ msg: "Música removida do evento com sucesso" });
+            res.status(200).json({ msg: "Música removida do evento com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao remover música do evento"] });
+            res.status(500).json({ errors: ["Erro ao remover música do evento"] });
         }
     }
 
     // --- Junction: Integrantes (eventos_integrantes) ---
 
-    async listIntegrantes(req, res) {
+    async listIntegrantes(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId } = req.params;
 
@@ -355,7 +406,7 @@ class eventoController {
                 }
             });
 
-            return res.status(200).json(integrantes.map(i => {
+            res.status(200).json(integrantes.map(i => {
                 const integrante = i.eventos_integrantes_musico_id_fkey;
                 return {
                     id: integrante.id,
@@ -364,17 +415,18 @@ class eventoController {
                 };
             }));
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao buscar integrantes do evento"] });
+            res.status(500).json({ errors: ["Erro ao buscar integrantes do evento"] });
         }
     }
 
-    async addIntegrante(req, res) {
+    async addIntegrante(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId } = req.params;
             const { musico_id } = req.body;
 
             if (!musico_id) {
-                return res.status(400).json({ errors: ["ID do integrante é obrigatório"] });
+                res.status(400).json({ errors: ["ID do integrante é obrigatório"] });
+                return;
             }
 
             const existente = await prisma.eventos_Integrantes.findUnique({
@@ -382,20 +434,21 @@ class eventoController {
             });
 
             if (existente) {
-                return res.status(409).json({ errors: ["Registro duplicado"] });
+                res.status(409).json({ errors: ["Registro duplicado"] });
+                return;
             }
 
             await prisma.eventos_Integrantes.create({
                 data: { evento_id: eventoId, musico_id }
             });
 
-            return res.status(201).json({ msg: "Integrante adicionado ao evento com sucesso" });
+            res.status(201).json({ msg: "Integrante adicionado ao evento com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao adicionar integrante ao evento"] });
+            res.status(500).json({ errors: ["Erro ao adicionar integrante ao evento"] });
         }
     }
 
-    async removeIntegrante(req, res) {
+    async removeIntegrante(req: Request<{ eventoId: string; integranteId: string }>, res: Response): Promise<void> {
         try {
             const { eventoId, integranteId } = req.params;
 
@@ -404,13 +457,14 @@ class eventoController {
             });
 
             if (!registro) {
-                return res.status(404).json({ errors: ["Registro não encontrado"] });
+                res.status(404).json({ errors: ["Registro não encontrado"] });
+                return;
             }
 
             await prisma.eventos_Integrantes.delete({ where: { id: registro.id } });
-            return res.status(200).json({ msg: "Integrante removido do evento com sucesso" });
+            res.status(200).json({ msg: "Integrante removido do evento com sucesso" });
         } catch (error) {
-            return res.status(500).json({ errors: ["Erro ao remover integrante do evento"] });
+            res.status(500).json({ errors: ["Erro ao remover integrante do evento"] });
         }
     }
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import integrantesController from '../controllers/integrantesController.js';
 
-const router = Router();
+const router: Router = Router();
 
 // Base CRUD
 router.get('/', integrantesController.index);
