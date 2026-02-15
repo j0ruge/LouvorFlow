@@ -27,7 +27,7 @@ interface IntegranteWithFuncoes {
     }[];
 }
 
-class integranteController {
+class IntegranteController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const integrantes = await prisma.integrantes.findMany({
@@ -299,4 +299,4 @@ class integranteController {
     }
 }
 
-export default new integranteController();
+export default new IntegranteController();

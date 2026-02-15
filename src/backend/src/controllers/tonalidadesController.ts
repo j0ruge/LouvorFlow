@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
-class tonalidadeController {
+class TonalidadeController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const tonalidades = await prisma.tonalidades.findMany({
@@ -142,4 +142,4 @@ class tonalidadeController {
     }
 }
 
-export default new tonalidadeController();
+export default new TonalidadeController();

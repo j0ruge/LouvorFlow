@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/cliente.js';
 
-class artistaController {
+class ArtistaController {
     async index(req: Request, res: Response): Promise<void> {
         try {
             const artistas = await prisma.artistas.findMany({
@@ -152,4 +152,4 @@ class artistaController {
     }
 }
 
-export default new artistaController();
+export default new ArtistaController();
