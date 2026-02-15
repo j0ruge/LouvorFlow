@@ -1,4 +1,4 @@
-import express, { Express } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
 import homeRoutes from './router/homeRoutes.js';
@@ -18,6 +18,7 @@ class App {
         this.app = express();
         this.middlewares();
         this.routes();
+        this.errorHandler();
     }
     middlewares(): void {
         this.app.use(cors());
@@ -34,6 +35,11 @@ class App {
         this.app.use('/api/tags', tagsRoutes);
         this.app.use('/api/tipos-eventos', tiposEventosRoutes);
         this.app.use('/api/eventos', eventosRoutes);
+    }
+    errorHandler(): void {
+        this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+            res.status(500).json({ errors: [err.message || "Erro interno do servidor"] });
+        });
     }
 }
 

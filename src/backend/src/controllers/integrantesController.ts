@@ -97,7 +97,8 @@ class integranteController {
 
     async create(req: Request, res: Response): Promise<void> {
         try {
-            const { nome, doc_id, email, senha, telefone } = req.body;
+            const { nome, email, senha, telefone } = req.body;
+            const doc_id = req.body.doc_id?.replace(/\D/g, '');
 
             if (!nome || !doc_id || !email || !senha) {
                 res.status(400).json({ errors: ["Dados não enviados"] });
@@ -149,7 +150,8 @@ class integranteController {
                 return;
             }
 
-            const { nome, doc_id, email, senha, telefone } = req.body;
+            const { nome, email, senha, telefone } = req.body;
+            const doc_id = req.body.doc_id !== undefined ? req.body.doc_id.replace(/\D/g, '') : undefined;
 
             if (doc_id !== undefined) {
                 const duplicado = await prisma.integrantes.findFirst({ where: { doc_id, NOT: { id } } });

@@ -51,6 +51,8 @@ Códigos de status HTTP apropriados (200, 201, 400, 401, 404, 500).
 Versionamento por URL (/v1/, /v2/) para mudanças quebradoras.
 Gerenciamento de Contexto com Regras Condicionais:
 Use o diretório .claude/rules/ para regras específicas de domínio. Exemplo para APIs REST
+Garantia uma boa Docstring Coverage?
+
 ---
 
 paths: src/api/**/*.ts

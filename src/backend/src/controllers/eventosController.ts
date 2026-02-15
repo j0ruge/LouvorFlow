@@ -254,6 +254,11 @@ class eventoController {
             if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
             if (descricao !== undefined) updateData.descricao = descricao;
 
+            if (Object.keys(updateData).length === 0) {
+                res.status(400).json({ errors: ["Ao menos um campo deve ser enviado para atualização"] });
+                return;
+            }
+
             const evento = await prisma.eventos.update({
                 where: { id },
                 data: updateData,

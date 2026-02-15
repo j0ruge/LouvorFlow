@@ -63,7 +63,23 @@ interface MusicaRaw {
     Musicas_Funcoes: { musicas_funcoes_funcao_id_fkey: IdNome }[];
 }
 
-function formatMusica(m: MusicaRaw) {
+interface Musica {
+    id: string;
+    nome: string;
+    tonalidade: IdTom | null;
+    tags: IdNome[];
+    versoes: {
+        id: string;
+        artista: IdNome;
+        bpm: number | null;
+        cifras: string | null;
+        lyrics: string | null;
+        link_versao: string | null;
+    }[];
+    funcoes: IdNome[];
+}
+
+function formatMusica(m: MusicaRaw): Musica {
     return {
         id: m.id,
         nome: m.nome,
