@@ -91,6 +91,12 @@ class tipoEventoController {
                 return;
             }
 
+            const duplicado = await prisma.tipos_Eventos.findFirst({ where: { nome, NOT: { id } } });
+            if (duplicado) {
+                res.status(409).json({ errors: ["Nome do tipo de evento já existe"] });
+                return;
+            }
+
             const tipoEvento = await prisma.tipos_Eventos.update({
                 where: { id },
                 data: { nome },

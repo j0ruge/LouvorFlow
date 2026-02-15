@@ -294,6 +294,18 @@ class musicaController {
                 return;
             }
 
+            const musicaExiste = await prisma.musicas.findUnique({ where: { id: musicaId } });
+            if (!musicaExiste) {
+                res.status(404).json({ errors: ["Música não encontrada"] });
+                return;
+            }
+
+            const artistaExiste = await prisma.artistas.findUnique({ where: { id: artista_id } });
+            if (!artistaExiste) {
+                res.status(404).json({ errors: ["Artista não encontrado"] });
+                return;
+            }
+
             const existente = await prisma.artistas_Musicas.findUnique({
                 where: { artista_id_musica_id: { artista_id, musica_id: musicaId } }
             });
@@ -431,6 +443,18 @@ class musicaController {
                 return;
             }
 
+            const musicaExiste = await prisma.musicas.findUnique({ where: { id: musicaId } });
+            if (!musicaExiste) {
+                res.status(404).json({ errors: ["Música não encontrada"] });
+                return;
+            }
+
+            const tagExiste = await prisma.tags.findUnique({ where: { id: tag_id } });
+            if (!tagExiste) {
+                res.status(404).json({ errors: ["Tag não encontrada"] });
+                return;
+            }
+
             const existente = await prisma.musicas_Tags.findUnique({
                 where: { musica_id_tag_id: { musica_id: musicaId, tag_id } }
             });
@@ -498,6 +522,18 @@ class musicaController {
 
             if (!funcao_id) {
                 res.status(400).json({ errors: ["ID da função é obrigatório"] });
+                return;
+            }
+
+            const musicaExiste = await prisma.musicas.findUnique({ where: { id: musicaId } });
+            if (!musicaExiste) {
+                res.status(404).json({ errors: ["Música não encontrada"] });
+                return;
+            }
+
+            const funcaoExiste = await prisma.funcoes.findUnique({ where: { id: funcao_id } });
+            if (!funcaoExiste) {
+                res.status(404).json({ errors: ["Função não encontrada"] });
                 return;
             }
 

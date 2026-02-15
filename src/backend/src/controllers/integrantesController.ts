@@ -150,6 +150,15 @@ class integranteController {
             }
 
             const { nome, doc_id, email, senha, telefone } = req.body;
+
+            if (doc_id !== undefined) {
+                const duplicado = await prisma.integrantes.findFirst({ where: { doc_id, NOT: { id } } });
+                if (duplicado) {
+                    res.status(409).json({ errors: ["Já existe um integrante com esse doc_id"] });
+                    return;
+                }
+            }
+
             const updateData: Record<string, unknown> = {};
             if (nome !== undefined) updateData.nome = nome;
             if (doc_id !== undefined) updateData.doc_id = doc_id;
@@ -233,6 +242,18 @@ class integranteController {
 
             if (!funcao_id) {
                 res.status(400).json({ errors: ["ID da função é obrigatório"] });
+                return;
+            }
+
+            const integranteExiste = await prisma.integrantes.findUnique({ where: { id: integranteId } });
+            if (!integranteExiste) {
+                res.status(404).json({ errors: ["Integrante não encontrado"] });
+                return;
+            }
+
+            const funcaoExiste = await prisma.funcoes.findUnique({ where: { id: funcao_id } });
+            if (!funcaoExiste) {
+                res.status(404).json({ errors: ["Função não encontrada"] });
                 return;
             }
 

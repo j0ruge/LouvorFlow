@@ -1,11 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(*)",
-      "Read(*)",
-      "Write(*)",
-      "Edit(*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(docker compose:*)",
+      "Read(src/**)",
+      "Read(specs/**)",
+      "Read(infra/**)",
+      "Read(doc/**)",
+      "Read(CLAUDE.md)",
+      "Read(.gitignore)",
+      "Write(src/**)",
+      "Write(specs/**)",
+      "Write(infra/**)",
+      "Edit(src/**)",
+      "Edit(specs/**)",
+      "Edit(infra/**)",
+      "Edit(CLAUDE.md)"
     ]
   }
 }

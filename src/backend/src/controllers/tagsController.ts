@@ -91,6 +91,12 @@ class tagController {
                 return;
             }
 
+            const duplicado = await prisma.tags.findFirst({ where: { nome, NOT: { id } } });
+            if (duplicado) {
+                res.status(409).json({ errors: ["Nome da tag já existe"] });
+                return;
+            }
+
             const tag = await prisma.tags.update({
                 where: { id },
                 data: { nome },

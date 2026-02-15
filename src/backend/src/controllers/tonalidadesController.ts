@@ -91,6 +91,12 @@ class tonalidadeController {
                 return;
             }
 
+            const duplicado = await prisma.tonalidades.findFirst({ where: { tom, NOT: { id } } });
+            if (duplicado) {
+                res.status(409).json({ errors: ["Tom já existe"] });
+                return;
+            }
+
             const tonalidade = await prisma.tonalidades.update({
                 where: { id },
                 data: { tom },

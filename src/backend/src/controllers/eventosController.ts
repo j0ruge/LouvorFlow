@@ -189,13 +189,19 @@ class eventoController {
             if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
             if (!descricao) errors.push("Descrição do evento é obrigatória");
 
+            if (data && isNaN(Date.parse(String(data)))) {
+                errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
+            }
+
             if (errors.length > 0) {
                 res.status(400).json({ errors });
                 return;
             }
 
+            const parsedDate = new Date(data);
+
             const evento = await prisma.eventos.create({
-                data: { data: new Date(data), fk_tipo_evento, descricao },
+                data: { data: parsedDate, fk_tipo_evento, descricao },
                 select: {
                     id: true,
                     data: true,
@@ -237,6 +243,12 @@ class eventoController {
             }
 
             const { data, fk_tipo_evento, descricao } = req.body;
+
+            if (data !== undefined && isNaN(Date.parse(String(data)))) {
+                res.status(400).json({ errors: ["Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)"] });
+                return;
+            }
+
             const updateData: Record<string, unknown> = {};
             if (data !== undefined) updateData.data = new Date(data);
             if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
@@ -342,6 +354,12 @@ class eventoController {
                 return;
             }
 
+            const musica = await prisma.musicas.findUnique({ where: { id: musicas_id } });
+            if (!musica) {
+                res.status(404).json({ errors: ["Música não encontrada"] });
+                return;
+            }
+
             const existente = await prisma.eventos_Musicas.findUnique({
                 where: { evento_id_musicas_id: { evento_id: eventoId, musicas_id } }
             });
@@ -426,6 +444,12 @@ class eventoController {
 
             if (!musico_id) {
                 res.status(400).json({ errors: ["ID do integrante é obrigatório"] });
+                return;
+            }
+
+            const integrante = await prisma.integrantes.findUnique({ where: { id: musico_id } });
+            if (!integrante) {
+                res.status(404).json({ errors: ["Integrante não encontrado"] });
                 return;
             }
 

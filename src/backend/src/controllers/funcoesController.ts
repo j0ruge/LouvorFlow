@@ -91,6 +91,12 @@ class funcaoController {
                 return;
             }
 
+            const duplicado = await prisma.funcoes.findFirst({ where: { nome, NOT: { id } } });
+            if (duplicado) {
+                res.status(409).json({ errors: ["Nome de função já existe"] });
+                return;
+            }
+
             const funcao = await prisma.funcoes.update({
                 where: { id },
                 data: { nome },

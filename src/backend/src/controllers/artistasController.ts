@@ -103,6 +103,12 @@ class artistaController {
                 return;
             }
 
+            const duplicado = await prisma.artistas.findFirst({ where: { nome, NOT: { id } } });
+            if (duplicado) {
+                res.status(409).json({ errors: ["Nome do artista já existe"] });
+                return;
+            }
+
             const artista = await prisma.artistas.update({
                 where: { id },
                 data: { nome }

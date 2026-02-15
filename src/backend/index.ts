@@ -11,7 +11,7 @@ import prisma from './prisma/cliente.js';
     }
 })();
 
-const PORT = process.env.PORT;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando em http://localhost:${PORT}`);
