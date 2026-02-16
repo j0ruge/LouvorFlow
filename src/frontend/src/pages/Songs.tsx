@@ -1,44 +1,56 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+/**
+ * Página de gerenciamento do catálogo de músicas.
+ *
+ * Carrega dados reais paginados da API via React Query, exibe estados de
+ * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
+ * e permite criar novas músicas via formulário em dialog.
+ */
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Music, Plus, Search, Guitar } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Music, Plus, Search, Guitar, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMusicas } from "@/hooks/use-musicas";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
+import { MusicaForm } from "@/components/MusicaForm";
+
+const ITEMS_PER_PAGE = 20;
+
+/**
+ * Componente de skeleton para o item de música durante carregamento.
+ *
+ * @returns Elemento React com placeholder animado.
+ */
+function SongSkeleton() {
+  return (
+    <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+      <div className="flex items-center gap-4">
+        <Skeleton className="w-12 h-12 rounded-lg" />
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <div className="flex items-center gap-6">
+        <Skeleton className="h-4 w-8" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+    </div>
+  );
+}
 
 const Songs = () => {
-  const songs = [
-    {
-      id: "1",
-      nome: "Reckless Love",
-      tonalidade: { id: "t1", tom: "C" },
-      versoes: [{ id: "v1", artista: { id: "a1", nome: "Cory Asbury" }, bpm: 72, cifras: null }],
-      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg2", nome: "Lenta" }],
-      funcoes: [{ id: "f1", nome: "Vocal" }],
-    },
-    {
-      id: "2",
-      nome: "Goodness of God",
-      tonalidade: { id: "t2", tom: "G" },
-      versoes: [{ id: "v2", artista: { id: "a2", nome: "Bethel Music" }, bpm: 68, cifras: null }],
-      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg3", nome: "Edificação" }],
-      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f2", nome: "Teclado" }],
-    },
-    {
-      id: "3",
-      nome: "Way Maker",
-      tonalidade: { id: "t3", tom: "D" },
-      versoes: [{ id: "v3", artista: { id: "a3", nome: "Sinach" }, bpm: 136, cifras: null }],
-      tags: [{ id: "tg4", nome: "Celebração" }, { id: "tg5", nome: "Animada" }],
-      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f3", nome: "Bateria" }],
-    },
-    {
-      id: "4",
-      nome: "Oceans",
-      tonalidade: { id: "t4", tom: "Dm" },
-      versoes: [{ id: "v4", artista: { id: "a4", nome: "Hillsong United" }, bpm: 74, cifras: null }],
-      tags: [{ id: "tg1", nome: "Adoração" }, { id: "tg6", nome: "Intimista" }],
-      funcoes: [{ id: "f1", nome: "Vocal" }, { id: "f4", nome: "Violão" }],
-    },
-  ];
+  const [formOpen, setFormOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isError, error, refetch } = useMusicas(page, ITEMS_PER_PAGE);
+
+  const songs = data?.items ?? [];
+  const meta = data?.meta;
 
   return (
     <div className="space-y-6">
@@ -51,7 +63,10 @@ const Songs = () => {
             Gerencie o repertório do ministério
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft">
+        <Button
+          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+          onClick={() => setFormOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Nova Música
         </Button>
@@ -70,52 +85,116 @@ const Songs = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {songs.map((song) => (
-              <div
-                key={song.id}
-                className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
-                    <Music className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{song.nome}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {song.versoes[0]?.artista.nome}
-                    </p>
-                  </div>
-                </div>
+          {isLoading && (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SongSkeleton key={i} />
+              ))}
+            </div>
+          )}
 
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <Guitar className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">{song.tonalidade.tom}</span>
+          {isError && (
+            <ErrorState
+              message={error?.message ?? "Erro ao carregar músicas."}
+              onRetry={() => refetch()}
+            />
+          )}
+
+          {!isLoading && !isError && songs.length === 0 && (
+            <EmptyState
+              title="Nenhuma música cadastrada"
+              description="Comece adicionando músicas ao catálogo do ministério."
+              actionLabel="Nova Música"
+              onAction={() => setFormOpen(true)}
+            />
+          )}
+
+          {!isLoading && !isError && songs.length > 0 && (
+            <>
+              <div className="space-y-4">
+                {songs.map((song) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
+                        <Music className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          {song.nome}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {song.versoes[0]?.artista.nome}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      {song.tonalidade && (
+                        <div className="flex items-center gap-2">
+                          <Guitar className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">
+                            {song.tonalidade.tom}
+                          </span>
+                        </div>
+                      )}
+                      {song.versoes[0]?.bpm && (
+                        <div className="text-sm text-muted-foreground">
+                          {song.versoes[0].bpm} BPM
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        {song.tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="bg-primary/10 text-primary hover:bg-primary/20"
+                          >
+                            {tag.nome}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button variant="outline" size="sm">
+                        Detalhes
+                      </Button>
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {song.versoes[0]?.bpm} BPM
-                  </div>
-                  <div className="flex gap-2">
-                    {song.tags.map((tag) => (
-                      <Badge
-                        key={tag.id}
-                        variant="secondary"
-                        className="bg-primary/10 text-primary hover:bg-primary/20"
-                      >
-                        {tag.nome}
-                      </Badge>
-                    ))}
-                  </div>
-                  <Button variant="outline" size="sm">
-                    Detalhes
+                ))}
+              </div>
+
+              {meta && meta.total_pages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Anterior
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-4">
+                    Página {meta.page} de {meta.total_pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))}
+                    disabled={page >= meta.total_pages}
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
+
+      <MusicaForm open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 };
