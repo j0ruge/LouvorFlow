@@ -8,7 +8,7 @@ class TagsController {
             const tags = await tagsService.listAll();
             res.status(200).json(tags);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
             res.status(500).json({ erro: "Erro ao buscar tags", codigo: 500 });
         }
     }
