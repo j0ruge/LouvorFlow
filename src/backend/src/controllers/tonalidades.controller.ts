@@ -8,7 +8,7 @@ class TonalidadesController {
             const tonalidades = await tonalidadesService.listAll();
             res.status(200).json(tonalidades);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
             res.status(500).json({ erro: "Erro ao buscar tonalidades", codigo: 500 });
         }
     }

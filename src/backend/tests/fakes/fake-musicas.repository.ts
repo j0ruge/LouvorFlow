@@ -10,7 +10,10 @@ import {
   MOCK_ARTISTAS,
 } from './mock-data.js';
 
-/** Cria fake repository para Músicas com dados em memória (inclui paginação e sub-recursos). */
+/**
+ * Cria fake repository para Músicas com dados em memória (inclui paginação e sub-recursos).
+ * `@returns` Repositório fake com CRUD de músicas e sub-recursos (versões, tags e funções).
+ */
 export function createFakeMusicasRepository() {
   let musicasData = generatePaginationMusicas();
   let versoesData = MOCK_ARTISTAS_MUSICAS.map(v => ({ ...v }));
