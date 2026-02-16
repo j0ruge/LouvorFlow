@@ -8,7 +8,7 @@ class ArtistasController {
             const artistas = await artistasService.listAll();
             res.status(200).json(artistas);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
             res.status(500).json({ erro: "Erro ao buscar artistas", codigo: 500 });
         }
     }
