@@ -1,29 +1,33 @@
 # Modelo Entidade Relacionamento
 
+Documentação do modelo de dados do **LouvorFlow** — sistema de gestão de escalas e repertório para ministérios de louvor. Este documento descreve as entidades, seus atributos, relacionamentos e as convenções adotadas no projeto.
+
 - [Modelo Entidade Relacionamento](#modelo-entidade-relacionamento)
   - [Modelo](#modelo)
     - [MER Entidades](#mer-entidades)
     - [Entidades com atributos](#entidades-com-atributos)
     - [Material de Apoio teórico](#material-de-apoio-teórico)
   - [Entidades](#entidades)
-    - [Músicas](#músicas)
-    - [Artista](#artista)
-    - [Músicos](#músicos)
-    - [Escala Culto](#escala-culto)
-    - [Função](#função)
+    - [Entidades Principais](#entidades-principais)
+      - [Músicas](#músicas)
+      - [Artistas](#artistas)
+      - [Integrantes](#integrantes)
+      - [Eventos](#eventos)
+    - [Entidades de Apoio](#entidades-de-apoio)
+      - [Funções](#funções)
+      - [Tonalidades](#tonalidades)
+      - [Tipos de Eventos](#tipos-de-eventos)
+      - [Tags](#tags)
+    - [Tabelas Associativas (Pivô)](#tabelas-associativas-pivô)
   - [Notas](#notas)
     - [Versão](#versão)
   - [Histórico dos Encontros](#histórico-dos-encontros)
     - [2025/Mar/15](#2025mar15)
       - [Anotações do Bill](#anotações-do-bill)
       - [Anotações do Gabriel](#anotações-do-gabriel)
-  - [Modelo](#modelo-1)
+  - [Evolução do Modelo](#evolução-do-modelo)
     - [Ver4](#ver4)
     - [Ver5](#ver5)
-  - [🔗 Convenção de Nomenclatura para Chaves Estrangeiras](#-convenção-de-nomenclatura-para-chaves-estrangeiras)
-    - [📌 Relações 1:N → `fk_atributo`](#-relações-1n--fk_atributo)
-    - [🔁 Relações N:N (Tabelas Associativas / Pivot) → `atributo_id`](#-relações-nn-tabelas-associativas--pivot--atributo_id)
-    - [✅ Resumo das boas práticas](#-resumo-das-boas-práticas)
 
 ## Modelo
 
@@ -45,25 +49,105 @@
 
 ## Entidades
 
-### Músicas
+O schema atual do banco de dados (`prisma/schema.prisma`) possui **14 modelos**: 8 entidades principais/de apoio e 6 tabelas associativas (pivô).
 
-São as músicas que vamos executar nos cultos, evento set cetera
+### Entidades Principais
 
-### Artista
+#### Músicas
 
-É o profissional que compoe ou interpreta a música.
+São as músicas que vamos executar nos cultos, eventos etc. Cada música possui um nome e está vinculada a uma tonalidade.
 
-### Músicos
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome da música |
+| `fk_tonalidade` | UUID | Referência à tonalidade |
 
-São os integrates do ministério de música de cada igreja local, sejam instrumentistas, sejam vocalistas
+#### Artistas
 
-### Escala Culto
+É o profissional que compõe ou interpreta a música.
 
-São os dias oficiais de reunião dos membros e eventos  da comunidade
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome do artista (único) |
 
-### Função
+#### Integrantes
 
-O papel exercido pelos músicos escalados no culto ou seu substituto(a)
+São os integrantes do ministério de música de cada igreja local, sejam instrumentistas, sejam vocalistas. Possuem credenciais de acesso ao sistema.
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome do integrante |
+| `doc_id` | String | Documento de identificação (CPF) — único |
+| `email` | String | E-mail de acesso (único) |
+| `senha` | String | Senha de acesso |
+| `telefone` | String? | Telefone de contato (opcional) |
+
+#### Eventos
+
+São os dias oficiais de reunião dos membros e eventos da comunidade. Anteriormente chamado de "Escala Culto".
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `data` | Date | Data do evento |
+| `fk_tipo_evento` | UUID | Referência ao tipo de evento |
+| `descricao` | String | Descrição do evento |
+
+### Entidades de Apoio
+
+#### Funções
+
+O papel exercido pelos integrantes escalados no evento ou seu substituto(a). Exemplo: vocalista, guitarrista, tecladista.
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome da função (único) |
+
+#### Tonalidades
+
+Representam os tons musicais disponíveis para as músicas (ex.: C, D, Em, G).
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `tom` | String | Nome do tom (único) |
+
+#### Tipos de Eventos
+
+Classificação dos eventos realizados (ex.: culto dominical, ensaio, conferência).
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome do tipo de evento (único) |
+
+#### Tags
+
+Rótulos para categorização das músicas (ex.: adoração, celebração, natal).
+
+| Atributo | Tipo | Descrição |
+|----------|------|-----------|
+| `id` | UUID | Identificador único |
+| `nome` | String | Nome da tag (único) |
+
+### Tabelas Associativas (Pivô)
+
+Tabelas que representam os relacionamentos **N:N** entre entidades.
+
+| Tabela | Relacionamento | Atributos extras |
+|--------|---------------|------------------|
+| `artistas_musicas` | Artistas ↔ Músicas | `bpm`, `cifras`, `lyrics`, `link_versao` |
+| `eventos_musicas` | Eventos ↔ Músicas | — |
+| `eventos_integrantes` | Eventos ↔ Integrantes | — |
+| `musicas_funcoes` | Músicas ↔ Funções | — |
+| `musicas_tags` | Músicas ↔ Tags | — |
+| `integrantes_funcoes` | Integrantes ↔ Funções | — |
+
+> Todas as entidades possuem os campos `created_at` e `updated_at` gerenciados automaticamente.
 
 ## Notas
 
@@ -71,7 +155,7 @@ O papel exercido pelos músicos escalados no culto ou seu substituto(a)
 
 Adicionaremos além do `Artista` a versão que ele está interpretando, pois pode acontecer dele tocar versões diferentes da mesma música, inicialmente será um **`atributo`** da entidade `Músicas`.
 
-Ex. versão estudio,e a versão ao vivo ter outra roupagem
+Ex. versão estúdio e a versão ao vivo ter outra roupagem.
 
 ## Histórico dos Encontros
 
@@ -82,7 +166,7 @@ Juntamos Jorge Ferrari, Bill e Gabriel, para pensarmos nos atributos do modelo.
 #### Anotações do Bill
 
 ```text
-Entidade artista 
+Entidade artista
 ✅ Nome
 ✅ Fk música (pivot)
 
@@ -145,7 +229,7 @@ EscalaCuto
 - Tipo evento ✅
 ```
 
-## Modelo
+## Evolução do Modelo
 
 - Modelo antes das alterações nas Entidades
 
@@ -153,7 +237,7 @@ EscalaCuto
 
 - Modelo **depois** das alterações nas Entidades
 
-  - [x] Entidades `escala_culto` alterada para `evento`
+  - [x] Entidade `escala_culto` alterada para `evento`
   - [x] Adição da entidade `tipo_evento`
 
 ![DER](./assets/modelo_entidade_relacionamento-MER_ver3.svg)
@@ -170,9 +254,11 @@ EscalaCuto
 
 ---
 
-## 🔗 Convenção de Nomenclatura para Chaves Estrangeiras
+## Convenção de Nomenclatura para Chaves Estrangeiras
 
-### 📌 Relações 1:N → `fk_atributo`
+### Relações 1:N
+
+Convenção: `fk_atributo`
 
 Nas relações do tipo **um-para-muitos (1:N)**, utilizamos a convenção `fk_atributo` para indicar de forma explícita que aquele campo é uma **chave estrangeira** (foreign key).
 
@@ -194,7 +280,9 @@ CREATE TABLE musicas (
 
 ---
 
-### 🔁 Relações N:N (Tabelas Associativas / Pivot) → `atributo_id`
+### Relações N:N (Tabelas Associativas / Pivot)
+
+Convenção: `atributo_id`
 
 Nas tabelas que representam relacionamentos **muitos-para-muitos (N:N)**, seguimos a convenção `atributo_id`, como em `artista_id`, `musica_id`.
 
@@ -217,7 +305,7 @@ CREATE TABLE artistas_musicas (
 
 ---
 
-### ✅ Resumo das boas práticas
+### Resumo das boas práticas
 
 | Tipo de relação | Convenção recomendada | Exemplo                    |
 |-----------------|------------------------|----------------------------|

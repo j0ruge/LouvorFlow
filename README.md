@@ -277,7 +277,7 @@ LouvorFlow/
 - [ ] Relatórios de frequência de execução
 - [ ] Histórico de escalas por período
 - [ ] Busca avançada de músicas (por tag, tonalidade, artista)
-- [ ] Testes unitários com repositórios mockados
+- [x] Testes unitários com repositórios mockados
 
 ## Como Contribuir
 
