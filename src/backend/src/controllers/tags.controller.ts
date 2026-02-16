@@ -8,8 +8,8 @@ class TagsController {
             const tags = await tagsService.listAll();
             res.status(200).json(tags);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar tags"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar tags", codigo: 500 });
         }
     }
 
@@ -18,8 +18,8 @@ class TagsController {
             const tag = await tagsService.getById(req.params.id);
             res.status(200).json(tag);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar tag", codigo: 500 });
         }
     }
 
@@ -28,8 +28,8 @@ class TagsController {
             const tag = await tagsService.create(req.body.nome);
             res.status(201).json({ msg: "Tag criada com sucesso", tag });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao criar tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao criar tag", codigo: 500 });
         }
     }
 
@@ -38,8 +38,8 @@ class TagsController {
             const tag = await tagsService.update(req.params.id, req.body.nome);
             res.status(200).json({ msg: "Tag editada com sucesso", tag });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao editar tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar tag", codigo: 500 });
         }
     }
 
@@ -48,8 +48,8 @@ class TagsController {
             const tag = await tagsService.delete(req.params.id);
             res.status(200).json({ msg: "Tag deletada com sucesso", tag });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao deletar tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao deletar tag", codigo: 500 });
         }
     }
 }

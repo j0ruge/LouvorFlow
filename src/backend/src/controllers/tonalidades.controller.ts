@@ -8,8 +8,8 @@ class TonalidadesController {
             const tonalidades = await tonalidadesService.listAll();
             res.status(200).json(tonalidades);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar tonalidades"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar tonalidades", codigo: 500 });
         }
     }
 
@@ -18,8 +18,8 @@ class TonalidadesController {
             const tonalidade = await tonalidadesService.getById(req.params.id);
             res.status(200).json(tonalidade);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar tonalidade"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar tonalidade", codigo: 500 });
         }
     }
 
@@ -28,8 +28,8 @@ class TonalidadesController {
             const tonalidade = await tonalidadesService.create(req.body.tom);
             res.status(201).json({ msg: "Tonalidade criada com sucesso", tonalidade });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao criar tonalidade"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao criar tonalidade", codigo: 500 });
         }
     }
 
@@ -38,8 +38,8 @@ class TonalidadesController {
             const tonalidade = await tonalidadesService.update(req.params.id, req.body.tom);
             res.status(200).json({ msg: "Tonalidade editada com sucesso", tonalidade });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao editar tonalidade"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar tonalidade", codigo: 500 });
         }
     }
 
@@ -48,8 +48,8 @@ class TonalidadesController {
             const tonalidade = await tonalidadesService.delete(req.params.id);
             res.status(200).json({ msg: "Tonalidade deletada com sucesso", tonalidade });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao deletar tonalidade"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao deletar tonalidade", codigo: 500 });
         }
     }
 }

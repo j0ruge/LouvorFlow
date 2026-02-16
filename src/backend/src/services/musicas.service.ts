@@ -168,6 +168,10 @@ class MusicasService {
         if (lyrics !== undefined) updateData.lyrics = lyrics;
         if (link_versao !== undefined) updateData.link_versao = link_versao;
 
+        if (Object.keys(updateData).length === 0) {
+            throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
+        }
+
         const versao = await musicasRepository.updateVersao(versaoId, updateData);
 
         return {

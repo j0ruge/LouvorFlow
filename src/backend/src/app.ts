@@ -40,10 +40,10 @@ class App {
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
             if (err instanceof AppError) {
-                res.status(err.statusCode).json({ errors: err.errors || [err.message] });
+                res.status(err.statusCode).json({ erro: err.errors ? err.errors.join('; ') : err.message, codigo: err.statusCode });
                 return;
             }
-            res.status(500).json({ errors: [err.message || "Erro interno do servidor"] });
+            res.status(500).json({ erro: err.message || "Erro interno do servidor", codigo: 500 });
         });
     }
 }
