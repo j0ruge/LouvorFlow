@@ -3,6 +3,12 @@ import musicasRepository from '../repositories/musicas.repository.js';
 import tonalidadesRepository from '../repositories/tonalidades.repository.js';
 import type { MusicaRaw, Musica } from '../types/index.js';
 
+/**
+ * Converts a raw database `MusicaRaw` record into a normalized `Musica` object.
+ *
+ * @param m - Raw musica record including related fields and join arrays
+ * @returns The normalized `Musica` with `id`, `nome`, `tonalidade`, `tags` (tag id array), `versoes` (array of versions with `id`, `artista`, `bpm`, `cifras`, `lyrics`, `link_versao`), and `funcoes` (funcao id array)
+ */
 function formatMusica(m: MusicaRaw): Musica {
     return {
         id: m.id,
