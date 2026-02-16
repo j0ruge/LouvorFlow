@@ -118,16 +118,18 @@ const Scales = () => {
                     </div>
                     <div>
                       <CardTitle className="text-xl">
-                        {scale.tipoEvento?.nome ?? "Evento"}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
                         {new Date(scale.data).toLocaleDateString("pt-BR", {
                           weekday: "long",
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
-                      </p>
+                      </CardTitle>
+                      {scale.descricao && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {scale.descricao}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {scale.tipoEvento && (
@@ -141,9 +143,6 @@ const Scales = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {scale.descricao}
-                </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -183,10 +182,22 @@ const Scales = () => {
                     {scale.musicas.length} músicas selecionadas
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      title="Em breve"
+                      aria-label="Editar — em breve"
+                    >
                       Editar
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      title="Em breve"
+                      aria-label="Compartilhar — em breve"
+                    >
                       Compartilhar
                     </Button>
                     <Button

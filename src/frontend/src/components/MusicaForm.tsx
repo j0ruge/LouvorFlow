@@ -6,6 +6,7 @@
  * e reseta apenas após sucesso da mutation.
  */
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -64,7 +65,13 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
   });
 
   const createMutation = useCreateMusica();
-  const { data: tonalidades } = useTonalidades();
+  const { data: tonalidades, isLoading: tonLoading, isError: tonError, error: tonErrorObj } = useTonalidades();
+
+  useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   function onSubmit(dados: CreateMusicaForm) {
     createMutation.mutate(dados, {
@@ -107,7 +114,8 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                   <FormLabel>Tonalidade</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
+                    disabled={tonLoading || tonError}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -115,6 +123,16 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      {tonLoading && (
+                        <SelectItem value="_loading" disabled>
+                          Carregando...
+                        </SelectItem>
+                      )}
+                      {tonError && (
+                        <SelectItem value="_error" disabled>
+                          Falha ao carregar tonalidades: {tonErrorObj?.message}
+                        </SelectItem>
+                      )}
                       {tonalidades?.map((ton) => (
                         <SelectItem key={ton.id} value={ton.id}>
                           {ton.tom}

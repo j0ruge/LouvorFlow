@@ -19,6 +19,14 @@ import type {
   CreateEventoForm,
 } from "@/schemas/evento";
 
+/** Schema de resposta para endpoints de associação/desassociação. */
+const AssociationResponseSchema = z.object({
+  msg: z.string(),
+});
+
+/** Tipo inferido da resposta de associação. */
+type AssociationResponse = z.infer<typeof AssociationResponseSchema>;
+
 /**
  * Busca todos os eventos com resumo de músicas e integrantes.
  *
@@ -66,11 +74,12 @@ export async function createEvento(
 export async function addMusicaToEvento(
   eventoId: string,
   musicaId: string,
-): Promise<{ msg: string }> {
-  return apiFetch<{ msg: string }>(`/eventos/${eventoId}/musicas`, {
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/musicas`, {
     method: "POST",
     body: JSON.stringify({ musicas_id: musicaId }),
   });
+  return AssociationResponseSchema.parse(data);
 }
 
 /**
@@ -83,10 +92,11 @@ export async function addMusicaToEvento(
 export async function removeMusicaFromEvento(
   eventoId: string,
   musicaId: string,
-): Promise<{ msg: string }> {
-  return apiFetch<{ msg: string }>(`/eventos/${eventoId}/musicas/${musicaId}`, {
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/musicas/${musicaId}`, {
     method: "DELETE",
   });
+  return AssociationResponseSchema.parse(data);
 }
 
 /**
@@ -99,11 +109,12 @@ export async function removeMusicaFromEvento(
 export async function addIntegranteToEvento(
   eventoId: string,
   integranteId: string,
-): Promise<{ msg: string }> {
-  return apiFetch<{ msg: string }>(`/eventos/${eventoId}/integrantes`, {
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/integrantes`, {
     method: "POST",
     body: JSON.stringify({ musico_id: integranteId }),
   });
+  return AssociationResponseSchema.parse(data);
 }
 
 /**
@@ -116,9 +127,10 @@ export async function addIntegranteToEvento(
 export async function removeIntegranteFromEvento(
   eventoId: string,
   integranteId: string,
-): Promise<{ msg: string }> {
-  return apiFetch<{ msg: string }>(
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(
     `/eventos/${eventoId}/integrantes/${integranteId}`,
     { method: "DELETE" },
   );
+  return AssociationResponseSchema.parse(data);
 }

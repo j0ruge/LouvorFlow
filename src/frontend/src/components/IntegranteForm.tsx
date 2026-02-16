@@ -6,6 +6,7 @@
  * e reseta apenas após sucesso da mutation.
  */
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -59,6 +60,12 @@ export function IntegranteForm({ open, onOpenChange }: IntegranteFormProps) {
   });
 
   const createMutation = useCreateIntegrante();
+
+  useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   function onSubmit(dados: CreateIntegranteForm) {
     createMutation.mutate(dados, {

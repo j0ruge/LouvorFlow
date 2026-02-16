@@ -6,6 +6,7 @@
  * e redireciona para a página de detalhe após sucesso.
  */
 
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,7 +71,13 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
   });
 
   const createMutation = useCreateEvento();
-  const { data: tiposEventos } = useTiposEventos();
+  const { data: tiposEventos, isLoading: tiposLoading, isError: tiposError, error: tiposErrorObj } = useTiposEventos();
+
+  useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   function onSubmit(dados: CreateEventoForm) {
     createMutation.mutate(dados, {
@@ -115,7 +122,8 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                   <FormLabel>Tipo de Evento</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
+                    disabled={tiposLoading || tiposError}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -123,6 +131,16 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      {tiposLoading && (
+                        <SelectItem value="_loading" disabled>
+                          Carregando...
+                        </SelectItem>
+                      )}
+                      {tiposError && (
+                        <SelectItem value="_error" disabled>
+                          Falha ao carregar tipos: {tiposErrorObj?.message}
+                        </SelectItem>
+                      )}
                       {tiposEventos?.map((tipo) => (
                         <SelectItem key={tipo.id} value={tipo.id}>
                           {tipo.nome}

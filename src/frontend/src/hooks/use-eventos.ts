@@ -79,6 +79,7 @@ export function useAddMusicaToEvento(eventoId: string) {
     mutationFn: (musicaId: string) => addMusicaToEvento(eventoId, musicaId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -101,6 +102,7 @@ export function useRemoveMusicaFromEvento(eventoId: string) {
       removeMusicaFromEvento(eventoId, musicaId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -123,6 +125,7 @@ export function useAddIntegranteToEvento(eventoId: string) {
       addIntegranteToEvento(eventoId, integranteId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -145,6 +148,7 @@ export function useRemoveIntegranteFromEvento(eventoId: string) {
       removeIntegranteFromEvento(eventoId, integranteId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
       toast.success(data.msg);
     },
     onError: (error: Error) => {

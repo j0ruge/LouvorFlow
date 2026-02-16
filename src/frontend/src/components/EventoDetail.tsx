@@ -154,7 +154,7 @@ export function EventoDetail() {
                 {evento.tipoEvento?.nome ?? "Evento"}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {new Date(evento.data).toLocaleDateString("pt-BR", {
+                {new Date(evento.data).toLocaleString("pt-BR", {
                   weekday: "long",
                   year: "numeric",
                   month: "long",
