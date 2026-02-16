@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import tonalidadesController from '../controllers/tonalidadesController.js';
+import tonalidadesController from '../controllers/tonalidades.controller.js';
 
 const router: Router = Router();
 
