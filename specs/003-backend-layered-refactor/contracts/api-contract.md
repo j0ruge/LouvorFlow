@@ -131,7 +131,7 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 
 **Musica formatted shape**:
 
-```
+```json
 {
   id, nome,
   tonalidade: { id, tom },
