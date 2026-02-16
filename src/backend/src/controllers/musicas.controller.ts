@@ -12,8 +12,8 @@ class MusicasController {
             const result = await musicasService.listAll(page, limit);
             res.status(200).json(result);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar músicas"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar músicas", codigo: 500 });
         }
     }
 
@@ -22,8 +22,8 @@ class MusicasController {
             const musica = await musicasService.getById(req.params.id);
             res.status(200).json(musica);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar música"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar música", codigo: 500 });
         }
     }
 
@@ -32,8 +32,8 @@ class MusicasController {
             const musica = await musicasService.create(req.body);
             res.status(201).json({ msg: "Música criada com sucesso", musica });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao criar música"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao criar música", codigo: 500 });
         }
     }
 
@@ -42,8 +42,8 @@ class MusicasController {
             const musica = await musicasService.update(req.params.id, req.body);
             res.status(200).json({ msg: "Música editada com sucesso", musica });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao editar música"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar música", codigo: 500 });
         }
     }
 
@@ -52,8 +52,8 @@ class MusicasController {
             const musica = await musicasService.delete(req.params.id);
             res.status(200).json({ msg: "Música deletada com sucesso", musica });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao deletar música"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao deletar música", codigo: 500 });
         }
     }
 
@@ -64,8 +64,8 @@ class MusicasController {
             const versoes = await musicasService.listVersoes(req.params.musicaId);
             res.status(200).json(versoes);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar versões"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar versões", codigo: 500 });
         }
     }
 
@@ -74,8 +74,8 @@ class MusicasController {
             const versao = await musicasService.addVersao(req.params.musicaId, req.body);
             res.status(201).json({ msg: "Versão adicionada com sucesso", versao });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao adicionar versão"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao adicionar versão", codigo: 500 });
         }
     }
 
@@ -84,8 +84,8 @@ class MusicasController {
             const versao = await musicasService.updateVersao(req.params.versaoId, req.body);
             res.status(200).json({ msg: "Versão editada com sucesso", versao });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao editar versão"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar versão", codigo: 500 });
         }
     }
 
@@ -94,8 +94,8 @@ class MusicasController {
             await musicasService.removeVersao(req.params.versaoId);
             res.status(200).json({ msg: "Versão removida com sucesso" });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao remover versão"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao remover versão", codigo: 500 });
         }
     }
 
@@ -106,8 +106,8 @@ class MusicasController {
             const tags = await musicasService.listTags(req.params.musicaId);
             res.status(200).json(tags);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar tags"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar tags", codigo: 500 });
         }
     }
 
@@ -116,8 +116,8 @@ class MusicasController {
             await musicasService.addTag(req.params.musicaId, req.body.tag_id);
             res.status(201).json({ msg: "Tag adicionada com sucesso" });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao adicionar tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao adicionar tag", codigo: 500 });
         }
     }
 
@@ -126,8 +126,8 @@ class MusicasController {
             await musicasService.removeTag(req.params.musicaId, req.params.tagId);
             res.status(200).json({ msg: "Tag removida com sucesso" });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao remover tag"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao remover tag", codigo: 500 });
         }
     }
 
@@ -138,8 +138,8 @@ class MusicasController {
             const funcoes = await musicasService.listFuncoes(req.params.musicaId);
             res.status(200).json(funcoes);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar funções"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar funções", codigo: 500 });
         }
     }
 
@@ -148,8 +148,8 @@ class MusicasController {
             await musicasService.addFuncao(req.params.musicaId, req.body.funcao_id);
             res.status(201).json({ msg: "Função adicionada com sucesso" });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao adicionar função"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao adicionar função", codigo: 500 });
         }
     }
 
@@ -158,8 +158,8 @@ class MusicasController {
             await musicasService.removeFuncao(req.params.musicaId, req.params.funcaoId);
             res.status(200).json({ msg: "Função removida com sucesso" });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: error.errors || [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao remover função"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao remover função", codigo: 500 });
         }
     }
 }

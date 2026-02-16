@@ -1,0 +1,2341 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "LouvorFlow API",
+    "description": "API REST para gerenciamento de escalas de louvor, músicas, artistas, integrantes e eventos.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "ChewieSoft",
+      "url": "https://github.com/j0ruge/LouvorFlow"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Servidor de desenvolvimento"
+    }
+  ],
+  "tags": [
+    { "name": "Artistas", "description": "Gerenciamento de artistas/cantores" },
+    { "name": "Músicas", "description": "Gerenciamento de músicas e repertório" },
+    { "name": "Músicas - Versões", "description": "Versões de músicas por artista" },
+    { "name": "Músicas - Tags", "description": "Tags associadas a músicas" },
+    { "name": "Músicas - Funções", "description": "Funções necessárias para músicas" },
+    { "name": "Integrantes", "description": "Gerenciamento de integrantes do ministério" },
+    { "name": "Integrantes - Funções", "description": "Funções dos integrantes" },
+    { "name": "Eventos", "description": "Gerenciamento de eventos/cultos" },
+    { "name": "Eventos - Músicas", "description": "Músicas vinculadas a eventos" },
+    { "name": "Eventos - Integrantes", "description": "Integrantes escalados em eventos" },
+    { "name": "Tags", "description": "Classificações de músicas" },
+    { "name": "Tonalidades", "description": "Tons musicais disponíveis" },
+    { "name": "Funções", "description": "Funções/instrumentos do ministério" },
+    { "name": "Tipos de Eventos", "description": "Categorias de eventos" }
+  ],
+  "paths": {
+    "/artistas": {
+      "get": {
+        "summary": "Listar todos os artistas",
+        "description": "Retorna a lista completa de artistas cadastrados.",
+        "tags": ["Artistas"],
+        "responses": {
+          "200": {
+            "description": "Lista de artistas retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Artista" }
+                },
+                "example": [
+                  { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" },
+                  { "id": "a1b2c3d4-1111-4000-a000-000000000002", "nome": "Fernandinho" },
+                  { "id": "a1b2c3d4-1111-4000-a000-000000000003", "nome": "Gabriela Rocha" },
+                  { "id": "a1b2c3d4-1111-4000-a000-000000000004", "nome": "Diante do Trono" }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar artista",
+        "description": "Cria um novo artista. O nome deve ser único.",
+        "tags": ["Artistas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ArtistaInput" },
+              "example": { "nome": "Isaias Saad" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Artista criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ArtistaResponse" },
+                "example": {
+                  "msg": "Artista criado com sucesso",
+                  "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000005", "nome": "Isaias Saad" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/artistas/{id}": {
+      "get": {
+        "summary": "Buscar artista por ID",
+        "description": "Retorna os dados de um artista específico.",
+        "tags": ["Artistas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Artista encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Artista" },
+                "example": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar artista",
+        "description": "Atualiza o nome de um artista existente.",
+        "tags": ["Artistas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ArtistaInput" },
+              "example": { "nome": "Aline Barros (Atualizado)" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Artista atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ArtistaResponse" },
+                "example": {
+                  "msg": "Artista editado com sucesso",
+                  "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros (Atualizado)" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover artista",
+        "description": "Remove um artista pelo ID.",
+        "tags": ["Artistas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Artista removido com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ArtistaResponse" },
+                "example": {
+                  "msg": "Artista deletado com sucesso",
+                  "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas": {
+      "get": {
+        "summary": "Listar músicas (paginado)",
+        "description": "Retorna a lista de músicas com paginação. Inclui tonalidade, tags, versões e funções.",
+        "tags": ["Músicas"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número da página (padrão: 1)",
+            "required": false,
+            "schema": { "type": "integer", "default": 1, "minimum": 1 },
+            "example": 1
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Itens por página (padrão: 20, máximo: 100)",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de músicas",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MusicasPaginadas" },
+                "example": {
+                  "items": [
+                    {
+                      "id": "b2c3d4e5-2222-4000-b000-000000000001",
+                      "nome": "Rendido Estou",
+                      "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" },
+                      "tags": [
+                        { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
+                      ],
+                      "versoes": [
+                        {
+                          "id": "e5f6a7b8-5555-4000-e000-000000000001",
+                          "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" },
+                          "bpm": 72,
+                          "cifras": "G  Em  C  D",
+                          "lyrics": "Rendido estou, rendido estou\nTua graça me alcançou...",
+                          "link_versao": "https://www.youtube.com/watch?v=exemplo1"
+                        }
+                      ],
+                      "funcoes": [
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                      ]
+                    },
+                    {
+                      "id": "b2c3d4e5-2222-4000-b000-000000000002",
+                      "nome": "Ninguém Explica Deus",
+                      "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000004", "tom": "D" },
+                      "tags": [
+                        { "id": "d4e5f6a7-4444-4000-d000-000000000002", "nome": "Louvor" },
+                        { "id": "d4e5f6a7-4444-4000-d000-000000000003", "nome": "Congregacional" }
+                      ],
+                      "versoes": [
+                        {
+                          "id": "e5f6a7b8-5555-4000-e000-000000000002",
+                          "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000003", "nome": "Gabriela Rocha" },
+                          "bpm": 68,
+                          "cifras": "D  A  Bm  G",
+                          "lyrics": "Ninguém explica Deus\nNinguém entende seus caminhos...",
+                          "link_versao": "https://www.youtube.com/watch?v=exemplo2"
+                        }
+                      ],
+                      "funcoes": [
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" }
+                      ]
+                    }
+                  ],
+                  "meta": {
+                    "total": 45,
+                    "page": 1,
+                    "per_page": 10,
+                    "total_pages": 5
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar música",
+        "description": "Cria uma nova música com nome e tonalidade.",
+        "tags": ["Músicas"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MusicaInput" },
+              "example": {
+                "nome": "Lugar Secreto",
+                "fk_tonalidade": "c3d4e5f6-3333-4000-c000-000000000005"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Música criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MusicaCreateResponse" },
+                "example": {
+                  "msg": "Música criada com sucesso",
+                  "musica": {
+                    "id": "b2c3d4e5-2222-4000-b000-000000000003",
+                    "nome": "Lugar Secreto",
+                    "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000005", "tom": "E" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{id}": {
+      "get": {
+        "summary": "Buscar música por ID",
+        "description": "Retorna os dados completos de uma música, incluindo tonalidade, tags, versões e funções.",
+        "tags": ["Músicas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Música encontrada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Musica" },
+                "example": {
+                  "id": "b2c3d4e5-2222-4000-b000-000000000001",
+                  "nome": "Rendido Estou",
+                  "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" },
+                  "tags": [{ "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }],
+                  "versoes": [
+                    {
+                      "id": "e5f6a7b8-5555-4000-e000-000000000001",
+                      "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" },
+                      "bpm": 72,
+                      "cifras": "G  Em  C  D",
+                      "lyrics": "Rendido estou, rendido estou\nTua graça me alcançou...",
+                      "link_versao": "https://www.youtube.com/watch?v=exemplo1"
+                    }
+                  ],
+                  "funcoes": [{ "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" }]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar música",
+        "description": "Atualiza nome e/ou tonalidade de uma música.",
+        "tags": ["Músicas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MusicaUpdateInput" },
+              "example": {
+                "nome": "Rendido Estou (Ao Vivo)",
+                "fk_tonalidade": "c3d4e5f6-3333-4000-c000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Música atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MusicaCreateResponse" },
+                "example": {
+                  "msg": "Música editada com sucesso",
+                  "musica": {
+                    "id": "b2c3d4e5-2222-4000-b000-000000000001",
+                    "nome": "Rendido Estou (Ao Vivo)",
+                    "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000001", "tom": "C" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover música",
+        "description": "Remove uma música pelo ID.",
+        "tags": ["Músicas"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Música removida com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MusicaCreateResponse" },
+                "example": {
+                  "msg": "Música deletada com sucesso",
+                  "musica": {
+                    "id": "b2c3d4e5-2222-4000-b000-000000000001",
+                    "nome": "Rendido Estou",
+                    "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/versoes": {
+      "get": {
+        "summary": "Listar versões de uma música",
+        "description": "Retorna todas as versões (por artista) de uma música.",
+        "tags": ["Músicas - Versões"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de versões",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Versao" }
+                },
+                "example": [
+                  {
+                    "id": "e5f6a7b8-5555-4000-e000-000000000001",
+                    "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" },
+                    "bpm": 72,
+                    "cifras": "G  Em  C  D",
+                    "lyrics": "Rendido estou, rendido estou...",
+                    "link_versao": "https://www.youtube.com/watch?v=exemplo1"
+                  },
+                  {
+                    "id": "e5f6a7b8-5555-4000-e000-000000000003",
+                    "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000002", "nome": "Fernandinho" },
+                    "bpm": 76,
+                    "cifras": "A  F#m  D  E",
+                    "lyrics": "Rendido estou, rendido estou...",
+                    "link_versao": null
+                  }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Adicionar versão a uma música",
+        "description": "Vincula um artista a uma música com dados da versão (BPM, cifra, letra, link).",
+        "tags": ["Músicas - Versões"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VersaoInput" },
+              "example": {
+                "artista_id": "a1b2c3d4-1111-4000-a000-000000000005",
+                "bpm": 80,
+                "cifras": "E  B  C#m  A",
+                "lyrics": "Tua graça me basta\nTeu amor me sustenta...",
+                "link_versao": "https://www.youtube.com/watch?v=exemplo3"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Versão adicionada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VersaoResponse" },
+                "example": {
+                  "msg": "Versão adicionada com sucesso",
+                  "versao": {
+                    "id": "e5f6a7b8-5555-4000-e000-000000000004",
+                    "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000005", "nome": "Isaias Saad" },
+                    "bpm": 80,
+                    "cifras": "E  B  C#m  A",
+                    "lyrics": "Tua graça me basta\nTeu amor me sustenta...",
+                    "link_versao": "https://www.youtube.com/watch?v=exemplo3"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/versoes/{versaoId}": {
+      "put": {
+        "summary": "Atualizar versão",
+        "description": "Atualiza os dados de uma versão existente (BPM, cifra, letra, link).",
+        "tags": ["Músicas - Versões"],
+        "parameters": [
+          { "$ref": "#/components/parameters/MusicaIdParam" },
+          { "$ref": "#/components/parameters/VersaoIdParam" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/VersaoUpdateInput" },
+              "example": { "bpm": 75, "cifras": "G  D  Em  C" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Versão atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VersaoResponse" },
+                "example": {
+                  "msg": "Versão editada com sucesso",
+                  "versao": {
+                    "id": "e5f6a7b8-5555-4000-e000-000000000001",
+                    "artista": { "id": "a1b2c3d4-1111-4000-a000-000000000001", "nome": "Aline Barros" },
+                    "bpm": 75,
+                    "cifras": "G  D  Em  C",
+                    "lyrics": "Rendido estou, rendido estou...",
+                    "link_versao": "https://www.youtube.com/watch?v=exemplo1"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover versão",
+        "description": "Remove uma versão de uma música.",
+        "tags": ["Músicas - Versões"],
+        "parameters": [
+          { "$ref": "#/components/parameters/MusicaIdParam" },
+          { "$ref": "#/components/parameters/VersaoIdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Versão removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Versão removida com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/tags": {
+      "get": {
+        "summary": "Listar tags de uma música",
+        "description": "Retorna todas as tags associadas a uma música.",
+        "tags": ["Músicas - Tags"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" },
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000003", "nome": "Congregacional" }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Adicionar tag a uma música",
+        "description": "Vincula uma tag existente a uma música.",
+        "tags": ["Músicas - Tags"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "tag_id": { "type": "string", "format": "uuid" } },
+                "required": ["tag_id"]
+              },
+              "example": { "tag_id": "d4e5f6a7-4444-4000-d000-000000000002" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tag adicionada com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Tag adicionada com sucesso" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/tags/{tagId}": {
+      "delete": {
+        "summary": "Remover tag de uma música",
+        "description": "Remove a associação de uma tag com uma música.",
+        "tags": ["Músicas - Tags"],
+        "parameters": [
+          { "$ref": "#/components/parameters/MusicaIdParam" },
+          {
+            "name": "tagId",
+            "in": "path",
+            "required": true,
+            "description": "ID da tag",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Tag removida com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/funcoes": {
+      "get": {
+        "summary": "Listar funções de uma música",
+        "description": "Retorna as funções/instrumentos necessários para uma música.",
+        "tags": ["Músicas - Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de funções",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Adicionar função a uma música",
+        "description": "Vincula uma função/instrumento necessário a uma música.",
+        "tags": ["Músicas - Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "funcao_id": { "type": "string", "format": "uuid" } },
+                "required": ["funcao_id"]
+              },
+              "example": { "funcao_id": "f6a7b8c9-6666-4000-f000-000000000004" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Função adicionada com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Função adicionada com sucesso" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/musicas/{musicaId}/funcoes/{funcaoId}": {
+      "delete": {
+        "summary": "Remover função de uma música",
+        "description": "Remove a associação de uma função com uma música.",
+        "tags": ["Músicas - Funções"],
+        "parameters": [
+          { "$ref": "#/components/parameters/MusicaIdParam" },
+          { "$ref": "#/components/parameters/FuncaoIdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Função removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Função removida com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/integrantes": {
+      "get": {
+        "summary": "Listar todos os integrantes",
+        "description": "Retorna a lista completa de integrantes com suas funções.",
+        "tags": ["Integrantes"],
+        "responses": {
+          "200": {
+            "description": "Lista de integrantes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IntegranteComFuncoes" }
+                },
+                "example": [
+                  {
+                    "id": "11111111-aaaa-4000-8000-000000000001",
+                    "nome": "João Silva",
+                    "doc_id": "12345678901",
+                    "email": "joao.silva@email.com",
+                    "telefone": "5521999990001",
+                    "funcoes": [
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                    ]
+                  },
+                  {
+                    "id": "11111111-aaaa-4000-8000-000000000002",
+                    "nome": "Maria Oliveira",
+                    "doc_id": "98765432100",
+                    "email": "maria.oliveira@email.com",
+                    "telefone": "5521999990002",
+                    "funcoes": [
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" }
+                    ]
+                  },
+                  {
+                    "id": "11111111-aaaa-4000-8000-000000000003",
+                    "nome": "Pedro Santos",
+                    "doc_id": "45678912300",
+                    "email": "pedro.santos@email.com",
+                    "telefone": null,
+                    "funcoes": [
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000004", "nome": "Bateria" },
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000002", "nome": "Guitarra" }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar integrante",
+        "description": "Cria um novo integrante. O doc_id e email devem ser únicos. A senha é armazenada com hash bcrypt.",
+        "tags": ["Integrantes"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IntegranteInput" },
+              "example": {
+                "nome": "Ana Costa",
+                "doc_id": "11122233344",
+                "email": "ana.costa@email.com",
+                "senha": "minhasenha123",
+                "telefone": "5511988887777"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Integrante criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IntegranteResponse" },
+                "example": {
+                  "msg": "Integrante criado com sucesso",
+                  "integrante": {
+                    "id": "11111111-aaaa-4000-8000-000000000004",
+                    "nome": "Ana Costa",
+                    "doc_id": "11122233344",
+                    "email": "ana.costa@email.com",
+                    "telefone": "5511988887777"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/integrantes/{id}": {
+      "get": {
+        "summary": "Buscar integrante por ID",
+        "description": "Retorna os dados de um integrante com suas funções.",
+        "tags": ["Integrantes"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Integrante encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IntegranteComFuncoes" },
+                "example": {
+                  "id": "11111111-aaaa-4000-8000-000000000001",
+                  "nome": "João Silva",
+                  "doc_id": "12345678901",
+                  "email": "joao.silva@email.com",
+                  "telefone": "5521999990001",
+                  "funcoes": [
+                    { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                    { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                  ]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar integrante",
+        "description": "Atualiza os dados de um integrante. Ao menos um campo deve ser enviado. Se a senha for informada, será aplicado hash bcrypt.",
+        "tags": ["Integrantes"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IntegranteUpdateInput" },
+              "example": { "telefone": "5521992668056" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Integrante atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IntegranteResponse" },
+                "example": {
+                  "msg": "Integrante editado com sucesso",
+                  "integrante": {
+                    "id": "11111111-aaaa-4000-8000-000000000001",
+                    "nome": "João Silva",
+                    "doc_id": "12345678901",
+                    "email": "joao.silva@email.com",
+                    "telefone": "5521992668056"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover integrante",
+        "description": "Remove um integrante pelo ID.",
+        "tags": ["Integrantes"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Integrante removido com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IntegranteResponse" },
+                "example": {
+                  "msg": "Integrante deletado com sucesso",
+                  "integrante": {
+                    "id": "11111111-aaaa-4000-8000-000000000001",
+                    "nome": "João Silva",
+                    "doc_id": "12345678901",
+                    "email": "joao.silva@email.com",
+                    "telefone": "5521999990001"
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/integrantes/{integranteId}/funcoes": {
+      "get": {
+        "summary": "Listar funções de um integrante",
+        "description": "Retorna as funções atribuídas a um integrante.",
+        "tags": ["Integrantes - Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/IntegranteIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de funções do integrante",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Adicionar função a um integrante",
+        "description": "Vincula uma função/instrumento a um integrante.",
+        "tags": ["Integrantes - Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/IntegranteIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "funcao_id": { "type": "string", "format": "uuid" } },
+                "required": ["funcao_id"]
+              },
+              "example": { "funcao_id": "f6a7b8c9-6666-4000-f000-000000000005" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Função adicionada com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Função adicionada com sucesso" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/integrantes/{integranteId}/funcoes/{funcaoId}": {
+      "delete": {
+        "summary": "Remover função de um integrante",
+        "description": "Remove a associação de uma função com um integrante.",
+        "tags": ["Integrantes - Funções"],
+        "parameters": [
+          { "$ref": "#/components/parameters/IntegranteIdParam" },
+          { "$ref": "#/components/parameters/FuncaoIdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Função removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Função removida com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos": {
+      "get": {
+        "summary": "Listar todos os eventos",
+        "description": "Retorna a lista de eventos com resumo de músicas e integrantes escalados.",
+        "tags": ["Eventos"],
+        "responses": {
+          "200": {
+            "description": "Lista de eventos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/EventoIndex" }
+                },
+                "example": [
+                  {
+                    "id": "22222222-bbbb-4000-9000-000000000001",
+                    "data": "2026-02-16T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Manhã",
+                    "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" },
+                    "musicas": [
+                      { "id": "b2c3d4e5-2222-4000-b000-000000000001", "nome": "Rendido Estou" },
+                      { "id": "b2c3d4e5-2222-4000-b000-000000000002", "nome": "Ninguém Explica Deus" }
+                    ],
+                    "integrantes": [
+                      { "id": "11111111-aaaa-4000-8000-000000000001", "nome": "João Silva" },
+                      { "id": "11111111-aaaa-4000-8000-000000000002", "nome": "Maria Oliveira" }
+                    ]
+                  },
+                  {
+                    "id": "22222222-bbbb-4000-9000-000000000002",
+                    "data": "2026-02-18T19:30:00.000Z",
+                    "descricao": "Culto de Quarta - Oração",
+                    "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000002", "nome": "Culto de Quarta" },
+                    "musicas": [
+                      { "id": "b2c3d4e5-2222-4000-b000-000000000003", "nome": "Lugar Secreto" }
+                    ],
+                    "integrantes": [
+                      { "id": "11111111-aaaa-4000-8000-000000000003", "nome": "Pedro Santos" }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar evento",
+        "description": "Cria um novo evento/culto. A data deve estar no formato ISO 8601.",
+        "tags": ["Eventos"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventoInput" },
+              "example": {
+                "data": "2026-02-23T19:00:00.000Z",
+                "fk_tipo_evento": "33333333-cccc-4000-a000-000000000001",
+                "descricao": "Culto de Domingo - Noite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Evento criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventoCreateResponse" },
+                "example": {
+                  "msg": "Evento criado com sucesso",
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000003",
+                    "data": "2026-02-23T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Noite",
+                    "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos/{id}": {
+      "get": {
+        "summary": "Buscar evento por ID",
+        "description": "Retorna os dados completos de um evento, incluindo músicas com tonalidade e integrantes com funções.",
+        "tags": ["Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Evento encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventoShow" },
+                "example": {
+                  "id": "22222222-bbbb-4000-9000-000000000001",
+                  "data": "2026-02-16T19:00:00.000Z",
+                  "descricao": "Culto de Domingo - Manhã",
+                  "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" },
+                  "musicas": [
+                    { "id": "b2c3d4e5-2222-4000-b000-000000000001", "nome": "Rendido Estou", "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" } },
+                    { "id": "b2c3d4e5-2222-4000-b000-000000000002", "nome": "Ninguém Explica Deus", "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000004", "tom": "D" } }
+                  ],
+                  "integrantes": [
+                    {
+                      "id": "11111111-aaaa-4000-8000-000000000001",
+                      "nome": "João Silva",
+                      "funcoes": [
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                      ]
+                    },
+                    {
+                      "id": "11111111-aaaa-4000-8000-000000000002",
+                      "nome": "Maria Oliveira",
+                      "funcoes": [
+                        { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar evento",
+        "description": "Atualiza os dados de um evento. Ao menos um campo deve ser enviado.",
+        "tags": ["Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EventoUpdateInput" },
+              "example": { "descricao": "Culto de Domingo - Manhã (Especial de Louvor)" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evento atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventoCreateResponse" },
+                "example": {
+                  "msg": "Evento editado com sucesso",
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000001",
+                    "data": "2026-02-16T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Manhã (Especial de Louvor)",
+                    "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover evento",
+        "description": "Remove um evento pelo ID.",
+        "tags": ["Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Evento removido com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Evento deletado com sucesso",
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000001",
+                    "data": "2026-02-16T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Manhã"
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos/{eventoId}/musicas": {
+      "get": {
+        "summary": "Listar músicas de um evento",
+        "description": "Retorna as músicas escaladas para um evento com suas tonalidades.",
+        "tags": ["Eventos - Músicas"],
+        "parameters": [{ "$ref": "#/components/parameters/EventoIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de músicas do evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/MusicaEvento" }
+                },
+                "example": [
+                  { "id": "b2c3d4e5-2222-4000-b000-000000000001", "nome": "Rendido Estou", "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" } },
+                  { "id": "b2c3d4e5-2222-4000-b000-000000000002", "nome": "Ninguém Explica Deus", "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000004", "tom": "D" } }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Adicionar música a um evento",
+        "description": "Escala uma música para um evento.",
+        "tags": ["Eventos - Músicas"],
+        "parameters": [{ "$ref": "#/components/parameters/EventoIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "musicas_id": { "type": "string", "format": "uuid" } },
+                "required": ["musicas_id"]
+              },
+              "example": { "musicas_id": "b2c3d4e5-2222-4000-b000-000000000003" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Música adicionada ao evento com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Música adicionada ao evento com sucesso" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos/{eventoId}/musicas/{musicaId}": {
+      "delete": {
+        "summary": "Remover música de um evento",
+        "description": "Remove uma música da escala de um evento.",
+        "tags": ["Eventos - Músicas"],
+        "parameters": [
+          { "$ref": "#/components/parameters/EventoIdParam" },
+          { "$ref": "#/components/parameters/MusicaIdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Música removida do evento com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Música removida do evento com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos/{eventoId}/integrantes": {
+      "get": {
+        "summary": "Listar integrantes de um evento",
+        "description": "Retorna os integrantes escalados para um evento com suas funções.",
+        "tags": ["Eventos - Integrantes"],
+        "parameters": [{ "$ref": "#/components/parameters/EventoIdParam" }],
+        "responses": {
+          "200": {
+            "description": "Lista de integrantes do evento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IntegranteEvento" }
+                },
+                "example": [
+                  {
+                    "id": "11111111-aaaa-4000-8000-000000000001",
+                    "nome": "João Silva",
+                    "funcoes": [
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                    ]
+                  },
+                  {
+                    "id": "11111111-aaaa-4000-8000-000000000002",
+                    "nome": "Maria Oliveira",
+                    "funcoes": [
+                      { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Escalar integrante em um evento",
+        "description": "Adiciona um integrante à escala de um evento.",
+        "tags": ["Eventos - Integrantes"],
+        "parameters": [{ "$ref": "#/components/parameters/EventoIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "musico_id": { "type": "string", "format": "uuid" } },
+                "required": ["musico_id"]
+              },
+              "example": { "musico_id": "11111111-aaaa-4000-8000-000000000003" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Integrante escalado com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Integrante escalado com sucesso" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/eventos/{eventoId}/integrantes/{integranteId}": {
+      "delete": {
+        "summary": "Remover integrante de um evento",
+        "description": "Remove um integrante da escala de um evento.",
+        "tags": ["Eventos - Integrantes"],
+        "parameters": [
+          { "$ref": "#/components/parameters/EventoIdParam" },
+          { "$ref": "#/components/parameters/IntegranteIdParam" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integrante removido do evento com sucesso",
+            "content": {
+              "application/json": {
+                "example": { "msg": "Integrante removido do evento com sucesso" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "summary": "Listar todas as tags",
+        "description": "Retorna a lista completa de tags para classificação de músicas.",
+        "tags": ["Tags"],
+        "responses": {
+          "200": {
+            "description": "Lista de tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" },
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000002", "nome": "Louvor" },
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000003", "nome": "Congregacional" },
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000004", "nome": "Intimidade" },
+                  { "id": "d4e5f6a7-4444-4000-d000-000000000005", "nome": "Avivamento" }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar tag",
+        "description": "Cria uma nova tag. O nome deve ser único.",
+        "tags": ["Tags"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Natal" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tag criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Tag criada com sucesso",
+                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000006", "nome": "Natal" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "get": {
+        "summary": "Buscar tag por ID",
+        "tags": ["Tags"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tag encontrada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdNome" },
+                "example": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar tag",
+        "tags": ["Tags"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Adoração e Louvor" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tag atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Tag editada com sucesso",
+                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração e Louvor" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover tag",
+        "tags": ["Tags"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tag removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Tag deletada com sucesso",
+                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tonalidades": {
+      "get": {
+        "summary": "Listar todas as tonalidades",
+        "description": "Retorna os tons musicais disponíveis.",
+        "tags": ["Tonalidades"],
+        "responses": {
+          "200": {
+            "description": "Lista de tonalidades",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Tonalidade" }
+                },
+                "example": [
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000001", "tom": "C" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000002", "tom": "C#" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000003", "tom": "Dm" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000004", "tom": "D" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000005", "tom": "E" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000006", "tom": "F" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000008", "tom": "Am" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000009", "tom": "A" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000010", "tom": "Bb" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000011", "tom": "Bm" },
+                  { "id": "c3d4e5f6-3333-4000-c000-000000000012", "tom": "B" }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar tonalidade",
+        "description": "Cria uma nova tonalidade. O tom deve ser único.",
+        "tags": ["Tonalidades"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TomInput" },
+              "example": { "tom": "Em" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tonalidade criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TomResponse" },
+                "example": {
+                  "msg": "Tonalidade criada com sucesso",
+                  "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000013", "tom": "Em" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tonalidades/{id}": {
+      "get": {
+        "summary": "Buscar tonalidade por ID",
+        "tags": ["Tonalidades"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tonalidade encontrada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Tonalidade" },
+                "example": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar tonalidade",
+        "tags": ["Tonalidades"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TomInput" },
+              "example": { "tom": "G#" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tonalidade atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TomResponse" },
+                "example": {
+                  "msg": "Tonalidade editada com sucesso",
+                  "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G#" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover tonalidade",
+        "tags": ["Tonalidades"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tonalidade removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Tonalidade deletada com sucesso",
+                  "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/funcoes": {
+      "get": {
+        "summary": "Listar todas as funções",
+        "description": "Retorna as funções/instrumentos disponíveis no ministério.",
+        "tags": ["Funções"],
+        "responses": {
+          "200": {
+            "description": "Lista de funções",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000002", "nome": "Guitarra" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000003", "nome": "Teclado" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000004", "nome": "Bateria" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000005", "nome": "Baixo" },
+                  { "id": "f6a7b8c9-6666-4000-f000-000000000006", "nome": "Violão" }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar função",
+        "description": "Cria uma nova função/instrumento. O nome deve ser único.",
+        "tags": ["Funções"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Saxofone" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Função criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Função criada com sucesso",
+                  "funcao": { "id": "f6a7b8c9-6666-4000-f000-000000000007", "nome": "Saxofone" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/funcoes/{id}": {
+      "get": {
+        "summary": "Buscar função por ID",
+        "tags": ["Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Função encontrada",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdNome" },
+                "example": { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar função",
+        "tags": ["Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Vocal de Apoio" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Função atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Função editada com sucesso",
+                  "funcao": { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Vocal de Apoio" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover função",
+        "tags": ["Funções"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Função removida com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Função deletada com sucesso",
+                  "funcao": { "id": "f6a7b8c9-6666-4000-f000-000000000001", "nome": "Voz" }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tipos-eventos": {
+      "get": {
+        "summary": "Listar tipos de eventos",
+        "description": "Retorna as categorias de eventos disponíveis.",
+        "tags": ["Tipos de Eventos"],
+        "responses": {
+          "200": {
+            "description": "Lista de tipos de eventos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/IdNome" }
+                },
+                "example": [
+                  { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" },
+                  { "id": "33333333-cccc-4000-a000-000000000002", "nome": "Culto de Quarta" },
+                  { "id": "33333333-cccc-4000-a000-000000000003", "nome": "Conferência" },
+                  { "id": "33333333-cccc-4000-a000-000000000004", "nome": "Vigília" },
+                  { "id": "33333333-cccc-4000-a000-000000000005", "nome": "Casamento" }
+                ]
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "summary": "Cadastrar tipo de evento",
+        "description": "Cria um novo tipo de evento. O nome deve ser único.",
+        "tags": ["Tipos de Eventos"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Retiro Espiritual" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tipo de evento criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Tipo de evento criado com sucesso",
+                  "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000006", "nome": "Retiro Espiritual" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/tipos-eventos/{id}": {
+      "get": {
+        "summary": "Buscar tipo de evento por ID",
+        "tags": ["Tipos de Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tipo de evento encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/IdNome" },
+                "example": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar tipo de evento",
+        "tags": ["Tipos de Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NomeInput" },
+              "example": { "nome": "Culto Dominical" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tipo de evento atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NomeResponse" },
+                "example": {
+                  "msg": "Tipo de evento editado com sucesso",
+                  "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto Dominical" }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "delete": {
+        "summary": "Remover tipo de evento",
+        "tags": ["Tipos de Eventos"],
+        "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
+        "responses": {
+          "200": {
+            "description": "Tipo de evento removido com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Tipo de evento deletado com sucesso",
+                  "tipoEvento": { "id": "33333333-cccc-4000-a000-000000000001", "nome": "Culto de Domingo" }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFoundError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "IdNome": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" }
+        },
+        "required": ["id", "nome"]
+      },
+      "Tonalidade": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "tom": { "type": "string" }
+        },
+        "required": ["id", "tom"]
+      },
+      "Artista": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" }
+        },
+        "required": ["id", "nome"]
+      },
+      "ArtistaInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "minLength": 1 }
+        },
+        "required": ["nome"]
+      },
+      "ArtistaResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "artista": { "$ref": "#/components/schemas/Artista" }
+        }
+      },
+      "Versao": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "artista": { "$ref": "#/components/schemas/IdNome" },
+          "bpm": { "type": "integer", "nullable": true },
+          "cifras": { "type": "string", "nullable": true },
+          "lyrics": { "type": "string", "nullable": true },
+          "link_versao": { "type": "string", "nullable": true }
+        },
+        "required": ["id", "artista"]
+      },
+      "VersaoInput": {
+        "type": "object",
+        "properties": {
+          "artista_id": { "type": "string", "format": "uuid" },
+          "bpm": { "type": "integer", "nullable": true },
+          "cifras": { "type": "string", "nullable": true },
+          "lyrics": { "type": "string", "nullable": true },
+          "link_versao": { "type": "string", "nullable": true }
+        },
+        "required": ["artista_id"]
+      },
+      "VersaoUpdateInput": {
+        "type": "object",
+        "properties": {
+          "bpm": { "type": "integer", "nullable": true },
+          "cifras": { "type": "string", "nullable": true },
+          "lyrics": { "type": "string", "nullable": true },
+          "link_versao": { "type": "string", "nullable": true }
+        }
+      },
+      "VersaoResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "versao": { "$ref": "#/components/schemas/Versao" }
+        }
+      },
+      "Musica": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "tonalidade": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/Tonalidade" }]
+          },
+          "tags": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          },
+          "versoes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Versao" }
+          },
+          "funcoes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          }
+        },
+        "required": ["id", "nome", "tags", "versoes", "funcoes"]
+      },
+      "MusicaInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "minLength": 1 },
+          "fk_tonalidade": { "type": "string", "format": "uuid" }
+        },
+        "required": ["nome", "fk_tonalidade"]
+      },
+      "MusicaUpdateInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "minLength": 1 },
+          "fk_tonalidade": { "type": "string", "format": "uuid" }
+        }
+      },
+      "MusicaCreateResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "musica": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "nome": { "type": "string" },
+              "tonalidade": { "$ref": "#/components/schemas/Tonalidade" }
+            }
+          }
+        }
+      },
+      "MusicasPaginadas": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Musica" }
+          },
+          "meta": { "$ref": "#/components/schemas/PaginationMeta" }
+        },
+        "required": ["items", "meta"]
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "page": { "type": "integer" },
+          "per_page": { "type": "integer" },
+          "total_pages": { "type": "integer" }
+        },
+        "required": ["total", "page", "per_page", "total_pages"]
+      },
+      "MusicaEvento": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "tonalidade": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/Tonalidade" }]
+          }
+        },
+        "required": ["id", "nome"]
+      },
+      "IntegranteComFuncoes": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "doc_id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "telefone": { "type": "string", "nullable": true },
+          "funcoes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          }
+        },
+        "required": ["id", "nome", "doc_id", "email", "funcoes"]
+      },
+      "IntegranteInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "minLength": 1 },
+          "doc_id": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "format": "email" },
+          "senha": { "type": "string", "minLength": 1 },
+          "telefone": { "type": "string", "nullable": true }
+        },
+        "required": ["nome", "doc_id", "email", "senha"]
+      },
+      "IntegranteUpdateInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string" },
+          "doc_id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "senha": { "type": "string" },
+          "telefone": { "type": "string", "nullable": true }
+        }
+      },
+      "IntegranteResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "integrante": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "nome": { "type": "string" },
+              "doc_id": { "type": "string" },
+              "email": { "type": "string", "format": "email" },
+              "telefone": { "type": "string", "nullable": true }
+            }
+          }
+        }
+      },
+      "IntegranteEvento": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "nome": { "type": "string" },
+          "funcoes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          }
+        },
+        "required": ["id", "nome", "funcoes"]
+      },
+      "EventoIndex": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "data": { "type": "string", "format": "date-time" },
+          "descricao": { "type": "string" },
+          "tipoEvento": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/IdNome" }]
+          },
+          "musicas": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          },
+          "integrantes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IdNome" }
+          }
+        },
+        "required": ["id", "data", "descricao", "musicas", "integrantes"]
+      },
+      "EventoShow": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "data": { "type": "string", "format": "date-time" },
+          "descricao": { "type": "string" },
+          "tipoEvento": {
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/IdNome" }]
+          },
+          "musicas": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MusicaEvento" }
+          },
+          "integrantes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/IntegranteEvento" }
+          }
+        },
+        "required": ["id", "data", "descricao", "musicas", "integrantes"]
+      },
+      "EventoInput": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "string", "format": "date-time" },
+          "fk_tipo_evento": { "type": "string", "format": "uuid" },
+          "descricao": { "type": "string", "minLength": 1 }
+        },
+        "required": ["data", "fk_tipo_evento", "descricao"]
+      },
+      "EventoUpdateInput": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "string", "format": "date-time" },
+          "fk_tipo_evento": { "type": "string", "format": "uuid" },
+          "descricao": { "type": "string" }
+        }
+      },
+      "EventoCreateResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "evento": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "data": { "type": "string", "format": "date-time" },
+              "descricao": { "type": "string" },
+              "tipoEvento": { "$ref": "#/components/schemas/IdNome" }
+            }
+          }
+        }
+      },
+      "NomeInput": {
+        "type": "object",
+        "properties": {
+          "nome": { "type": "string", "minLength": 1 }
+        },
+        "required": ["nome"]
+      },
+      "TomInput": {
+        "type": "object",
+        "properties": {
+          "tom": { "type": "string", "minLength": 1 }
+        },
+        "required": ["tom"]
+      },
+      "NomeResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "tag": { "$ref": "#/components/schemas/IdNome" },
+          "funcao": { "$ref": "#/components/schemas/IdNome" },
+          "tipoEvento": { "$ref": "#/components/schemas/IdNome" }
+        }
+      },
+      "TomResponse": {
+        "type": "object",
+        "properties": {
+          "msg": { "type": "string" },
+          "tonalidade": { "$ref": "#/components/schemas/Tonalidade" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "erro": {
+            "type": "string",
+            "description": "Mensagem descritiva do erro"
+          },
+          "codigo": {
+            "type": "integer",
+            "description": "Código HTTP do erro"
+          }
+        },
+        "required": ["erro", "codigo"]
+      }
+    },
+    "parameters": {
+      "IdParam": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "ID do recurso (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "MusicaIdParam": {
+        "name": "musicaId",
+        "in": "path",
+        "required": true,
+        "description": "ID da música (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "VersaoIdParam": {
+        "name": "versaoId",
+        "in": "path",
+        "required": true,
+        "description": "ID da versão (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "EventoIdParam": {
+        "name": "eventoId",
+        "in": "path",
+        "required": true,
+        "description": "ID do evento (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "IntegranteIdParam": {
+        "name": "integranteId",
+        "in": "path",
+        "required": true,
+        "description": "ID do integrante (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "FuncaoIdParam": {
+        "name": "funcaoId",
+        "in": "path",
+        "required": true,
+        "description": "ID da função (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      }
+    },
+    "responses": {
+      "ValidationError": {
+        "description": "Erro de validação — campo obrigatório ausente ou inválido",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "O campo 'nome' é obrigatório", "codigo": 400 }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Recurso não encontrado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "O recurso não foi encontrado ou não existe", "codigo": 404 }
+          }
+        }
+      },
+      "ConflictError": {
+        "description": "Conflito — registro duplicado",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "Já existe um registro com esse nome", "codigo": 409 }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Erro interno do servidor",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "Erro interno do servidor", "codigo": 500 }
+          }
+        }
+      }
+    }
+  }
+}

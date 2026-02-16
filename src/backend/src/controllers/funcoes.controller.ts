@@ -12,10 +12,10 @@ class FuncoesController {
                 await handler(req, res);
             } catch (error) {
                 if (error instanceof AppError) {
-                    res.status(error.statusCode).json({ errors: error.errors || [error.message] });
+                    res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode });
                     return;
                 }
-                res.status(500).json({ errors: [fallbackMessage] });
+                res.status(500).json({ erro: fallbackMessage, codigo: 500 });
             }
         };
     }

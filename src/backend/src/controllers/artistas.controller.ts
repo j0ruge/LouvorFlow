@@ -8,8 +8,8 @@ class ArtistasController {
             const artistas = await artistasService.listAll();
             res.status(200).json(artistas);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar artistas"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar artistas", codigo: 500 });
         }
     }
 
@@ -18,8 +18,8 @@ class ArtistasController {
             const artista = await artistasService.getById(req.params.id);
             res.status(200).json(artista);
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao buscar artista"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao buscar artista", codigo: 500 });
         }
     }
 
@@ -28,8 +28,8 @@ class ArtistasController {
             const artista = await artistasService.create(req.body.nome);
             res.status(201).json({ msg: "Artista criado com sucesso", artista });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao criar artista"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao criar artista", codigo: 500 });
         }
     }
 
@@ -38,8 +38,8 @@ class ArtistasController {
             const artista = await artistasService.update(req.params.id, req.body.nome);
             res.status(200).json({ msg: "Artista editado com sucesso", artista });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao editar artista"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar artista", codigo: 500 });
         }
     }
 
@@ -48,8 +48,8 @@ class ArtistasController {
             const artista = await artistasService.delete(req.params.id);
             res.status(200).json({ msg: "Artista deletado com sucesso", artista });
         } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ errors: [error.message] }); return; }
-            res.status(500).json({ errors: ["Erro ao deletar artista"] });
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao deletar artista", codigo: 500 });
         }
     }
 }
