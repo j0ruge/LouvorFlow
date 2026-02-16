@@ -51,7 +51,12 @@ Códigos de status HTTP apropriados (200, 201, 400, 401, 404, 500).
 Versionamento por URL (/v1/, /v2/) para mudanças quebradoras.
 Gerenciamento de Contexto com Regras Condicionais:
 Use o diretório .claude/rules/ para regras específicas de domínio. Exemplo para APIs REST
-Garantia uma boa Docstring Coverage?
+
+## Docstrings
+
+- **OBRIGATÓRIO**: Todo código (classes, métodos, funções e interfaces públicas) deve conter docstrings claras, escritas em **português do Brasil**.
+- As docstrings devem descrever o propósito, os parâmetros e o retorno de forma objetiva.
+- Utilize o formato JSDoc (`/** ... */`) para projetos TypeScript/JavaScript.
 
 ---
 
