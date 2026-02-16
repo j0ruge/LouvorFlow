@@ -1,15 +1,15 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
-import homeRoutes from './router/homeRoutes.js';
-import artistasRoutes from './router/artistasRoutes.js';
-import integrantesRoutes from './router/integrantesRoutes.js';
-import musicasRoutes from './router/musicasRoutes.js';
-import tonalidadesRoutes from './router/tonalidadesRoutes.js';
-import funcoesRoutes from './router/funcoesRoutes.js';
-import tagsRoutes from './router/tagsRoutes.js';
-import tiposEventosRoutes from './router/tiposEventosRoutes.js';
-import eventosRoutes from './router/eventosRoutes.js';
+import homeRoutes from './routes/home.routes.js';
+import artistasRoutes from './routes/artistas.routes.js';
+import integrantesRoutes from './routes/integrantes.routes.js';
+import musicasRoutes from './routes/musicas.routes.js';
+import tonalidadesRoutes from './routes/tonalidades.routes.js';
+import funcoesRoutes from './routes/funcoes.routes.js';
+import tagsRoutes from './routes/tags.routes.js';
+import tiposEventosRoutes from './routes/tipos-eventos.routes.js';
+import eventosRoutes from './routes/eventos.routes.js';
 
 class App {
     app: Express;
