@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import artistasController from '../controllers/artistasController.js';
+import artistasController from '../controllers/artistas.controller.js';
 
 const router: Router = Router();
 
-// Rotas de Artistas
 router.get('/', artistasController.index);
 router.get('/:id', artistasController.show);
 router.post('/', artistasController.create);
