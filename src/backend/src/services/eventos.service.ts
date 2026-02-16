@@ -3,6 +3,12 @@ import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
 import type { EventoIndexRaw, EventoShowRaw } from '../types/index.js';
 
+/**
+ * Convert a raw indexed evento record into a simplified index representation.
+ *
+ * @param e - Raw evento row including related `Eventos_Musicas` and `Eventos_Integrantes`
+ * @returns An object containing `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array of musica IDs), and `integrantes` (array of integrante IDs)
+ */
 function formatEventoIndex(e: EventoIndexRaw) {
     return {
         id: e.id,
@@ -14,6 +20,12 @@ function formatEventoIndex(e: EventoIndexRaw) {
     };
 }
 
+/**
+ * Format a detailed raw evento record into its show representation.
+ *
+ * @param e - Raw evento record including related Eventos_Musicas and Eventos_Integrantes rows
+ * @returns An object with `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array of `{ id, nome, tonalidade }`) and `integrantes` (array of `{ id, nome, funcoes }` where `funcoes` is an array of function IDs)
+ */
 function formatEventoShow(e: EventoShowRaw) {
     return {
         id: e.id,
