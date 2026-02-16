@@ -11,9 +11,17 @@ import Scales from "./pages/Scales";
 import Members from "./pages/Members";
 import Reports from "./pages/Reports";
 import History from "./pages/History";
+import { EventoDetail } from "./components/EventoDetail";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -27,6 +35,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/musicas" element={<Songs />} />
               <Route path="/escalas" element={<Scales />} />
+              <Route path="/escalas/:id" element={<EventoDetail />} />
               <Route path="/integrantes" element={<Members />} />
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/historico" element={<History />} />
