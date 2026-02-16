@@ -99,6 +99,9 @@ export const MOCK_MUSICAS_BASE = [
 
 /**
  * Gera 25 músicas para teste de paginação.
+ * As 3 primeiras são provenientes de MOCK_MUSICAS_BASE e as demais são geradas dinamicamente.
+ * Cada objeto de música contém as propriedades: id, nome e fk_tonalidade.
+ * @returns Lista de músicas mockadas para testes de paginação. 
  * As 3 primeiras são as MOCK_MUSICAS_BASE, as demais são geradas.
  */
 export function generatePaginationMusicas() {

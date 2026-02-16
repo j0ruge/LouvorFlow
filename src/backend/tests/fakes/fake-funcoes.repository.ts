@@ -1,7 +1,16 @@
+/**
+ * Cria um repositório fake para Funções, utilizando dados em memória baseados em MOCK_FUNCOES.
+ * Fornece operações CRUD e métodos auxiliares para busca por id e nome, simulando o comportamento de um repositório real.
+ *
+ * @returns Um objeto que expõe métodos assíncronos para listar, buscar, criar, atualizar, deletar e resetar funções em memória, simulando a interface de um repositório real.
+ */
 import { randomUUID } from 'node:crypto';
 import { MOCK_FUNCOES } from './mock-data.js';
 
-/** Cria fake repository para Funcoes com dados em memória. */
+/**
+ * Cria fake repository para Funcoes com dados em memória.
+ * @returns Repositório fake com operações CRUD (findAll, findById, findByNome, create, update, delete) e helper de reset, operando sobre cópias clonadas de MOCK_FUNCOES.
+ */
 export function createFakeFuncoesRepository() {
   let data = MOCK_FUNCOES.map(f => ({ ...f }));
 
