@@ -26,7 +26,7 @@ npm run build
 
 ## File Structure After Refactoring
 
-```
+```text
 src/backend/
 ├── prisma/
 │   ├── cliente.ts              # PrismaClient (UNCHANGED)
@@ -80,7 +80,7 @@ src/backend/
 
 ## Layer Dependency Rules
 
-```
+```text
 Route  →  Controller  →  Service  →  Repository  →  Prisma
   ✅ HTTP     ✅ HTTP      ❌ HTTP     ❌ HTTP
   ❌ Prisma   ❌ Prisma    ❌ Prisma   ✅ Prisma

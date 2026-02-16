@@ -1,5 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import { AppError } from './errors/AppError.js';
 
 import homeRoutes from './routes/home.routes.js';
 import artistasRoutes from './routes/artistas.routes.js';
@@ -38,6 +39,10 @@ class App {
     }
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+            if (err instanceof AppError) {
+                res.status(err.statusCode).json({ errors: err.errors || [err.message] });
+                return;
+            }
             res.status(500).json({ errors: [err.message || "Erro interno do servidor"] });
         });
     }

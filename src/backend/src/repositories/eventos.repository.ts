@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 import { EVENTO_INDEX_SELECT, EVENTO_SHOW_SELECT } from '../types/index.js';
 
@@ -34,10 +35,10 @@ class EventosRepository {
         });
     }
 
-    async update(id: string, data: Record<string, unknown>) {
+    async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
         return prisma.eventos.update({
             where: { id },
-            data: data as any,
+            data,
             select: {
                 id: true,
                 data: true,

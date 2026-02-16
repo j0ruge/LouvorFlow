@@ -1,4 +1,3 @@
-﻿
 # Padrão de Arquitetura
 
 ## Visão Geral
@@ -75,3 +74,7 @@ Use Plan Mode para grandes alterações.
 Evite mudanças não solicitadas: inclua em CLAUDE.md a regra:
 "Nunca refatore código a menos que explicitamente solicitado."
 Mantenha o arquivo curto, focado e atualizado.  Use @path/to/file para importar regras detalhadas.
+
+## Regras de Markdown
+
+- **OBRIGATÓRIO**: Todo bloco de código cercado (fenced code block) deve ter o identificador de linguagem após os três backticks de abertura. Exemplo: ` ```typescript `, ` ```json `, ` ```text `. Nunca usar ` ``` ` sem especificar a linguagem — isso viola a regra MD040 (fenced-code-language) do markdown-lint.

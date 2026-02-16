@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../errors/AppError.js';
 import integrantesRepository from '../repositories/integrantes.repository.js';
@@ -38,15 +38,15 @@ class IntegrantesService {
         const integranteExistente = await integrantesRepository.findByDocId(doc_id);
         if (integranteExistente) throw new AppError("Já existe um integrante com esse doc_id", 409);
 
-        const randomSalt = randomInt(10, 16);
-        const passwordHash = await bcrypt.hash(senha, randomSalt);
+        const SALT_ROUNDS = 12;
+        const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
         return integrantesRepository.create({
             nome, doc_id, email, senha: passwordHash, telefone: telefone || null
         });
     }
 
-    async update(id: string, body: Record<string, unknown>) {
+    async update(id: string, body: { nome?: string; doc_id?: string; email?: string; senha?: string; telefone?: string }) {
         if (!id) throw new AppError("ID de integrante não enviado", 400);
 
         const integranteExistente = await integrantesRepository.findByIdSimple(id);
@@ -56,9 +56,9 @@ class IntegrantesService {
             throw new AppError("Nenhum dado enviado", 400);
         }
 
-        const { nome, email, senha, telefone } = body as any;
-        const doc_id = (body.doc_id as string | undefined) !== undefined
-            ? (body.doc_id as string).replace(/\D/g, '')
+        const { nome, email, senha, telefone } = body;
+        const doc_id = body.doc_id !== undefined
+            ? body.doc_id.replace(/\D/g, '')
             : undefined;
 
         if (doc_id !== undefined) {
@@ -66,15 +66,15 @@ class IntegrantesService {
             if (duplicado) throw new AppError("Já existe um integrante com esse doc_id", 409);
         }
 
-        const updateData: Record<string, unknown> = {};
+        const updateData: Prisma.IntegrantesUpdateInput = {};
         if (nome !== undefined) updateData.nome = nome;
         if (doc_id !== undefined) updateData.doc_id = doc_id;
         if (email !== undefined) updateData.email = email;
         if (telefone !== undefined) updateData.telefone = telefone;
 
         if (senha) {
-            const randomSalt = randomInt(10, 16);
-            updateData.senha = await bcrypt.hash(senha as string, randomSalt);
+            const SALT_ROUNDS = 12;
+            updateData.senha = await bcrypt.hash(senha, SALT_ROUNDS);
         }
 
         return integrantesRepository.update(id, updateData);
@@ -98,7 +98,7 @@ class IntegrantesService {
     async addFuncao(integranteId: string, funcao_id?: string) {
         if (!funcao_id) throw new AppError("ID da função é obrigatório", 400);
 
-        const integranteExiste = await integrantesRepository.findIntegranteSimple(integranteId);
+        const integranteExiste = await integrantesRepository.findByIdSimple(integranteId);
         if (!integranteExiste) throw new AppError("Integrante não encontrado", 404);
 
         const funcaoExiste = await integrantesRepository.findFuncaoById(funcao_id);

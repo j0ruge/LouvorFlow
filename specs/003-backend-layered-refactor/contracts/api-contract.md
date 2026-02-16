@@ -7,25 +7,29 @@
 ## Common Response Patterns
 
 ### Success Response (list)
-```
+
+```text
 Status: 200
 Body: [ { field1, field2, ... }, ... ]
 ```
 
 ### Success Response (create)
-```
+
+```text
 Status: 201
 Body: { msg: "... criado/criada com sucesso", <entity>: { ... } }
 ```
 
 ### Success Response (update/delete)
-```
+
+```text
 Status: 200
 Body: { msg: "... editado/editada/deletado/deletada com sucesso", <entity>: { ... } }
 ```
 
 ### Error Responses
-```
+
+```text
 Status: 400  Body: { errors: ["<validation message>"] }
 Status: 404  Body: { errors: ["<not found message>"] }
 Status: 409  Body: { errors: ["<conflict message>"] }
@@ -126,6 +130,7 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 | DELETE | /:musicaId/funcoes/:funcaoId          | 200    | `{ msg }` |
 
 **Musica formatted shape**:
+
 ```
 {
   id, nome,
@@ -153,6 +158,7 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 | DELETE | /:eventoId/integrantes/:integranteId        | 200    | `{ msg }` |
 
 **EventoIndex shape**:
+
 ```
 {
   id, data, descricao,
@@ -163,6 +169,7 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 ```
 
 **EventoShow shape**:
+
 ```
 {
   id, data, descricao,

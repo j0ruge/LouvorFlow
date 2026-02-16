@@ -1,5 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import musicasRepository from '../repositories/musicas.repository.js';
+import tonalidadesRepository from '../repositories/tonalidades.repository.js';
 import type { MusicaRaw, Musica } from '../types/index.js';
 
 function formatMusica(m: MusicaRaw): Musica {
@@ -62,6 +63,9 @@ class MusicasService {
 
         if (errors.length > 0) throw new AppError(errors[0], 400, errors);
 
+        const tonalidade = await tonalidadesRepository.findById(fk_tonalidade!);
+        if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
+
         const musica = await musicasRepository.create({ nome: nome!, fk_tonalidade: fk_tonalidade! });
 
         return {
@@ -80,7 +84,11 @@ class MusicasService {
         const { nome, fk_tonalidade } = body;
         const updateData: Record<string, unknown> = {};
         if (nome !== undefined) updateData.nome = nome;
-        if (fk_tonalidade !== undefined) updateData.fk_tonalidade = fk_tonalidade;
+        if (fk_tonalidade !== undefined) {
+            const tonalidade = await tonalidadesRepository.findById(fk_tonalidade);
+            if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
+            updateData.fk_tonalidade = fk_tonalidade;
+        }
 
         const musica = await musicasRepository.update(id, updateData);
 

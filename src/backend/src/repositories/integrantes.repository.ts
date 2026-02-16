@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 import { INTEGRANTE_PUBLIC_SELECT } from '../types/index.js';
 
@@ -45,17 +46,17 @@ class IntegrantesRepository {
         return prisma.integrantes.findFirst({ where: { doc_id, NOT: { id: excludeId } } });
     }
 
-    async create(data: Record<string, unknown>) {
+    async create(data: Prisma.IntegrantesCreateInput) {
         return prisma.integrantes.create({
-            data: data as any,
+            data,
             select: INTEGRANTE_PUBLIC_SELECT
         });
     }
 
-    async update(id: string, data: Record<string, unknown>) {
+    async update(id: string, data: Prisma.IntegrantesUpdateInput) {
         return prisma.integrantes.update({
             where: { id },
-            data: data as any,
+            data,
             select: INTEGRANTE_PUBLIC_SELECT
         });
     }
@@ -102,9 +103,6 @@ class IntegrantesRepository {
         return prisma.funcoes.findUnique({ where: { id: funcao_id } });
     }
 
-    async findIntegranteSimple(id: string) {
-        return prisma.integrantes.findUnique({ where: { id } });
-    }
 }
 
 export default new IntegrantesRepository();

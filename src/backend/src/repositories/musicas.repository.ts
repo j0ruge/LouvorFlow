@@ -1,4 +1,6 @@
+import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
+import tagsRepository from './tags.repository.js';
 import { MUSICA_SELECT } from '../types/index.js';
 
 class MusicasRepository {
@@ -46,10 +48,10 @@ class MusicasRepository {
         });
     }
 
-    async update(id: string, data: Record<string, unknown>) {
+    async update(id: string, data: Prisma.MusicasUpdateInput) {
         return prisma.musicas.update({
             where: { id },
-            data: data as any,
+            data,
             select: {
                 id: true,
                 nome: true,
@@ -102,10 +104,10 @@ class MusicasRepository {
         });
     }
 
-    async updateVersao(versaoId: string, data: Record<string, unknown>) {
+    async updateVersao(versaoId: string, data: Prisma.Artistas_MusicasUpdateInput) {
         return prisma.artistas_Musicas.update({
             where: { id: versaoId },
-            data: data as any,
+            data,
             select: {
                 id: true,
                 bpm: true,
@@ -163,7 +165,7 @@ class MusicasRepository {
     }
 
     async findTagById(tagId: string) {
-        return prisma.tags.findUnique({ where: { id: tagId } });
+        return tagsRepository.findById(tagId);
     }
 
     // --- Funcoes (musicas_funcoes) ---

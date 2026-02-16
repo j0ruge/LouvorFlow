@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
 import type { EventoIndexRaw, EventoShowRaw } from '../types/index.js';
@@ -97,7 +98,7 @@ class EventosService {
             throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
         }
 
-        const updateData: Record<string, unknown> = {};
+        const updateData: Prisma.EventosUncheckedUpdateInput = {};
         if (data !== undefined) updateData.data = new Date(data);
         if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
         if (descricao !== undefined) updateData.descricao = descricao;
@@ -129,6 +130,9 @@ class EventosService {
     // --- Musicas ---
 
     async listMusicas(eventoId: string) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
         const musicas = await eventosRepository.findMusicas(eventoId);
         return musicas.map(m => {
             const musica = m.eventos_musicas_musicas_id_fkey;
@@ -142,6 +146,9 @@ class EventosService {
 
     async addMusica(eventoId: string, musicas_id?: string) {
         if (!musicas_id) throw new AppError("ID da música é obrigatório", 400);
+
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
 
         const musica = await eventosRepository.findMusicaById(musicas_id);
         if (!musica) throw new AppError("Música não encontrada", 404);
@@ -162,6 +169,9 @@ class EventosService {
     // --- Integrantes ---
 
     async listIntegrantes(eventoId: string) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
         const integrantes = await eventosRepository.findIntegrantes(eventoId);
         return integrantes.map(i => {
             const integrante = i.eventos_integrantes_musico_id_fkey;
@@ -175,6 +185,9 @@ class EventosService {
 
     async addIntegrante(eventoId: string, musico_id?: string) {
         if (!musico_id) throw new AppError("ID do integrante é obrigatório", 400);
+
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
 
         const integrante = await eventosRepository.findIntegranteById(musico_id);
         if (!integrante) throw new AppError("Integrante não encontrado", 404);
