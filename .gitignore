@@ -30,3 +30,6 @@ dist-ssr
 
 # Claude local settings (per-developer)
 .claude/settings.local.json
+.agents
+.claude/skills
+.windsurf
