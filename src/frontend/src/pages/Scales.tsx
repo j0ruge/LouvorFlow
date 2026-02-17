@@ -3,7 +3,7 @@
  *
  * Carrega dados reais da API via React Query, exibe estados de
  * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
- * e permite criar novos eventos via formulário em dialog.
+ * e permite criar, editar e excluir eventos via dialogs.
  * O botão "Ver Detalhes" navega para `/escalas/:id`.
  */
 
@@ -14,10 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, Plus, Users, Music } from "lucide-react";
-import { useEventos } from "@/hooks/use-eventos";
+import { useEventos, useDeleteEvento } from "@/hooks/use-eventos";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import type { EventoIndex } from "@/schemas/evento";
 
 /**
  * Componente de skeleton para o card de evento durante carregamento.
@@ -58,15 +60,38 @@ function ScaleSkeleton() {
  * Componente da página de escalas do ministério.
  *
  * Exibe a lista de eventos (escalas) com seus integrantes e músicas,
- * permite criar novos eventos via dialog e navegar para detalhes.
+ * permite criar, editar e excluir eventos via dialogs e navegar para detalhes.
  * Utiliza React Query para busca de dados e gerenciamento de estado.
  *
  * @returns Elemento JSX com a página de escalas.
  */
 const Scales = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingEvento, setEditingEvento] = useState<EventoIndex | null>(null);
+  const [deletingEvento, setDeletingEvento] = useState<EventoIndex | null>(null);
   const navigate = useNavigate();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
+  const deleteEvento = useDeleteEvento();
+
+  /** Abre o formulário em modo edição para o evento informado. */
+  function handleEdit(evento: EventoIndex) {
+    setEditingEvento(evento);
+    setFormOpen(true);
+  }
+
+  /** Controla a visibilidade do dialog do formulário. */
+  function handleFormOpenChange(open: boolean) {
+    setFormOpen(open);
+    if (!open) setEditingEvento(null);
+  }
+
+  /** Confirma e executa a exclusão do evento selecionado. */
+  function handleConfirmDelete() {
+    if (!deletingEvento) return;
+    deleteEvento.mutate(deletingEvento.id, {
+      onSuccess: () => setDeletingEvento(null),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -81,7 +106,10 @@ const Scales = () => {
         </div>
         <Button
           className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={() => setFormOpen(true)}
+          onClick={() => {
+            setEditingEvento(null);
+            setFormOpen(true);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Escala
@@ -191,26 +219,21 @@ const Scales = () => {
                     {scale.musicas.length} músicas selecionadas
                   </div>
                   <div className="flex gap-2">
-                    <span tabIndex={0} title="Em breve" className="inline-flex">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        aria-label="Editar — em breve"
-                      >
-                        Editar
-                      </Button>
-                    </span>
-                    <span tabIndex={0} title="Em breve" className="inline-flex">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        aria-label="Compartilhar — em breve"
-                      >
-                        Compartilhar
-                      </Button>
-                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(scale)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeletingEvento(scale)}
+                    >
+                      Excluir
+                    </Button>
                     <Button
                       variant="default"
                       size="sm"
@@ -227,7 +250,22 @@ const Scales = () => {
         </div>
       )}
 
-      <EventoForm open={formOpen} onOpenChange={setFormOpen} />
+      <EventoForm
+        open={formOpen}
+        onOpenChange={handleFormOpenChange}
+        evento={editingEvento}
+      />
+
+      <DeleteConfirmDialog
+        open={!!deletingEvento}
+        onOpenChange={(open) => {
+          if (!open) setDeletingEvento(null);
+        }}
+        title="Excluir Escala"
+        description="Os vínculos com músicas e integrantes desta escala serão removidos. Deseja continuar?"
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteEvento.isPending}
+      />
     </div>
   );
 };

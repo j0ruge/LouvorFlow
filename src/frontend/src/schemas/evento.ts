@@ -77,3 +77,13 @@ export const CreateEventoFormSchema = z.object({
 
 /** Tipo inferido dos dados do formulário de criação de evento. */
 export type CreateEventoForm = z.infer<typeof CreateEventoFormSchema>;
+
+/** Schema de validação do formulário de edição de evento. */
+export const UpdateEventoFormSchema = z.object({
+  data: z.string().optional(),
+  fk_tipo_evento: z.string().uuid("Selecione um tipo de evento").optional(),
+  descricao: z.string().optional(),
+});
+
+/** Tipo inferido dos dados do formulário de edição de evento. */
+export type UpdateEventoForm = z.infer<typeof UpdateEventoFormSchema>;

@@ -9,7 +9,7 @@ Completar a integração frontend-backend do LouvorFlow conectando todos os endp
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8
+**Language/Version**: TypeScript ~5.8 (instalado: ^5.8.3; CLAUDE.md alvo: 5.9)
 **Primary Dependencies**: React 18.3, Vite 5.4, TanStack React Query 5.83, react-hook-form 7.61, Zod 3.25, shadcn/ui + Radix UI, React Router 6.30, Sonner 1.7, Lucide React
 **Storage**: N/A (frontend-only; backend com PostgreSQL 17 + Prisma 6 já existente)
 **Testing**: Playwright (E2E/navegabilidade via MCP + framework de testes automatizados)
@@ -21,9 +21,17 @@ Completar a integração frontend-backend do LouvorFlow conectando todos os endp
 
 ## Constitution Check
 
-*Nenhum arquivo `constitution.md` encontrado no repositório. Gate automaticamente aprovado.*
+*Validado contra `.specify/memory/constitution.md` v1.0.1 (2026-02-14).*
 
-**Post-Design Re-check**: O design segue os padrões estabelecidos na Fase 1 (services → hooks → components), respeita a Lei de Demeter, SOLID e DRY conforme CLAUDE.md. O componente `ConfigCrudSection<T>` é a única abstração nova, justificada pela repetição de 5 seções CRUD idênticas.
+| Princípio | Status | Notas |
+|-----------|--------|-------|
+| I. Mobile-First | ⚠️ PARCIAL | Novos componentes devem seguir mobile-first. Responsividade avançada fora do escopo, mas layout base deve funcionar em 375px. |
+| II. Relational Data Integrity | ✅ OK | DB usa CASCADE em junction tables conforme constituição. Frontend trata exclusões com diálogo de confirmação informando impacto em registros relacionados. |
+| III. RESTful API as Single Source | ✅ OK | Todo acesso a dados via API. Filtragem client-side usa dados já obtidos da API. |
+| IV. Version-Centric Repertoire | ⚠️ DEBT | Seleção de versão ao associar música a evento fora do escopo (requer alteração no backend). Registrado como débito constitucional — issue de acompanhamento necessária. |
+| V. Simplicity & Pragmatism | ✅ OK | `ConfigCrudSection<T>` é a única abstração nova, justificada pela repetição de 5 seções CRUD idênticas. |
+
+**Post-Design Re-check**: O design segue os padrões estabelecidos na Fase 1 (services → hooks → components), respeita a Lei de Demeter, SOLID e DRY conforme CLAUDE.md.
 
 ## Project Structure
 
@@ -96,6 +104,8 @@ src/frontend/src/
 **Structure Decision**: Seguir a estrutura existente do frontend (Option 2 — Web application). Todos os arquivos novos seguem as convenções estabelecidas: páginas em `pages/`, componentes em `components/`, hooks em `hooks/`, services em `services/`, schemas em `schemas/`. Testes E2E adicionados em `tests/e2e/`.
 
 ## Implementation Phases
+
+> **Mapeamento Plan → Tasks**: As fases aqui (A–G) foram expandidas em 10 phases no `tasks.md` para maior granularidade: A→Phase 1, B→Phases 2+3, C→Phase 4, D→Phase 5, E→Phase 6, F→Phase 7, (Busca)→Phase 8, G→Phase 9, (Polish)→Phase 10.
 
 ### Fase A — Infraestrutura e Componentes Base (pré-requisito para tudo)
 

@@ -14,6 +14,8 @@ import {
   createIntegrante,
   updateIntegrante,
   deleteIntegrante,
+  addFuncaoIntegrante,
+  removeFuncaoIntegrante,
 } from "@/services/integrantes";
 import type { CreateIntegranteForm, UpdateIntegranteForm } from "@/schemas/integrante";
 
@@ -105,6 +107,52 @@ export function useDeleteIntegrante() {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["integrantes"] });
       queryClient.removeQueries({ queryKey: ["integrantes", id] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para adicionar uma função a um integrante via mutation.
+ *
+ * @param integranteId - UUID do integrante para invalidação de cache.
+ * @returns Resultado do useMutation para adição de função.
+ */
+export function useAddFuncaoIntegrante(integranteId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (funcaoId: string) =>
+      addFuncaoIntegrante(integranteId, funcaoId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["integrantes"] });
+      queryClient.invalidateQueries({ queryKey: ["integrantes", integranteId] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para remover uma função de um integrante via mutation.
+ *
+ * @param integranteId - UUID do integrante para invalidação de cache.
+ * @returns Resultado do useMutation para remoção de função.
+ */
+export function useRemoveFuncaoIntegrante(integranteId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (funcaoId: string) =>
+      removeFuncaoIntegrante(integranteId, funcaoId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["integrantes"] });
+      queryClient.invalidateQueries({ queryKey: ["integrantes", integranteId] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {

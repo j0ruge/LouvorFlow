@@ -3,10 +3,12 @@
  *
  * Carrega dados reais paginados da API via React Query, exibe estados de
  * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
- * e permite criar novas músicas via formulário em dialog.
+ * permite criar novas músicas via formulário em dialog, e implementa
+ * filtragem client-side com debounce de 300ms.
  */
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,9 +49,35 @@ function SongSkeleton() {
 const Songs = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError, error, refetch } = useMusicas(page, ITEMS_PER_PAGE);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const navigate = useNavigate();
 
-  const songs = data?.items ?? [];
+  /** Debounce de 300ms para o termo de busca. */
+  useEffect(
+    function debounceSearchTerm() {
+      const timer = setTimeout(() => setDebouncedTerm(searchTerm), 300);
+      return () => clearTimeout(timer);
+    },
+    [searchTerm],
+  );
+
+  const isSearching = debouncedTerm.length > 0;
+
+  /** Quando buscando, carrega todos os registros; caso contrário, usa paginação. */
+  const { data, isLoading, isError, error, refetch } = useMusicas(
+    isSearching ? 1 : page,
+    isSearching ? 9999 : ITEMS_PER_PAGE,
+  );
+
+  /** Aplica filtragem client-side por nome (case-insensitive). */
+  const filteredSongs = useMemo(() => {
+    const songs = data?.items ?? [];
+    if (!isSearching) return songs;
+    const term = debouncedTerm.toLowerCase();
+    return songs.filter((song) => song.nome.toLowerCase().includes(term));
+  }, [data?.items, debouncedTerm, isSearching]);
+
   const meta = data?.meta;
 
   return (
@@ -78,8 +106,10 @@ const Songs = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar músicas por nome, artista ou tom..."
+                placeholder="Buscar músicas por nome..."
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -100,7 +130,7 @@ const Songs = () => {
             />
           )}
 
-          {!isLoading && !isError && songs.length === 0 && (
+          {!isLoading && !isError && filteredSongs.length === 0 && !isSearching && (
             <EmptyState
               title="Nenhuma música cadastrada"
               description="Comece adicionando músicas ao catálogo do ministério."
@@ -109,13 +139,26 @@ const Songs = () => {
             />
           )}
 
-          {!isLoading && !isError && songs.length > 0 && (
+          {!isLoading && !isError && filteredSongs.length === 0 && isSearching && (
+            <EmptyState
+              title="Nenhum resultado encontrado"
+              description={`Nenhuma música encontrada para "${debouncedTerm}".`}
+            />
+          )}
+
+          {!isLoading && !isError && filteredSongs.length > 0 && (
             <>
               <div className="space-y-4">
-                {songs.map((song) => (
+                {filteredSongs.map((song) => (
                   <div
                     key={song.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
+                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300 cursor-pointer"
+                    onClick={() => navigate(`/musicas/${song.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") navigate(`/musicas/${song.id}`);
+                    }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
@@ -156,7 +199,14 @@ const Songs = () => {
                           </Badge>
                         ))}
                       </div>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/musicas/${song.id}`);
+                        }}
+                      >
                         Detalhes
                       </Button>
                     </div>
@@ -164,7 +214,7 @@ const Songs = () => {
                 ))}
               </div>
 
-              {meta && meta.total_pages > 1 && (
+              {!isSearching && meta && meta.total_pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <Button
                     variant="outline"

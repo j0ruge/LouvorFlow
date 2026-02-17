@@ -17,6 +17,7 @@ import type {
   EventoShow,
   EventoCreateResponse,
   CreateEventoForm,
+  UpdateEventoForm,
 } from "@/schemas/evento";
 
 /** Schema de resposta para endpoints de associação/desassociação. */
@@ -62,6 +63,37 @@ export async function createEvento(
     body: JSON.stringify(dados),
   });
   return EventoCreateResponseSchema.parse(data);
+}
+
+/**
+ * Atualiza um evento existente.
+ *
+ * @param id - UUID do evento.
+ * @param dados - Dados do formulário de edição.
+ * @returns Resposta da API com mensagem e evento atualizado.
+ */
+export async function updateEvento(
+  id: string,
+  dados: UpdateEventoForm,
+): Promise<{ msg: string; evento: object }> {
+  const data = await apiFetch<unknown>(`/eventos/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+  return z.object({ msg: z.string(), evento: z.object({}).passthrough() }).parse(data);
+}
+
+/**
+ * Remove um evento pelo id.
+ *
+ * @param id - UUID do evento a ser removido.
+ * @returns Resposta da API com mensagem de confirmação.
+ */
+export async function deleteEvento(id: string): Promise<{ msg: string }> {
+  const data = await apiFetch<unknown>(`/eventos/${id}`, {
+    method: "DELETE",
+  });
+  return z.object({ msg: z.string() }).parse(data);
 }
 
 /**

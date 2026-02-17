@@ -1,4 +1,4 @@
-import { Music, Calendar, Users, BarChart3, History, Home } from "lucide-react";
+import { Music, Calendar, Users, BarChart3, History, Home, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -20,6 +20,7 @@ const menuItems = [
   { title: "Músicas", url: "/musicas", icon: Music },
   { title: "Escalas", url: "/escalas", icon: Calendar },
   { title: "Integrantes", url: "/integrantes", icon: Users },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Histórico", url: "/historico", icon: History },
 ];

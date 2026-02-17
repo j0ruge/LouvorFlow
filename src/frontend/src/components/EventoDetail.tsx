@@ -27,9 +27,13 @@ import {
   X,
   ArrowLeft,
   Guitar,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   useEvento,
+  useUpdateEvento,
+  useDeleteEvento,
   useAddMusicaToEvento,
   useRemoveMusicaFromEvento,
   useAddIntegranteToEvento,
@@ -38,6 +42,8 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useIntegrantes } from "@/hooks/use-integrantes";
 import { ErrorState } from "@/components/ErrorState";
+import { EventoForm } from "@/components/EventoForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 /**
  * Página de detalhe de evento com gerenciamento de associações.
@@ -52,6 +58,8 @@ export function EventoDetail() {
   const navigate = useNavigate();
   const [selectedMusicaId, setSelectedMusicaId] = useState("");
   const [selectedIntegranteId, setSelectedIntegranteId] = useState("");
+  const [editFormOpen, setEditFormOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const {
     data: evento,
@@ -64,6 +72,8 @@ export function EventoDetail() {
   const { data: allMusicas } = useMusicas(1, 100);
   const { data: allIntegrantes } = useIntegrantes();
 
+  const updateEvento = useUpdateEvento();
+  const deleteEvento = useDeleteEvento();
   const addMusica = useAddMusicaToEvento(id ?? "");
   const removeMusica = useRemoveMusicaFromEvento(id ?? "");
   const addIntegrante = useAddIntegranteToEvento(id ?? "");
@@ -140,6 +150,24 @@ export function EventoDetail() {
             Detalhes da Escala
           </h1>
           <p className="text-muted-foreground mt-1">{evento.descricao}</p>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditFormOpen(true)}
+          >
+            <Pencil className="h-4 w-4 mr-1" />
+            Editar
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Excluir
+          </Button>
         </div>
       </div>
 
@@ -238,6 +266,37 @@ export function EventoDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Formulário de edição */}
+      <EventoForm
+        open={editFormOpen}
+        onOpenChange={setEditFormOpen}
+        evento={{
+          id: evento.id,
+          data: evento.data,
+          descricao: evento.descricao,
+          tipoEvento: evento.tipoEvento,
+          musicas: evento.musicas.map((m) => ({ id: m.id, nome: m.nome })),
+          integrantes: evento.integrantes.map((i) => ({ id: i.id, nome: i.nome })),
+        }}
+      />
+
+      {/* Dialog de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Excluir Escala"
+        description="Os vínculos com músicas e integrantes desta escala serão removidos. Deseja continuar?"
+        onConfirm={() => {
+          deleteEvento.mutate(id!, {
+            onSuccess: () => {
+              setDeleteOpen(false);
+              navigate("/escalas");
+            },
+          });
+        }}
+        isLoading={deleteEvento.isPending}
+      />
 
       {/* Integrantes associados */}
       <Card className="shadow-soft border-0">

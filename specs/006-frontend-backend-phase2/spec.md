@@ -126,22 +126,22 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 
 **Why this priority**: Os campos de busca já existem na interface mas não estão funcionais. Ativá-los melhora a usabilidade, especialmente à medida que a quantidade de registros cresce.
 
-**Independent Test**: Pode ser testado digitando um termo no campo de busca — a lista deve filtrar conforme o texto digitado.
+**Independent Test**: Pode ser testado digitando um termo no campo de busca — a lista deve filtrar conforme o texto digitado, com debounce de 300ms. Quando a busca está ativa, todos os registros são carregados (sem paginação) para garantir filtragem completa.
 
 **Acceptance Scenarios**:
 
-1. **Given** o usuário está na página de Músicas com vários registros, **When** ele digita um termo no campo de busca, **Then** a lista é filtrada exibindo apenas músicas cujo nome contenha o termo.
-2. **Given** o usuário está na página de Integrantes, **When** ele digita um nome no campo de busca, **Then** a lista é filtrada exibindo apenas integrantes cujo nome contenha o termo.
-3. **Given** o usuário limpa o campo de busca, **When** o campo fica vazio, **Then** a lista completa é restaurada.
+1. **Given** o usuário está na página de Músicas com vários registros, **When** ele digita um termo no campo de busca, **Then** após debounce de 300ms a lista é filtrada exibindo apenas músicas cujo nome contenha o termo (busca em todos os registros, não apenas na página atual).
+2. **Given** o usuário está na página de Integrantes, **When** ele digita um nome no campo de busca, **Then** após debounce de 300ms a lista é filtrada exibindo apenas integrantes cujo nome contenha o termo.
+3. **Given** o usuário limpa o campo de busca, **When** o campo fica vazio, **Then** a lista completa com paginação é restaurada.
 
 ---
 
 ### Edge Cases
 
-- O que acontece quando o líder tenta excluir uma música que está associada a uma escala? O sistema deve exibir mensagem de erro indicando que a música está em uso e não pode ser excluída.
-- O que acontece quando o líder tenta excluir um artista que possui versões vinculadas a músicas? O sistema deve exibir mensagem de erro indicando a dependência.
-- O que acontece quando o administrador tenta excluir uma função atribuída a integrantes? O sistema deve exibir mensagem de erro indicando a dependência.
-- O que acontece quando dois usuários editam a mesma escala simultaneamente? O último a salvar sobrescreve as alterações (otimista), e o sistema exibe os dados atualizados na tela.
+- O que acontece quando o líder tenta excluir uma música que está associada a uma escala? O banco de dados usa `ON DELETE CASCADE` — a exclusão remove automaticamente os vínculos com escalas. O diálogo de confirmação DEVE alertar: "Esta música será removida de todas as escalas em que está associada. Deseja continuar?".
+- O que acontece quando o líder tenta excluir um artista que possui versões vinculadas a músicas? O banco de dados usa `ON DELETE CASCADE` — a exclusão remove automaticamente as versões vinculadas. O diálogo de confirmação DEVE alertar: "Todas as versões deste artista serão removidas. Deseja continuar?".
+- O que acontece quando o administrador tenta excluir uma função atribuída a integrantes? O banco de dados usa `ON DELETE CASCADE` — a exclusão desvincula automaticamente a função dos integrantes e músicas. O diálogo de confirmação DEVE alertar: "Esta função será removida de todos os integrantes e músicas associados. Deseja continuar?".
+- O que acontece quando dois usuários editam a mesma escala simultaneamente? O último a salvar sobrescreve as alterações (last-write-wins, sem detecção de conflito). Nenhum mecanismo de versionamento (ETag, `updated_at`) é implementado nesta fase — detecção de conflitos fica fora do escopo.
 - O que acontece quando a busca não encontra nenhum resultado? O sistema deve exibir um estado vazio amigável com a mensagem "Nenhum resultado encontrado para [termo]".
 - O que acontece quando o usuário tenta adicionar uma versão de música sem selecionar um artista? O sistema deve bloquear o envio e indicar o campo obrigatório.
 
@@ -152,7 +152,7 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 #### Módulo de Músicas — Gestão Completa
 
 - **FR-001**: O sistema DEVE permitir a edição do nome e da tonalidade de uma música existente.
-- **FR-002**: O sistema DEVE permitir a exclusão de uma música, com diálogo de confirmação antes da remoção.
+- **FR-002**: O sistema DEVE permitir a exclusão de uma música, com diálogo de confirmação que informa o impacto em registros relacionados (vínculos com escalas são removidos automaticamente via CASCADE).
 - **FR-003**: O sistema DEVE exibir uma página de detalhes da música com rota própria (`/musicas/:id`), contendo todas as suas relações (versões, tags, funções), seguindo o padrão de `/escalas/:id`.
 - **FR-004**: O sistema DEVE permitir adicionar versões a uma música, informando artista, BPM (opcional), cifras (opcional), letras (opcional) e link da versão (opcional).
 - **FR-005**: O sistema DEVE permitir editar e remover versões existentes de uma música.
@@ -162,7 +162,7 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 #### Módulo de Escalas/Eventos — Gestão Completa
 
 - **FR-008**: O sistema DEVE permitir a edição de uma escala existente (data, tipo de evento, descrição), com formulário preenchido com dados atuais.
-- **FR-009**: O sistema DEVE permitir a exclusão de uma escala, com diálogo de confirmação antes da remoção.
+- **FR-009**: O sistema DEVE permitir a exclusão de uma escala, com diálogo de confirmação que informa o impacto em registros relacionados (vínculos com músicas e integrantes são removidos automaticamente via CASCADE).
 
 #### Módulo de Integrantes — Funções
 
@@ -180,7 +180,7 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 #### Módulo de Entidades Auxiliares (Configurações)
 
 - **FR-017**: O sistema DEVE fornecer uma página de Configurações com abas horizontais para gerenciar Artistas, Tags, Funções, Tonalidades e Tipos de Evento, permitindo alternar entre seções sem recarregar a página.
-- **FR-018**: O sistema DEVE permitir CRUD completo (criar, listar, editar, excluir) para cada entidade auxiliar.
+- **FR-018**: O sistema DEVE permitir CRUD completo (criar, listar, editar, excluir) para cada entidade auxiliar (Tags, Funções, Tonalidades, Tipos de Evento). Nota: Artistas seguem o mesmo padrão CRUD mas são detalhados separadamente em FR-013 a FR-016.
 - **FR-019**: O sistema DEVE validar unicidade de nomes ao criar ou editar entidades auxiliares.
 
 #### Dashboard
@@ -208,16 +208,16 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 - O backend possui todos os endpoints CRUD necessários já implementados e documentados na OpenAPI (confirmado: 64 endpoints, 14 recursos).
 - Não há autenticação/autorização obrigatória nos endpoints nesta fase.
 - O CORS está habilitado no servidor para desenvolvimento local.
-- A busca por nome será implementada no lado do cliente (filtragem local) nesta fase, sem necessidade de endpoint dedicado de busca no backend.
+- A busca por nome será implementada no lado do cliente (filtragem local) nesta fase, sem necessidade de endpoint dedicado de busca no backend. Quando o campo de busca estiver ativo (texto não vazio), o frontend deve carregar todos os registros (sem paginação) para garantir filtragem completa. A paginação é restaurada quando o campo de busca é limpo.
 - As estatísticas do Dashboard serão calculadas a partir dos endpoints de listagem existentes (contagem de registros retornados), sem necessidade de endpoints agregados no backend.
-- Os endpoints de exclusão do backend retornam erro adequado (ex.: 409 Conflict) quando há dependências que impedem a remoção.
+- Os endpoints de exclusão do backend utilizam `ON DELETE CASCADE` no banco de dados — exclusões de entidades removem automaticamente os registros nas tabelas de junção (vínculos). O frontend deve informar o usuário sobre o impacto via diálogo de confirmação com mensagem contextual.
 
 ## Out of Scope
 
 - Autenticação e autorização de usuários.
 - Página de Relatórios com dados reais (requer endpoints de agregação não existentes).
 - Página de Histórico com dados reais (requer lógica de eventos passados vs futuros).
-- Seleção de versão específica ao associar música a uma escala (requer alteração no endpoint do backend).
+- Seleção de versão específica ao associar música a uma escala (requer alteração no endpoint do backend). **Débito constitucional**: Princípio IV da constituição exige que o usuário selecione música E versão ao montar repertório. Será tratado em fase futura quando o backend suportar `fk_versao` no endpoint `eventos_musicas`. Issue de acompanhamento deve ser criada.
 - Upload de arquivos (cifras, letras em PDF).
 - Notificações push ou em tempo real.
 - Responsividade avançada para dispositivos móveis (manter nível atual).
