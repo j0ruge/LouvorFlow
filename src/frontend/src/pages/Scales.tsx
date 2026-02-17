@@ -201,7 +201,7 @@ const Scales = () => {
                         Editar
                       </Button>
                     </span>
-                    <span title="Em breve" className="inline-flex">
+                    <span tabIndex={0} title="Em breve" className="inline-flex">
                       <Button
                         variant="outline"
                         size="sm"
