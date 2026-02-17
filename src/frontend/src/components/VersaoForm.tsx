@@ -112,6 +112,11 @@ export function VersaoForm({
     [open, isEditing, versao, form],
   );
 
+  /**
+   * Delega a submissão dos dados validados ao callback `onSubmit`.
+   *
+   * @param dados - Dados validados do formulário de versão.
+   */
   function handleSubmit(dados: CreateVersaoForm) {
     onSubmit(dados);
   }

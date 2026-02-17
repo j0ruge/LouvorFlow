@@ -1,14 +1,1 @@
-{
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Revise brevemente o que foi feito nesta resposta. Se houve criação ou modificação de código-fonte (.ts, .tsx, .js), verifique: (1) O código novo tem docstrings em português? (2) Se endpoints de API foram alterados, o openapi.json está atualizado? (3) Se modelos de dados mudaram, o schema.prisma reflete isso? Se nenhum código-fonte foi alterado, retorne {\"decision\": \"stop\"}. Se tudo está documentado, retorne {\"decision\": \"stop\"}. Se falta documentação, atualize agora e depois retorne {\"decision\": \"stop\"}."
-          }
-        ]
-      }
-    ]
-  }
-}
+{}

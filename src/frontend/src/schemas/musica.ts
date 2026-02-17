@@ -15,7 +15,13 @@ export const VersaoSchema = z.object({
   bpm: z.number().nullable(),
   cifras: z.string().nullable(),
   lyrics: z.string().nullable(),
-  link_versao: z.string().nullable(),
+  link_versao: z
+    .string()
+    .refine(
+      (val) => val === "" || /^https?:\/\//i.test(val),
+      "URL deve usar protocolo http ou https",
+    )
+    .nullable(),
 });
 
 /** Tipo inferido de uma versão. */
@@ -80,7 +86,12 @@ export const CreateVersaoFormSchema = z.object({
   bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z.string().url("URL inválida").optional().or(z.literal("")),
+  link_versao: z
+    .string()
+    .url("URL inválida")
+    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
+    .optional()
+    .or(z.literal("")),
 });
 
 /** Tipo inferido dos dados do formulário de criação de versão. */
@@ -91,7 +102,12 @@ export const UpdateVersaoFormSchema = z.object({
   bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z.string().url("URL inválida").optional().or(z.literal("")),
+  link_versao: z
+    .string()
+    .url("URL inválida")
+    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
+    .optional()
+    .or(z.literal("")),
 });
 
 /** Tipo inferido dos dados do formulário de edição de versão. */

@@ -72,8 +72,12 @@ export function ConfigCrudSection<T>({
   async function handleCreate() {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    await onCreate(trimmed);
-    setNewName("");
+    try {
+      await onCreate(trimmed);
+      setNewName("");
+    } catch (error) {
+      throw error;
+    }
   }
 
   /** Inicia a edição de um item existente. */
@@ -93,15 +97,22 @@ export function ConfigCrudSection<T>({
     if (!editingId) return;
     const trimmed = editName.trim();
     if (!trimmed) return;
-    await onUpdate(editingId, trimmed);
-    cancelEditing();
+    try {
+      await onUpdate(editingId, trimmed);
+      cancelEditing();
+    } catch (error) {
+      throw error;
+    }
   }
 
   /** Confirma e executa a exclusão do item selecionado. */
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
-    await onDelete(deleteTarget.id);
-    setDeleteTarget(null);
+    try {
+      await onDelete(deleteTarget.id);
+    } finally {
+      setDeleteTarget(null);
+    }
   }
 
   return (
@@ -193,6 +204,7 @@ export function ConfigCrudSection<T>({
                         variant="ghost"
                         size="sm"
                         onClick={() => startEditing(id, name)}
+                        aria-label={`Editar ${config.label.toLowerCase()}`}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -200,6 +212,7 @@ export function ConfigCrudSection<T>({
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteTarget({ id, name })}
+                        aria-label={`Excluir ${config.label.toLowerCase()}`}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>

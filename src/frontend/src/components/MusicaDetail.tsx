@@ -7,7 +7,7 @@
  * com diálogo de confirmação informando impacto CASCADE.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,7 @@ import {
 } from "@/hooks/use-musicas";
 import { useTonalidades, useTags, useFuncoes } from "@/hooks/use-support";
 import type { Musica, Versao, CreateVersaoForm } from "@/schemas/musica";
+import { isSafeUrl } from "@/lib/utils";
 
 /** Propriedades do componente MusicaDetail. */
 interface MusicaDetailProps {
@@ -70,6 +71,15 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   const [editingVersao, setEditingVersao] = useState<Versao | null>(null);
   const [selectedTagId, setSelectedTagId] = useState("");
   const [selectedFuncaoId, setSelectedFuncaoId] = useState("");
+
+  /** Sincroniza o estado local quando a prop `musica` muda. */
+  useEffect(
+    function syncLocalStateWithMusica() {
+      setEditName(musica.nome);
+      setEditTonalidade(musica.tonalidade?.id ?? "");
+    },
+    [musica.nome, musica.tonalidade?.id],
+  );
 
   const updateMusica = useUpdateMusica();
   const deleteMusica = useDeleteMusica();
@@ -290,7 +300,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                         {versao.bpm} BPM
                       </Badge>
                     )}
-                    {versao.link_versao && (
+                    {versao.link_versao && isSafeUrl(versao.link_versao) && (
                       <a
                         href={versao.link_versao}
                         target="_blank"

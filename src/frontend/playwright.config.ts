@@ -19,7 +19,7 @@ export default defineConfig({
     baseURL: "http://localhost:8080",
     headless: true,
     screenshot: "only-on-failure",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   projects: [
     {

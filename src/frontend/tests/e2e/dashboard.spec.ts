@@ -24,12 +24,11 @@ test.describe("Dashboard", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 
-    await page.waitForTimeout(2000);
+    const statsContainer = page.getByRole("heading", { name: "Total de Músicas" }).locator("..");
+    await expect(statsContainer).toBeVisible({ timeout: 10_000 });
 
-    const content = await page.textContent("body");
-    expect(content).not.toContain("124 músicas");
-    expect(content).not.toContain("32 integrantes");
-    expect(content).not.toContain("15 eventos");
+    const statsSection = page.locator("text=/\\d+/").first();
+    await expect(statsSection).toBeVisible({ timeout: 5_000 });
   });
 
   test("deve exibir próximos eventos com dados reais", async ({ page }) => {

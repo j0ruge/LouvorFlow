@@ -288,7 +288,11 @@ export function EventoDetail() {
         title="Excluir Escala"
         description="Os vínculos com músicas e integrantes desta escala serão removidos. Deseja continuar?"
         onConfirm={() => {
-          deleteEvento.mutate(id!, {
+          if (!id) {
+            setDeleteOpen(false);
+            return;
+          }
+          deleteEvento.mutate(id, {
             onSuccess: () => {
               setDeleteOpen(false);
               navigate("/escalas");

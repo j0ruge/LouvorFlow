@@ -103,7 +103,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   function onSubmit(dados: CreateMusicaForm) {
     if (isEditing && musica) {
       updateMutation.mutate(
-        { id: musica.id, dados: { nome: dados.nome, fk_tonalidade: dados.fk_tonalidade } },
+        { id: musica.id, dados },
         {
           onSuccess: () => {
             form.reset();

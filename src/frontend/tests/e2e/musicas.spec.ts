@@ -34,10 +34,9 @@ test.describe("Músicas", () => {
 
     const searchInput = page.getByPlaceholder("Buscar músicas por nome...");
     await searchInput.fill("T031");
-    await page.waitForTimeout(500);
 
     const songs = page.locator("h3").filter({ hasText: "T031" });
-    await expect(songs.first()).toBeVisible();
+    await expect(songs.first()).toBeVisible({ timeout: 5_000 });
   });
 
   test("deve restaurar lista ao limpar busca", async ({ page }) => {
@@ -45,13 +44,12 @@ test.describe("Músicas", () => {
     const searchInput = page.getByPlaceholder("Buscar músicas por nome...");
 
     await searchInput.fill("T031");
-    await page.waitForTimeout(500);
+    await expect(page.locator("h3").filter({ hasText: "T031" }).first()).toBeVisible({ timeout: 5_000 });
 
     await searchInput.clear();
-    await page.waitForTimeout(500);
 
     const songs = page.getByRole("button").filter({ hasText: "Detalhes" });
-    await expect(songs.first()).toBeVisible();
+    await expect(songs.first()).toBeVisible({ timeout: 5_000 });
   });
 
   test("deve exibir estado vazio quando busca não encontra resultados", async ({
@@ -61,10 +59,9 @@ test.describe("Músicas", () => {
     const searchInput = page.getByPlaceholder("Buscar músicas por nome...");
 
     await searchInput.fill("termoquenoexiste12345");
-    await page.waitForTimeout(500);
 
     await expect(
       page.getByText("Nenhum resultado encontrado"),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 5_000 });
   });
 });

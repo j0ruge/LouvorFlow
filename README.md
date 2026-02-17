@@ -37,12 +37,14 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 
 ## Funcionalidades
 
-- **Gerenciamento de músicas** — Cadastro com tonalidade, cifra, BPM, letra e versões por artista.
-- **Escalas de culto** — Definição das músicas, ministros, cantores e músicos para cada evento.
-- **Gerenciamento de integrantes** — Cadastro de membros com funções (voz, guitarra, teclado, etc.).
+- **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM, letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
+- **Escalas de culto** — Criação, edição e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento.
+- **Gerenciamento de integrantes** — Cadastro de membros com atribuição e remoção de funções (voz, guitarra, teclado, etc.).
+- **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Tonalidades e Tipos de Evento.
+- **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
+- **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
 - **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos.
-- **Pesquisa de músicas** — Busca rápida por nome, tag ou tonalidade.
 - **Histórico de escalas** — Consulta de escalas anteriores.
 
 ## Tecnologias
@@ -54,6 +56,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 | **Banco**      | PostgreSQL 17                               |
 | **ORM**        | Prisma 6                                    |
 | **Validação**  | Zod                                         |
+| **Testes**     | Vitest 4 (unitários), Playwright (E2E)      |
 | **Infra**      | Docker Compose                              |
 
 ## Instalação
@@ -92,6 +95,15 @@ O servidor inicia em `http://localhost:3000`.
 cd src/frontend
 npm install
 npm run dev
+```
+
+O frontend inicia em `http://localhost:8080`.
+
+Para rodar os testes E2E (requer backend e frontend em execução):
+
+```bash
+cd src/frontend
+npx playwright test
 ```
 
 ## Uso
@@ -175,7 +187,8 @@ curl "http://localhost:3000/api/musicas?page=1&limit=10"
 
 ```json
 {
-  "errors": ["Nome da música é obrigatório"]
+  "erro": "Nome da música é obrigatório",
+  "codigo": 400
 }
 ```
 
@@ -211,23 +224,44 @@ Cada recurso segue o padrão:
 ### Sub-recursos (exemplos)
 
 ```bash
-# Adicionar versão a uma música
-POST /api/musicas/:musicaId/versoes
+# Versões de uma música (CRUD)
+GET    /api/musicas/:musicaId/versoes
+POST   /api/musicas/:musicaId/versoes
+PUT    /api/musicas/:musicaId/versoes/:versaoId
+DELETE /api/musicas/:musicaId/versoes/:versaoId
 
-# Listar integrantes de um evento
-GET /api/eventos/:eventoId/integrantes
+# Tags de uma música
+GET    /api/musicas/:musicaId/tags
+POST   /api/musicas/:musicaId/tags
+DELETE /api/musicas/:musicaId/tags/:tagId
 
-# Vincular função a um integrante
-POST /api/integrantes/:integranteId/funcoes
+# Funções requeridas de uma música
+GET    /api/musicas/:musicaId/funcoes
+POST   /api/musicas/:musicaId/funcoes
+DELETE /api/musicas/:musicaId/funcoes/:funcaoId
+
+# Funções de um integrante
+GET    /api/integrantes/:integranteId/funcoes
+POST   /api/integrantes/:integranteId/funcoes
+DELETE /api/integrantes/:integranteId/funcoes/:funcaoId
+
+# Músicas e integrantes de um evento
+GET    /api/eventos/:eventoId/musicas
+POST   /api/eventos/:eventoId/musicas
+DELETE /api/eventos/:eventoId/musicas/:musicaId
+GET    /api/eventos/:eventoId/integrantes
+POST   /api/eventos/:eventoId/integrantes
+DELETE /api/eventos/:eventoId/integrantes/:integranteId
 ```
 
 ### Formato de erros
 
-Todas as respostas de erro seguem o formato:
+Todas as respostas de erro seguem o formato padronizado via `AppError`:
 
 ```json
 {
-  "errors": ["Mensagem descritiva do erro"]
+  "erro": "Mensagem descritiva do erro",
+  "codigo": 400
 }
 ```
 
@@ -261,8 +295,20 @@ LouvorFlow/
 │   │   │   ├── repositories/     # Acesso a dados (Prisma)
 │   │   │   ├── errors/           # AppError
 │   │   │   └── types/            # Interfaces TypeScript
-│   │   └── prisma/               # Schema e migrações
+│   │   ├── prisma/               # Schema e migrações
+│   │   ├── tests/                # Testes unitários (Vitest)
+│   │   │   ├── services/         # Testes dos services
+│   │   │   └── fakes/            # Repositórios falsos
+│   │   └── docs/                 # Especificação OpenAPI
 │   └── frontend/                 # SPA React (Vite + TailwindCSS)
+│       └── src/
+│           ├── pages/            # Páginas da aplicação
+│           ├── components/       # Componentes React + shadcn/ui
+│           ├── hooks/            # Custom hooks (React Query)
+│           ├── services/         # Serviços de acesso à API
+│           ├── schemas/          # Schemas Zod
+│           ├── lib/              # Utilitários
+│           └── tests/e2e/        # Testes E2E (Playwright)
 ├── infra/
 │   └── postgres/                 # Docker Compose para PostgreSQL
 ├── specs/                        # Especificações de desenvolvimento
@@ -272,12 +318,15 @@ LouvorFlow/
 
 ## Roadmap
 
+- [x] Testes unitários com repositórios mockados
+- [x] Integração frontend-backend — Fase 1 (listagem e criação de músicas, escalas, integrantes)
+- [x] Integração frontend-backend — Fase 2 (CRUD completo, configurações, dashboard real, busca, testes E2E)
 - [ ] Autenticação com JWT
+- [ ] Seleção de versão ao associar música a escala (débito técnico)
 - [ ] Compartilhamento de escalas via WhatsApp
 - [ ] Relatórios de frequência de execução
 - [ ] Histórico de escalas por período
 - [ ] Busca avançada de músicas (por tag, tonalidade, artista)
-- [x] Testes unitários com repositórios mockados
 
 ## Como Contribuir
 
@@ -305,12 +354,13 @@ Toda contribuição é bem-vinda — código, design, documentação ou testes!
 
 ## Documentação
 
-| Recurso                  | Link                                  |
-|--------------------------|---------------------------------------|
-| Modelagem do Banco       | [`doc/readme.md`](./doc/readme.md)    |
-| Infraestrutura (Docker)  | [`infra/README.md`](./infra/README.md)|
-| Especificações           | [`specs/`](./specs/)                  |
-| Entrevistas com Usuários | [`entrevistas/`](./entrevistas/)      |
+| Recurso                  | Link                                            |
+|--------------------------|-------------------------------------------------|
+| Modelagem do Banco       | [`doc/readme.md`](./doc/readme.md)              |
+| Infraestrutura (Docker)  | [`infra/README.md`](./infra/README.md)          |
+| Especificações           | [`specs/`](./specs/)                            |
+| OpenAPI (Swagger)        | [`src/backend/docs/openapi.json`](./src/backend/docs/openapi.json) |
+| Entrevistas com Usuários | [`entrevistas/`](./entrevistas/)                |
 
 ## Licença
 
