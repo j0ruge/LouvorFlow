@@ -11,6 +11,8 @@ import {
   IntegranteComFuncoesSchema,
   IntegranteResponseSchema,
 } from "@/schemas/integrante";
+import { IdNomeSchema } from "@/schemas/shared";
+import type { IdNome } from "@/schemas/shared";
 import type {
   IntegranteComFuncoes,
   IntegranteResponse,
@@ -84,4 +86,53 @@ export async function deleteIntegrante(id: string): Promise<IntegranteResponse> 
     method: "DELETE",
   });
   return IntegranteResponseSchema.parse(data);
+}
+
+/* ========== Funções do Integrante ========== */
+
+/**
+ * Retorna funções de um integrante.
+ *
+ * @param integranteId - UUID do integrante.
+ * @returns Lista de funções parseadas pelo schema Zod.
+ */
+export async function getFuncoesIntegrante(integranteId: string): Promise<IdNome[]> {
+  const data = await apiFetch<unknown[]>(`/integrantes/${integranteId}/funcoes`);
+  return z.array(IdNomeSchema).parse(data);
+}
+
+/**
+ * Adiciona uma função a um integrante.
+ *
+ * @param integranteId - UUID do integrante.
+ * @param funcaoId - UUID da função.
+ * @returns Resposta da API com mensagem de confirmação.
+ */
+export async function addFuncaoIntegrante(
+  integranteId: string,
+  funcaoId: string,
+): Promise<{ msg: string }> {
+  const data = await apiFetch<unknown>(`/integrantes/${integranteId}/funcoes`, {
+    method: "POST",
+    body: JSON.stringify({ funcao_id: funcaoId }),
+  });
+  return z.object({ msg: z.string() }).parse(data);
+}
+
+/**
+ * Remove uma função de um integrante.
+ *
+ * @param integranteId - UUID do integrante.
+ * @param funcaoId - UUID da função.
+ * @returns Resposta da API com mensagem de confirmação.
+ */
+export async function removeFuncaoIntegrante(
+  integranteId: string,
+  funcaoId: string,
+): Promise<{ msg: string }> {
+  const data = await apiFetch<unknown>(
+    `/integrantes/${integranteId}/funcoes/${funcaoId}`,
+    { method: "DELETE" },
+  );
+  return z.object({ msg: z.string() }).parse(data);
 }

@@ -3,31 +3,23 @@
  *
  * Carrega dados reais da API via React Query, exibe estados de
  * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
- * e permite criar novos integrantes via formulário em dialog.
+ * permite criar, editar e excluir integrantes via dialogs,
+ * e implementa filtragem client-side com debounce de 300ms.
  */
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Users, Plus, Search, Mail, Phone, Trash2 } from "lucide-react";
 import { useIntegrantes, useDeleteIntegrante } from "@/hooks/use-integrantes";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { IntegranteForm } from "@/components/IntegranteForm";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 /**
  * Extrai as iniciais do nome para exibir no avatar.
@@ -73,6 +65,7 @@ function MemberSkeleton() {
  * Exibe a lista de integrantes com dados de contato e funções,
  * permite criar, editar e excluir integrantes via dialogs,
  * e gerencia estados de loading, erro e lista vazia.
+ * Implementa busca client-side com debounce de 300ms.
  *
  * @returns Elemento JSX com a página de integrantes.
  */
@@ -80,8 +73,29 @@ const Members = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<{ id: string; nome: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
   const deleteMutation = useDeleteIntegrante();
+
+  /** Debounce de 300ms para o termo de busca. */
+  useEffect(
+    function debounceSearchTerm() {
+      const timer = setTimeout(() => setDebouncedTerm(searchTerm), 300);
+      return () => clearTimeout(timer);
+    },
+    [searchTerm],
+  );
+
+  const isSearching = debouncedTerm.length > 0;
+
+  /** Aplica filtragem client-side por nome (case-insensitive). */
+  const filteredMembers = useMemo(() => {
+    if (!members) return [];
+    if (!isSearching) return members;
+    const term = debouncedTerm.toLowerCase();
+    return members.filter((m) => m.nome.toLowerCase().includes(term));
+  }, [members, debouncedTerm, isSearching]);
 
   /** Abre o formulário no modo criação, limpando o id de edição. */
   function handleOpenCreateForm() {
@@ -110,29 +124,12 @@ const Members = () => {
     if (!open) setEditingId(null);
   }
 
-  /**
-   * Solicita confirmação para exclusão de um integrante.
-   *
-   * @param member - Dados mínimos do integrante (id e nome).
-   */
-  function handleRequestDelete(member: { id: string; nome: string }) {
-    setDeletingMember(member);
-  }
-
-  /**
-   * Controla a visibilidade do dialog de confirmação de exclusão.
-   *
-   * @param open - Novo estado de visibilidade.
-   */
-  function handleDeleteDialogChange(open: boolean) {
-    if (!open) setDeletingMember(null);
-  }
-
   /** Confirma e executa a exclusão do integrante selecionado. */
   function handleConfirmDelete() {
     if (deletingMember) {
-      deleteMutation.mutate(deletingMember.id);
-      setDeletingMember(null);
+      deleteMutation.mutate(deletingMember.id, {
+        onSuccess: () => setDeletingMember(null),
+      });
     }
   }
 
@@ -161,8 +158,10 @@ const Members = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar integrantes por nome, função ou instrumento..."
+              placeholder="Buscar integrantes por nome..."
               className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </CardHeader>
@@ -182,7 +181,7 @@ const Members = () => {
             />
           )}
 
-          {!isLoading && !isError && members?.length === 0 && (
+          {!isLoading && !isError && filteredMembers.length === 0 && !isSearching && (
             <EmptyState
               title="Nenhum integrante cadastrado"
               description="Comece adicionando os membros do ministério para gerenciar a equipe."
@@ -191,9 +190,16 @@ const Members = () => {
             />
           )}
 
-          {!isLoading && !isError && members && members.length > 0 && (
+          {!isLoading && !isError && filteredMembers.length === 0 && isSearching && (
+            <EmptyState
+              title="Nenhum resultado encontrado"
+              description={`Nenhum integrante encontrado para "${debouncedTerm}".`}
+            />
+          )}
+
+          {!isLoading && !isError && filteredMembers.length > 0 && (
             <div className="grid gap-4 md:grid-cols-2">
-              {members.map((member) => (
+              {filteredMembers.map((member) => (
                 <div
                   key={member.id}
                   className="p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
@@ -214,7 +220,7 @@ const Members = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleRequestDelete({ id: member.id, nome: member.nome })}
+                          onClick={() => setDeletingMember({ id: member.id, nome: member.nome })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -273,31 +279,16 @@ const Members = () => {
         integranteId={editingId}
       />
 
-      <AlertDialog
+      <DeleteConfirmDialog
         open={!!deletingMember}
-        onOpenChange={handleDeleteDialogChange}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Tem certeza que deseja remover <strong>{deletingMember?.nome}</strong>?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Essa ação não pode ser desfeita. O integrante será removido
-              permanentemente do ministério.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Não</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleConfirmDelete}
-            >
-              Sim, remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onOpenChange={(open) => {
+          if (!open) setDeletingMember(null);
+        }}
+        title={`Remover ${deletingMember?.nome ?? "integrante"}`}
+        description="Essa ação não pode ser desfeita. O integrante será removido permanentemente do ministério."
+        onConfirm={handleConfirmDelete}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 };

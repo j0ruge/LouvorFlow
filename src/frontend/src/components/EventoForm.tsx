@@ -1,9 +1,10 @@
 /**
- * Formulário de criação de evento (escala) em dialog.
+ * Formulário de criação/edição de evento (escala) em dialog.
  *
  * Usa react-hook-form com resolver Zod para validação,
  * popula o select de tipos de evento via hook `useTiposEventos`,
- * e redireciona para a página de detalhe após sucesso.
+ * e redireciona para a página de detalhe após sucesso na criação.
+ * Suporta modo edição via prop `evento`.
  */
 
 import { useEffect } from "react";
@@ -35,12 +36,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useCreateEvento } from "@/hooks/use-eventos";
+import { useCreateEvento, useUpdateEvento } from "@/hooks/use-eventos";
 import { useTiposEventos } from "@/hooks/use-support";
 import {
   CreateEventoFormSchema,
   type CreateEventoForm,
 } from "@/schemas/evento";
+import type { EventoIndex } from "@/schemas/evento";
 
 /** Propriedades do componente EventoForm. */
 interface EventoFormProps {
@@ -48,10 +50,12 @@ interface EventoFormProps {
   open: boolean;
   /** Callback para alterar a visibilidade do dialog. */
   onOpenChange: (open: boolean) => void;
+  /** Dados do evento para modo edição (opcional). */
+  evento?: EventoIndex | null;
 }
 
 /**
- * Dialog com formulário para criar um novo evento.
+ * Dialog com formulário para criar ou editar um evento.
  *
  * Após criação bem-sucedida, redireciona para `/escalas/:id`
  * para que o usuário possa associar músicas e integrantes.
@@ -59,7 +63,8 @@ interface EventoFormProps {
  * @param props - Propriedades do componente.
  * @returns Elemento React com o dialog do formulário.
  */
-export function EventoForm({ open, onOpenChange }: EventoFormProps) {
+export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
+  const isEditing = !!evento;
   const navigate = useNavigate();
   const form = useForm<CreateEventoForm>({
     resolver: zodResolver(CreateEventoFormSchema),
@@ -71,39 +76,77 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
   });
 
   const createMutation = useCreateEvento();
+  const updateMutation = useUpdateEvento();
   const { data: tiposEventos, isLoading: tiposLoading, isError: tiposError, error: tiposErrorObj } = useTiposEventos();
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   useEffect(
     /**
-     * Reseta o formulário sempre que o dialog é aberto,
-     * garantindo que os campos comecem com os valores padrão.
+     * Reseta ou preenche o formulário ao abrir o dialog.
+     * No modo edição, carrega os dados do evento existente;
+     * no modo criação, reseta os campos para os valores padrão.
      */
-    function resetFormOnOpen() {
-      if (open) {
-        form.reset();
+    function resetOrPopulateForm() {
+      if (!open) return;
+
+      if (isEditing && evento) {
+        form.reset({
+          data: evento.data.slice(0, 16),
+          fk_tipo_evento: evento.tipoEvento?.id ?? "",
+          descricao: evento.descricao,
+        });
+      } else {
+        form.reset({
+          data: "",
+          fk_tipo_evento: "",
+          descricao: "",
+        });
       }
     },
-    [open, form],
+    [open, isEditing, evento, form],
   );
 
   function onSubmit(dados: CreateEventoForm) {
-    createMutation.mutate(dados, {
-      onSuccess: (response) => {
-        form.reset();
-        onOpenChange(false);
-        navigate(`/escalas/${response.evento.id}`);
-      },
-    });
+    if (isEditing && evento) {
+      updateMutation.mutate(
+        {
+          id: evento.id,
+          dados: {
+            data: dados.data,
+            fk_tipo_evento: dados.fk_tipo_evento,
+            descricao: dados.descricao,
+          },
+        },
+        {
+          onSuccess: () => {
+            form.reset();
+            onOpenChange(false);
+          },
+        },
+      );
+    } else {
+      createMutation.mutate(dados, {
+        onSuccess: (response) => {
+          form.reset();
+          onOpenChange(false);
+          navigate(`/escalas/${response.evento.id}`);
+        },
+      });
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Nova Escala</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Editar Escala" : "Nova Escala"}
+          </DialogTitle>
           <DialogDescription>
-            Preencha os dados do novo evento. Após a criação, você poderá
-            associar músicas e integrantes.
+            {isEditing
+              ? "Altere os dados da escala."
+              : "Preencha os dados do novo evento. Após a criação, você poderá associar músicas e integrantes."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -183,8 +226,8 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Salvando..." : "Salvar"}
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Salvando..." : "Salvar"}
               </Button>
             </DialogFooter>
           </form>

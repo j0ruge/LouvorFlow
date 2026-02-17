@@ -1,64 +1,79 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Music, Calendar, Users, TrendingUp } from "lucide-react";
+/**
+ * Página principal do Dashboard.
+ *
+ * Exibe dados reais do servidor: total de músicas, escalas, integrantes,
+ * e próximas escalas. Usa hooks do React Query para carregar dados
+ * e calcular estatísticas no cliente.
+ */
 
+import { useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Music, Calendar, Users, TrendingUp } from "lucide-react";
+import { useMusicas } from "@/hooks/use-musicas";
+import { useEventos } from "@/hooks/use-eventos";
+import { useIntegrantes } from "@/hooks/use-integrantes";
+
+/**
+ * Componente da página de Dashboard com dados reais.
+ *
+ * @returns Elemento JSX com o Dashboard do ministério.
+ */
 const Dashboard = () => {
+  const { data: musicasData, isLoading: musicasLoading } = useMusicas(1, 1);
+  const { data: eventos, isLoading: eventosLoading } = useEventos();
+  const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
+
+  /** Total de músicas extraído dos metadados de paginação. */
+  const totalMusicas = musicasData?.meta.total ?? 0;
+
+  /** Total de integrantes. */
+  const totalIntegrantes = integrantes?.length ?? 0;
+
+  /** Total de escalas. */
+  const totalEscalas = eventos?.length ?? 0;
+
+  /** Próximas escalas filtradas por data futura e ordenadas. */
+  const proximasEscalas = useMemo(() => {
+    if (!eventos) return [];
+    const agora = new Date();
+    return eventos
+      .filter((e) => new Date(e.data) >= agora)
+      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+      .slice(0, 5);
+  }, [eventos]);
+
+  const isLoading = musicasLoading || eventosLoading || integrantesLoading;
+
   const stats = [
     {
       title: "Total de Músicas",
-      value: "124",
+      value: totalMusicas,
       icon: Music,
-      description: "+12 este mês",
+      description: "Cadastradas no repertório",
       gradient: "from-primary to-primary-light",
     },
     {
-      title: "Escalas Ativas",
-      value: "8",
+      title: "Escalas",
+      value: totalEscalas,
       icon: Calendar,
-      description: "Próximos 30 dias",
+      description: `${proximasEscalas.length} próximas`,
       gradient: "from-secondary to-accent",
     },
     {
       title: "Integrantes",
-      value: "32",
+      value: totalIntegrantes,
       icon: Users,
-      description: "15 músicos, 17 cantores",
+      description: "Membros do ministério",
       gradient: "from-accent to-primary",
     },
     {
-      title: "Músicas Populares",
-      value: "15",
+      title: "Próximos Eventos",
+      value: proximasEscalas.length,
       icon: TrendingUp,
-      description: "Mais tocadas no mês",
+      description: "Eventos futuros agendados",
       gradient: "from-primary-light to-secondary",
     },
-  ];
-
-  const recentScales = [
-    {
-      data: "2024-11-17T10:00:00Z",
-      tipoEvento: { id: "te1", nome: "Culto de Celebração" },
-      musicas: [{ id: "m1", nome: "Reckless Love" }, { id: "m2", nome: "Goodness of God" }, { id: "m3", nome: "Way Maker" }],
-      integrantes: [{ id: "i1", nome: "João Silva" }, { id: "i2", nome: "Maria Santos" }],
-    },
-    {
-      data: "2024-11-20T19:00:00Z",
-      tipoEvento: { id: "te2", nome: "Culto de Oração" },
-      musicas: [{ id: "m4", nome: "Oceans" }, { id: "m1", nome: "Reckless Love" }],
-      integrantes: [{ id: "i2", nome: "Maria Santos" }, { id: "i3", nome: "Pedro Costa" }],
-    },
-    {
-      data: "2024-11-24T10:00:00Z",
-      tipoEvento: { id: "te3", nome: "Culto de Domingo" },
-      musicas: [{ id: "m2", nome: "Goodness of God" }, { id: "m3", nome: "Way Maker" }, { id: "m4", nome: "Oceans" }, { id: "m1", nome: "Reckless Love" }],
-      integrantes: [{ id: "i3", nome: "Carlos Lima" }, { id: "i2", nome: "Maria Santos" }, { id: "i4", nome: "Ana Oliveira" }],
-    },
-  ];
-
-  const trendingSongs = [
-    { nome: "Reckless Love", tonalidade: { id: "t1", tom: "C" }, count: 12 },
-    { nome: "Goodness of God", tonalidade: { id: "t2", tom: "G" }, count: 10 },
-    { nome: "Way Maker", tonalidade: { id: "t3", tom: "D" }, count: 8 },
-    { nome: "Oceans", tonalidade: { id: "t4", tom: "Dm" }, count: 6 },
   ];
 
   return (
@@ -86,8 +101,16 @@ const Dashboard = () => {
               <stat.icon className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <div className="text-3xl font-bold text-foreground">
+                  {stat.value}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                {stat.description}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -102,24 +125,42 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentScales.map((scale, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium text-foreground">{scale.tipoEvento.nome}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(scale.data).toLocaleDateString('pt-BR')} • {scale.musicas.length} músicas • {scale.integrantes.length} integrantes
-                    </p>
+            {eventosLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : proximasEscalas.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhuma escala futura agendada.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {proximasEscalas.map((scale) => (
+                  <div
+                    key={scale.id}
+                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
+                  >
+                    <div className="space-y-1">
+                      <p className="font-medium text-foreground">
+                        {scale.tipoEvento?.nome ?? "Evento"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(scale.data).toLocaleDateString("pt-BR")} •{" "}
+                        {scale.musicas.length} músicas •{" "}
+                        {scale.integrantes.length} integrantes
+                      </p>
+                    </div>
+                    {scale.tipoEvento && (
+                      <div className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {scale.tipoEvento.nome}
+                      </div>
+                    )}
                   </div>
-                  <div className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {scale.tipoEvento.nome}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -127,28 +168,59 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Músicas em Destaque
+              Resumo do Ministério
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {trendingSongs.map((song, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
-                >
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
-                      {index + 1}
+                      <Music className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{song.nome}</p>
-                      <p className="text-sm text-muted-foreground">Tom: {song.tonalidade.tom} • Tocada {song.count}x</p>
+                      <p className="font-medium text-foreground">Repertório</p>
+                      <p className="text-sm text-muted-foreground">
+                        {totalMusicas} músicas cadastradas
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Equipe</p>
+                      <p className="text-sm text-muted-foreground">
+                        {totalIntegrantes} integrantes ativos
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Agenda</p>
+                      <p className="text-sm text-muted-foreground">
+                        {totalEscalas} escalas criadas
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

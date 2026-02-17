@@ -5,9 +5,10 @@
  * preserva dados no formulário em caso de erro de envio,
  * e reseta apenas após sucesso da mutation.
  * Suporta modo edição via prop `integranteId`.
+ * Inclui seção de gestão de funções com badges removíveis e seletor.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -26,13 +27,25 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus, X } from "lucide-react";
 import {
   useCreateIntegrante,
   useIntegrante,
   useUpdateIntegrante,
+  useAddFuncaoIntegrante,
+  useRemoveFuncaoIntegrante,
 } from "@/hooks/use-integrantes";
+import { useFuncoes } from "@/hooks/use-support";
 import {
   CreateIntegranteFormSchema,
   UpdateIntegranteFormSchema,
@@ -61,6 +74,7 @@ export function IntegranteForm({
   integranteId,
 }: IntegranteFormProps) {
   const isEditing = !!integranteId;
+  const [selectedFuncaoId, setSelectedFuncaoId] = useState("");
 
   const form = useForm<UpdateIntegranteForm>({
     resolver: zodResolver(
@@ -79,8 +93,17 @@ export function IntegranteForm({
     useIntegrante(integranteId ?? null);
   const createMutation = useCreateIntegrante();
   const updateMutation = useUpdateIntegrante();
+  const { data: allFuncoes } = useFuncoes();
+
+  const addFuncao = useAddFuncaoIntegrante(integranteId ?? "");
+  const removeFuncao = useRemoveFuncaoIntegrante(integranteId ?? "");
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  /** Funções disponíveis para adição (excluindo já atribuídas). */
+  const funcoesAtribuidas = integrante?.funcoes ?? [];
+  const funcoesAtribuidasIds = new Set(funcoesAtribuidas.map((f) => f.id));
+  const funcoesDisponiveis = allFuncoes?.filter((f) => !funcoesAtribuidasIds.has(f.id)) ?? [];
 
   useEffect(
     /**
@@ -137,6 +160,14 @@ export function IntegranteForm({
         },
       });
     }
+  }
+
+  /** Adiciona uma função ao integrante. */
+  function handleAddFuncao() {
+    if (!selectedFuncaoId) return;
+    addFuncao.mutate(selectedFuncaoId, {
+      onSuccess: () => setSelectedFuncaoId(""),
+    });
   }
 
   return (
@@ -239,6 +270,59 @@ export function IntegranteForm({
                   </FormItem>
                 )}
               />
+
+              {/* Seção de funções (apenas no modo edição) */}
+              {isEditing && integranteId && (
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <FormLabel>Funções</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={selectedFuncaoId}
+                      onValueChange={setSelectedFuncaoId}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Adicionar função..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {funcoesDisponiveis.map((funcao) => (
+                          <SelectItem key={funcao.id} value={funcao.id}>
+                            {funcao.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleAddFuncao}
+                      disabled={!selectedFuncaoId || addFuncao.isPending}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {funcoesAtribuidas.map((funcao) => (
+                      <Badge key={funcao.id} variant="outline" className="gap-1">
+                        {funcao.nome}
+                        <button
+                          type="button"
+                          onClick={() => removeFuncao.mutate(funcao.id)}
+                          disabled={removeFuncao.isPending}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                    {funcoesAtribuidas.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma função atribuída.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <DialogFooter>
                 <Button
                   type="button"

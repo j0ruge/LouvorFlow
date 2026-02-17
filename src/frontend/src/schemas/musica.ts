@@ -43,13 +43,13 @@ export const MusicasPaginadasSchema = z.object({
 /** Tipo inferido da resposta paginada de músicas. */
 export type MusicasPaginadas = z.infer<typeof MusicasPaginadasSchema>;
 
-/** Schema da resposta de criação de música. */
+/** Schema da resposta de criação/atualização de música. */
 export const MusicaCreateResponseSchema = z.object({
   msg: z.string(),
   musica: z.object({
     id: z.string().uuid(),
     nome: z.string(),
-    tonalidade: TonalidadeSchema,
+    tonalidade: TonalidadeSchema.nullable(),
   }),
 });
 
@@ -64,3 +64,35 @@ export const CreateMusicaFormSchema = z.object({
 
 /** Tipo inferido dos dados do formulário de criação de música. */
 export type CreateMusicaForm = z.infer<typeof CreateMusicaFormSchema>;
+
+/** Schema de validação do formulário de edição de música. */
+export const UpdateMusicaFormSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  fk_tonalidade: z.string().uuid("Selecione uma tonalidade").optional(),
+});
+
+/** Tipo inferido dos dados do formulário de edição de música. */
+export type UpdateMusicaForm = z.infer<typeof UpdateMusicaFormSchema>;
+
+/** Schema de validação do formulário de criação de versão. */
+export const CreateVersaoFormSchema = z.object({
+  artista_id: z.string().uuid("Selecione um artista"),
+  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  cifras: z.string().optional(),
+  lyrics: z.string().optional(),
+  link_versao: z.string().url("URL inválida").optional().or(z.literal("")),
+});
+
+/** Tipo inferido dos dados do formulário de criação de versão. */
+export type CreateVersaoForm = z.infer<typeof CreateVersaoFormSchema>;
+
+/** Schema de validação do formulário de edição de versão. */
+export const UpdateVersaoFormSchema = z.object({
+  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  cifras: z.string().optional(),
+  lyrics: z.string().optional(),
+  link_versao: z.string().url("URL inválida").optional().or(z.literal("")),
+});
+
+/** Tipo inferido dos dados do formulário de edição de versão. */
+export type UpdateVersaoForm = z.infer<typeof UpdateVersaoFormSchema>;

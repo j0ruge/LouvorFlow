@@ -11,12 +11,14 @@ import {
   getEventos,
   getEvento,
   createEvento,
+  updateEvento,
+  deleteEvento,
   addMusicaToEvento,
   removeMusicaFromEvento,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
 } from "@/services/eventos";
-import type { CreateEventoForm } from "@/schemas/evento";
+import type { CreateEventoForm, UpdateEventoForm } from "@/schemas/evento";
 
 /**
  * Hook para buscar a lista de eventos.
@@ -58,6 +60,53 @@ export function useCreateEvento() {
     mutationFn: (dados: CreateEventoForm) => createEvento(dados),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para atualizar um evento existente via mutation.
+ *
+ * Invalida as queries de listagem e do detalhe do evento.
+ *
+ * @returns Resultado do useMutation para atualização de evento.
+ */
+export function useUpdateEvento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, dados }: { id: string; dados: UpdateEventoForm }) =>
+      updateEvento(id, dados),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.invalidateQueries({ queryKey: ["eventos", id] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para excluir um evento via mutation.
+ *
+ * Invalida a query de listagem e remove a query do detalhe.
+ *
+ * @returns Resultado do useMutation para exclusão de evento.
+ */
+export function useDeleteEvento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteEvento(id),
+    onSuccess: (data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.removeQueries({ queryKey: ["eventos", id] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
