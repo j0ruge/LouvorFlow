@@ -13,6 +13,7 @@ import {
   EventoCreateResponseSchema,
   EventoUpdateResponseSchema,
 } from "@/schemas/evento";
+import { CrudResponseSchema, type CrudResponse } from "@/schemas/shared";
 import type {
   EventoIndex,
   EventoShow,
@@ -91,11 +92,11 @@ export async function updateEvento(
  * @param id - UUID do evento a ser removido.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteEvento(id: string): Promise<{ msg: string }> {
+export async function deleteEvento(id: string): Promise<CrudResponse> {
   const data = await apiFetch<unknown>(`/eventos/${id}`, {
     method: "DELETE",
   });
-  return z.object({ msg: z.string() }).parse(data);
+  return CrudResponseSchema.parse(data);
 }
 
 /**

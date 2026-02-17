@@ -59,7 +59,7 @@ const EventoResponseBaseSchema = z.object({
   id: z.string().uuid(),
   data: z.string(),
   descricao: z.string(),
-  tipoEvento: IdNomeSchema,
+  tipoEvento: IdNomeSchema.nullable(),
 });
 
 /** Schema da resposta de criação de evento. */

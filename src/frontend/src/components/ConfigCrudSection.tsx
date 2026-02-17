@@ -74,8 +74,9 @@ export function ConfigCrudSection<T>({
     if (!trimmed) return;
     try {
       await onCreate(trimmed);
-    } finally {
       setNewName("");
+    } catch (error) {
+      throw error;
     }
   }
 
@@ -98,8 +99,9 @@ export function ConfigCrudSection<T>({
     if (!trimmed) return;
     try {
       await onUpdate(editingId, trimmed);
-    } finally {
       cancelEditing();
+    } catch (error) {
+      throw error;
     }
   }
 
