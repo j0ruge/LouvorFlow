@@ -6,6 +6,7 @@
  * Cada aba renderiza um `ConfigCrudSection` com hooks CRUD específicos.
  */
 
+import { useCallback, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ConfigCrudSection } from "@/components/ConfigCrudSection";
@@ -42,6 +43,22 @@ import type { IdNome, Tonalidade } from "@/schemas/shared";
  * @returns Elemento JSX com a página de configurações em abas.
  */
 const Settings = () => {
+  const tabsListRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Centraliza a aba selecionada no scroll horizontal da TabsList.
+   * Aguarda a atualização do DOM via requestAnimationFrame e usa
+   * scrollIntoView com inline: 'center' para revelar abas adjacentes.
+   */
+  const handleTabChange = useCallback(() => {
+    requestAnimationFrame(() => {
+      const list = tabsListRef.current;
+      if (!list) return;
+      const activeTab = list.querySelector<HTMLElement>('[data-state="active"]');
+      activeTab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    });
+  }, []);
+
   const artistas = useArtistas();
   const createArtista = useCreateArtista();
   const updateArtista = useUpdateArtista();
@@ -80,13 +97,13 @@ const Settings = () => {
 
       <Card className="shadow-soft border-0">
         <CardHeader className="pb-0">
-          <Tabs defaultValue="artistas">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="artistas">Artistas</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="funcoes">Funções</TabsTrigger>
-              <TabsTrigger value="tonalidades">Tonalidades</TabsTrigger>
-              <TabsTrigger value="tipos-eventos">Tipos de Evento</TabsTrigger>
+          <Tabs defaultValue="artistas" onValueChange={handleTabChange}>
+            <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto scrollbar-none md:grid md:grid-cols-5">
+              <TabsTrigger value="artistas" className="shrink-0">Artistas</TabsTrigger>
+              <TabsTrigger value="tags" className="shrink-0">Tags</TabsTrigger>
+              <TabsTrigger value="funcoes" className="shrink-0">Funções</TabsTrigger>
+              <TabsTrigger value="tonalidades" className="shrink-0">Tonalidades</TabsTrigger>
+              <TabsTrigger value="tipos-eventos" className="shrink-0">Tipos de Evento</TabsTrigger>
             </TabsList>
 
             <CardContent className="pt-6">

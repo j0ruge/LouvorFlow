@@ -33,3 +33,4 @@ dist-ssr
 .agents
 .claude/skills
 .windsurf
+.playwright-mcp
