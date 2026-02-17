@@ -34,28 +34,32 @@ O **LouvorFlow** é um projeto desenvolvido por um grupo de jovens com o objetiv
 
 ## ✨ Funcionalidades
 
-### 📊 Dashboard Completo
+### 📊 Dashboard com Dados Reais
 
-Visão geral com estatísticas do ministério, próximas escalas e músicas em destaque.
+Painel principal com estatísticas reais do servidor (total de músicas, escalas, integrantes) e lista de próximas escalas ordenadas por data.
 
 ![Dashboard](https://raw.githubusercontent.com/j0ruge/LouvorFlow/main/docs/screenshots/dashboard.png)
 
 ### 🎼 Gestão de Músicas
 
-Cadastro completo de músicas com informações de tonalidade, BPM, artista e tags de categorização.
+CRUD completo de músicas com página de detalhes dedicada (`/musicas/:id`) para gestão de versões, tags e funções requeridas.
 
 ![Músicas](https://raw.githubusercontent.com/j0ruge/LouvorFlow/main/docs/screenshots/musicas.png)
 
 **Recursos:**
 
-- 🔍 Busca por nome, artista ou tonalidade
-- 🎸 Visualização de tonalidade e BPM
-- 🏷️ Sistema de tags (Adoração, Celebração, etc.)
-- 📝 Detalhes completos de cada música
+- 🔍 Busca funcional por nome com debounce de 300ms
+- 🎸 Visualização e edição de tonalidade e BPM
+- 🏷️ Gestão de tags (adicionar/remover da lista existente)
+- 🎵 Gestão de versões por artista (BPM, cifras, letras, link)
+- 🎭 Gestão de funções requeridas pela música
+- 📝 Página de detalhes dedicada com todas as relações
+- ✏️ Edição inline de nome e tonalidade
+- 🗑️ Exclusão com diálogo de confirmação e aviso de impacto CASCADE
 
 ### 📅 Gerenciamento de Escalas
 
-Criação e organização de escalas de culto com equipes completas.
+Criação, edição e exclusão de escalas de culto com equipes completas.
 
 ![Escalas](https://raw.githubusercontent.com/j0ruge/LouvorFlow/main/docs/screenshots/escalas.png)
 
@@ -64,22 +68,37 @@ Criação e organização de escalas de culto com equipes completas.
 - 📆 Planejamento por data e tipo de culto
 - 👥 Definição de ministro, cantores e músicos
 - 🎵 Seleção de músicas para cada culto
+- ✏️ Edição de escalas existentes (data, tipo, descrição)
+- 🗑️ Exclusão com diálogo de confirmação e aviso de impacto CASCADE
 - ✅ Status de confirmação (Confirmada/Pendente)
 - 📱 Compartilhamento via WhatsApp
 
 ### 👥 Controle de Integrantes
 
-Cadastro e gerenciamento completo dos membros do ministério.
+Cadastro e gerenciamento completo dos membros do ministério com atribuição de funções.
 
 ![Integrantes](https://raw.githubusercontent.com/j0ruge/LouvorFlow/main/docs/screenshots/integrantes.png)
 
 **Recursos:**
 
 - 👤 Perfis detalhados com foto
-- 🎭 Funções (Ministro, Cantor, Músico)
-- 🎹 Instrumentos que cada músico toca
+- 🎭 Atribuição e remoção de funções (instrumentos/papéis) via dialog de edição
+- 🎹 Badges de funções visíveis nos cards de integrantes
+- 🔍 Busca funcional por nome com debounce de 300ms
 - 📞 Informações de contato
 - 📧 Ações rápidas de edição e contato
+
+### ⚙️ Configurações
+
+Página dedicada com abas horizontais para gerenciar entidades auxiliares do sistema.
+
+**Seções (abas):**
+
+- 🎤 **Artistas** — CRUD de artistas/intérpretes para vincular a versões de músicas
+- 🏷️ **Tags** — Classificações temáticas para músicas (Adoração, Celebração, etc.)
+- 🎭 **Funções** — Papéis e instrumentos (Vocal, Guitarra, Bateria, etc.)
+- 🎵 **Tonalidades** — Tons musicais disponíveis (C, D, Em, G#, etc.)
+- 📋 **Tipos de Evento** — Categorias de culto (Celebração, Oração, Casamento, etc.)
 
 ### 📈 Relatórios e Análises
 
@@ -133,6 +152,11 @@ Consulta de todas as escalas e cultos já realizados.
 - **Prisma 6** - ORM moderno para TypeScript/Node.js
 - **Zod** - Validação de dados
 - **Vitest 4** - Framework de testes
+
+### Testes
+
+- **Playwright 1.58** - Testes E2E (navegabilidade e usabilidade)
+- **Vitest 4** - Testes unitários (backend)
 
 ### Infraestrutura e Ferramentas
 
@@ -190,11 +214,12 @@ http://localhost:8080
 ### Scripts Disponíveis
 
 ```bash
-npm run dev        # Servidor de desenvolvimento (porta 8080)
-npm run build      # Build de produção
-npm run build:dev  # Build de desenvolvimento
-npm run lint       # Verificação de lint (ESLint)
-npm run preview    # Preview do build de produção
+npm run dev          # Servidor de desenvolvimento (porta 8080)
+npm run build        # Build de produção
+npm run build:dev    # Build de desenvolvimento
+npm run lint         # Verificação de lint (ESLint)
+npm run preview      # Preview do build de produção
+npx playwright test  # Testes E2E (requer backend e frontend em execução)
 ```
 
 ---
@@ -204,51 +229,71 @@ npm run preview    # Preview do build de produção
 ```text
 LouvorFlow/
 ├── src/
-│   ├── components/           # Componentes React reutilizáveis
-│   │   ├── ui/               # Componentes shadcn/ui (Radix UI)
-│   │   ├── AppLayout.tsx     # Layout principal com sidebar
-│   │   ├── AppSidebar.tsx    # Barra lateral de navegação
-│   │   ├── ThemeProvider.tsx  # Provedor de tema (claro/escuro)
-│   │   ├── ThemeToggle.tsx   # Botão de alternância de tema
-│   │   ├── NavLink.tsx       # Componente de link customizado
-│   │   ├── MusicaForm.tsx    # Formulário de criação de músicas
-│   │   ├── EventoForm.tsx    # Formulário de criação de escalas
-│   │   ├── IntegranteForm.tsx # Formulário de criação de integrantes
-│   │   ├── EventoDetail.tsx  # Visualização detalhada de escala
-│   │   ├── EmptyState.tsx    # Estado vazio genérico
-│   │   └── ErrorState.tsx    # Estado de erro genérico
-│   ├── pages/                # Páginas da aplicação
-│   │   ├── Dashboard.tsx     # Dashboard principal (/)
-│   │   ├── Songs.tsx         # Gestão de músicas (/musicas)
-│   │   ├── Scales.tsx        # Gestão de escalas (/escalas)
-│   │   ├── Members.tsx       # Gestão de integrantes (/integrantes)
-│   │   ├── Reports.tsx       # Relatórios e análises (/relatorios)
-│   │   ├── History.tsx       # Histórico de escalas (/historico)
-│   │   └── NotFound.tsx      # Página 404
-│   ├── hooks/                # Custom React Hooks (React Query)
-│   │   ├── use-musicas.ts    # Hooks para músicas
-│   │   ├── use-eventos.ts    # Hooks para escalas/eventos
-│   │   ├── use-integrantes.ts # Hooks para integrantes
-│   │   └── use-support.ts    # Hooks para dados de apoio
-│   ├── services/             # Camada de comunicação com a API
-│   │   ├── musicas.ts        # Chamadas API para músicas
-│   │   ├── eventos.ts        # Chamadas API para escalas
-│   │   ├── integrantes.ts    # Chamadas API para integrantes
-│   │   └── support.ts        # Chamadas API para dados de apoio
-│   ├── schemas/              # Schemas de validação (Zod)
-│   │   ├── musica.ts         # Schemas para músicas
-│   │   ├── evento.ts         # Schemas para escalas
-│   │   ├── integrante.ts     # Schemas para integrantes
-│   │   └── shared.ts         # Schemas compartilhados
-│   ├── lib/                  # Utilitários e helpers
-│   │   ├── api.ts            # Cliente HTTP genérico (apiFetch)
-│   │   └── utils.ts          # Funções utilitárias
-│   ├── App.tsx               # Componente raiz com rotas e providers
-│   ├── main.tsx              # Entry point
-│   └── index.css             # Estilos globais e tokens
-├── public/                   # Arquivos estáticos
-├── docs/                     # Documentação e screenshots
-└── README.md                 # Este arquivo
+│   ├── components/               # Componentes React reutilizáveis
+│   │   ├── ui/                   # Componentes shadcn/ui (Radix UI)
+│   │   ├── AppLayout.tsx         # Layout principal com sidebar
+│   │   ├── AppSidebar.tsx        # Barra lateral de navegação
+│   │   ├── ThemeProvider.tsx      # Provedor de tema (claro/escuro)
+│   │   ├── ThemeToggle.tsx       # Botão de alternância de tema
+│   │   ├── NavLink.tsx           # Componente de link customizado
+│   │   ├── MusicaForm.tsx        # Formulário de criação/edição de músicas
+│   │   ├── MusicaDetail.tsx      # Detalhes da música (versões, tags, funções)
+│   │   ├── VersaoForm.tsx        # Formulário de criação/edição de versão
+│   │   ├── EventoForm.tsx        # Formulário de criação/edição de escalas
+│   │   ├── EventoDetail.tsx      # Visualização detalhada de escala
+│   │   ├── IntegranteForm.tsx    # Formulário de criação/edição de integrantes
+│   │   ├── ConfigCrudSection.tsx # Seção CRUD genérica para configurações
+│   │   ├── DeleteConfirmDialog.tsx # Diálogo de confirmação de exclusão
+│   │   ├── EmptyState.tsx        # Estado vazio genérico
+│   │   └── ErrorState.tsx        # Estado de erro genérico
+│   ├── pages/                    # Páginas da aplicação
+│   │   ├── Index.tsx             # Redirecionamento inicial
+│   │   ├── Dashboard.tsx         # Dashboard com dados reais (/)
+│   │   ├── Songs.tsx             # Listagem de músicas com busca (/musicas)
+│   │   ├── SongDetail.tsx        # Detalhes da música (/musicas/:id)
+│   │   ├── Scales.tsx            # Gestão de escalas (/escalas)
+│   │   ├── Members.tsx           # Gestão de integrantes com busca (/integrantes)
+│   │   ├── Settings.tsx          # Configurações com abas (/configuracoes)
+│   │   ├── Reports.tsx           # Relatórios e análises (/relatorios)
+│   │   ├── History.tsx           # Histórico de escalas (/historico)
+│   │   └── NotFound.tsx          # Página 404
+│   ├── hooks/                    # Custom React Hooks (React Query)
+│   │   ├── use-musicas.ts        # CRUD + versões/tags/funções de músicas
+│   │   ├── use-eventos.ts        # CRUD de escalas/eventos
+│   │   ├── use-integrantes.ts    # CRUD + funções de integrantes
+│   │   ├── use-artistas.ts       # CRUD de artistas
+│   │   ├── use-support.ts        # CRUD de tags, funções, tonalidades, tipos de evento
+│   │   └── use-mobile.tsx        # Detecção de dispositivo móvel
+│   ├── services/                 # Camada de comunicação com a API
+│   │   ├── musicas.ts            # Endpoints de músicas + sub-recursos
+│   │   ├── eventos.ts            # Endpoints de escalas/eventos
+│   │   ├── integrantes.ts        # Endpoints de integrantes + funções
+│   │   ├── artistas.ts           # Endpoints de artistas
+│   │   └── support.ts            # Endpoints de tags, funções, tonalidades, tipos de evento
+│   ├── schemas/                  # Schemas de validação (Zod)
+│   │   ├── musica.ts             # Create/Update de músicas e versões
+│   │   ├── evento.ts             # Create/Update de escalas
+│   │   ├── integrante.ts         # Create/Update de integrantes
+│   │   ├── artista.ts            # Create/Update de artistas
+│   │   └── shared.ts             # Schemas de entidades auxiliares
+│   ├── lib/                      # Utilitários e helpers
+│   │   ├── api.ts                # Cliente HTTP genérico (apiFetch)
+│   │   └── utils.ts              # Funções utilitárias (cn, isSafeUrl)
+│   ├── App.tsx                   # Componente raiz com rotas e providers
+│   ├── main.tsx                  # Entry point
+│   └── index.css                 # Estilos globais e tokens
+├── tests/
+│   └── e2e/                      # Testes E2E (Playwright)
+│       ├── navigation.spec.ts    # Navegação entre páginas
+│       ├── musicas.spec.ts       # Fluxos de músicas
+│       ├── escalas.spec.ts       # Fluxos de escalas
+│       ├── integrantes.spec.ts   # Fluxos de integrantes
+│       ├── configuracoes.spec.ts # Fluxos de configurações
+│       └── dashboard.spec.ts     # Fluxos do dashboard
+├── playwright.config.ts          # Configuração do Playwright
+├── public/                       # Arquivos estáticos
+├── docs/                         # Documentação e screenshots
+└── README.md                     # Este arquivo
 ```
 
 ---
