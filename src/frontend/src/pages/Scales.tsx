@@ -191,7 +191,7 @@ const Scales = () => {
                     {scale.musicas.length} músicas selecionadas
                   </div>
                   <div className="flex gap-2">
-                    <span title="Em breve" className="inline-flex">
+                    <span tabIndex={0} title="Em breve" className="inline-flex">
                       <Button
                         variant="outline"
                         size="sm"
