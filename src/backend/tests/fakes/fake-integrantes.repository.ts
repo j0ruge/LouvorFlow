@@ -13,7 +13,7 @@ export function createFakeIntegrantesRepository() {
     email: integrante.email,
     telefone: integrante.telefone,
     Integrantes_Funcoes: funcoes
-      .filter(f => f.musico_id === integrante.id)
+      .filter(f => f.fk_integrante_id === integrante.id)
       .map(f => {
         const funcao = MOCK_FUNCOES.find(fn => fn.id === f.funcao_id)!;
         return {
@@ -71,7 +71,7 @@ export function createFakeIntegrantesRepository() {
     },
     findFuncoesByIntegranteId: async (integranteId: string) =>
       funcoes
-        .filter(f => f.musico_id === integranteId)
+        .filter(f => f.fk_integrante_id === integranteId)
         .map(f => {
           const funcao = MOCK_FUNCOES.find(fn => fn.id === f.funcao_id)!;
           return {
@@ -79,11 +79,11 @@ export function createFakeIntegrantesRepository() {
           };
         }),
 
-    findIntegranteFuncao: async (musico_id: string, funcao_id: string) =>
-      funcoes.find(f => f.musico_id === musico_id && f.funcao_id === funcao_id) ?? null,
+    findIntegranteFuncao: async (fk_integrante_id: string, funcao_id: string) =>
+      funcoes.find(f => f.fk_integrante_id === fk_integrante_id && f.funcao_id === funcao_id) ?? null,
 
-    createIntegranteFuncao: async (musico_id: string, funcao_id: string) => {
-      const record = { id: randomUUID(), musico_id, funcao_id };
+    createIntegranteFuncao: async (fk_integrante_id: string, funcao_id: string) => {
+      const record = { id: randomUUID(), fk_integrante_id, funcao_id };
       funcoes.push(record);
       return record;
     },

@@ -112,7 +112,7 @@ export async function addIntegranteToEvento(
 ): Promise<AssociationResponse> {
   const data = await apiFetch<unknown>(`/eventos/${eventoId}/integrantes`, {
     method: "POST",
-    body: JSON.stringify({ musico_id: integranteId }),
+    body: JSON.stringify({ fk_integrante_id: integranteId }),
   });
   return AssociationResponseSchema.parse(data);
 }

@@ -94,7 +94,7 @@ List all members assigned to an event.
 
 ### POST /api/eventos/:eventoId/integrantes
 Assign a member to an event.
-**Body**: `{ musico_id: uuid }`
+**Body**: `{ fk_integrante_id: uuid }`
 **Response 201**: `{ msg: "Integrante adicionado ao evento com sucesso" }`
 **Response 409**: `{ errors: ["Registro duplicado"] }`
 

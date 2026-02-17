@@ -59,7 +59,7 @@ export interface EventoIndexRaw {
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
-    Eventos_Integrantes: { eventos_integrantes_musico_id_fkey: IdNome }[];
+    Eventos_Integrantes: { eventos_integrantes_fk_integrante_id_fkey: IdNome }[];
 }
 
 export interface EventoShowMusica {
@@ -80,7 +80,7 @@ export interface EventoShowRaw {
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
-    Eventos_Integrantes: { eventos_integrantes_musico_id_fkey: EventoShowIntegrante }[];
+    Eventos_Integrantes: { eventos_integrantes_fk_integrante_id_fkey: EventoShowIntegrante }[];
 }
 
 export const INTEGRANTE_PUBLIC_SELECT = {
@@ -141,7 +141,7 @@ export const EVENTO_INDEX_SELECT = {
     },
     Eventos_Integrantes: {
         select: {
-            eventos_integrantes_musico_id_fkey: {
+            eventos_integrantes_fk_integrante_id_fkey: {
                 select: { id: true, nome: true }
             }
         }
@@ -170,7 +170,7 @@ export const EVENTO_SHOW_SELECT = {
     },
     Eventos_Integrantes: {
         select: {
-            eventos_integrantes_musico_id_fkey: {
+            eventos_integrantes_fk_integrante_id_fkey: {
                 select: {
                     id: true,
                     nome: true,

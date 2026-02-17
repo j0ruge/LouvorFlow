@@ -106,7 +106,7 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 | PUT    | /:id                                  | 200    | `{ msg, integrante: { id, nome, doc_id, email, telefone } }` |
 | DELETE | /:id                                  | 200    | `{ msg, integrante: { id, nome, doc_id, email, telefone } }` |
 | GET    | /:integranteId/funcoes                | 200    | `[{ id, funcao_id, funcao: { id, nome } }]` |
-| POST   | /:integranteId/funcoes                | 201    | `{ msg, registro: { id, musico_id, funcao_id } }` |
+| POST   | /:integranteId/funcoes                | 201    | `{ msg, registro: { id, fk_integrante_id, funcao_id } }` |
 | DELETE | /:integranteId/funcoes/:funcaoId      | 200    | `{ msg }` |
 
 ### Musicas — `/api/musicas`
@@ -153,8 +153,8 @@ Status: 500  Body: { errors: ["<generic error message>"] }
 | GET    | /:eventoId/musicas                          | 200    | `[{ id, musicas_id, musica: { id, nome } }]` |
 | POST   | /:eventoId/musicas                          | 201    | `{ msg, registro: { id, evento_id, musicas_id } }` |
 | DELETE | /:eventoId/musicas/:musicaId                | 200    | `{ msg }` |
-| GET    | /:eventoId/integrantes                      | 200    | `[{ id, musico_id, integrante: { id, nome } }]` |
-| POST   | /:eventoId/integrantes                      | 201    | `{ msg, registro: { id, evento_id, musico_id } }` |
+| GET    | /:eventoId/integrantes                      | 200    | `[{ id, fk_integrante_id, integrante: { id, nome } }]` |
+| POST   | /:eventoId/integrantes                      | 201    | `{ msg, registro: { id, evento_id, fk_integrante_id } }` |
 | DELETE | /:eventoId/integrantes/:integranteId        | 200    | `{ msg }` |
 
 **EventoIndex shape**:

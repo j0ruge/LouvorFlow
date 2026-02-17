@@ -13,8 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Search, Mail, Phone } from "lucide-react";
-import { useIntegrantes } from "@/hooks/use-integrantes";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Users, Plus, Search, Mail, Phone, Trash2 } from "lucide-react";
+import { useIntegrantes, useDeleteIntegrante } from "@/hooks/use-integrantes";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { IntegranteForm } from "@/components/IntegranteForm";
@@ -59,7 +69,10 @@ function MemberSkeleton() {
 
 const Members = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingMember, setDeletingMember] = useState<{ id: string; nome: string } | null>(null);
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
+  const deleteMutation = useDeleteIntegrante();
 
   return (
     <div className="space-y-6">
@@ -74,7 +87,10 @@ const Members = () => {
         </div>
         <Button
           className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={() => setFormOpen(true)}
+          onClick={() => {
+            setEditingId(null);
+            setFormOpen(true);
+          }}
         >
           <Plus className="mr-2 h-4 w-4" />
           Novo Integrante
@@ -112,7 +128,10 @@ const Members = () => {
               title="Nenhum integrante cadastrado"
               description="Comece adicionando os membros do ministério para gerenciar a equipe."
               actionLabel="Novo Integrante"
-              onAction={() => setFormOpen(true)}
+              onAction={() => {
+                setEditingId(null);
+                setFormOpen(true);
+              }}
             />
           )}
 
@@ -131,10 +150,18 @@ const Members = () => {
                     </Avatar>
 
                     <div className="flex-1 space-y-3">
-                      <div>
+                      <div className="flex items-start justify-between">
                         <h3 className="font-semibold text-foreground text-lg">
                           {member.nome}
                         </h3>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeletingMember({ id: member.id, nome: member.nome })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
 
                       <div className="space-y-2">
@@ -163,7 +190,15 @@ const Members = () => {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setEditingId(member.id);
+                            setFormOpen(true);
+                          }}
+                        >
                           Editar
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1">
@@ -179,7 +214,47 @@ const Members = () => {
         </CardContent>
       </Card>
 
-      <IntegranteForm open={formOpen} onOpenChange={setFormOpen} />
+      <IntegranteForm
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditingId(null);
+        }}
+        integranteId={editingId}
+      />
+
+      <AlertDialog
+        open={!!deletingMember}
+        onOpenChange={(open) => {
+          if (!open) setDeletingMember(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Tem certeza que deseja remover <strong>{deletingMember?.nome}</strong>?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação não pode ser desfeita. O integrante será removido
+              permanentemente do ministério.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingMember) {
+                  deleteMutation.mutate(deletingMember.id);
+                  setDeletingMember(null);
+                }
+              }}
+            >
+              Sim, remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

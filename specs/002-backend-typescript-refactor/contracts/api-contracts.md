@@ -274,7 +274,7 @@ interface EventoShow extends EventoBase {
 | POST | `/api/eventos/:eventoId/integrantes` | 201 | `{ msg }` |
 | DELETE | `/api/eventos/:eventoId/integrantes/:integranteId` | 200 | `{ msg }` |
 
-**Request body (POST):** `{ musico_id: string }`
+**Request body (POST):** `{ fk_integrante_id: string }`
 
 ---
 

@@ -16,7 +16,7 @@ function formatEventoIndex(e: EventoIndexRaw) {
         descricao: e.descricao,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
-        integrantes: e.Eventos_Integrantes.map(i => i.eventos_integrantes_musico_id_fkey)
+        integrantes: e.Eventos_Integrantes.map(i => i.eventos_integrantes_fk_integrante_id_fkey)
     };
 }
 
@@ -41,7 +41,7 @@ function formatEventoShow(e: EventoShowRaw) {
             };
         }),
         integrantes: e.Eventos_Integrantes.map(i => {
-            const integrante = i.eventos_integrantes_musico_id_fkey;
+            const integrante = i.eventos_integrantes_fk_integrante_id_fkey;
             return {
                 id: integrante.id,
                 nome: integrante.nome,
@@ -186,7 +186,7 @@ class EventosService {
 
         const integrantes = await eventosRepository.findIntegrantes(eventoId);
         return integrantes.map(i => {
-            const integrante = i.eventos_integrantes_musico_id_fkey;
+            const integrante = i.eventos_integrantes_fk_integrante_id_fkey;
             return {
                 id: integrante.id,
                 nome: integrante.nome,
@@ -195,19 +195,19 @@ class EventosService {
         });
     }
 
-    async addIntegrante(eventoId: string, musico_id?: string) {
-        if (!musico_id) throw new AppError("ID do integrante é obrigatório", 400);
+    async addIntegrante(eventoId: string, fk_integrante_id?: string) {
+        if (!fk_integrante_id) throw new AppError("ID do integrante é obrigatório", 400);
 
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
 
-        const integrante = await eventosRepository.findIntegranteById(musico_id);
+        const integrante = await eventosRepository.findIntegranteById(fk_integrante_id);
         if (!integrante) throw new AppError("Integrante não encontrado", 404);
 
-        const existente = await eventosRepository.findIntegranteDuplicate(eventoId, musico_id);
+        const existente = await eventosRepository.findIntegranteDuplicate(eventoId, fk_integrante_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await eventosRepository.createIntegrante(eventoId, musico_id);
+        await eventosRepository.createIntegrante(eventoId, fk_integrante_id);
     }
 
     async removeIntegrante(eventoId: string, integranteId: string) {

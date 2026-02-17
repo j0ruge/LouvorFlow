@@ -121,7 +121,7 @@
 - [x] T028 Verify no blank screen on error scenarios (server down, network error, 500) — validate SC-003 (resilience)
 - [x] T029 [P] Run quickstart.md validation — start backend + frontend per quickstart.md, verify all 3 pages load
 - [x] T030 [P] Verify consistent use of Sonner toast (not Radix toast) across all hooks — validate SC-007 (success notification)
-- [ ] T031 Verify SC-004 — manually create one integrante, one música and one escala through the UI, each in under 2 minutes, confirming form flow and feedback are efficient
+- [x] T031 Verify SC-004 — manually create one integrante, one música and one escala through the UI, each in under 2 minutes, confirming form flow and feedback are efficient
 - [x] T032 [P] Verify SC-005 — after creating a record in each module (integrante, música, evento), confirm the corresponding list updates automatically without manual page reload
 - [x] T033 [P] Verify SC-006 — submit each creation form with empty required fields, confirm validation messages appear instantly (under 1 second) without a server round-trip
 

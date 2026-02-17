@@ -43,6 +43,7 @@ src/frontend/src/
 - **Requisições HTTP**: Usar `TanStack React Query` para fetching, caching e sincronização com a API.
 - **Roteamento**: Usar `react-router-dom` v6. Páginas ficam em `pages/`.
 - **Ícones**: Usar `lucide-react`. Não importar ícones de outras bibliotecas.
+- **Toasts/Notificações**: Usar exclusivamente **Sonner** (`import { toast } from "sonner"`). Não usar o sistema de toast do Radix/shadcn (`useToast`, `toaster.tsx`, `toast.tsx`). O componente `<Toaster />` do Sonner já está montado em `App.tsx`. Futuramente o projeto migrará para React Native com `sonner-native`, que possui a mesma API.
 
 ## Convenções de Código
 

@@ -267,7 +267,7 @@ Associa um integrante ao evento (etapa 2 do fluxo de escalas).
 
 ```json
 {
-  "musico_id": "uuid (required)"
+  "fk_integrante_id": "uuid (required)"
 }
 ```
 

@@ -212,7 +212,7 @@ describe('IntegrantesService', () => {
 
     it('deve lançar AppError 409 quando relação já existe', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
-      await expect(integrantesService.addFuncao(existing.musico_id, existing.funcao_id)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(existing.fk_integrante_id, existing.funcao_id)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });
@@ -223,7 +223,7 @@ describe('IntegrantesService', () => {
   describe('removeFuncao', () => {
     it('deve remover uma função vinculada ao integrante', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
-      await expect(integrantesService.removeFuncao(existing.musico_id, existing.funcao_id)).resolves.toBeUndefined();
+      await expect(integrantesService.removeFuncao(existing.fk_integrante_id, existing.funcao_id)).resolves.toBeUndefined();
     });
 
     it('deve lançar AppError 404 quando registro não existe', async () => {

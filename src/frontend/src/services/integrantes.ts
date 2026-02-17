@@ -1,7 +1,7 @@
 /**
  * Serviço de integrantes — chamadas à API REST.
  *
- * Funções para listar, buscar por id e criar integrantes,
+ * Funções para listar, buscar por id, criar e atualizar integrantes,
  * com parsing Zod para garantir conformidade com o contrato.
  */
 
@@ -15,6 +15,7 @@ import type {
   IntegranteComFuncoes,
   IntegranteResponse,
   CreateIntegranteForm,
+  UpdateIntegranteForm,
 } from "@/schemas/integrante";
 
 /**
@@ -50,6 +51,37 @@ export async function createIntegrante(
   const data = await apiFetch<unknown>("/integrantes", {
     method: "POST",
     body: JSON.stringify(dados),
+  });
+  return IntegranteResponseSchema.parse(data);
+}
+
+/**
+ * Atualiza um integrante existente.
+ *
+ * @param id - UUID do integrante.
+ * @param dados - Dados do formulário de edição.
+ * @returns Resposta da API com mensagem e integrante atualizado.
+ */
+export async function updateIntegrante(
+  id: string,
+  dados: UpdateIntegranteForm,
+): Promise<IntegranteResponse> {
+  const data = await apiFetch<unknown>(`/integrantes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dados),
+  });
+  return IntegranteResponseSchema.parse(data);
+}
+
+/**
+ * Exclui um integrante pelo id.
+ *
+ * @param id - UUID do integrante a ser removido.
+ * @returns Resposta da API com mensagem e integrante excluído.
+ */
+export async function deleteIntegrante(id: string): Promise<IntegranteResponse> {
+  const data = await apiFetch<unknown>(`/integrantes/${id}`, {
+    method: "DELETE",
   });
   return IntegranteResponseSchema.parse(data);
 }
