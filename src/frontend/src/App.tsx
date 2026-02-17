@@ -22,6 +22,15 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Componente raiz da aplicação LouvorFlow.
+ *
+ * Configura os provedores globais (QueryClientProvider, ThemeProvider, TooltipProvider),
+ * o sistema de notificações (Sonner) e o roteamento SPA via React Router.
+ * Rotas customizadas devem ser adicionadas acima da rota catch-all ("*").
+ *
+ * @component
+ */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

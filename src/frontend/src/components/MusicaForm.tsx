@@ -67,11 +67,18 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
   const createMutation = useCreateMusica();
   const { data: tonalidades, isLoading: tonLoading, isError: tonError, error: tonErrorObj } = useTonalidades();
 
-  useEffect(() => {
-    if (open) {
-      form.reset();
-    }
-  }, [open, form]);
+  useEffect(
+    /**
+     * Reseta o formulário sempre que o dialog é aberto,
+     * garantindo que os campos comecem com os valores padrão.
+     */
+    function resetFormOnOpen() {
+      if (open) {
+        form.reset();
+      }
+    },
+    [open, form],
+  );
 
   function onSubmit(dados: CreateMusicaForm) {
     createMutation.mutate(dados, {
@@ -115,7 +122,7 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={tonLoading || tonError}
+                    disabled={tonLoading}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -128,11 +135,6 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                           Carregando...
                         </SelectItem>
                       )}
-                      {tonError && (
-                        <SelectItem value="_error" disabled>
-                          Falha ao carregar tonalidades: {tonErrorObj?.message}
-                        </SelectItem>
-                      )}
                       {tonalidades?.map((ton) => (
                         <SelectItem key={ton.id} value={ton.id}>
                           {ton.tom}
@@ -140,6 +142,11 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {tonError && (
+                    <p className="text-sm text-destructive">
+                      Falha ao carregar tonalidades: {tonErrorObj?.message}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

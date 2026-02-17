@@ -73,11 +73,18 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
   const createMutation = useCreateEvento();
   const { data: tiposEventos, isLoading: tiposLoading, isError: tiposError, error: tiposErrorObj } = useTiposEventos();
 
-  useEffect(() => {
-    if (open) {
-      form.reset();
-    }
-  }, [open, form]);
+  useEffect(
+    /**
+     * Reseta o formulário sempre que o dialog é aberto,
+     * garantindo que os campos comecem com os valores padrão.
+     */
+    function resetFormOnOpen() {
+      if (open) {
+        form.reset();
+      }
+    },
+    [open, form],
+  );
 
   function onSubmit(dados: CreateEventoForm) {
     createMutation.mutate(dados, {
@@ -123,7 +130,7 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={tiposLoading || tiposError}
+                    disabled={tiposLoading}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -136,11 +143,6 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                           Carregando...
                         </SelectItem>
                       )}
-                      {tiposError && (
-                        <SelectItem value="_error" disabled>
-                          Falha ao carregar tipos: {tiposErrorObj?.message}
-                        </SelectItem>
-                      )}
                       {tiposEventos?.map((tipo) => (
                         <SelectItem key={tipo.id} value={tipo.id}>
                           {tipo.nome}
@@ -148,6 +150,11 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                       ))}
                     </SelectContent>
                   </Select>
+                  {tiposError && (
+                    <p className="text-sm text-destructive">
+                      Falha ao carregar tipos: {tiposErrorObj?.message}
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

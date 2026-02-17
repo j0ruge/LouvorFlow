@@ -1,7 +1,7 @@
 /**
  * Serviço de integrantes — chamadas à API REST.
  *
- * Funções para listar, buscar por id, criar e atualizar integrantes,
+ * Funções para listar, buscar por id, criar, atualizar e excluir integrantes,
  * com parsing Zod para garantir conformidade com o contrato.
  */
 

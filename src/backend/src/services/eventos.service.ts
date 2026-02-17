@@ -4,10 +4,10 @@ import eventosRepository from '../repositories/eventos.repository.js';
 import type { EventoIndexRaw, EventoShowRaw } from '../types/index.js';
 
 /**
- * Convert a raw indexed evento record into a simplified index representation.
+ * Converte um registro bruto de evento no formato simplificado para listagem (index).
  *
- * @param e - Raw evento row including related `Eventos_Musicas` and `Eventos_Integrantes`
- * @returns An object containing `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array of musica IDs), and `integrantes` (array of integrante IDs)
+ * @param e - Registro bruto do evento (EventoIndexRaw), incluindo as relações `Eventos_Musicas` e `Eventos_Integrantes`
+ * @returns Objeto com `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array de objetos com id e nome) e `integrantes` (array de objetos com id e nome)
  */
 function formatEventoIndex(e: EventoIndexRaw) {
     return {
@@ -21,10 +21,10 @@ function formatEventoIndex(e: EventoIndexRaw) {
 }
 
 /**
- * Format a detailed raw evento record into its show representation.
+ * Converte um registro bruto de evento no formato detalhado para exibição (show).
  *
- * @param e - Raw evento record including related Eventos_Musicas and Eventos_Integrantes rows
- * @returns An object with `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array of `{ id, nome, tonalidade }`) and `integrantes` (array of `{ id, nome, funcoes }` where `funcoes` is an array of function IDs)
+ * @param e - Registro bruto do evento (EventoShowRaw), incluindo as relações `Eventos_Musicas` e `Eventos_Integrantes`
+ * @returns Objeto com `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array de `{ id, nome, tonalidade }`) e `integrantes` (array de `{ id, nome, funcoes }` onde `funcoes` é um array de IDs de funções)
  */
 function formatEventoShow(e: EventoShowRaw) {
     return {
@@ -180,6 +180,13 @@ class EventosService {
 
     // --- Integrantes ---
 
+    /**
+     * Lista os integrantes vinculados a um evento, incluindo suas funções.
+     *
+     * @param eventoId - ID do evento
+     * @returns Array de integrantes com `id`, `nome` e `funcoes` (array de IDs de funções)
+     * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
+     */
     async listIntegrantes(eventoId: string) {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
@@ -195,6 +202,16 @@ class EventosService {
         });
     }
 
+    /**
+     * Adiciona um integrante a um evento.
+     *
+     * @param eventoId - ID do evento
+     * @param fk_integrante_id - ID do integrante a ser adicionado (opcional, lança erro se ausente)
+     * @throws {AppError} 400 — "ID do integrante é obrigatório" se `fk_integrante_id` não for informado
+     * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
+     * @throws {AppError} 404 — "Integrante não encontrado" se o integrante não existir
+     * @throws {AppError} 409 — "Registro duplicado" se o vínculo já existir
+     */
     async addIntegrante(eventoId: string, fk_integrante_id?: string) {
         if (!fk_integrante_id) throw new AppError("ID do integrante é obrigatório", 400);
 

@@ -22,6 +22,12 @@ export function createFakeEventosRepository() {
     return t ? { id: t.id, nome: t.nome } : null;
   };
 
+  /**
+   * Constrói a representação de listagem (index) de um evento a partir dos dados em memória.
+   *
+   * @param evento - Registro do evento no array local
+   * @returns Objeto no formato `EventoIndexRaw` com músicas e integrantes resumidos
+   */
   const buildEventoIndex = (evento: typeof eventosData[0]) => ({
     id: evento.id,
     data: evento.data,
@@ -45,6 +51,12 @@ export function createFakeEventosRepository() {
       }),
   });
 
+  /**
+   * Constrói a representação detalhada (show) de um evento a partir dos dados em memória.
+   *
+   * @param evento - Registro do evento no array local
+   * @returns Objeto no formato `EventoShowRaw` com músicas (incluindo tonalidade) e integrantes (incluindo funções)
+   */
   const buildEventoShow = (evento: typeof eventosData[0]) => ({
     id: evento.id,
     data: evento.data,
@@ -164,6 +176,12 @@ export function createFakeEventosRepository() {
 
     // --- Integrantes (eventos_integrantes) ---
 
+    /**
+     * Retorna os integrantes vinculados a um evento com suas funções.
+     *
+     * @param eventoId - ID do evento
+     * @returns Array de integrantes no formato esperado pelo service
+     */
     findIntegrantes: async (eventoId: string) =>
       eventosIntegrantes
         .filter(ei => ei.evento_id === eventoId)
@@ -182,6 +200,13 @@ export function createFakeEventosRepository() {
           };
         }),
 
+    /**
+     * Cria um vínculo entre evento e integrante no array em memória.
+     *
+     * @param eventoId - ID do evento
+     * @param integranteId - ID do integrante
+     * @returns Registro criado com id gerado automaticamente
+     */
     createIntegrante: async (eventoId: string, integranteId: string) => {
       const record = { id: randomUUID(), evento_id: eventoId, fk_integrante_id: integranteId };
       eventosIntegrantes.push(record);
@@ -194,9 +219,22 @@ export function createFakeEventosRepository() {
       eventosIntegrantes.splice(idx, 1);
     },
 
+    /**
+     * Verifica se já existe o vínculo entre evento e integrante.
+     *
+     * @param eventoId - ID do evento
+     * @param integranteId - ID do integrante
+     * @returns Registro existente ou `null`
+     */
     findIntegranteDuplicate: async (eventoId: string, integranteId: string) =>
       eventosIntegrantes.find(ei => ei.evento_id === eventoId && ei.fk_integrante_id === integranteId) ?? null,
 
+    /**
+     * Busca um integrante pelo ID nos dados mock.
+     *
+     * @param integranteId - ID do integrante
+     * @returns Integrante encontrado ou `null`
+     */
     findIntegranteById: async (integranteId: string) =>
       MOCK_INTEGRANTES.find(i => i.id === integranteId) ?? null,
 

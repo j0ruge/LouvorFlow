@@ -79,9 +79,23 @@ export function createFakeIntegrantesRepository() {
           };
         }),
 
+    /**
+     * Busca uma associação integrante-função pelo par de IDs.
+     *
+     * @param fk_integrante_id - UUID do integrante.
+     * @param funcao_id - UUID da função.
+     * @returns Registro da associação ou `null` se não encontrado.
+     */
     findIntegranteFuncao: async (fk_integrante_id: string, funcao_id: string) =>
       funcoes.find(f => f.fk_integrante_id === fk_integrante_id && f.funcao_id === funcao_id) ?? null,
 
+    /**
+     * Cria uma associação entre integrante e função no array em memória.
+     *
+     * @param fk_integrante_id - UUID do integrante.
+     * @param funcao_id - UUID da função a associar.
+     * @returns Registro criado com id gerado.
+     */
     createIntegranteFuncao: async (fk_integrante_id: string, funcao_id: string) => {
       const record = { id: randomUUID(), fk_integrante_id, funcao_id };
       funcoes.push(record);
