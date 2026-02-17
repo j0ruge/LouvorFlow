@@ -96,8 +96,8 @@ const Settings = () => {
       </div>
 
       <Card className="shadow-soft border-0">
-        <CardHeader className="pb-0">
-          <Tabs defaultValue="artistas" onValueChange={handleTabChange}>
+        <Tabs defaultValue="artistas" onValueChange={handleTabChange}>
+          <CardHeader className="pb-0">
             <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto scrollbar-none md:grid md:grid-cols-5">
               <TabsTrigger value="artistas" className="shrink-0">Artistas</TabsTrigger>
               <TabsTrigger value="tags" className="shrink-0">Tags</TabsTrigger>
@@ -105,8 +105,9 @@ const Settings = () => {
               <TabsTrigger value="tonalidades" className="shrink-0">Tonalidades</TabsTrigger>
               <TabsTrigger value="tipos-eventos" className="shrink-0">Tipos de Evento</TabsTrigger>
             </TabsList>
+          </CardHeader>
 
-            <CardContent className="pt-6">
+          <CardContent className="pt-6">
               <TabsContent value="artistas">
                 <ConfigCrudSection<Artista>
                   config={{
@@ -226,9 +227,8 @@ const Settings = () => {
                   isDeleting={deleteTipoEvento.isPending}
                 />
               </TabsContent>
-            </CardContent>
-          </Tabs>
-        </CardHeader>
+          </CardContent>
+        </Tabs>
       </Card>
     </div>
   );

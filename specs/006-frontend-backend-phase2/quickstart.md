@@ -35,7 +35,7 @@ Após o setup, verifique que:
 1. **Dashboard** (`/`): Cards mostram números reais (não 124, 8, 32, 15 hardcoded)
 2. **Músicas** (`/musicas`): Lista carrega do servidor, clique navega para `/musicas/:id`
 3. **Escalas** (`/escalas`): Botões "Editar" e "Excluir" funcionais
-4. **Integrantes** (`/integrantes`): Editar mostra seção de funções com badges
+4. **Integrantes** (`/integrantes`): Editar mostra seção de funções com distintivos
 5. **Configurações** (`/configuracoes`): 5 abas (Artistas, Tags, Funções, Tonalidades, Tipos de Evento)
 6. **Busca**: Campos de busca em Músicas e Integrantes filtram resultados
 

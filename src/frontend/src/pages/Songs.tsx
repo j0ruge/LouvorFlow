@@ -7,7 +7,7 @@
  * filtragem client-side com debounce de 300ms.
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,14 @@ function SongSkeleton() {
   );
 }
 
+/**
+ * Componente da página de músicas do ministério.
+ *
+ * Gerencia busca com debounce, paginação e abertura do formulário
+ * de criação. Cada item da lista navega para `/musicas/:id`.
+ *
+ * @returns Elemento JSX com a página de músicas.
+ */
 const Songs = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -64,10 +72,25 @@ const Songs = () => {
 
   const isSearching = debouncedTerm.length > 0;
 
+  /** Armazena o total de registros conhecido para uso como limite na busca. */
+  const lastKnownTotal = useRef(9999);
+
   /** Quando buscando, carrega todos os registros; caso contrário, usa paginação. */
   const { data, isLoading, isError, error, refetch } = useMusicas(
     isSearching ? 1 : page,
-    isSearching ? 9999 : ITEMS_PER_PAGE,
+    isSearching ? lastKnownTotal.current : ITEMS_PER_PAGE,
+  );
+
+  const meta = data?.meta;
+
+  /** Atualiza o total conhecido quando a paginação retorna metadados. */
+  useEffect(
+    function updateLastKnownTotal() {
+      if (!isSearching && meta?.total) {
+        lastKnownTotal.current = meta.total;
+      }
+    },
+    [isSearching, meta?.total],
   );
 
   /** Aplica filtragem client-side por nome (case-insensitive). */
@@ -77,8 +100,6 @@ const Songs = () => {
     const term = debouncedTerm.toLowerCase();
     return songs.filter((song) => song.nome.toLowerCase().includes(term));
   }, [data?.items, debouncedTerm, isSearching]);
-
-  const meta = data?.meta;
 
   return (
     <div className="space-y-6">

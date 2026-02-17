@@ -11,11 +11,13 @@ import {
   EventoIndexSchema,
   EventoShowSchema,
   EventoCreateResponseSchema,
+  EventoUpdateResponseSchema,
 } from "@/schemas/evento";
 import type {
   EventoIndex,
   EventoShow,
   EventoCreateResponse,
+  EventoUpdateResponse,
   CreateEventoForm,
   UpdateEventoForm,
 } from "@/schemas/evento";
@@ -75,12 +77,12 @@ export async function createEvento(
 export async function updateEvento(
   id: string,
   dados: UpdateEventoForm,
-): Promise<{ msg: string; evento: object }> {
+): Promise<EventoUpdateResponse> {
   const data = await apiFetch<unknown>(`/eventos/${id}`, {
     method: "PUT",
     body: JSON.stringify(dados),
   });
-  return z.object({ msg: z.string(), evento: z.object({}).passthrough() }).parse(data);
+  return EventoUpdateResponseSchema.parse(data);
 }
 
 /**

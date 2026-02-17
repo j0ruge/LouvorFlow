@@ -43,6 +43,7 @@ import {
   type CreateEventoForm,
 } from "@/schemas/evento";
 import type { EventoIndex } from "@/schemas/evento";
+import { toDatetimeLocalValue } from "@/lib/utils";
 
 /** Propriedades do componente EventoForm. */
 interface EventoFormProps {
@@ -92,7 +93,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
 
       if (isEditing && evento) {
         form.reset({
-          data: evento.data.slice(0, 16),
+          data: toDatetimeLocalValue(evento.data),
           fk_tipo_evento: evento.tipoEvento?.id ?? "",
           descricao: evento.descricao,
         });
@@ -107,6 +108,15 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
     [open, isEditing, evento, form],
   );
 
+  /**
+   * Submete o formulário de criação ou edição de evento.
+   *
+   * No modo edição, atualiza o evento existente e fecha o dialog.
+   * No modo criação, cria o evento, fecha o dialog e redireciona
+   * para `/escalas/:id` para associação de músicas e integrantes.
+   *
+   * @param dados - Dados validados do formulário.
+   */
   function onSubmit(dados: CreateEventoForm) {
     if (isEditing && evento) {
       updateMutation.mutate(

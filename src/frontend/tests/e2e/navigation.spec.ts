@@ -55,13 +55,13 @@ test.describe("Navegação", () => {
     await expect(page.getByRole("heading", { name: "Músicas" })).toBeVisible();
 
     const firstSong = page.getByRole("button").filter({ hasText: "Detalhes" }).first();
-    if (await firstSong.isVisible()) {
-      await firstSong.click();
-      await expect(page).toHaveURL(/\/musicas\/.+/);
-      await expect(
-        page.getByRole("heading", { name: "Detalhes da Música" }),
-      ).toBeVisible();
-    }
+    await expect(firstSong).toBeVisible({ timeout: 10_000 });
+
+    await firstSong.click();
+    await expect(page).toHaveURL(/\/musicas\/.+/);
+    await expect(
+      page.getByRole("heading", { name: "Detalhes da Música" }),
+    ).toBeVisible();
   });
 
   test("deve voltar de /musicas/:id para /musicas via botão voltar", async ({
@@ -70,13 +70,13 @@ test.describe("Navegação", () => {
     await page.goto("/musicas");
 
     const firstSong = page.getByRole("button").filter({ hasText: "Detalhes" }).first();
-    if (await firstSong.isVisible()) {
-      await firstSong.click();
-      await expect(page).toHaveURL(/\/musicas\/.+/);
+    await expect(firstSong).toBeVisible({ timeout: 10_000 });
 
-      await page.getByRole("button", { name: "Voltar" }).click();
-      await expect(page).toHaveURL(/\/musicas$/);
-    }
+    await firstSong.click();
+    await expect(page).toHaveURL(/\/musicas\/.+/);
+
+    await page.getByRole("button", { name: "Voltar" }).click();
+    await expect(page).toHaveURL(/\/musicas$/);
   });
 
   test("deve navegar para /configuracoes e alternar entre abas", async ({

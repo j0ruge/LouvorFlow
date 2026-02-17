@@ -30,9 +30,9 @@ Após a implementação de cada módulo, usar as ferramentas do Playwright MCP p
 - [ ] Editar nome/tonalidade → verificar notificação de sucesso
 - [ ] Adicionar versão (com artista, BPM) → verificar na lista
 - [ ] Remover versão → verificar remoção
-- [ ] Adicionar tag → verificar badge
+- [ ] Adicionar tag → verificar distintivo
 - [ ] Remover tag → verificar remoção
-- [ ] Adicionar função → verificar badge
+- [ ] Adicionar função → verificar distintivo
 - [ ] Remover função → verificar remoção
 - [ ] Excluir música → verificar confirmação → verificar redirecionamento
 - [ ] Testar busca: digitar termo, verificar filtragem
@@ -52,9 +52,9 @@ Após a implementação de cada módulo, usar as ferramentas do Playwright MCP p
 
 - [ ] Navegar para `/integrantes`
 - [ ] Clicar "Editar" em um integrante → verificar seção de funções
-- [ ] Adicionar função via seletor → verificar badge adicionada
-- [ ] Remover função clicando no badge → verificar remoção
-- [ ] Salvar → verificar badges atualizadas na lista
+- [ ] Adicionar função via seletor → verificar distintivo adicionado
+- [ ] Remover função clicando no distintivo → verificar remoção
+- [ ] Salvar → verificar distintivos atualizados na lista
 - [ ] Testar busca: digitar nome, verificar filtragem
 - [ ] Verificar console sem erros
 
@@ -82,7 +82,7 @@ Após a implementação de cada módulo, usar as ferramentas do Playwright MCP p
 
 - [ ] Verificar todos os itens do menu lateral navegam corretamente
 - [ ] Verificar item "Configurações" no menu lateral
-- [ ] Verificar navegação com botão voltar do browser
+- [ ] Verificar navegação com botão voltar do navegador
 - [ ] Verificar rota inexistente → página 404
 - [ ] Verificar alternância de tema (claro/escuro)
 
@@ -147,7 +147,7 @@ Testes:
 Testes:
 - "deve adicionar função a um integrante"
 - "deve remover função de um integrante"
-- "deve exibir funções como badges no card do integrante"
+- "deve exibir funções como distintivos no card do integrante"
 - "deve filtrar integrantes pelo campo de busca"
 ```
 

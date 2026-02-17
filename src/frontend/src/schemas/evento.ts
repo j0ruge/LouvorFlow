@@ -54,19 +54,31 @@ export const EventoShowSchema = z.object({
 /** Tipo inferido do detalhe completo de evento. */
 export type EventoShow = z.infer<typeof EventoShowSchema>;
 
+/** Schema base do evento retornado em respostas de criação/atualização. */
+const EventoResponseBaseSchema = z.object({
+  id: z.string().uuid(),
+  data: z.string(),
+  descricao: z.string(),
+  tipoEvento: IdNomeSchema,
+});
+
 /** Schema da resposta de criação de evento. */
 export const EventoCreateResponseSchema = z.object({
   msg: z.string(),
-  evento: z.object({
-    id: z.string().uuid(),
-    data: z.string(),
-    descricao: z.string(),
-    tipoEvento: IdNomeSchema,
-  }),
+  evento: EventoResponseBaseSchema,
 });
 
 /** Tipo inferido da resposta de criação de evento. */
 export type EventoCreateResponse = z.infer<typeof EventoCreateResponseSchema>;
+
+/** Schema da resposta de atualização de evento. */
+export const EventoUpdateResponseSchema = z.object({
+  msg: z.string(),
+  evento: EventoResponseBaseSchema,
+});
+
+/** Tipo inferido da resposta de atualização de evento. */
+export type EventoUpdateResponse = z.infer<typeof EventoUpdateResponseSchema>;
 
 /** Schema de validação do formulário de criação de evento. */
 export const CreateEventoFormSchema = z.object({

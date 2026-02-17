@@ -144,7 +144,7 @@ const Dashboard = () => {
                   >
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">
-                        {scale.tipoEvento?.nome ?? "Evento"}
+                        {scale.descricao || "Evento"}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(scale.data).toLocaleDateString("pt-BR")} •{" "}

@@ -25,6 +25,14 @@ const menuItems = [
   { title: "Histórico", url: "/historico", icon: History },
 ];
 
+/**
+ * Barra lateral de navegação principal da aplicação.
+ *
+ * Renderiza o menu de navegação com itens de rota, suporte a colapso
+ * e indicação visual da rota ativa.
+ *
+ * @returns {JSX.Element} Elemento React com a sidebar de navegação.
+ */
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";

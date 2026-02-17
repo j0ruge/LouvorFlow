@@ -99,9 +99,9 @@ export async function updateTag(id: string, dados: UpdateTagForm): Promise<CrudR
  * @param id - UUID da tag a ser removida.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteTag(id: string): Promise<{ msg: string }> {
+export async function deleteTag(id: string): Promise<CrudResponse> {
   const data = await apiFetch<unknown>(`/tags/${id}`, { method: "DELETE" });
-  return z.object({ msg: z.string() }).parse(data);
+  return CrudResponseSchema.parse(data);
 }
 
 /* ========== Funções CRUD ========== */
@@ -141,9 +141,9 @@ export async function updateFuncao(id: string, dados: UpdateFuncaoForm): Promise
  * @param id - UUID da função a ser removida.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteFuncao(id: string): Promise<{ msg: string }> {
+export async function deleteFuncao(id: string): Promise<CrudResponse> {
   const data = await apiFetch<unknown>(`/funcoes/${id}`, { method: "DELETE" });
-  return z.object({ msg: z.string() }).parse(data);
+  return CrudResponseSchema.parse(data);
 }
 
 /* ========== Tonalidades CRUD ========== */
@@ -183,9 +183,9 @@ export async function updateTonalidade(id: string, dados: UpdateTonalidade): Pro
  * @param id - UUID da tonalidade a ser removida.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteTonalidade(id: string): Promise<{ msg: string }> {
+export async function deleteTonalidade(id: string): Promise<CrudResponse> {
   const data = await apiFetch<unknown>(`/tonalidades/${id}`, { method: "DELETE" });
-  return z.object({ msg: z.string() }).parse(data);
+  return CrudResponseSchema.parse(data);
 }
 
 /* ========== Tipos de Evento CRUD ========== */
@@ -225,7 +225,7 @@ export async function updateTipoEvento(id: string, dados: UpdateTipoEvento): Pro
  * @param id - UUID do tipo de evento a ser removido.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteTipoEvento(id: string): Promise<{ msg: string }> {
+export async function deleteTipoEvento(id: string): Promise<CrudResponse> {
   const data = await apiFetch<unknown>(`/tipos-eventos/${id}`, { method: "DELETE" });
-  return z.object({ msg: z.string() }).parse(data);
+  return CrudResponseSchema.parse(data);
 }

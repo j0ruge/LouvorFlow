@@ -58,12 +58,12 @@ Como administrador do sistema, quero atribuir e remover funções (instrumentos/
 
 **Why this priority**: A Fase 1 implementou CRUD de integrantes, porém sem a gestão de funções associadas. A atribuição de funções é essencial para que a montagem de escalas considere as habilidades de cada membro.
 
-**Independent Test**: Pode ser testado na página de Integrantes — ao editar um integrante deve ser possível adicionar/remover funções; as badges de funções devem refletir as alterações.
+**Independent Test**: Pode ser testado na página de Integrantes — ao editar um integrante deve ser possível adicionar/remover funções; os distintivos de funções devem refletir as alterações.
 
 **Acceptance Scenarios**:
 
 1. **Given** o administrador está editando um integrante, **When** ele visualiza a seção de funções, **Then** o sistema exibe as funções atualmente atribuídas ao integrante e uma forma de adicionar novas.
-2. **Given** o administrador está editando um integrante, **When** ele seleciona uma nova função (ex.: "Guitarra") e confirma, **Then** a função é adicionada ao integrante e aparece como badge.
+2. **Given** o administrador está editando um integrante, **When** ele seleciona uma nova função (ex.: "Guitarra") e confirma, **Then** a função é adicionada ao integrante e aparece como distintivo.
 3. **Given** o administrador está editando um integrante, **When** ele remove uma função existente, **Then** a função é desvinculada do integrante.
 
 ---
@@ -166,9 +166,9 @@ Como usuário do sistema, quero utilizar os campos de busca já presentes nas p�
 
 #### Módulo de Integrantes — Funções
 
-- **FR-010**: O sistema DEVE exibir as funções atribuídas a cada integrante no dialog de edição existente, em uma seção dedicada com chips/badges.
+- **FR-010**: O sistema DEVE exibir as funções atribuídas a cada integrante no dialog de edição existente, em uma seção dedicada com chips/distintivos.
 - **FR-011**: O sistema DEVE permitir adicionar funções a um integrante diretamente no dialog de edição, selecionando de uma lista existente via seletor.
-- **FR-012**: O sistema DEVE permitir remover funções de um integrante diretamente no dialog de edição, clicando no badge/chip da função.
+- **FR-012**: O sistema DEVE permitir remover funções de um integrante diretamente no dialog de edição, clicando no distintivo/chip da função.
 
 #### Módulo de Artistas
 

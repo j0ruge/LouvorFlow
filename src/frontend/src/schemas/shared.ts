@@ -45,66 +45,56 @@ export const PaginationMetaSchema = z.object({
 /** Tipo inferido dos metadados de paginação. */
 export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
 
+/** Validador compartilhado para campos de nome obrigatório. */
+const NomeField = z.string().trim().min(1, "Nome é obrigatório");
+
+/** Validador compartilhado para campos de tom obrigatório. */
+const TomField = z.string().trim().min(1, "Tom é obrigatório");
+
 /** Schema de validação do formulário de criação de tag. */
-export const CreateTagFormSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const CreateTagFormSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de criação de tag. */
 export type CreateTagForm = z.infer<typeof CreateTagFormSchema>;
 
 /** Schema de validação do formulário de edição de tag. */
-export const UpdateTagFormSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const UpdateTagFormSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de edição de tag. */
 export type UpdateTagForm = z.infer<typeof UpdateTagFormSchema>;
 
 /** Schema de validação do formulário de criação de função. */
-export const CreateFuncaoFormSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const CreateFuncaoFormSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de criação de função. */
 export type CreateFuncaoForm = z.infer<typeof CreateFuncaoFormSchema>;
 
 /** Schema de validação do formulário de edição de função. */
-export const UpdateFuncaoFormSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const UpdateFuncaoFormSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de edição de função. */
 export type UpdateFuncaoForm = z.infer<typeof UpdateFuncaoFormSchema>;
 
 /** Schema de validação do formulário de criação de tonalidade. */
-export const CreateTonalidadeSchema = z.object({
-  tom: z.string().trim().min(1, "Tom é obrigatório"),
-});
+export const CreateTonalidadeSchema = z.object({ tom: TomField });
 
 /** Tipo inferido dos dados do formulário de criação de tonalidade. */
 export type CreateTonalidade = z.infer<typeof CreateTonalidadeSchema>;
 
 /** Schema de validação do formulário de edição de tonalidade. */
-export const UpdateTonalidadeSchema = z.object({
-  tom: z.string().trim().min(1, "Tom é obrigatório"),
-});
+export const UpdateTonalidadeSchema = z.object({ tom: TomField });
 
 /** Tipo inferido dos dados do formulário de edição de tonalidade. */
 export type UpdateTonalidade = z.infer<typeof UpdateTonalidadeSchema>;
 
 /** Schema de validação do formulário de criação de tipo de evento. */
-export const CreateTipoEventoSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const CreateTipoEventoSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de criação de tipo de evento. */
 export type CreateTipoEvento = z.infer<typeof CreateTipoEventoSchema>;
 
 /** Schema de validação do formulário de edição de tipo de evento. */
-export const UpdateTipoEventoSchema = z.object({
-  nome: z.string().trim().min(1, "Nome é obrigatório"),
-});
+export const UpdateTipoEventoSchema = z.object({ nome: NomeField });
 
 /** Tipo inferido dos dados do formulário de edição de tipo de evento. */
 export type UpdateTipoEvento = z.infer<typeof UpdateTipoEventoSchema>;
