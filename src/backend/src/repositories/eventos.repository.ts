@@ -105,8 +105,13 @@ class EventosRepository {
     /**
      * Retorna os integrantes vinculados a um evento, incluindo suas funções.
      *
+     * Cada registro retornado possui a estrutura aninhada do Prisma:
+     * `eventos_integrantes_fk_integrante_id_fkey` → `{ id, nome, Integrantes_Funcoes }`,
+     * onde cada item de `Integrantes_Funcoes` contém
+     * `integrantes_funcoes_funcao_id_fkey` → `{ id, nome }`.
+     *
      * @param eventoId - ID do evento
-     * @returns Lista de integrantes com id, nome e funções associadas
+     * @returns Lista de registros de `Eventos_Integrantes` com as relações aninhadas de integrante e funções
      */
     async findIntegrantes(eventoId: string) {
         return prisma.eventos_Integrantes.findMany({
