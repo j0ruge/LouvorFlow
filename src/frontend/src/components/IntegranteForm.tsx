@@ -82,27 +82,35 @@ export function IntegranteForm({
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  useEffect(() => {
-    if (!open) return;
+  useEffect(
+    /**
+     * Reseta ou preenche o formulário ao abrir o dialog.
+     * No modo edição, carrega os dados do integrante existente;
+     * no modo criação, reseta os campos para os valores padrão.
+     */
+    function resetOrPopulateForm() {
+      if (!open) return;
 
-    if (isEditing && integrante) {
-      form.reset({
-        nome: integrante.nome,
-        doc_id: integrante.doc_id,
-        email: integrante.email,
-        senha: "",
-        telefone: integrante.telefone ?? "",
-      });
-    } else if (!isEditing) {
-      form.reset({
-        nome: "",
-        doc_id: "",
-        email: "",
-        senha: "",
-        telefone: "",
-      });
-    }
-  }, [open, isEditing, integrante, form]);
+      if (isEditing && integrante) {
+        form.reset({
+          nome: integrante.nome,
+          doc_id: integrante.doc_id,
+          email: integrante.email,
+          senha: "",
+          telefone: integrante.telefone ?? "",
+        });
+      } else if (!isEditing) {
+        form.reset({
+          nome: "",
+          doc_id: "",
+          email: "",
+          senha: "",
+          telefone: "",
+        });
+      }
+    },
+    [open, isEditing, integrante, form],
+  );
 
   /** Envia os dados do formulário para criação ou atualização. */
   function onSubmit(dados: UpdateIntegranteForm) {

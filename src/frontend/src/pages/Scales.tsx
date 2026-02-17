@@ -54,6 +54,15 @@ function ScaleSkeleton() {
   );
 }
 
+/**
+ * Componente da página de escalas do ministério.
+ *
+ * Exibe a lista de eventos (escalas) com seus integrantes e músicas,
+ * permite criar novos eventos via dialog e navegar para detalhes.
+ * Utiliza React Query para busca de dados e gerenciamento de estado.
+ *
+ * @returns Elemento JSX com a página de escalas.
+ */
 const Scales = () => {
   const [formOpen, setFormOpen] = useState(false);
   const navigate = useNavigate();
@@ -182,24 +191,26 @@ const Scales = () => {
                     {scale.musicas.length} músicas selecionadas
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      title="Em breve"
-                      aria-label="Editar — em breve"
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      title="Em breve"
-                      aria-label="Compartilhar — em breve"
-                    >
-                      Compartilhar
-                    </Button>
+                    <span tabIndex={0} title="Em breve" className="inline-flex">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        aria-label="Editar — em breve"
+                      >
+                        Editar
+                      </Button>
+                    </span>
+                    <span tabIndex={0} title="Em breve" className="inline-flex">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        aria-label="Compartilhar — em breve"
+                      >
+                        Compartilhar
+                      </Button>
+                    </span>
                     <Button
                       variant="default"
                       size="sm"

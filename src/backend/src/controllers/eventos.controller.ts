@@ -99,6 +99,14 @@ class EventosController {
         }
     }
 
+    /**
+     * Adiciona um integrante a um evento existente.
+     *
+     * @param req - Requisição com `eventoId` nos params e `fk_integrante_id` no body.
+     * @param res - Resposta HTTP (201 em caso de sucesso).
+     * @returns Promise resolvida após envio da resposta.
+     * @throws AppError quando o evento ou integrante não é encontrado.
+     */
     async addIntegrante(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
             await eventosService.addIntegrante(req.params.eventoId, req.body.fk_integrante_id);

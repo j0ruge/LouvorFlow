@@ -2,7 +2,7 @@
  * Hooks React Query para o módulo de integrantes.
  *
  * Encapsula listagem e busca individual com `useQuery`,
- * e criação/atualização com `useMutation`,
+ * e criação, atualização e exclusão com `useMutation`,
  * incluindo invalidação de cache e feedback via toast.
  */
 
@@ -102,8 +102,9 @@ export function useDeleteIntegrante() {
 
   return useMutation({
     mutationFn: (id: string) => deleteIntegrante(id),
-    onSuccess: (data) => {
+    onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["integrantes"] });
+      queryClient.removeQueries({ queryKey: ["integrantes", id] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {

@@ -72,6 +72,12 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Retorna as funções associadas a um integrante.
+     *
+     * @param integranteId - ID do integrante
+     * @returns Array de funções com id e nome
+     */
     async findFuncoesByIntegranteId(integranteId: string) {
         return prisma.integrantes_Funcoes.findMany({
             where: { fk_integrante_id: integranteId },
@@ -83,12 +89,26 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Busca um vínculo específico entre integrante e função.
+     *
+     * @param fk_integrante_id - ID do integrante
+     * @param funcao_id - ID da função
+     * @returns Registro encontrado ou `null` se não existir
+     */
     async findIntegranteFuncao(fk_integrante_id: string, funcao_id: string) {
         return prisma.integrantes_Funcoes.findUnique({
             where: { fk_integrante_id_funcao_id: { fk_integrante_id, funcao_id } }
         });
     }
 
+    /**
+     * Cria a associação entre um integrante e uma função.
+     *
+     * @param fk_integrante_id - ID do integrante
+     * @param funcao_id - ID da função a ser vinculada
+     * @returns Registro criado na tabela Integrantes_Funcoes
+     */
     async createIntegranteFuncao(fk_integrante_id: string, funcao_id: string) {
         return prisma.integrantes_Funcoes.create({
             data: { fk_integrante_id, funcao_id }

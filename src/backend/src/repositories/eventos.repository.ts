@@ -102,6 +102,12 @@ class EventosRepository {
 
     // --- Integrantes (eventos_integrantes) ---
 
+    /**
+     * Retorna os integrantes vinculados a um evento, incluindo suas funções.
+     *
+     * @param eventoId - ID do evento
+     * @returns Lista de integrantes com id, nome e funções associadas
+     */
     async findIntegrantes(eventoId: string) {
         return prisma.eventos_Integrantes.findMany({
             where: { evento_id: eventoId },
@@ -123,22 +129,48 @@ class EventosRepository {
         });
     }
 
+    /**
+     * Cria a associação entre um evento e um integrante.
+     *
+     * @param eventoId - ID do evento
+     * @param integranteId - ID do integrante a ser vinculado
+     * @returns Registro criado na tabela Eventos_Integrantes
+     */
     async createIntegrante(eventoId: string, integranteId: string) {
         return prisma.eventos_Integrantes.create({
             data: { evento_id: eventoId, fk_integrante_id: integranteId }
         });
     }
 
+    /**
+     * Remove a associação entre um evento e um integrante pelo ID do registro.
+     *
+     * @param id - ID do registro em Eventos_Integrantes
+     * @returns Registro removido
+     */
     async deleteIntegrante(id: string) {
         return prisma.eventos_Integrantes.delete({ where: { id } });
     }
 
+    /**
+     * Verifica se já existe um vínculo entre o evento e o integrante informados.
+     *
+     * @param eventoId - ID do evento
+     * @param integranteId - ID do integrante
+     * @returns Registro existente ou `null` se não houver duplicata
+     */
     async findIntegranteDuplicate(eventoId: string, integranteId: string) {
         return prisma.eventos_Integrantes.findUnique({
             where: { evento_id_fk_integrante_id: { evento_id: eventoId, fk_integrante_id: integranteId } }
         });
     }
 
+    /**
+     * Busca um integrante pelo seu ID na tabela de integrantes.
+     *
+     * @param integranteId - ID do integrante
+     * @returns Integrante encontrado ou `null` se não existir
+     */
     async findIntegranteById(integranteId: string) {
         return prisma.integrantes.findUnique({ where: { id: integranteId } });
     }

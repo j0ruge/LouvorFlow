@@ -67,12 +67,74 @@ function MemberSkeleton() {
   );
 }
 
+/**
+ * Componente da página de integrantes do ministério.
+ *
+ * Exibe a lista de integrantes com dados de contato e funções,
+ * permite criar, editar e excluir integrantes via dialogs,
+ * e gerencia estados de loading, erro e lista vazia.
+ *
+ * @returns Elemento JSX com a página de integrantes.
+ */
 const Members = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<{ id: string; nome: string } | null>(null);
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
   const deleteMutation = useDeleteIntegrante();
+
+  /** Abre o formulário no modo criação, limpando o id de edição. */
+  function handleOpenCreateForm() {
+    setEditingId(null);
+    setFormOpen(true);
+  }
+
+  /**
+   * Abre o formulário no modo edição para o integrante informado.
+   *
+   * @param memberId - UUID do integrante a editar.
+   */
+  function handleOpenEditForm(memberId: string) {
+    setEditingId(memberId);
+    setFormOpen(true);
+  }
+
+  /**
+   * Controla a visibilidade do dialog do formulário.
+   * Limpa o id de edição ao fechar.
+   *
+   * @param open - Novo estado de visibilidade.
+   */
+  function handleFormOpenChange(open: boolean) {
+    setFormOpen(open);
+    if (!open) setEditingId(null);
+  }
+
+  /**
+   * Solicita confirmação para exclusão de um integrante.
+   *
+   * @param member - Dados mínimos do integrante (id e nome).
+   */
+  function handleRequestDelete(member: { id: string; nome: string }) {
+    setDeletingMember(member);
+  }
+
+  /**
+   * Controla a visibilidade do dialog de confirmação de exclusão.
+   *
+   * @param open - Novo estado de visibilidade.
+   */
+  function handleDeleteDialogChange(open: boolean) {
+    if (!open) setDeletingMember(null);
+  }
+
+  /** Confirma e executa a exclusão do integrante selecionado. */
+  function handleConfirmDelete() {
+    if (deletingMember) {
+      deleteMutation.mutate(deletingMember.id);
+      setDeletingMember(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -87,10 +149,7 @@ const Members = () => {
         </div>
         <Button
           className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={() => {
-            setEditingId(null);
-            setFormOpen(true);
-          }}
+          onClick={handleOpenCreateForm}
         >
           <Plus className="mr-2 h-4 w-4" />
           Novo Integrante
@@ -128,10 +187,7 @@ const Members = () => {
               title="Nenhum integrante cadastrado"
               description="Comece adicionando os membros do ministério para gerenciar a equipe."
               actionLabel="Novo Integrante"
-              onAction={() => {
-                setEditingId(null);
-                setFormOpen(true);
-              }}
+              onAction={handleOpenCreateForm}
             />
           )}
 
@@ -158,7 +214,7 @@ const Members = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeletingMember({ id: member.id, nome: member.nome })}
+                          onClick={() => handleRequestDelete({ id: member.id, nome: member.nome })}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -194,10 +250,7 @@ const Members = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => {
-                            setEditingId(member.id);
-                            setFormOpen(true);
-                          }}
+                          onClick={() => handleOpenEditForm(member.id)}
                         >
                           Editar
                         </Button>
@@ -216,18 +269,13 @@ const Members = () => {
 
       <IntegranteForm
         open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setEditingId(null);
-        }}
+        onOpenChange={handleFormOpenChange}
         integranteId={editingId}
       />
 
       <AlertDialog
         open={!!deletingMember}
-        onOpenChange={(open) => {
-          if (!open) setDeletingMember(null);
-        }}
+        onOpenChange={handleDeleteDialogChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -243,12 +291,7 @@ const Members = () => {
             <AlertDialogCancel>Não</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                if (deletingMember) {
-                  deleteMutation.mutate(deletingMember.id);
-                  setDeletingMember(null);
-                }
-              }}
+              onClick={handleConfirmDelete}
             >
               Sim, remover
             </AlertDialogAction>

@@ -53,6 +53,16 @@ export interface Musica {
     funcoes: IdNome[];
 }
 
+/**
+ * Representação bruta de um evento para listagem (index).
+ *
+ * @property id - Identificador único do evento
+ * @property data - Data do evento
+ * @property descricao - Descrição do evento
+ * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
+ * @property Eventos_Musicas - Músicas vinculadas (cada item contém id e nome)
+ * @property Eventos_Integrantes - Integrantes vinculados (cada item contém id e nome)
+ */
 export interface EventoIndexRaw {
     id: string;
     data: Date;
@@ -74,6 +84,16 @@ export interface EventoShowIntegrante {
     Integrantes_Funcoes: { integrantes_funcoes_funcao_id_fkey: IdNome }[];
 }
 
+/**
+ * Representação bruta de um evento para exibição detalhada (show).
+ *
+ * @property id - Identificador único do evento
+ * @property data - Data do evento
+ * @property descricao - Descrição do evento
+ * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
+ * @property Eventos_Musicas - Músicas vinculadas (cada item contém id, nome e tonalidade)
+ * @property Eventos_Integrantes - Integrantes vinculados (cada item contém id, nome e funções)
+ */
 export interface EventoShowRaw {
     id: string;
     data: Date;
