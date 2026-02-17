@@ -98,7 +98,10 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
     updateMusica.mutate(
       {
         id: musica.id,
-        dados: { nome: editName, fk_tonalidade: editTonalidade },
+        dados: {
+          nome: editName,
+          ...(editTonalidade ? { fk_tonalidade: editTonalidade } : {}),
+        },
       },
       { onSuccess: () => setIsEditingName(false) },
     );
