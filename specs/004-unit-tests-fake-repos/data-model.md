@@ -103,7 +103,7 @@
 - **Relacionamentos**:
   - `fk_tipo_evento → FakeTipoEvento.id`
   - `Eventos_Musicas`: `{ id, evento_id, musicas_id }`
-  - `Eventos_Integrantes`: `{ id, evento_id, musico_id }`
+  - `Eventos_Integrantes`: `{ id, evento_id, fk_integrante_id }`
 - **Formatação**: Dois níveis — `formatEventoIndex()` (simplificado) e `formatEventoShow()` (expandido)
 - **Dados iniciais**: 2-3 eventos com datas ISO 8601 válidas
 

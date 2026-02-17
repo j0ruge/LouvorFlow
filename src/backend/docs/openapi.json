@@ -1329,10 +1329,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "musico_id": { "type": "string", "format": "uuid" } },
-                "required": ["musico_id"]
+                "properties": { "fk_integrante_id": { "type": "string", "format": "uuid" } },
+                "required": ["fk_integrante_id"]
               },
-              "example": { "musico_id": "11111111-aaaa-4000-8000-000000000003" }
+              "example": { "fk_integrante_id": "11111111-aaaa-4000-8000-000000000003" }
             }
           }
         },

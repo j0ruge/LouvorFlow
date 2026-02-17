@@ -135,8 +135,8 @@ import { Prisma } from '@prisma/client';
 |-------|------|-------------|
 | id | string (UUID) | PK |
 | evento_id | string (UUID) | FK → Eventos, cascade |
-| musico_id | string (UUID) | FK → Integrantes, cascade |
-| @@unique | [evento_id, musico_id] | |
+| fk_integrante_id | string (UUID) | FK → Integrantes, cascade |
+| @@unique | [evento_id, fk_integrante_id] | |
 
 ### Musicas_Funcoes
 | Field | Type | Constraints |
@@ -158,9 +158,9 @@ import { Prisma } from '@prisma/client';
 | Field | Type | Constraints |
 |-------|------|-------------|
 | id | string (UUID) | PK |
-| musico_id | string (UUID) | FK → Integrantes, cascade |
+| fk_integrante_id | string (UUID) | FK → Integrantes, cascade |
 | funcao_id | string (UUID) | FK → Funcoes, cascade |
-| @@unique | [musico_id, funcao_id] | |
+| @@unique | [fk_integrante_id, funcao_id] | |
 
 ## Extended Prisma Client Type
 

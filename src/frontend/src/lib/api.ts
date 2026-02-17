@@ -43,12 +43,15 @@ export async function apiFetch<T>(
   let response: Response;
 
   try {
+    const isFormData = options?.body instanceof FormData;
+    const headers: HeadersInit = {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...options?.headers,
+    };
+
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      headers,
     });
   } catch {
     throw new Error("Erro de conexão com o servidor. Verifique sua rede.");

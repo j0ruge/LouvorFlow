@@ -106,7 +106,7 @@ class EventosRepository {
         return prisma.eventos_Integrantes.findMany({
             where: { evento_id: eventoId },
             select: {
-                eventos_integrantes_musico_id_fkey: {
+                eventos_integrantes_fk_integrante_id_fkey: {
                     select: {
                         id: true,
                         nome: true,
@@ -123,9 +123,9 @@ class EventosRepository {
         });
     }
 
-    async createIntegrante(eventoId: string, musicoId: string) {
+    async createIntegrante(eventoId: string, integranteId: string) {
         return prisma.eventos_Integrantes.create({
-            data: { evento_id: eventoId, musico_id: musicoId }
+            data: { evento_id: eventoId, fk_integrante_id: integranteId }
         });
     }
 
@@ -133,14 +133,14 @@ class EventosRepository {
         return prisma.eventos_Integrantes.delete({ where: { id } });
     }
 
-    async findIntegranteDuplicate(eventoId: string, musicoId: string) {
+    async findIntegranteDuplicate(eventoId: string, integranteId: string) {
         return prisma.eventos_Integrantes.findUnique({
-            where: { evento_id_musico_id: { evento_id: eventoId, musico_id: musicoId } }
+            where: { evento_id_fk_integrante_id: { evento_id: eventoId, fk_integrante_id: integranteId } }
         });
     }
 
-    async findIntegranteById(musicoId: string) {
-        return prisma.integrantes.findUnique({ where: { id: musicoId } });
+    async findIntegranteById(integranteId: string) {
+        return prisma.integrantes.findUnique({ where: { id: integranteId } });
     }
 }
 

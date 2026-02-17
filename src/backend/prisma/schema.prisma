@@ -62,15 +62,15 @@ model Eventos_Musicas {
 }
 
 model Eventos_Integrantes {
-  id                                 String      @id @default(uuid()) @db.Uuid
-  evento_id                          String      @db.Uuid
-  musico_id                          String      @db.Uuid
-  created_at                         DateTime    @default(now()) @db.Timestamp(6)
-  updated_at                         DateTime    @updatedAt @db.Timestamp(6)
-  eventos_integrantes_evento_id_fkey Eventos     @relation(fields: [evento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  eventos_integrantes_musico_id_fkey Integrantes @relation(fields: [musico_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                                         String      @id @default(uuid()) @db.Uuid
+  evento_id                                  String      @db.Uuid
+  fk_integrante_id                           String      @map("fk_integrante_id") @db.Uuid
+  created_at                                 DateTime    @default(now()) @db.Timestamp(6)
+  updated_at                                 DateTime    @updatedAt @db.Timestamp(6)
+  eventos_integrantes_evento_id_fkey         Eventos     @relation(fields: [evento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  eventos_integrantes_fk_integrante_id_fkey  Integrantes @relation(fields: [fk_integrante_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([evento_id, musico_id])
+  @@unique([evento_id, fk_integrante_id])
   @@map("eventos_integrantes")
 }
 
@@ -152,15 +152,15 @@ model Integrantes {
 }
 
 model Integrantes_Funcoes {
-  id                                 String      @id @default(uuid()) @db.Uuid
-  musico_id                          String      @db.Uuid
-  funcao_id                          String      @db.Uuid
-  created_at                         DateTime    @default(now()) @db.Timestamp(6)
-  updated_at                         DateTime    @updatedAt @db.Timestamp(6)
-  integrantes_funcoes_funcao_id_fkey Funcoes     @relation(fields: [funcao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  integrantes_funcoes_musico_id_fkey Integrantes @relation(fields: [musico_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                                        String      @id @default(uuid()) @db.Uuid
+  fk_integrante_id                          String      @map("fk_integrante_id") @db.Uuid
+  funcao_id                                 String      @db.Uuid
+  created_at                                DateTime    @default(now()) @db.Timestamp(6)
+  updated_at                                DateTime    @updatedAt @db.Timestamp(6)
+  integrantes_funcoes_funcao_id_fkey        Funcoes     @relation(fields: [funcao_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  integrantes_funcoes_fk_integrante_id_fkey Integrantes @relation(fields: [fk_integrante_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([musico_id, funcao_id])
+  @@unique([fk_integrante_id, funcao_id])
   @@map("integrantes_funcoes")
 }
 

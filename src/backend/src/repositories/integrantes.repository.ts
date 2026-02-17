@@ -74,7 +74,7 @@ class IntegrantesRepository {
 
     async findFuncoesByIntegranteId(integranteId: string) {
         return prisma.integrantes_Funcoes.findMany({
-            where: { musico_id: integranteId },
+            where: { fk_integrante_id: integranteId },
             select: {
                 integrantes_funcoes_funcao_id_fkey: {
                     select: { id: true, nome: true }
@@ -83,15 +83,15 @@ class IntegrantesRepository {
         });
     }
 
-    async findIntegranteFuncao(musico_id: string, funcao_id: string) {
+    async findIntegranteFuncao(fk_integrante_id: string, funcao_id: string) {
         return prisma.integrantes_Funcoes.findUnique({
-            where: { musico_id_funcao_id: { musico_id, funcao_id } }
+            where: { fk_integrante_id_funcao_id: { fk_integrante_id, funcao_id } }
         });
     }
 
-    async createIntegranteFuncao(musico_id: string, funcao_id: string) {
+    async createIntegranteFuncao(fk_integrante_id: string, funcao_id: string) {
         return prisma.integrantes_Funcoes.create({
-            data: { musico_id, funcao_id }
+            data: { fk_integrante_id, funcao_id }
         });
     }
 

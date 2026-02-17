@@ -38,9 +38,9 @@ export function createFakeEventosRepository() {
     Eventos_Integrantes: eventosIntegrantes
       .filter(ei => ei.evento_id === evento.id)
       .map(ei => {
-        const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.musico_id)!;
+        const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.fk_integrante_id)!;
         return {
-          eventos_integrantes_musico_id_fkey: { id: integrante.id, nome: integrante.nome },
+          eventos_integrantes_fk_integrante_id_fkey: { id: integrante.id, nome: integrante.nome },
         };
       }),
   });
@@ -66,13 +66,13 @@ export function createFakeEventosRepository() {
     Eventos_Integrantes: eventosIntegrantes
       .filter(ei => ei.evento_id === evento.id)
       .map(ei => {
-        const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.musico_id)!;
+        const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.fk_integrante_id)!;
         return {
-          eventos_integrantes_musico_id_fkey: {
+          eventos_integrantes_fk_integrante_id_fkey: {
             id: integrante.id,
             nome: integrante.nome,
             Integrantes_Funcoes: MOCK_INTEGRANTES_FUNCOES
-              .filter(iif => iif.musico_id === integrante.id)
+              .filter(iif => iif.fk_integrante_id === integrante.id)
               .map(iif => ({
                 integrantes_funcoes_funcao_id_fkey: MOCK_FUNCOES.find(f => f.id === iif.funcao_id)!,
               })),
@@ -168,13 +168,13 @@ export function createFakeEventosRepository() {
       eventosIntegrantes
         .filter(ei => ei.evento_id === eventoId)
         .map(ei => {
-          const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.musico_id)!;
+          const integrante = MOCK_INTEGRANTES.find(i => i.id === ei.fk_integrante_id)!;
           return {
-            eventos_integrantes_musico_id_fkey: {
+            eventos_integrantes_fk_integrante_id_fkey: {
               id: integrante.id,
               nome: integrante.nome,
               Integrantes_Funcoes: MOCK_INTEGRANTES_FUNCOES
-                .filter(iif => iif.musico_id === integrante.id)
+                .filter(iif => iif.fk_integrante_id === integrante.id)
                 .map(iif => ({
                   integrantes_funcoes_funcao_id_fkey: MOCK_FUNCOES.find(f => f.id === iif.funcao_id)!,
                 })),
@@ -182,8 +182,8 @@ export function createFakeEventosRepository() {
           };
         }),
 
-    createIntegrante: async (eventoId: string, musicoId: string) => {
-      const record = { id: randomUUID(), evento_id: eventoId, musico_id: musicoId };
+    createIntegrante: async (eventoId: string, integranteId: string) => {
+      const record = { id: randomUUID(), evento_id: eventoId, fk_integrante_id: integranteId };
       eventosIntegrantes.push(record);
       return record;
     },
@@ -194,11 +194,11 @@ export function createFakeEventosRepository() {
       eventosIntegrantes.splice(idx, 1);
     },
 
-    findIntegranteDuplicate: async (eventoId: string, musicoId: string) =>
-      eventosIntegrantes.find(ei => ei.evento_id === eventoId && ei.musico_id === musicoId) ?? null,
+    findIntegranteDuplicate: async (eventoId: string, integranteId: string) =>
+      eventosIntegrantes.find(ei => ei.evento_id === eventoId && ei.fk_integrante_id === integranteId) ?? null,
 
-    findIntegranteById: async (musicoId: string) =>
-      MOCK_INTEGRANTES.find(i => i.id === musicoId) ?? null,
+    findIntegranteById: async (integranteId: string) =>
+      MOCK_INTEGRANTES.find(i => i.id === integranteId) ?? null,
 
     reset: () => {
       eventosData = MOCK_EVENTOS.map(e => ({ ...e }));

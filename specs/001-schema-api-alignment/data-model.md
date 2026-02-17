@@ -147,11 +147,11 @@
 |-------|------|-------------|
 | id | UUID | PK |
 | evento_id | UUID | FK → eventos.id, CASCADE |
-| musico_id | UUID | FK → integrantes.id, CASCADE |
+| fk_integrante_id | UUID | FK → integrantes.id, CASCADE |
 | created_at | DateTime | default now() |
 | updated_at | DateTime | auto-updated |
 
-**Uniqueness**: Composite unique on (evento_id, musico_id).
+**Uniqueness**: Composite unique on (evento_id, fk_integrante_id).
 
 ---
 
@@ -159,12 +159,12 @@
 | Field | Type | Constraints |
 |-------|------|-------------|
 | id | UUID | PK |
-| musico_id | UUID | FK → integrantes.id, CASCADE |
+| fk_integrante_id | UUID | FK → integrantes.id, CASCADE |
 | funcao_id | UUID | FK → funcoes.id, CASCADE |
 | created_at | DateTime | default now() |
 | updated_at | DateTime | auto-updated |
 
-**Uniqueness**: Composite unique on (musico_id, funcao_id).
+**Uniqueness**: Composite unique on (fk_integrante_id, funcao_id).
 
 ---
 
@@ -206,7 +206,7 @@
 | Add unique constraint on `nome` | NEW CONSTRAINT | tags |
 | Add composite unique (artista_id, musica_id) | NEW CONSTRAINT | artistas_musicas |
 | Add composite unique (evento_id, musicas_id) | NEW CONSTRAINT | eventos_musicas |
-| Add composite unique (evento_id, musico_id) | NEW CONSTRAINT | eventos_integrantes |
-| Add composite unique (musico_id, funcao_id) | NEW CONSTRAINT | integrantes_funcoes |
+| Add composite unique (evento_id, fk_integrante_id) | NEW CONSTRAINT | eventos_integrantes |
+| Add composite unique (fk_integrante_id, funcao_id) | NEW CONSTRAINT | integrantes_funcoes |
 | Add composite unique (musica_id, funcao_id) | NEW CONSTRAINT | musicas_funcoes |
 | Add composite unique (musica_id, tag_id) | NEW CONSTRAINT | musicas_tags |

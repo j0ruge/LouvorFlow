@@ -126,7 +126,7 @@ const Songs = () => {
                           {song.nome}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {song.versoes[0]?.artista.nome}
+                          {song.versoes[0]?.artista.nome ?? "Artista desconhecido"}
                         </p>
                       </div>
                     </div>

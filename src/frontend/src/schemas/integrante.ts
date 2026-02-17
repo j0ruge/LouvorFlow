@@ -47,3 +47,19 @@ export const CreateIntegranteFormSchema = z.object({
 
 /** Tipo inferido dos dados do formulário de criação de integrante. */
 export type CreateIntegranteForm = z.infer<typeof CreateIntegranteFormSchema>;
+
+/** Schema de validação do formulário de edição de integrante (senha opcional). */
+export const UpdateIntegranteFormSchema = z.object({
+  nome: z.string().min(1, "Nome é obrigatório"),
+  doc_id: z.string().min(1, "Documento é obrigatório"),
+  email: z.string().email("E-mail inválido"),
+  senha: z
+    .string()
+    .min(6, "Senha deve ter no mínimo 6 caracteres")
+    .optional()
+    .or(z.literal("")),
+  telefone: z.string().optional(),
+});
+
+/** Tipo inferido dos dados do formulário de edição de integrante. */
+export type UpdateIntegranteForm = z.infer<typeof UpdateIntegranteFormSchema>;
