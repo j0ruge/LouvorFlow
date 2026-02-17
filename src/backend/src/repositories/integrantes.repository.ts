@@ -75,8 +75,13 @@ class IntegrantesRepository {
     /**
      * Retorna as funções associadas a um integrante.
      *
+     * Cada registro retornado possui a relação aninhada do Prisma:
+     * `integrantes_funcoes_funcao_id_fkey` → `{ id, nome }`.
+     * O chamador deve acessar `resultado.integrantes_funcoes_funcao_id_fkey`
+     * para obter os dados da função.
+     *
      * @param integranteId - ID do integrante
-     * @returns Array de funções com id e nome
+     * @returns Array de registros de `Integrantes_Funcoes` com a relação aninhada da função
      */
     async findFuncoesByIntegranteId(integranteId: string) {
         return prisma.integrantes_Funcoes.findMany({

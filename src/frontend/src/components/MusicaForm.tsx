@@ -144,7 +144,7 @@ export function MusicaForm({ open, onOpenChange }: MusicaFormProps) {
                   </Select>
                   {tonError && (
                     <p className="text-sm text-destructive">
-                      Falha ao carregar tonalidades: {tonErrorObj?.message}
+                      Falha ao carregar tonalidades: {tonErrorObj?.message ?? "Erro desconhecido"}
                     </p>
                   )}
                   <FormMessage />

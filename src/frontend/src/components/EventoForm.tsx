@@ -152,7 +152,7 @@ export function EventoForm({ open, onOpenChange }: EventoFormProps) {
                   </Select>
                   {tiposError && (
                     <p className="text-sm text-destructive">
-                      Falha ao carregar tipos: {tiposErrorObj?.message}
+                      Falha ao carregar tipos: {tiposErrorObj?.message ?? "Erro desconhecido"}
                     </p>
                   )}
                   <FormMessage />

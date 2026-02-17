@@ -24,7 +24,7 @@ function formatEventoIndex(e: EventoIndexRaw) {
  * Converte um registro bruto de evento no formato detalhado para exibição (show).
  *
  * @param e - Registro bruto do evento (EventoShowRaw), incluindo as relações `Eventos_Musicas` e `Eventos_Integrantes`
- * @returns Objeto com `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array de `{ id, nome, tonalidade }`) e `integrantes` (array de `{ id, nome, funcoes }` onde `funcoes` é um array de IDs de funções)
+ * @returns Objeto com `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array de `{ id, nome, tonalidade }`) e `integrantes` (array de `{ id, nome, funcoes }` onde `funcoes` é um array de objetos com `id` e `nome`)
  */
 function formatEventoShow(e: EventoShowRaw) {
     return {
@@ -184,7 +184,7 @@ class EventosService {
      * Lista os integrantes vinculados a um evento, incluindo suas funções.
      *
      * @param eventoId - ID do evento
-     * @returns Array de integrantes com `id`, `nome` e `funcoes` (array de IDs de funções)
+     * @returns Array de integrantes com `id`, `nome` e `funcoes` (array de objetos com `id` e `nome`)
      * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
      */
     async listIntegrantes(eventoId: string) {
