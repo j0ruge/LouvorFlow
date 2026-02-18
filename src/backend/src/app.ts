@@ -11,6 +11,7 @@ import funcoesRoutes from './routes/funcoes.routes.js';
 import categoriasRoutes from './routes/categorias.routes.js';
 import tiposEventosRoutes from './routes/tipos-eventos.routes.js';
 import eventosRoutes from './routes/eventos.routes.js';
+import relatoriosRoutes from './routes/relatorios.routes.js';
 
 class App {
     app: Express;
@@ -36,6 +37,7 @@ class App {
         this.app.use('/api/categorias', categoriasRoutes);
         this.app.use('/api/tipos-eventos', tiposEventosRoutes);
         this.app.use('/api/eventos', eventosRoutes);
+        this.app.use('/api/relatorios', relatoriosRoutes);
     }
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

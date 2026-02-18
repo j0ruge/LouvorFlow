@@ -1,3 +1,46 @@
+/**
+ * Representação de uma música no ranking de relatórios.
+ *
+ * @property id - Identificador único da música (UUID)
+ * @property nome - Nome da música
+ * @property vezes - Quantidade de eventos em que a música aparece
+ */
+export interface MusicaRanking {
+    id: string;
+    nome: string;
+    vezes: number;
+}
+
+/**
+ * Representação da atividade mensal para relatórios.
+ *
+ * @property mes - Identificador do mês (ex: "Jan 2026")
+ * @property eventos - Quantidade de eventos no mês
+ * @property musicas - Quantidade de associações evento-música no mês
+ */
+export interface AtividadeMensal {
+    mes: string;
+    eventos: number;
+    musicas: number;
+}
+
+/**
+ * Resumo completo de relatórios com todas as métricas agregadas.
+ *
+ * @property totalMusicas - Total de músicas cadastradas
+ * @property totalEventos - Total de eventos com data ≤ hoje
+ * @property mediaPorEvento - Média de músicas por evento (1 casa decimal)
+ * @property topMusicas - Top 5 músicas por frequência
+ * @property atividadeMensal - Atividade dos últimos 6 meses
+ */
+export interface RelatorioResumo {
+    totalMusicas: number;
+    totalEventos: number;
+    mediaPorEvento: number;
+    topMusicas: MusicaRanking[];
+    atividadeMensal: AtividadeMensal[];
+}
+
 export interface IdNome {
     id: string;
     nome: string;
