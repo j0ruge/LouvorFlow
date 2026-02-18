@@ -43,9 +43,12 @@ Regras específicas de cada camada estão em `.claude/rules/`:
 
 ## Docstrings
 
-- **OBRIGATÓRIO**: Todo código (classes, métodos, funções e interfaces públicas) deve conter docstrings claras, escritas em **português do Brasil**.
+<CRITICAL>
+- Todo código (classes, métodos, funções, callbacks de teste e interfaces públicas) DEVE conter docstrings claras, escritas em **português do Brasil**, no formato JSDoc (`/** ... */`).
 - As docstrings devem descrever o propósito, os parâmetros e o retorno de forma objetiva.
-- Utilize o formato JSDoc (`/** ... */`) para projetos TypeScript/JavaScript.
+- Isso se aplica a TODO código novo ou modificado, sem exceção — incluindo funções de teste (`test()`, `it()`, `describe()`), hooks, handlers e utilitários.
+- Nunca considerar uma tarefa como concluída se houver função, método ou callback de teste sem docstring JSDoc em PT-BR.
+</CRITICAL>
 
 ## Regras de Markdown
 

@@ -101,6 +101,11 @@ class MusicasController {
 
     // --- Junction: Categorias ---
 
+    /**
+     * Lista as categorias associadas a uma música.
+     * @param req - Requisição com `req.params.musicaId` identificando a música.
+     * @param res - Resposta HTTP com status 200 e array de categorias.
+     */
     async listCategorias(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
         try {
             const categorias = await musicasService.listCategorias(req.params.musicaId);
@@ -111,6 +116,12 @@ class MusicasController {
         }
     }
 
+    /**
+     * Associa uma categoria a uma música.
+     * @param req - Requisição com `req.params.musicaId` e `req.body.categoria_id`.
+     * @param res - Resposta HTTP com status 201 confirmando a associação.
+     * @throws AppError 404 se música ou categoria não existir; 409 se já associada.
+     */
     async addCategoria(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
         try {
             await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id);
@@ -121,6 +132,12 @@ class MusicasController {
         }
     }
 
+    /**
+     * Remove a associação de uma categoria com uma música.
+     * @param req - Requisição com `req.params.musicaId` e `req.params.categoriaId`.
+     * @param res - Resposta HTTP com status 200 confirmando a remoção.
+     * @throws AppError 404 se a associação não existir.
+     */
     async removeCategoria(req: Request<{ musicaId: string; categoriaId: string }>, res: Response): Promise<void> {
         try {
             await musicasService.removeCategoria(req.params.musicaId, req.params.categoriaId);

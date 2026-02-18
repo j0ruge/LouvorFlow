@@ -107,6 +107,7 @@ test.describe("Navegação", () => {
 test.describe("Navegação Mobile", () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
+  /** Verifica que o menu lateral fecha ao clicar em um link de navegação. */
   test("deve fechar o menu ao clicar em um link", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
@@ -125,6 +126,7 @@ test.describe("Navegação Mobile", () => {
     ).toBeVisible();
   });
 
+  /** Navega por várias rotas verificando fechamento do menu e título da página. */
   test("deve navegar para múltiplas páginas em sequência", async ({ page }) => {
     await page.goto("/");
 

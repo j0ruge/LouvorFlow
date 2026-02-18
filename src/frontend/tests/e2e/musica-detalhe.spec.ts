@@ -8,7 +8,9 @@
 
 import { test, expect } from "@playwright/test";
 
+/** Testes de select desabilitado quando não há itens disponíveis na página de detalhe de música. */
 test.describe("Música Detalhe — Select desabilitado sem itens disponíveis", () => {
+  /** Navega até a página de detalhe de uma música existente antes de cada teste. */
   test.beforeEach(async ({ page }) => {
     await page.goto("/musicas");
     await expect(
@@ -27,6 +29,7 @@ test.describe("Música Detalhe — Select desabilitado sem itens disponíveis", 
     ).toBeVisible({ timeout: 10_000 });
   });
 
+  /** Verifica que o select de categorias fica desabilitado ao esgotar as opções. */
   test("deve desabilitar select de categorias quando não há opções disponíveis", async ({
     page,
   }) => {
@@ -71,6 +74,7 @@ test.describe("Música Detalhe — Select desabilitado sem itens disponíveis", 
     );
   });
 
+  /** Verifica que o select de funções requeridas fica desabilitado ao esgotar as opções. */
   test("deve desabilitar select de funções requeridas quando não há opções disponíveis", async ({
     page,
   }) => {

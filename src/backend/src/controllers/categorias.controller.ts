@@ -2,7 +2,16 @@ import { Request, Response } from 'express';
 import categoriasService from '../services/categorias.service.js';
 import { AppError } from '../errors/AppError.js';
 
+/**
+ * Controller responsável pelo gerenciamento de categorias.
+ * Recebe requisições HTTP e delega a lógica ao CategoriasService.
+ */
 class CategoriasController {
+    /**
+     * Lista todas as categorias cadastradas.
+     * @param _req - Objeto de requisição (não utilizado).
+     * @param res - Resposta HTTP com status 200 e array de categorias.
+     */
     async index(_req: Request, res: Response): Promise<void> {
         try {
             const categorias = await categoriasService.listAll();
@@ -13,6 +22,12 @@ class CategoriasController {
         }
     }
 
+    /**
+     * Retorna uma categoria pelo ID.
+     * @param req - Requisição com `req.params.id` identificando a categoria.
+     * @param res - Resposta HTTP com status 200 e a categoria encontrada.
+     * @throws AppError 400 se o ID não for enviado; 404 se não encontrada.
+     */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const categoria = await categoriasService.getById(req.params.id);
@@ -23,6 +38,12 @@ class CategoriasController {
         }
     }
 
+    /**
+     * Cria uma nova categoria.
+     * @param req - Requisição com `req.body.nome` contendo o nome da categoria.
+     * @param res - Resposta HTTP com status 201 e a categoria criada.
+     * @throws AppError 400 se o nome não for enviado; 409 se já existir.
+     */
     async create(req: Request, res: Response): Promise<void> {
         try {
             const categoria = await categoriasService.create(req.body.nome);
@@ -33,6 +54,12 @@ class CategoriasController {
         }
     }
 
+    /**
+     * Atualiza o nome de uma categoria existente.
+     * @param req - Requisição com `req.params.id` e `req.body.nome`.
+     * @param res - Resposta HTTP com status 200 e a categoria atualizada.
+     * @throws AppError 400 se ID ou nome ausente; 404 se não encontrada; 409 se nome duplicado.
+     */
     async update(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const categoria = await categoriasService.update(req.params.id, req.body.nome);
@@ -43,6 +70,12 @@ class CategoriasController {
         }
     }
 
+    /**
+     * Remove uma categoria pelo ID.
+     * @param req - Requisição com `req.params.id` identificando a categoria.
+     * @param res - Resposta HTTP com status 200 e a categoria removida.
+     * @throws AppError 400 se o ID não for enviado; 404 se não encontrada.
+     */
     async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
         try {
             const categoria = await categoriasService.delete(req.params.id);

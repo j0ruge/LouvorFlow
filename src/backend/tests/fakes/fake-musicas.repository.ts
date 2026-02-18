@@ -171,6 +171,7 @@ export function createFakeMusicasRepository() {
 
     // --- Categorias (musicas_categorias) ---
 
+    /** Retorna as categorias associadas a uma música pelo ID da música. */
     findCategorias: async (musicaId: string) =>
       categoriasData
         .filter(t => t.musica_id === musicaId)
@@ -178,21 +179,29 @@ export function createFakeMusicasRepository() {
           musicas_categorias_categoria_id_fkey: MOCK_CATEGORIAS.find(cat => cat.id === t.categoria_id)!,
         })),
 
+    /**
+     * Cria uma associação entre música e categoria. Muta categoriasData.
+     * @param musicaId - ID da música.
+     * @param categoriaId - ID da categoria.
+     */
     createCategoria: async (musicaId: string, categoriaId: string) => {
       const record = { id: randomUUID(), musica_id: musicaId, categoria_id: categoriaId };
       categoriasData.push(record);
       return record;
     },
 
+    /** Remove uma associação música-categoria pelo ID do registro. Muta categoriasData. */
     deleteCategoria: async (id: string) => {
       const idx = categoriasData.findIndex(t => t.id === id);
       if (idx === -1) return;
       categoriasData.splice(idx, 1);
     },
 
+    /** Verifica se já existe associação entre a música e a categoria informadas. Retorna o registro ou null. */
     findCategoriaDuplicate: async (musicaId: string, categoriaId: string) =>
       categoriasData.find(t => t.musica_id === musicaId && t.categoria_id === categoriaId) ?? null,
 
+    /** Busca uma categoria pelo ID nos dados mock. Retorna o registro ou null. */
     findCategoriaById: async (categoriaId: string) =>
       MOCK_CATEGORIAS.find(t => t.id === categoriaId) ?? null,
 

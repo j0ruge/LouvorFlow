@@ -8,7 +8,9 @@
 
 import { test, expect } from "@playwright/test";
 
+/** Testes de select desabilitado quando não há itens disponíveis na página de detalhe de escala. */
 test.describe("Escala Detalhe — Select desabilitado sem itens disponíveis", () => {
+  /** Navega até a página de detalhe de uma escala existente antes de cada teste. */
   test.beforeEach(async ({ page }) => {
     await page.goto("/escalas");
     await expect(
@@ -26,6 +28,7 @@ test.describe("Escala Detalhe — Select desabilitado sem itens disponíveis", (
     });
   });
 
+  /** Verifica que o select de integrantes fica desabilitado ao esgotar as opções. */
   test("deve desabilitar select de integrantes quando não há opções disponíveis", async ({
     page,
   }) => {
@@ -66,6 +69,7 @@ test.describe("Escala Detalhe — Select desabilitado sem itens disponíveis", (
     );
   });
 
+  /** Verifica que o select de músicas fica desabilitado ao esgotar as opções. */
   test("deve desabilitar select de músicas quando não há opções disponíveis", async ({
     page,
   }) => {
