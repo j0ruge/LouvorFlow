@@ -133,6 +133,9 @@ const Settings = () => {
                   label: "Artista",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
+                  emptyTitle: "Nenhum artista cadastrado",
+                  emptyDescription:
+                    "Adicione artistas usando o campo acima para associar às músicas do repertório.",
                 }}
                 items={artistas.data}
                 isLoading={artistas.isLoading}
@@ -160,6 +163,9 @@ const Settings = () => {
                   label: "Categoria",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
+                  emptyTitle: "Nenhuma categoria cadastrada",
+                  emptyDescription:
+                    "Crie categorias usando o campo acima para classificar as músicas.",
                 }}
                 items={categorias.data}
                 isLoading={categorias.isLoading}
@@ -187,6 +193,9 @@ const Settings = () => {
                   label: "Função",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
+                  emptyTitle: "Nenhuma função cadastrada",
+                  emptyDescription:
+                    "Adicione funções usando o campo acima para definir os papéis dos integrantes.",
                 }}
                 items={funcoes.data}
                 isLoading={funcoes.isLoading}
@@ -211,6 +220,9 @@ const Settings = () => {
                   label: "Tonalidade",
                   getName: (item) => item.tom,
                   getId: (item) => item.id,
+                  emptyTitle: "Nenhuma tonalidade cadastrada",
+                  emptyDescription:
+                    "Cadastre tonalidades usando o campo acima para usar nas músicas.",
                 }}
                 items={tonalidades.data}
                 isLoading={tonalidades.isLoading}
@@ -238,6 +250,9 @@ const Settings = () => {
                   label: "Tipo de Evento",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
+                  emptyTitle: "Nenhum tipo de evento cadastrado",
+                  emptyDescription:
+                    "Crie tipos de evento usando o campo acima para categorizar as escalas.",
                 }}
                 items={tiposEventos.data}
                 isLoading={tiposEventos.isLoading}

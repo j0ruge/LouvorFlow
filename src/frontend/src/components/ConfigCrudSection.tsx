@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Plus, X, Check, Loader2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
 
 /** Configuração de uma entidade para o ConfigCrudSection. */
 interface EntityConfig<T> {
@@ -22,6 +23,10 @@ interface EntityConfig<T> {
   getName: (item: T) => string;
   /** Função para extrair o id da entidade. */
   getId: (item: T) => string;
+  /** Título exibido no estado vazio da listagem. */
+  emptyTitle: string;
+  /** Descrição complementar exibida no estado vazio da listagem. */
+  emptyDescription: string;
 }
 
 /** Propriedades do componente ConfigCrudSection. */
@@ -147,9 +152,10 @@ export function ConfigCrudSection<T>({
           Carregando...
         </p>
       ) : !items || items.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Nenhum(a) {config.label.toLowerCase()} cadastrado(a).
-        </p>
+        <EmptyState
+          title={config.emptyTitle}
+          description={config.emptyDescription}
+        />
       ) : (
         <div className="space-y-2">
           {items.map((item) => {
