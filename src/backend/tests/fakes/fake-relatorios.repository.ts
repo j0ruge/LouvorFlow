@@ -63,12 +63,18 @@ export function createFakeRelatoriosRepository(dados?: Partial<FakeRelatoriosDat
         countAssociacoesEventoMusica: async (): Promise<number> => data.totalAssociacoes,
 
         /**
-         * Retorna as top N músicas do ranking configurado.
+         * Retorna as top músicas do ranking configurado, incluindo empates
+         * na fronteira do corte (espelha a lógica do repositório real).
          *
-         * @param limit - Quantidade máxima de músicas.
+         * @param limit - Quantidade mínima de músicas no ranking.
          */
-        getTopMusicas: async (limit: number): Promise<MusicaRanking[]> =>
-            data.topMusicas.slice(0, limit),
+        getTopMusicas: async (limit: number): Promise<MusicaRanking[]> => {
+            if (data.topMusicas.length === 0) return [];
+            const cutoff = data.topMusicas.length >= limit
+                ? data.topMusicas[limit - 1].vezes
+                : 0;
+            return data.topMusicas.filter(m => m.vezes >= cutoff);
+        },
 
         /**
          * Retorna a atividade mensal configurada.

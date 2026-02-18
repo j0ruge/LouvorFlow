@@ -65,7 +65,7 @@ src/backend/src/
 └── app.ts                           # MODIFICADO — registrar rota /api/relatorios
 
 src/backend/tests/
-└── unit/
+└── services/
     └── relatorios.service.test.ts   # NOVO — testes unitários com fake repository
 
 src/frontend/src/

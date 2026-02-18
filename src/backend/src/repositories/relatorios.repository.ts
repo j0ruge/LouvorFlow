@@ -53,12 +53,14 @@ class RelatoriosRepository {
     }
 
     /**
-     * Retorna as N músicas mais frequentes em eventos passados (data ≤ hoje).
+     * Retorna as músicas mais frequentes em eventos passados (data ≤ hoje).
      *
-     * Ordena por contagem decrescente e, em caso de empate, por nome
-     * ascendente (ordem alfabética).
+     * Busca pelo menos {@link limit} músicas, incluindo todas as empatadas
+     * na última posição do corte. Ordena por contagem decrescente e, em caso
+     * de empate, por nome ascendente (ordem alfabética).
      *
-     * @param limit - Quantidade máxima de músicas a retornar.
+     * @param limit - Quantidade mínima de músicas no ranking (empates na
+     *   fronteira podem elevar o total retornado).
      * @returns Lista de músicas com id, nome e contagem de aparições.
      */
     async getTopMusicas(limit: number): Promise<MusicaRanking[]> {
@@ -71,10 +73,17 @@ class RelatoriosRepository {
             },
             _count: { musicas_id: true },
             orderBy: { _count: { musicas_id: 'desc' } },
-            take: limit * 2,
         });
 
-        const ids = resultado.map(r => r.musicas_id);
+        if (resultado.length === 0) return [];
+
+        const cutoffCount = resultado.length >= limit
+            ? resultado[limit - 1]._count.musicas_id
+            : 0;
+
+        const comCutoff = resultado.filter(r => r._count.musicas_id >= cutoffCount);
+
+        const ids = comCutoff.map(r => r.musicas_id);
 
         const musicas = await prisma.musicas.findMany({
             where: { id: { in: ids } },
@@ -83,7 +92,7 @@ class RelatoriosRepository {
 
         const musicaMap = new Map(musicas.map(m => [m.id, m.nome]));
 
-        const ranking = resultado.map(r => ({
+        const ranking = comCutoff.map(r => ({
             id: r.musicas_id,
             nome: musicaMap.get(r.musicas_id) ?? '',
             vezes: r._count.musicas_id,
@@ -94,7 +103,7 @@ class RelatoriosRepository {
             return a.nome.localeCompare(b.nome, 'pt-BR');
         });
 
-        return ranking.slice(0, limit);
+        return ranking;
     }
 
     /**

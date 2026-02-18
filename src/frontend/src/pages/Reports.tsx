@@ -6,6 +6,7 @@
  * tocadas e atividade mensal. Consome endpoint de agregação backend.
  */
 
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
@@ -19,6 +20,12 @@ import { useRelatorioResumo } from "@/hooks/use-relatorios";
  */
 const Reports = () => {
   const { data, isLoading, isError, error, refetch } = useRelatorioResumo();
+
+  /** Valor máximo de músicas entre todos os meses, para normalizar barras de progresso. */
+  const maxMusicas = useMemo(() => {
+    if (!data?.atividadeMensal?.length) return 0;
+    return Math.max(...data.atividadeMensal.map((m) => m.musicas));
+  }, [data?.atividadeMensal]);
 
   if (isError) {
     return (
@@ -135,9 +142,7 @@ const Reports = () => {
               </div>
             ) : data && data.atividadeMensal.length > 0 ? (
               <div className="space-y-4">
-                {data.atividadeMensal.map((item) => {
-                  const maxMusicas = Math.max(...data.atividadeMensal.map((m) => m.musicas));
-                  return (
+                {data.atividadeMensal.map((item) => (
                     <div key={item.mes} className="p-4 rounded-lg bg-gradient-card border border-border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-foreground">{item.mes}</span>
@@ -159,8 +164,7 @@ const Reports = () => {
                         />
                       </div>
                     </div>
-                  );
-                })}
+                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">

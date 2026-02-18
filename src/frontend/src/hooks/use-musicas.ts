@@ -66,6 +66,7 @@ export function useCreateMusica() {
     mutationFn: (dados: CreateMusicaForm) => createMusica(dados),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["musicas"] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -113,6 +114,7 @@ export function useDeleteMusica() {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["musicas"] });
       queryClient.removeQueries({ queryKey: ["musica", id] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
