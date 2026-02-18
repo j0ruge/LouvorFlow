@@ -12,3 +12,9 @@ ALTER TABLE "musicas_categorias" RENAME COLUMN "tag_id" TO "categoria_id";
 -- Renomeia índices
 ALTER INDEX "tags_nome_unico" RENAME TO "categorias_nome_unico";
 ALTER INDEX "musicas_tags_musica_id_tag_id_key" RENAME TO "musicas_categorias_musica_id_categoria_id_key";
+
+-- Renomeia constraints (PKs e FKs)
+ALTER TABLE "categorias" RENAME CONSTRAINT "tags_pkey" TO "categorias_pkey";
+ALTER TABLE "musicas_categorias" RENAME CONSTRAINT "musicas_tags_pkey" TO "musicas_categorias_pkey";
+ALTER TABLE "musicas_categorias" RENAME CONSTRAINT "musicas_tags_musica_id_fkey" TO "musicas_categorias_musica_id_fkey";
+ALTER TABLE "musicas_categorias" RENAME CONSTRAINT "musicas_tags_tag_id_fkey" TO "musicas_categorias_categoria_id_fkey";

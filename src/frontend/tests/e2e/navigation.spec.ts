@@ -87,7 +87,7 @@ test.describe("Navegação", () => {
       page.getByRole("heading", { name: "Configurações" }),
     ).toBeVisible();
 
-    const tabs = ["Artistas", "Tags", "Funções", "Tonalidades", "Tipos de Evento"];
+    const tabs = ["Artistas", "Categorias", "Funções", "Tonalidades", "Tipos de Evento"];
     for (const tabName of tabs) {
       await page.getByRole("tab", { name: tabName }).click();
       await expect(page.getByRole("tab", { name: tabName })).toHaveAttribute(
