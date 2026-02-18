@@ -209,9 +209,18 @@ export function EventoDetail() {
             <Select
               value={selectedMusicaId}
               onValueChange={setSelectedMusicaId}
+              disabled={musicasDisponiveis.length === 0}
             >
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione uma música para adicionar" />
+                <SelectValue
+                  placeholder={
+                    (allMusicas?.items.length ?? 0) === 0
+                      ? "Nenhuma música cadastrada no sistema"
+                      : musicasDisponiveis.length === 0
+                        ? "Todas as músicas já foram adicionadas"
+                        : "Selecione uma música para adicionar"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {musicasDisponiveis.map((m) => (
@@ -225,7 +234,11 @@ export function EventoDetail() {
             <Button
               size="sm"
               onClick={handleAddMusica}
-              disabled={!selectedMusicaId || addMusica.isPending}
+              disabled={
+                !selectedMusicaId ||
+                addMusica.isPending ||
+                musicasDisponiveis.length === 0
+              }
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -315,9 +328,18 @@ export function EventoDetail() {
             <Select
               value={selectedIntegranteId}
               onValueChange={setSelectedIntegranteId}
+              disabled={integrantesDisponiveis.length === 0}
             >
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione um integrante para adicionar" />
+                <SelectValue
+                  placeholder={
+                    (allIntegrantes?.length ?? 0) === 0
+                      ? "Nenhum integrante cadastrado no sistema"
+                      : integrantesDisponiveis.length === 0
+                        ? "Todos os integrantes já foram adicionados"
+                        : "Selecione um integrante para adicionar"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {integrantesDisponiveis.map((i) => (
@@ -330,7 +352,11 @@ export function EventoDetail() {
             <Button
               size="sm"
               onClick={handleAddIntegrante}
-              disabled={!selectedIntegranteId || addIntegrante.isPending}
+              disabled={
+                !selectedIntegranteId ||
+                addIntegrante.isPending ||
+                integrantesDisponiveis.length === 0
+              }
             >
               <Plus className="h-4 w-4" />
             </Button>

@@ -348,9 +348,21 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
-            <Select value={selectedTagId} onValueChange={setSelectedTagId}>
+            <Select
+              value={selectedTagId}
+              onValueChange={setSelectedTagId}
+              disabled={tagsDisponiveis.length === 0}
+            >
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione uma tag para adicionar" />
+                <SelectValue
+                  placeholder={
+                    (allTags?.length ?? 0) === 0
+                      ? "Nenhuma tag cadastrada no sistema"
+                      : tagsDisponiveis.length === 0
+                        ? "Todas as tags já foram adicionadas"
+                        : "Selecione uma tag para adicionar"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {tagsDisponiveis.map((tag) => (
@@ -363,7 +375,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
             <Button
               size="sm"
               onClick={handleAddTag}
-              disabled={!selectedTagId || addTag.isPending}
+              disabled={
+                !selectedTagId ||
+                addTag.isPending ||
+                tagsDisponiveis.length === 0
+              }
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -403,9 +419,18 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
             <Select
               value={selectedFuncaoId}
               onValueChange={setSelectedFuncaoId}
+              disabled={funcoesDisponiveis.length === 0}
             >
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione uma função para adicionar" />
+                <SelectValue
+                  placeholder={
+                    (allFuncoes?.length ?? 0) === 0
+                      ? "Nenhuma função cadastrada no sistema"
+                      : funcoesDisponiveis.length === 0
+                        ? "Todas as funções já foram adicionadas"
+                        : "Selecione uma função para adicionar"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {funcoesDisponiveis.map((funcao) => (
@@ -418,7 +443,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
             <Button
               size="sm"
               onClick={handleAddFuncao}
-              disabled={!selectedFuncaoId || addFuncao.isPending}
+              disabled={
+                !selectedFuncaoId ||
+                addFuncao.isPending ||
+                funcoesDisponiveis.length === 0
+              }
             >
               <Plus className="h-4 w-4" />
             </Button>
