@@ -3,7 +3,7 @@
  *
  * Renderizada na rota `/musicas/:id`. Carrega os dados da música
  * via `useMusica(id)`, exibe o componente MusicaDetail com edição,
- * versões, tags e funções. Redireciona para `/musicas` após exclusão.
+ * versões, categorias e funções. Redireciona para `/musicas` após exclusão.
  */
 
 import { useParams, useNavigate } from "react-router-dom";

@@ -2,7 +2,7 @@
  * Serviço de músicas — chamadas à API REST.
  *
  * Funções para listar (paginado), buscar por id, criar, atualizar e excluir músicas,
- * além de gerenciar versões, tags e funções associadas, com parsing Zod
+ * além de gerenciar versões, categorias e funções associadas, com parsing Zod
  * para garantir conformidade com o contrato.
  */
 
@@ -184,49 +184,49 @@ export async function removeVersao(
   return z.object({ msg: z.string() }).parse(data);
 }
 
-/* ========== Tags da Música ========== */
+/* ========== Categorias da Música ========== */
 
 /**
- * Retorna tags de uma música.
+ * Retorna categorias de uma música.
  *
  * @param musicaId - UUID da música.
- * @returns Lista de tags parseadas pelo schema Zod.
+ * @returns Lista de categorias parseadas pelo schema Zod.
  */
-export async function getTagsMusica(musicaId: string): Promise<IdNome[]> {
-  const data = await apiFetch<unknown[]>(`/musicas/${musicaId}/tags`);
+export async function getCategoriasMusica(musicaId: string): Promise<IdNome[]> {
+  const data = await apiFetch<unknown[]>(`/musicas/${musicaId}/categorias`);
   return z.array(IdNomeSchema).parse(data);
 }
 
 /**
- * Adiciona uma tag a uma música.
+ * Adiciona uma categoria a uma música.
  *
  * @param musicaId - UUID da música.
- * @param tagId - UUID da tag.
+ * @param categoriaId - UUID da categoria.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function addTagMusica(
+export async function addCategoriaMusica(
   musicaId: string,
-  tagId: string,
+  categoriaId: string,
 ): Promise<{ msg: string }> {
-  const data = await apiFetch<unknown>(`/musicas/${musicaId}/tags`, {
+  const data = await apiFetch<unknown>(`/musicas/${musicaId}/categorias`, {
     method: "POST",
-    body: JSON.stringify({ tag_id: tagId }),
+    body: JSON.stringify({ categoria_id: categoriaId }),
   });
   return z.object({ msg: z.string() }).parse(data);
 }
 
 /**
- * Remove uma tag de uma música.
+ * Remove uma categoria de uma música.
  *
  * @param musicaId - UUID da música.
- * @param tagId - UUID da tag.
+ * @param categoriaId - UUID da categoria.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function removeTagMusica(
+export async function removeCategoriaMusica(
   musicaId: string,
-  tagId: string,
+  categoriaId: string,
 ): Promise<{ msg: string }> {
-  const data = await apiFetch<unknown>(`/musicas/${musicaId}/tags/${tagId}`, {
+  const data = await apiFetch<unknown>(`/musicas/${musicaId}/categorias/${categoriaId}`, {
     method: "DELETE",
   });
   return z.object({ msg: z.string() }).parse(data);

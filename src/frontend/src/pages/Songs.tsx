@@ -210,13 +210,13 @@ const Songs = () => {
                         </div>
                       )}
                       <div className="flex gap-2">
-                        {song.tags.map((tag) => (
+                        {song.categorias.map((categoria) => (
                           <Badge
-                            key={tag.id}
+                            key={categoria.id}
                             variant="secondary"
                             className="bg-primary/10 text-primary hover:bg-primary/20"
                           >
-                            {tag.nome}
+                            {categoria.nome}
                           </Badge>
                         ))}
                       </div>

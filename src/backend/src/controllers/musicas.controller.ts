@@ -99,35 +99,52 @@ class MusicasController {
         }
     }
 
-    // --- Junction: Tags ---
+    // --- Junction: Categorias ---
 
-    async listTags(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
+    /**
+     * Lista as categorias associadas a uma música.
+     * @param req - Requisição com `req.params.musicaId` identificando a música.
+     * @param res - Resposta HTTP com status 200 e array de categorias.
+     */
+    async listCategorias(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
         try {
-            const tags = await musicasService.listTags(req.params.musicaId);
-            res.status(200).json(tags);
+            const categorias = await musicasService.listCategorias(req.params.musicaId);
+            res.status(200).json(categorias);
         } catch (error) {
             if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar tags", codigo: 500 });
+            res.status(500).json({ erro: "Erro ao buscar categorias", codigo: 500 });
         }
     }
 
-    async addTag(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
+    /**
+     * Associa uma categoria a uma música.
+     * @param req - Requisição com `req.params.musicaId` e `req.body.categoria_id`.
+     * @param res - Resposta HTTP com status 201 confirmando a associação.
+     * @throws AppError 404 se música ou categoria não existir; 409 se já associada.
+     */
+    async addCategoria(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
         try {
-            await musicasService.addTag(req.params.musicaId, req.body.tag_id);
-            res.status(201).json({ msg: "Tag adicionada com sucesso" });
+            await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id);
+            res.status(201).json({ msg: "Categoria adicionada com sucesso" });
         } catch (error) {
             if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao adicionar tag", codigo: 500 });
+            res.status(500).json({ erro: "Erro ao adicionar categoria", codigo: 500 });
         }
     }
 
-    async removeTag(req: Request<{ musicaId: string; tagId: string }>, res: Response): Promise<void> {
+    /**
+     * Remove a associação de uma categoria com uma música.
+     * @param req - Requisição com `req.params.musicaId` e `req.params.categoriaId`.
+     * @param res - Resposta HTTP com status 200 confirmando a remoção.
+     * @throws AppError 404 se a associação não existir.
+     */
+    async removeCategoria(req: Request<{ musicaId: string; categoriaId: string }>, res: Response): Promise<void> {
         try {
-            await musicasService.removeTag(req.params.musicaId, req.params.tagId);
-            res.status(200).json({ msg: "Tag removida com sucesso" });
+            await musicasService.removeCategoria(req.params.musicaId, req.params.categoriaId);
+            res.status(200).json({ msg: "Categoria removida com sucesso" });
         } catch (error) {
             if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao remover tag", codigo: 500 });
+            res.status(500).json({ erro: "Erro ao remover categoria", codigo: 500 });
         }
     }
 

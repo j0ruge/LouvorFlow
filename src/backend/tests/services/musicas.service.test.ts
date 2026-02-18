@@ -5,9 +5,9 @@ import {
   MOCK_TONALIDADES,
   MOCK_ARTISTAS,
   MOCK_ARTISTAS_MUSICAS,
-  MOCK_MUSICAS_TAGS,
+  MOCK_MUSICAS_CATEGORIAS,
   MOCK_MUSICAS_FUNCOES,
-  MOCK_TAGS,
+  MOCK_CATEGORIAS,
   MOCK_FUNCOES,
   NON_EXISTENT_ID,
 } from '../fakes/mock-data.js';
@@ -59,7 +59,7 @@ describe('MusicasService', () => {
       expect(musica).toHaveProperty('id');
       expect(musica).toHaveProperty('nome');
       expect(musica).toHaveProperty('tonalidade');
-      expect(musica).toHaveProperty('tags');
+      expect(musica).toHaveProperty('categorias');
       expect(musica).toHaveProperty('versoes');
       expect(musica).toHaveProperty('funcoes');
     });
@@ -71,7 +71,7 @@ describe('MusicasService', () => {
       const result = await musicasService.getById(MOCK_MUSICAS_BASE[0].id);
       expect(result).toHaveProperty('id', MOCK_MUSICAS_BASE[0].id);
       expect(result).toHaveProperty('tonalidade');
-      expect(result).toHaveProperty('tags');
+      expect(result).toHaveProperty('categorias');
       expect(result).toHaveProperty('versoes');
       expect(result).toHaveProperty('funcoes');
     });
@@ -270,61 +270,61 @@ describe('MusicasService', () => {
     });
   });
 
-  // ─── listTags ───────────────────────────────────────────
-  describe('listTags', () => {
-    it('deve retornar tags da música', async () => {
-      const result = await musicasService.listTags(MOCK_MUSICAS_BASE[0].id);
+  // ─── listCategorias ────────────────────────────────────
+  describe('listCategorias', () => {
+    it('deve retornar categorias da música', async () => {
+      const result = await musicasService.listCategorias(MOCK_MUSICAS_BASE[0].id);
       expect(result.length).toBeGreaterThan(0);
       expect(result[0]).toHaveProperty('id');
       expect(result[0]).toHaveProperty('nome');
     });
   });
 
-  // ─── addTag ─────────────────────────────────────────────
-  describe('addTag', () => {
-    it('deve vincular tag à música', async () => {
-      await expect(musicasService.addTag(MOCK_MUSICAS_BASE[0].id, MOCK_TAGS[2].id)).resolves.toBeUndefined();
+  // ─── addCategoria ──────────────────────────────────────
+  describe('addCategoria', () => {
+    it('deve vincular categoria à música', async () => {
+      await expect(musicasService.addCategoria(MOCK_MUSICAS_BASE[0].id, MOCK_CATEGORIAS[2].id)).resolves.toBeUndefined();
     });
 
-    it('deve lançar AppError 400 quando tag_id não é enviado', async () => {
-      await expect(musicasService.addTag(MOCK_MUSICAS_BASE[0].id, undefined)).rejects.toMatchObject({
+    it('deve lançar AppError 400 quando categoria_id não é enviado', async () => {
+      await expect(musicasService.addCategoria(MOCK_MUSICAS_BASE[0].id, undefined)).rejects.toMatchObject({
         statusCode: 400,
-        message: 'ID da tag é obrigatório',
+        message: 'ID da categoria é obrigatório',
       });
     });
 
     it('deve lançar AppError 404 quando música não existe', async () => {
-      await expect(musicasService.addTag(NON_EXISTENT_ID, MOCK_TAGS[0].id)).rejects.toMatchObject({
+      await expect(musicasService.addCategoria(NON_EXISTENT_ID, MOCK_CATEGORIAS[0].id)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Música não encontrada',
       });
     });
 
-    it('deve lançar AppError 404 quando tag não existe', async () => {
-      await expect(musicasService.addTag(MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
+    it('deve lançar AppError 404 quando categoria não existe', async () => {
+      await expect(musicasService.addCategoria(MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
-        message: 'Tag não encontrada',
+        message: 'Categoria não encontrada',
       });
     });
 
-    it('deve lançar AppError 409 quando tag duplicada', async () => {
-      const existing = MOCK_MUSICAS_TAGS[0];
-      await expect(musicasService.addTag(existing.musica_id, existing.tag_id)).rejects.toMatchObject({
+    it('deve lançar AppError 409 quando categoria duplicada', async () => {
+      const existing = MOCK_MUSICAS_CATEGORIAS[0];
+      await expect(musicasService.addCategoria(existing.musica_id, existing.categoria_id)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });
     });
   });
 
-  // ─── removeTag ──────────────────────────────────────────
-  describe('removeTag', () => {
-    it('deve remover tag vinculada', async () => {
-      const existing = MOCK_MUSICAS_TAGS[0];
-      await expect(musicasService.removeTag(existing.musica_id, existing.tag_id)).resolves.toBeUndefined();
+  // ─── removeCategoria ─────────────────────────────────
+  describe('removeCategoria', () => {
+    it('deve remover categoria vinculada', async () => {
+      const existing = MOCK_MUSICAS_CATEGORIAS[0];
+      await expect(musicasService.removeCategoria(existing.musica_id, existing.categoria_id)).resolves.toBeUndefined();
     });
 
     it('deve lançar AppError 404 quando registro não existe', async () => {
-      await expect(musicasService.removeTag(MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
+      await expect(musicasService.removeCategoria(MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Registro não encontrado',
       });

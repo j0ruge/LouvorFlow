@@ -32,7 +32,7 @@ export interface MusicaRaw {
     id: string;
     nome: string;
     musicas_fk_tonalidade_fkey: IdTom | null;
-    Musicas_Tags: { musicas_tags_tag_id_fkey: IdNome }[];
+    Musicas_Categorias: { musicas_categorias_categoria_id_fkey: IdNome }[];
     Artistas_Musicas: VersaoRaw[];
     Musicas_Funcoes: { musicas_funcoes_funcao_id_fkey: IdNome }[];
 }
@@ -41,7 +41,7 @@ export interface Musica {
     id: string;
     nome: string;
     tonalidade: IdTom | null;
-    tags: IdNome[];
+    categorias: IdNome[];
     versoes: {
         id: string;
         artista: IdNome;
@@ -117,9 +117,9 @@ export const MUSICA_SELECT = {
     musicas_fk_tonalidade_fkey: {
         select: { id: true, tom: true }
     },
-    Musicas_Tags: {
+    Musicas_Categorias: {
         select: {
-            musicas_tags_tag_id_fkey: {
+            musicas_categorias_categoria_id_fkey: {
                 select: { id: true, nome: true }
             }
         }

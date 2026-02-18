@@ -23,14 +23,14 @@
     { "name": "Artistas", "description": "Gerenciamento de artistas/cantores" },
     { "name": "Músicas", "description": "Gerenciamento de músicas e repertório" },
     { "name": "Músicas - Versões", "description": "Versões de músicas por artista" },
-    { "name": "Músicas - Tags", "description": "Tags associadas a músicas" },
+    { "name": "Músicas - Categorias", "description": "Categorias associadas a músicas" },
     { "name": "Músicas - Funções", "description": "Funções necessárias para músicas" },
     { "name": "Integrantes", "description": "Gerenciamento de integrantes do ministério" },
     { "name": "Integrantes - Funções", "description": "Funções dos integrantes" },
     { "name": "Eventos", "description": "Gerenciamento de eventos/cultos" },
     { "name": "Eventos - Músicas", "description": "Músicas vinculadas a eventos" },
     { "name": "Eventos - Integrantes", "description": "Integrantes escalados em eventos" },
-    { "name": "Tags", "description": "Classificações de músicas" },
+    { "name": "Categorias", "description": "Classificações de músicas" },
     { "name": "Tonalidades", "description": "Tons musicais disponíveis" },
     { "name": "Funções", "description": "Funções/instrumentos do ministério" },
     { "name": "Tipos de Eventos", "description": "Categorias de eventos" }
@@ -551,15 +551,15 @@
         }
       }
     },
-    "/musicas/{musicaId}/tags": {
+    "/musicas/{musicaId}/categorias": {
       "get": {
-        "summary": "Listar tags de uma música",
-        "description": "Retorna todas as tags associadas a uma música.",
-        "tags": ["Músicas - Tags"],
+        "summary": "Listar categorias de uma música",
+        "description": "Retorna todas as categorias associadas a uma música.",
+        "tags": ["Músicas - Categorias"],
         "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
         "responses": {
           "200": {
-            "description": "Lista de tags",
+            "description": "Lista de categorias",
             "content": {
               "application/json": {
                 "schema": {
@@ -578,9 +578,9 @@
         }
       },
       "post": {
-        "summary": "Adicionar tag a uma música",
-        "description": "Vincula uma tag existente a uma música.",
-        "tags": ["Músicas - Tags"],
+        "summary": "Adicionar categoria a uma música",
+        "description": "Vincula uma categoria existente a uma música.",
+        "tags": ["Músicas - Categorias"],
         "parameters": [{ "$ref": "#/components/parameters/MusicaIdParam" }],
         "requestBody": {
           "required": true,
@@ -588,19 +588,19 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "tag_id": { "type": "string", "format": "uuid" } },
-                "required": ["tag_id"]
+                "properties": { "categoria_id": { "type": "string", "format": "uuid" } },
+                "required": ["categoria_id"]
               },
-              "example": { "tag_id": "d4e5f6a7-4444-4000-d000-000000000002" }
+              "example": { "categoria_id": "d4e5f6a7-4444-4000-d000-000000000002" }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Tag adicionada com sucesso",
+            "description": "Categoria adicionada com sucesso",
             "content": {
               "application/json": {
-                "example": { "msg": "Tag adicionada com sucesso" }
+                "example": { "msg": "Categoria adicionada com sucesso" }
               }
             }
           },
@@ -610,27 +610,27 @@
         }
       }
     },
-    "/musicas/{musicaId}/tags/{tagId}": {
+    "/musicas/{musicaId}/categorias/{categoriaId}": {
       "delete": {
-        "summary": "Remover tag de uma música",
-        "description": "Remove a associação de uma tag com uma música.",
-        "tags": ["Músicas - Tags"],
+        "summary": "Remover categoria de uma música",
+        "description": "Remove a associação de uma categoria com uma música.",
+        "tags": ["Músicas - Categorias"],
         "parameters": [
           { "$ref": "#/components/parameters/MusicaIdParam" },
           {
-            "name": "tagId",
+            "name": "categoriaId",
             "in": "path",
             "required": true,
-            "description": "ID da tag",
+            "description": "ID da categoria",
             "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
           "200": {
-            "description": "Tag removida com sucesso",
+            "description": "Categoria removida com sucesso",
             "content": {
               "application/json": {
-                "example": { "msg": "Tag removida com sucesso" }
+                "example": { "msg": "Categoria removida com sucesso" }
               }
             }
           },
@@ -1374,14 +1374,14 @@
         }
       }
     },
-    "/tags": {
+    "/categorias": {
       "get": {
-        "summary": "Listar todas as tags",
-        "description": "Retorna a lista completa de tags para classificação de músicas.",
-        "tags": ["Tags"],
+        "summary": "Listar todas as categorias",
+        "description": "Retorna a lista completa de categorias para classificação de músicas.",
+        "tags": ["Categorias"],
         "responses": {
           "200": {
-            "description": "Lista de tags",
+            "description": "Lista de categorias",
             "content": {
               "application/json": {
                 "schema": {
@@ -1402,9 +1402,9 @@
         }
       },
       "post": {
-        "summary": "Cadastrar tag",
-        "description": "Cria uma nova tag. O nome deve ser único.",
-        "tags": ["Tags"],
+        "summary": "Cadastrar categoria",
+        "description": "Cria uma nova categoria. O nome deve ser único.",
+        "tags": ["Categorias"],
         "requestBody": {
           "required": true,
           "content": {
@@ -1416,13 +1416,13 @@
         },
         "responses": {
           "201": {
-            "description": "Tag criada com sucesso",
+            "description": "Categoria criada com sucesso",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/NomeResponse" },
                 "example": {
-                  "msg": "Tag criada com sucesso",
-                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000006", "nome": "Natal" }
+                  "msg": "Categoria criada com sucesso",
+                  "categoria": { "id": "d4e5f6a7-4444-4000-d000-000000000006", "nome": "Natal" }
                 }
               }
             }
@@ -1433,14 +1433,14 @@
         }
       }
     },
-    "/tags/{id}": {
+    "/categorias/{id}": {
       "get": {
-        "summary": "Buscar tag por ID",
-        "tags": ["Tags"],
+        "summary": "Buscar categoria por ID",
+        "tags": ["Categorias"],
         "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
         "responses": {
           "200": {
-            "description": "Tag encontrada",
+            "description": "Categoria encontrada",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/IdNome" },
@@ -1453,8 +1453,8 @@
         }
       },
       "put": {
-        "summary": "Atualizar tag",
-        "tags": ["Tags"],
+        "summary": "Atualizar categoria",
+        "tags": ["Categorias"],
         "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
         "requestBody": {
           "required": true,
@@ -1467,13 +1467,13 @@
         },
         "responses": {
           "200": {
-            "description": "Tag atualizada com sucesso",
+            "description": "Categoria atualizada com sucesso",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/NomeResponse" },
                 "example": {
-                  "msg": "Tag editada com sucesso",
-                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração e Louvor" }
+                  "msg": "Categoria editada com sucesso",
+                  "categoria": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração e Louvor" }
                 }
               }
             }
@@ -1485,17 +1485,17 @@
         }
       },
       "delete": {
-        "summary": "Remover tag",
-        "tags": ["Tags"],
+        "summary": "Remover categoria",
+        "tags": ["Categorias"],
         "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
         "responses": {
           "200": {
-            "description": "Tag removida com sucesso",
+            "description": "Categoria removida com sucesso",
             "content": {
               "application/json": {
                 "example": {
-                  "msg": "Tag deletada com sucesso",
-                  "tag": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
+                  "msg": "Categoria deletada com sucesso",
+                  "categoria": { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
                 }
               }
             }
@@ -2228,7 +2228,7 @@
         "type": "object",
         "properties": {
           "msg": { "type": "string" },
-          "tag": { "$ref": "#/components/schemas/IdNome" },
+          "categoria": { "$ref": "#/components/schemas/IdNome" },
           "funcao": { "$ref": "#/components/schemas/IdNome" },
           "tipoEvento": { "$ref": "#/components/schemas/IdNome" }
         }

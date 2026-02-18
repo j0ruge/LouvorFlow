@@ -87,13 +87,68 @@ test.describe("Navegação", () => {
       page.getByRole("heading", { name: "Configurações" }),
     ).toBeVisible();
 
-    const tabs = ["Artistas", "Tags", "Funções", "Tonalidades", "Tipos de Evento"];
+    const tabs = ["Artistas", "Categorias", "Funções", "Tonalidades", "Tipos de Evento"];
     for (const tabName of tabs) {
       await page.getByRole("tab", { name: tabName }).click();
       await expect(page.getByRole("tab", { name: tabName })).toHaveAttribute(
         "data-state",
         "active",
       );
+    }
+  });
+});
+
+/**
+ * Testes E2E de navegação mobile.
+ *
+ * Verifica que o menu lateral (Sheet) fecha automaticamente
+ * após o usuário clicar em um item de navegação no viewport mobile.
+ */
+test.describe("Navegação Mobile", () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  /** Verifica que o menu lateral fecha ao clicar em um link de navegação. */
+  test("deve fechar o menu ao clicar em um link", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Toggle Sidebar" }).click();
+    await expect(
+      page.locator("[data-state='open'][data-sidebar='sidebar']"),
+    ).toBeVisible();
+
+    await page.getByRole("link", { name: "Escalas" }).click();
+    await expect(
+      page.locator("[data-state='open'][data-sidebar='sidebar']"),
+    ).not.toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Escalas" }),
+    ).toBeVisible();
+  });
+
+  /** Navega por várias rotas verificando fechamento do menu e título da página. */
+  test("deve navegar para múltiplas páginas em sequência", async ({ page }) => {
+    await page.goto("/");
+
+    const routes = [
+      { name: "Músicas", heading: "Músicas" },
+      { name: "Integrantes", heading: "Integrantes" },
+      { name: "Configurações", heading: "Configurações" },
+    ];
+
+    for (const route of routes) {
+      await page.getByRole("button", { name: "Toggle Sidebar" }).click();
+      await expect(
+        page.locator("[data-state='open'][data-sidebar='sidebar']"),
+      ).toBeVisible();
+
+      await page.getByRole("link", { name: route.name }).click();
+      await expect(
+        page.locator("[data-state='open'][data-sidebar='sidebar']"),
+      ).not.toBeVisible();
+      await expect(
+        page.getByRole("heading", { level: 1, name: route.heading }),
+      ).toBeVisible();
     }
   });
 });

@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
-import tagsRepository from './tags.repository.js';
+import categoriasRepository from './categorias.repository.js';
 import { MUSICA_SELECT } from '../types/index.js';
 
 class MusicasRepository {
@@ -135,37 +135,37 @@ class MusicasRepository {
         return prisma.artistas.findUnique({ where: { id: artistaId } });
     }
 
-    // --- Tags (musicas_tags) ---
+    // --- Categorias (musicas_categorias) ---
 
-    async findTags(musicaId: string) {
-        return prisma.musicas_Tags.findMany({
+    async findCategorias(musicaId: string) {
+        return prisma.musicas_Categorias.findMany({
             where: { musica_id: musicaId },
             select: {
-                musicas_tags_tag_id_fkey: {
+                musicas_categorias_categoria_id_fkey: {
                     select: { id: true, nome: true }
                 }
             }
         });
     }
 
-    async createTag(musicaId: string, tagId: string) {
-        return prisma.musicas_Tags.create({
-            data: { musica_id: musicaId, tag_id: tagId }
+    async createCategoria(musicaId: string, categoriaId: string) {
+        return prisma.musicas_Categorias.create({
+            data: { musica_id: musicaId, categoria_id: categoriaId }
         });
     }
 
-    async deleteTag(id: string) {
-        return prisma.musicas_Tags.delete({ where: { id } });
+    async deleteCategoria(id: string) {
+        return prisma.musicas_Categorias.delete({ where: { id } });
     }
 
-    async findTagDuplicate(musicaId: string, tagId: string) {
-        return prisma.musicas_Tags.findUnique({
-            where: { musica_id_tag_id: { musica_id: musicaId, tag_id: tagId } }
+    async findCategoriaDuplicate(musicaId: string, categoriaId: string) {
+        return prisma.musicas_Categorias.findUnique({
+            where: { musica_id_categoria_id: { musica_id: musicaId, categoria_id: categoriaId } }
         });
     }
 
-    async findTagById(tagId: string) {
-        return tagsRepository.findById(tagId);
+    async findCategoriaById(categoriaId: string) {
+        return categoriasRepository.findById(categoriaId);
     }
 
     // --- Funcoes (musicas_funcoes) ---

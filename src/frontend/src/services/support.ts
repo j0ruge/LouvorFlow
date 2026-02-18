@@ -12,8 +12,8 @@ import type {
   IdNome,
   Tonalidade,
   CrudResponse,
-  CreateTagForm,
-  UpdateTagForm,
+  CreateCategoriaForm,
+  UpdateCategoriaForm,
   CreateFuncaoForm,
   UpdateFuncaoForm,
   CreateTonalidade,
@@ -53,25 +53,25 @@ export async function getTiposEventos(): Promise<IdNome[]> {
 }
 
 /**
- * Busca todas as tags disponíveis.
+ * Busca todas as categorias disponíveis.
  *
- * @returns Lista de tags parseadas pelo schema Zod.
+ * @returns Lista de categorias parseadas pelo schema Zod.
  */
-export async function getTags(): Promise<IdNome[]> {
-  const data = await apiFetch<unknown[]>("/tags");
+export async function getCategorias(): Promise<IdNome[]> {
+  const data = await apiFetch<unknown[]>("/categorias");
   return z.array(IdNomeSchema).parse(data);
 }
 
-/* ========== Tags CRUD ========== */
+/* ========== Categorias CRUD ========== */
 
 /**
- * Cria uma nova tag.
+ * Cria uma nova categoria.
  *
  * @param dados - Dados do formulário de criação.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function createTag(dados: CreateTagForm): Promise<CrudResponse> {
-  const data = await apiFetch<unknown>("/tags", {
+export async function createCategoria(dados: CreateCategoriaForm): Promise<CrudResponse> {
+  const data = await apiFetch<unknown>("/categorias", {
     method: "POST",
     body: JSON.stringify(dados),
   });
@@ -79,14 +79,14 @@ export async function createTag(dados: CreateTagForm): Promise<CrudResponse> {
 }
 
 /**
- * Atualiza uma tag existente.
+ * Atualiza uma categoria existente.
  *
- * @param id - UUID da tag.
+ * @param id - UUID da categoria.
  * @param dados - Dados do formulário de edição.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function updateTag(id: string, dados: UpdateTagForm): Promise<CrudResponse> {
-  const data = await apiFetch<unknown>(`/tags/${id}`, {
+export async function updateCategoria(id: string, dados: UpdateCategoriaForm): Promise<CrudResponse> {
+  const data = await apiFetch<unknown>(`/categorias/${id}`, {
     method: "PUT",
     body: JSON.stringify(dados),
   });
@@ -94,13 +94,13 @@ export async function updateTag(id: string, dados: UpdateTagForm): Promise<CrudR
 }
 
 /**
- * Exclui uma tag pelo id.
+ * Exclui uma categoria pelo id.
  *
- * @param id - UUID da tag a ser removida.
+ * @param id - UUID da categoria a ser removida.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteTag(id: string): Promise<CrudResponse> {
-  const data = await apiFetch<unknown>(`/tags/${id}`, { method: "DELETE" });
+export async function deleteCategoria(id: string): Promise<CrudResponse> {
+  const data = await apiFetch<unknown>(`/categorias/${id}`, { method: "DELETE" });
   return CrudResponseSchema.parse(data);
 }
 

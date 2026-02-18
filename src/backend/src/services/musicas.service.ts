@@ -7,14 +7,14 @@ import type { MusicaRaw, Musica } from '../types/index.js';
  * Converts a raw database `MusicaRaw` record into a normalized `Musica` object.
  *
  * @param m - Raw musica record including related fields and join arrays
- * @returns The normalized `Musica` with `id`, `nome`, `tonalidade`, `tags` (tag id array), `versoes` (array of versions with `id`, `artista`, `bpm`, `cifras`, `lyrics`, `link_versao`), and `funcoes` (funcao id array)
+ * @returns The normalized `Musica` with `id`, `nome`, `tonalidade`, `categorias` (categoria id array), `versoes` (array of versions with `id`, `artista`, `bpm`, `cifras`, `lyrics`, `link_versao`), and `funcoes` (funcao id array)
  */
 function formatMusica(m: MusicaRaw): Musica {
     return {
         id: m.id,
         nome: m.nome,
         tonalidade: m.musicas_fk_tonalidade_fkey,
-        tags: m.Musicas_Tags.map(t => t.musicas_tags_tag_id_fkey),
+        categorias: m.Musicas_Categorias.map(t => t.musicas_categorias_categoria_id_fkey),
         versoes: m.Artistas_Musicas.map(v => ({
             id: v.id,
             artista: v.artistas_musicas_artista_id_fkey,
@@ -191,33 +191,33 @@ class MusicasService {
         await musicasRepository.deleteVersao(versaoId);
     }
 
-    // --- Tags ---
+    // --- Categorias ---
 
-    async listTags(musicaId: string) {
-        const tags = await musicasRepository.findTags(musicaId);
-        return tags.map(t => t.musicas_tags_tag_id_fkey);
+    async listCategorias(musicaId: string) {
+        const categorias = await musicasRepository.findCategorias(musicaId);
+        return categorias.map(t => t.musicas_categorias_categoria_id_fkey);
     }
 
-    async addTag(musicaId: string, tag_id?: string) {
-        if (!tag_id) throw new AppError("ID da tag é obrigatório", 400);
+    async addCategoria(musicaId: string, categoria_id?: string) {
+        if (!categoria_id) throw new AppError("ID da categoria é obrigatório", 400);
 
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
         if (!musicaExiste) throw new AppError("Música não encontrada", 404);
 
-        const tagExiste = await musicasRepository.findTagById(tag_id);
-        if (!tagExiste) throw new AppError("Tag não encontrada", 404);
+        const categoriaExiste = await musicasRepository.findCategoriaById(categoria_id);
+        if (!categoriaExiste) throw new AppError("Categoria não encontrada", 404);
 
-        const existente = await musicasRepository.findTagDuplicate(musicaId, tag_id);
+        const existente = await musicasRepository.findCategoriaDuplicate(musicaId, categoria_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await musicasRepository.createTag(musicaId, tag_id);
+        await musicasRepository.createCategoria(musicaId, categoria_id);
     }
 
-    async removeTag(musicaId: string, tagId: string) {
-        const registro = await musicasRepository.findTagDuplicate(musicaId, tagId);
+    async removeCategoria(musicaId: string, categoriaId: string) {
+        const registro = await musicasRepository.findCategoriaDuplicate(musicaId, categoriaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);
 
-        await musicasRepository.deleteTag(registro.id);
+        await musicasRepository.deleteCategoria(registro.id);
     }
 
     // --- Funcoes ---

@@ -14,7 +14,7 @@ test.describe("Configurações", () => {
       page.getByRole("heading", { name: "Configurações" }),
     ).toBeVisible();
 
-    const tabs = ["Artistas", "Tags", "Funções", "Tonalidades", "Tipos de Evento"];
+    const tabs = ["Artistas", "Categorias", "Funções", "Tonalidades", "Tipos de Evento"];
     for (const tabName of tabs) {
       await expect(page.getByRole("tab", { name: tabName })).toBeVisible();
     }
@@ -23,7 +23,7 @@ test.describe("Configurações", () => {
   test("deve alternar entre abas sem recarregar", async ({ page }) => {
     await page.goto("/configuracoes");
 
-    const tabs = ["Tags", "Funções", "Tonalidades", "Tipos de Evento", "Artistas"];
+    const tabs = ["Categorias", "Funções", "Tonalidades", "Tipos de Evento", "Artistas"];
     for (const tabName of tabs) {
       await page.getByRole("tab", { name: tabName }).click();
       await expect(page.getByRole("tab", { name: tabName })).toHaveAttribute(

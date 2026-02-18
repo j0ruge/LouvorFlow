@@ -2,7 +2,7 @@
  * Hooks React Query para o módulo de músicas.
  *
  * Encapsula listagem paginada, busca individual, CRUD completo,
- * e gerenciamento de versões, tags e funções com invalidação
+ * e gerenciamento de versões, categorias e funções com invalidação
  * de cache e feedback via toast.
  */
 
@@ -17,8 +17,8 @@ import {
   addVersao,
   updateVersao,
   removeVersao,
-  addTagMusica,
-  removeTagMusica,
+  addCategoriaMusica,
+  removeCategoriaMusica,
   addFuncaoMusica,
   removeFuncaoMusica,
 } from "@/services/musicas";
@@ -187,19 +187,19 @@ export function useRemoveVersao(musicaId: string) {
   });
 }
 
-/* ========== Tags ========== */
+/* ========== Categorias ========== */
 
 /**
- * Hook para adicionar uma tag a uma música via mutation.
+ * Hook para adicionar uma categoria a uma música via mutation.
  *
  * @param musicaId - UUID da música para invalidação de cache.
- * @returns Resultado do useMutation para adição de tag.
+ * @returns Resultado do useMutation para adição de categoria.
  */
-export function useAddTagMusica(musicaId: string) {
+export function useAddCategoriaMusica(musicaId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (tagId: string) => addTagMusica(musicaId, tagId),
+    mutationFn: (categoriaId: string) => addCategoriaMusica(musicaId, categoriaId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["musica", musicaId] });
       toast.success(data.msg);
@@ -211,16 +211,16 @@ export function useAddTagMusica(musicaId: string) {
 }
 
 /**
- * Hook para remover uma tag de uma música via mutation.
+ * Hook para remover uma categoria de uma música via mutation.
  *
  * @param musicaId - UUID da música para invalidação de cache.
- * @returns Resultado do useMutation para remoção de tag.
+ * @returns Resultado do useMutation para remoção de categoria.
  */
-export function useRemoveTagMusica(musicaId: string) {
+export function useRemoveCategoriaMusica(musicaId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (tagId: string) => removeTagMusica(musicaId, tagId),
+    mutationFn: (categoriaId: string) => removeCategoriaMusica(musicaId, categoriaId),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["musica", musicaId] });
       toast.success(data.msg);

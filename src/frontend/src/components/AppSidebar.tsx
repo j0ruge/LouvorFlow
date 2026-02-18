@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Music, Calendar, Users, BarChart3, History, Home, Settings } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -34,10 +35,20 @@ const menuItems = [
  * @returns {JSX.Element} Elemento React com a sidebar de navegação.
  */
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+
+  /**
+   * Fecha o menu mobile (Sheet) automaticamente quando a rota muda.
+   * Evita que o overlay permaneça aberto após o usuário clicar em um item de navegação.
+   */
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [currentPath, isMobile, setOpenMobile]);
 
   const isActive = (path: string) => currentPath === path;
 
