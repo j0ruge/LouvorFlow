@@ -173,7 +173,7 @@
     "/musicas": {
       "get": {
         "summary": "Listar músicas (paginado)",
-        "description": "Retorna a lista de músicas com paginação. Inclui tonalidade, tags, versões e funções.",
+        "description": "Retorna a lista de músicas com paginação. Inclui tonalidade, categorias, versões e funções.",
         "tags": ["Músicas"],
         "parameters": [
           {
@@ -205,7 +205,7 @@
                       "id": "b2c3d4e5-2222-4000-b000-000000000001",
                       "nome": "Rendido Estou",
                       "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" },
-                      "tags": [
+                      "categorias": [
                         { "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }
                       ],
                       "versoes": [
@@ -227,7 +227,7 @@
                       "id": "b2c3d4e5-2222-4000-b000-000000000002",
                       "nome": "Ninguém Explica Deus",
                       "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000004", "tom": "D" },
-                      "tags": [
+                      "categorias": [
                         { "id": "d4e5f6a7-4444-4000-d000-000000000002", "nome": "Louvor" },
                         { "id": "d4e5f6a7-4444-4000-d000-000000000003", "nome": "Congregacional" }
                       ],
@@ -301,7 +301,7 @@
     "/musicas/{id}": {
       "get": {
         "summary": "Buscar música por ID",
-        "description": "Retorna os dados completos de uma música, incluindo tonalidade, tags, versões e funções.",
+        "description": "Retorna os dados completos de uma música, incluindo tonalidade, categorias, versões e funções.",
         "tags": ["Músicas"],
         "parameters": [{ "$ref": "#/components/parameters/IdParam" }],
         "responses": {
@@ -314,7 +314,7 @@
                   "id": "b2c3d4e5-2222-4000-b000-000000000001",
                   "nome": "Rendido Estou",
                   "tonalidade": { "id": "c3d4e5f6-3333-4000-c000-000000000007", "tom": "G" },
-                  "tags": [{ "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }],
+                  "categorias": [{ "id": "d4e5f6a7-4444-4000-d000-000000000001", "nome": "Adoração" }],
                   "versoes": [
                     {
                       "id": "e5f6a7b8-5555-4000-e000-000000000001",
@@ -1995,7 +1995,7 @@
             "nullable": true,
             "allOf": [{ "$ref": "#/components/schemas/Tonalidade" }]
           },
-          "tags": {
+          "categorias": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/IdNome" }
           },
@@ -2008,7 +2008,7 @@
             "items": { "$ref": "#/components/schemas/IdNome" }
           }
         },
-        "required": ["id", "nome", "tags", "versoes", "funcoes"]
+        "required": ["id", "nome", "categorias", "versoes", "funcoes"]
       },
       "MusicaInput": {
         "type": "object",

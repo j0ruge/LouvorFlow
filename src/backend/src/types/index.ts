@@ -28,6 +28,16 @@ export interface VersaoRaw {
     artistas_musicas_artista_id_fkey: IdNome;
 }
 
+/**
+ * Representação bruta de uma música retornada pelo Prisma (antes da transformação).
+ *
+ * @property id - Identificador único da música (UUID)
+ * @property nome - Nome da música
+ * @property musicas_fk_tonalidade_fkey - Tonalidade associada (id e tom) ou `null` quando não definida
+ * @property Musicas_Categorias - Categorias vinculadas à música via tabela intermediária
+ * @property Artistas_Musicas - Versões da música por artista (dados brutos)
+ * @property Musicas_Funcoes - Funções/instrumentos necessários para a música
+ */
 export interface MusicaRaw {
     id: string;
     nome: string;
@@ -37,6 +47,16 @@ export interface MusicaRaw {
     Musicas_Funcoes: { musicas_funcoes_funcao_id_fkey: IdNome }[];
 }
 
+/**
+ * Representação transformada de uma música para consumo pela API.
+ *
+ * @property id - Identificador único da música (UUID)
+ * @property nome - Nome da música
+ * @property tonalidade - Tonalidade associada (id e tom) ou `null` quando não definida
+ * @property categorias - Lista de categorias da música (cada uma com id e nome)
+ * @property versoes - Versões da música, cada uma vinculada a um artista com metadados opcionais
+ * @property funcoes - Funções/instrumentos necessários para execução da música
+ */
 export interface Musica {
     id: string;
     nome: string;

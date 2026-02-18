@@ -4,10 +4,10 @@ import tonalidadesRepository from '../repositories/tonalidades.repository.js';
 import type { MusicaRaw, Musica } from '../types/index.js';
 
 /**
- * Converts a raw database `MusicaRaw` record into a normalized `Musica` object.
+ * Converte um registro bruto `MusicaRaw` do banco em um objeto `Musica` normalizado.
  *
- * @param m - Raw musica record including related fields and join arrays
- * @returns The normalized `Musica` with `id`, `nome`, `tonalidade`, `categorias` (categoria id array), `versoes` (array of versions with `id`, `artista`, `bpm`, `cifras`, `lyrics`, `link_versao`), and `funcoes` (funcao id array)
+ * @param m - Registro bruto da música incluindo campos relacionados e arrays de junção
+ * @returns Objeto `Musica` normalizado com `id`, `nome`, `tonalidade`, `categorias`, `versoes` e `funcoes`
  */
 function formatMusica(m: MusicaRaw): Musica {
     return {
@@ -193,11 +193,24 @@ class MusicasService {
 
     // --- Categorias ---
 
+    /**
+     * Lista todas as categorias vinculadas a uma música.
+     *
+     * @param musicaId - ID da música
+     * @returns Array de categorias (cada uma com `id` e `nome`)
+     */
     async listCategorias(musicaId: string) {
         const categorias = await musicasRepository.findCategorias(musicaId);
         return categorias.map(t => t.musicas_categorias_categoria_id_fkey);
     }
 
+    /**
+     * Vincula uma categoria a uma música, validando existência e duplicidade.
+     *
+     * @param musicaId - ID da música
+     * @param categoria_id - ID da categoria a vincular
+     * @throws {AppError} 400 se `categoria_id` não informado, 404 se música ou categoria não existir, 409 se duplicado
+     */
     async addCategoria(musicaId: string, categoria_id?: string) {
         if (!categoria_id) throw new AppError("ID da categoria é obrigatório", 400);
 
@@ -213,6 +226,13 @@ class MusicasService {
         await musicasRepository.createCategoria(musicaId, categoria_id);
     }
 
+    /**
+     * Remove o vínculo entre uma música e uma categoria.
+     *
+     * @param musicaId - ID da música
+     * @param categoriaId - ID da categoria a desvincular
+     * @throws {AppError} 404 se o vínculo não existir
+     */
     async removeCategoria(musicaId: string, categoriaId: string) {
         const registro = await musicasRepository.findCategoriaDuplicate(musicaId, categoriaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);

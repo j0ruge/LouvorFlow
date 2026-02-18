@@ -137,6 +137,12 @@ class MusicasRepository {
 
     // --- Categorias (musicas_categorias) ---
 
+    /**
+     * Busca todas as categorias vinculadas a uma música.
+     *
+     * @param musicaId - ID da música
+     * @returns Lista de registros contendo a categoria (id e nome) de cada vínculo
+     */
     async findCategorias(musicaId: string) {
         return prisma.musicas_Categorias.findMany({
             where: { musica_id: musicaId },
@@ -148,22 +154,48 @@ class MusicasRepository {
         });
     }
 
+    /**
+     * Cria um vínculo entre uma música e uma categoria.
+     *
+     * @param musicaId - ID da música
+     * @param categoriaId - ID da categoria a vincular
+     * @returns Registro criado na tabela intermediária
+     */
     async createCategoria(musicaId: string, categoriaId: string) {
         return prisma.musicas_Categorias.create({
             data: { musica_id: musicaId, categoria_id: categoriaId }
         });
     }
 
+    /**
+     * Remove um vínculo música–categoria pelo ID do registro intermediário.
+     *
+     * @param id - ID do registro na tabela `musicas_categorias`
+     * @returns Registro removido
+     */
     async deleteCategoria(id: string) {
         return prisma.musicas_Categorias.delete({ where: { id } });
     }
 
+    /**
+     * Verifica se já existe um vínculo entre a música e a categoria (chave composta).
+     *
+     * @param musicaId - ID da música
+     * @param categoriaId - ID da categoria
+     * @returns Registro existente ou `null` se não houver duplicata
+     */
     async findCategoriaDuplicate(musicaId: string, categoriaId: string) {
         return prisma.musicas_Categorias.findUnique({
             where: { musica_id_categoria_id: { musica_id: musicaId, categoria_id: categoriaId } }
         });
     }
 
+    /**
+     * Busca uma categoria pelo ID, delegando ao repositório de categorias.
+     *
+     * @param categoriaId - ID da categoria
+     * @returns Categoria encontrada ou `null` se não existir
+     */
     async findCategoriaById(categoriaId: string) {
         return categoriasRepository.findById(categoriaId);
     }
