@@ -2,7 +2,7 @@
  * Hooks React Query para dados de suporte (lookup lists) e CRUD de entidades auxiliares.
  *
  * Encapsula as chamadas de serviço para tonalidades, funções, tipos
- * de eventos e tags com caching automático via React Query, além de
+ * de eventos e categorias com caching automático via React Query, além de
  * mutations CRUD com invalidação de cache e feedback via toast.
  */
 
@@ -12,10 +12,10 @@ import {
   getTonalidades,
   getFuncoes,
   getTiposEventos,
-  getTags,
-  createTag,
-  updateTag,
-  deleteTag,
+  getCategorias,
+  createCategoria,
+  updateCategoria,
+  deleteCategoria,
   createFuncao,
   updateFuncao,
   deleteFuncao,
@@ -27,8 +27,8 @@ import {
   deleteTipoEvento,
 } from "@/services/support";
 import type {
-  CreateTagForm,
-  UpdateTagForm,
+  CreateCategoriaForm,
+  UpdateCategoriaForm,
   CreateFuncaoForm,
   UpdateFuncaoForm,
   CreateTonalidade,
@@ -76,30 +76,30 @@ export function useTiposEventos() {
 }
 
 /**
- * Hook para buscar a lista de tags.
+ * Hook para buscar a lista de categorias.
  *
- * @returns Resultado do useQuery com a lista de tags.
+ * @returns Resultado do useQuery com a lista de categorias.
  */
-export function useTags() {
+export function useCategorias() {
   return useQuery({
-    queryKey: ["tags"],
-    queryFn: getTags,
+    queryKey: ["categorias"],
+    queryFn: getCategorias,
   });
 }
 
-/* ========== Tags Mutations ========== */
+/* ========== Categorias Mutations ========== */
 
 /**
- * Hook para criar uma nova tag via mutation.
+ * Hook para criar uma nova categoria via mutation.
  *
- * @returns Resultado do useMutation para criação de tag.
+ * @returns Resultado do useMutation para criação de categoria.
  */
-export function useCreateTag() {
+export function useCreateCategoria() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dados: CreateTagForm) => createTag(dados),
+    mutationFn: (dados: CreateCategoriaForm) => createCategoria(dados),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -109,17 +109,17 @@ export function useCreateTag() {
 }
 
 /**
- * Hook para atualizar uma tag existente via mutation.
+ * Hook para atualizar uma categoria existente via mutation.
  *
- * @returns Resultado do useMutation para atualização de tag.
+ * @returns Resultado do useMutation para atualização de categoria.
  */
-export function useUpdateTag() {
+export function useUpdateCategoria() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, dados }: { id: string; dados: UpdateTagForm }) =>
-      updateTag(id, dados),
+    mutationFn: ({ id, dados }: { id: string; dados: UpdateCategoriaForm }) =>
+      updateCategoria(id, dados),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -129,16 +129,16 @@ export function useUpdateTag() {
 }
 
 /**
- * Hook para excluir uma tag via mutation.
+ * Hook para excluir uma categoria via mutation.
  *
- * @returns Resultado do useMutation para exclusão de tag.
+ * @returns Resultado do useMutation para exclusão de categoria.
  */
-export function useDeleteTag() {
+export function useDeleteCategoria() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteTag(id),
+    mutationFn: (id: string) => deleteCategoria(id),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: ["categorias"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {

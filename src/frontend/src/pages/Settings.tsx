@@ -2,7 +2,7 @@
  * Página de configurações do sistema.
  *
  * Renderizada na rota `/configuracoes`. Exibe abas horizontais para gerenciar
- * entidades auxiliares: Artistas, Tags, Funções, Tonalidades e Tipos de Evento.
+ * entidades auxiliares: Artistas, Categorias, Funções, Tonalidades e Tipos de Evento.
  * Cada aba renderiza um `ConfigCrudSection` com hooks CRUD específicos.
  */
 
@@ -17,10 +17,10 @@ import {
   useDeleteArtista,
 } from "@/hooks/use-artistas";
 import {
-  useTags,
-  useCreateTag,
-  useUpdateTag,
-  useDeleteTag,
+  useCategorias,
+  useCreateCategoria,
+  useUpdateCategoria,
+  useDeleteCategoria,
   useFuncoes,
   useCreateFuncao,
   useUpdateFuncao,
@@ -64,10 +64,10 @@ const Settings = () => {
   const updateArtista = useUpdateArtista();
   const deleteArtista = useDeleteArtista();
 
-  const tags = useTags();
-  const createTag = useCreateTag();
-  const updateTag = useUpdateTag();
-  const deleteTag = useDeleteTag();
+  const categorias = useCategorias();
+  const createCategoria = useCreateCategoria();
+  const updateCategoria = useUpdateCategoria();
+  const deleteCategoria = useDeleteCategoria();
 
   const funcoes = useFuncoes();
   const createFuncao = useCreateFuncao();
@@ -100,7 +100,7 @@ const Settings = () => {
           <CardHeader className="pb-0">
             <TabsList ref={tabsListRef} className="flex w-full justify-start overflow-x-auto scrollbar-none md:grid md:grid-cols-5">
               <TabsTrigger value="artistas" className="shrink-0">Artistas</TabsTrigger>
-              <TabsTrigger value="tags" className="shrink-0">Tags</TabsTrigger>
+              <TabsTrigger value="categorias" className="shrink-0">Categorias</TabsTrigger>
               <TabsTrigger value="funcoes" className="shrink-0">Funções</TabsTrigger>
               <TabsTrigger value="tonalidades" className="shrink-0">Tonalidades</TabsTrigger>
               <TabsTrigger value="tipos-eventos" className="shrink-0">Tipos de Evento</TabsTrigger>
@@ -132,27 +132,27 @@ const Settings = () => {
                 />
               </TabsContent>
 
-              <TabsContent value="tags">
+              <TabsContent value="categorias">
                 <ConfigCrudSection<IdNome>
                   config={{
-                    label: "Tag",
+                    label: "Categoria",
                     getName: (item) => item.nome,
                     getId: (item) => item.id,
                   }}
-                  items={tags.data}
-                  isLoading={tags.isLoading}
+                  items={categorias.data}
+                  isLoading={categorias.isLoading}
                   onCreate={async (name) => {
-                    await createTag.mutateAsync({ nome: name });
+                    await createCategoria.mutateAsync({ nome: name });
                   }}
                   onUpdate={async (id, name) => {
-                    await updateTag.mutateAsync({ id, dados: { nome: name } });
+                    await updateCategoria.mutateAsync({ id, dados: { nome: name } });
                   }}
                   onDelete={async (id) => {
-                    await deleteTag.mutateAsync(id);
+                    await deleteCategoria.mutateAsync(id);
                   }}
-                  isCreating={createTag.isPending}
-                  isUpdating={updateTag.isPending}
-                  isDeleting={deleteTag.isPending}
+                  isCreating={createCategoria.isPending}
+                  isUpdating={updateCategoria.isPending}
+                  isDeleting={deleteCategoria.isPending}
                 />
               </TabsContent>
 

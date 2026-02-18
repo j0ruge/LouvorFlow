@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { MOCK_TAGS } from './mock-data.js';
+import { MOCK_CATEGORIAS } from './mock-data.js';
 
-/** Cria fake repository para Tags com dados em memória. */
-export function createFakeTagsRepository() {
-  let data = MOCK_TAGS.map(t => ({ ...t }));
+/** Cria fake repository para Categorias com dados em memória. */
+export function createFakeCategoriasRepository() {
+  let data = MOCK_CATEGORIAS.map(t => ({ ...t }));
 
   return {
     findAll: async () => data.map(({ id, nome }) => ({ id, nome })),
@@ -12,21 +12,21 @@ export function createFakeTagsRepository() {
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
       data.find(t => t.nome === nome && t.id !== excludeId) ?? null,
     create: async (nome: string) => {
-      const tag = { id: randomUUID(), nome };
-      data.push(tag);
-      return { id: tag.id, nome: tag.nome };
+      const categoria = { id: randomUUID(), nome };
+      data.push(categoria);
+      return { id: categoria.id, nome: categoria.nome };
     },
     update: async (id: string, nome: string) => {
-      const tag = data.find(t => t.id === id);
-      if (!tag) return null;
-      tag.nome = nome;
-      return { id: tag.id, nome: tag.nome };
+      const categoria = data.find(t => t.id === id);
+      if (!categoria) return null;
+      categoria.nome = nome;
+      return { id: categoria.id, nome: categoria.nome };
     },
     delete: async (id: string) => {
       const idx = data.findIndex(t => t.id === id);
       if (idx === -1) return null;
       const [removed] = data.splice(idx, 1);
       return removed;
-    },    reset: () => { data = MOCK_TAGS.map(t => ({ ...t })); },
+    },    reset: () => { data = MOCK_CATEGORIAS.map(t => ({ ...t })); },
   };
 }

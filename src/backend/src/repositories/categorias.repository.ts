@@ -1,48 +1,48 @@
-import type { Tags } from '@prisma/client';
+import type { Categorias } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 
-type TagSummary = Pick<Tags, 'id' | 'nome'>;
+type CategoriaSummary = Pick<Categorias, 'id' | 'nome'>;
 
-class TagsRepository {
-    async findAll(): Promise<TagSummary[]> {
-        return prisma.tags.findMany({
+class CategoriasRepository {
+    async findAll(): Promise<CategoriaSummary[]> {
+        return prisma.categorias.findMany({
             select: { id: true, nome: true }
         });
     }
 
-    async findById(id: string): Promise<TagSummary | null> {
-        return prisma.tags.findUnique({
+    async findById(id: string): Promise<CategoriaSummary | null> {
+        return prisma.categorias.findUnique({
             where: { id },
             select: { id: true, nome: true }
         });
     }
 
-    async findByNome(nome: string): Promise<Tags | null> {
-        return prisma.tags.findUnique({ where: { nome } });
+    async findByNome(nome: string): Promise<Categorias | null> {
+        return prisma.categorias.findUnique({ where: { nome } });
     }
 
-    async findByNomeExcludingId(nome: string, excludeId: string): Promise<Tags | null> {
-        return prisma.tags.findFirst({ where: { nome, NOT: { id: excludeId } } });
+    async findByNomeExcludingId(nome: string, excludeId: string): Promise<Categorias | null> {
+        return prisma.categorias.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
-    async create(nome: string): Promise<TagSummary> {
-        return prisma.tags.create({
+    async create(nome: string): Promise<CategoriaSummary> {
+        return prisma.categorias.create({
             data: { nome },
             select: { id: true, nome: true }
         });
     }
 
-    async update(id: string, nome: string): Promise<TagSummary> {
-        return prisma.tags.update({
+    async update(id: string, nome: string): Promise<CategoriaSummary> {
+        return prisma.categorias.update({
             where: { id },
             data: { nome },
             select: { id: true, nome: true }
         });
     }
 
-    async delete(id: string): Promise<Tags> {
-        return prisma.tags.delete({ where: { id } });
+    async delete(id: string): Promise<Categorias> {
+        return prisma.categorias.delete({ where: { id } });
     }
 }
 
-export default new TagsRepository();
+export default new CategoriasRepository();

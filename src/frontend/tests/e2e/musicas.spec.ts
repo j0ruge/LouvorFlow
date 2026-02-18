@@ -2,7 +2,7 @@
  * Testes E2E para o módulo de Músicas.
  *
  * Verifica listagem, navegação para detalhes, edição, exclusão,
- * gestão de versões/tags/funções e busca com filtragem.
+ * gestão de versões/categorias/funções e busca com filtragem.
  */
 
 import { test, expect } from "@playwright/test";

@@ -1,7 +1,7 @@
 /**
  * Testes E2E para a página de detalhe de música.
  *
- * Verifica que os selects de tags e funções requeridas ficam desabilitados
+ * Verifica que os selects de categorias e funções requeridas ficam desabilitados
  * e exibem mensagem informativa quando todos os itens já foram adicionados
  * ou quando não existem itens cadastrados no sistema.
  */
@@ -27,28 +27,28 @@ test.describe("Música Detalhe — Select desabilitado sem itens disponíveis", 
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test("deve desabilitar select de tags quando não há opções disponíveis", async ({
+  test("deve desabilitar select de categorias quando não há opções disponíveis", async ({
     page,
   }) => {
     /**
      * Quando NÃO estamos editando o nome, os comboboxes visíveis são:
-     * - índice 0: tags
+     * - índice 0: categorias
      * - índice 1: funções requeridas
      */
-    const tagSelect = page.getByRole("combobox").nth(0);
-    const addTagBtn = page
+    const categoriaSelect = page.getByRole("combobox").nth(0);
+    const addCategoriaBtn = page
       .locator("div.flex.items-center.gap-2")
-      .filter({ has: tagSelect })
+      .filter({ has: categoriaSelect })
       .getByRole("button")
       .last();
 
     const MAX_ITERATIONS = 50;
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {
-      const isDisabled = await tagSelect.isDisabled();
+      const isDisabled = await categoriaSelect.isDisabled();
       if (isDisabled) break;
 
-      await tagSelect.click();
+      await categoriaSelect.click();
 
       const options = page.getByRole("option");
       const count = await options.count();
@@ -59,15 +59,15 @@ test.describe("Música Detalhe — Select desabilitado sem itens disponíveis", 
       }
 
       await options.first().click();
-      await addTagBtn.click();
+      await addCategoriaBtn.click();
 
       /** Aguarda a mutação e atualização do React Query. */
       await page.waitForTimeout(500);
     }
 
-    await expect(tagSelect).toBeDisabled();
-    await expect(tagSelect).toContainText(
-      /Nenhuma tag cadastrada no sistema|Todas as tags já foram adicionadas/,
+    await expect(categoriaSelect).toBeDisabled();
+    await expect(categoriaSelect).toContainText(
+      /Nenhuma categoria cadastrada no sistema|Todas as categorias já foram adicionadas/,
     );
   });
 

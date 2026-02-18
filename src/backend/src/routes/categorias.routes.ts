@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import tagsController from '../controllers/tags.controller.js';
+import categoriasController from '../controllers/categorias.controller.js';
 
 const router: Router = Router();
 
-router.get('/', tagsController.index);
-router.get('/:id', tagsController.show);
-router.post('/', tagsController.create);
-router.put('/:id', tagsController.update);
-router.delete('/:id', tagsController.delete);
+router.get('/', categoriasController.index);
+router.get('/:id', categoriasController.show);
+router.post('/', categoriasController.create);
+router.put('/:id', categoriasController.update);
+router.delete('/:id', categoriasController.delete);
 
 export default router;

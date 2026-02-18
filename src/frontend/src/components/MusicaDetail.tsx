@@ -2,7 +2,7 @@
  * Componente de detalhe de música com gestão completa.
  *
  * Exibe informações básicas (nome, tonalidade) com edição inline,
- * lista de versões (add/edit/remove via VersaoForm), tags e funções
+ * lista de versões (add/edit/remove via VersaoForm), categorias e funções
  * requeridas (select + badges removíveis), e botão de exclusão
  * com diálogo de confirmação informando impacto CASCADE.
  */
@@ -39,12 +39,12 @@ import {
   useAddVersao,
   useUpdateVersao,
   useRemoveVersao,
-  useAddTagMusica,
-  useRemoveTagMusica,
+  useAddCategoriaMusica,
+  useRemoveCategoriaMusica,
   useAddFuncaoMusica,
   useRemoveFuncaoMusica,
 } from "@/hooks/use-musicas";
-import { useTonalidades, useTags, useFuncoes } from "@/hooks/use-support";
+import { useTonalidades, useCategorias, useFuncoes } from "@/hooks/use-support";
 import type { Musica, Versao, CreateVersaoForm } from "@/schemas/musica";
 import { isSafeUrl } from "@/lib/utils";
 
@@ -69,7 +69,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [versaoFormOpen, setVersaoFormOpen] = useState(false);
   const [editingVersao, setEditingVersao] = useState<Versao | null>(null);
-  const [selectedTagId, setSelectedTagId] = useState("");
+  const [selectedCategoriaId, setSelectedCategoriaId] = useState("");
   const [selectedFuncaoId, setSelectedFuncaoId] = useState("");
 
   /** Sincroniza o estado local quando a prop `musica` muda. */
@@ -86,18 +86,18 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   const addVersao = useAddVersao(musica.id);
   const updateVersao = useUpdateVersao(musica.id);
   const removeVersao = useRemoveVersao(musica.id);
-  const addTag = useAddTagMusica(musica.id);
-  const removeTag = useRemoveTagMusica(musica.id);
+  const addCategoria = useAddCategoriaMusica(musica.id);
+  const removeCategoria = useRemoveCategoriaMusica(musica.id);
   const addFuncao = useAddFuncaoMusica(musica.id);
   const removeFuncao = useRemoveFuncaoMusica(musica.id);
 
   const { data: tonalidades } = useTonalidades();
-  const { data: allTags } = useTags();
+  const { data: allCategorias } = useCategorias();
   const { data: allFuncoes } = useFuncoes();
 
-  /** Tags disponíveis para adição (excluindo já associadas). */
-  const tagsAssociadasIds = new Set(musica.tags.map((t) => t.id));
-  const tagsDisponiveis = allTags?.filter((t) => !tagsAssociadasIds.has(t.id)) ?? [];
+  /** Categorias disponíveis para adição (excluindo já associadas). */
+  const categoriasAssociadasIds = new Set(musica.categorias.map((t) => t.id));
+  const categoriasDisponiveis = allCategorias?.filter((t) => !categoriasAssociadasIds.has(t.id)) ?? [];
 
   /** Funções disponíveis para adição (excluindo já associadas). */
   const funcoesAssociadasIds = new Set(musica.funcoes.map((f) => f.id));
@@ -156,11 +156,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
     }
   }
 
-  /** Adiciona a tag selecionada. */
-  function handleAddTag() {
-    if (!selectedTagId) return;
-    addTag.mutate(selectedTagId, {
-      onSuccess: () => setSelectedTagId(""),
+  /** Adiciona a categoria selecionada. */
+  function handleAddCategoria() {
+    if (!selectedCategoriaId) return;
+    addCategoria.mutate(selectedCategoriaId, {
+      onSuccess: () => setSelectedCategoriaId(""),
     });
   }
 
@@ -338,68 +338,68 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
         </CardContent>
       </Card>
 
-      {/* Tags */}
+      {/* Categorias */}
       <Card className="shadow-soft border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Tags ({musica.tags.length})
+            Categorias ({musica.categorias.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
             <Select
-              value={selectedTagId}
-              onValueChange={setSelectedTagId}
-              disabled={tagsDisponiveis.length === 0}
+              value={selectedCategoriaId}
+              onValueChange={setSelectedCategoriaId}
+              disabled={categoriasDisponiveis.length === 0}
             >
               <SelectTrigger className="flex-1">
                 <SelectValue
                   placeholder={
-                    (allTags?.length ?? 0) === 0
-                      ? "Nenhuma tag cadastrada no sistema"
-                      : tagsDisponiveis.length === 0
-                        ? "Todas as tags já foram adicionadas"
-                        : "Selecione uma tag para adicionar"
+                    (allCategorias?.length ?? 0) === 0
+                      ? "Nenhuma categoria cadastrada no sistema"
+                      : categoriasDisponiveis.length === 0
+                        ? "Todas as categorias já foram adicionadas"
+                        : "Selecione uma categoria para adicionar"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {tagsDisponiveis.map((tag) => (
-                  <SelectItem key={tag.id} value={tag.id}>
-                    {tag.nome}
+                {categoriasDisponiveis.map((categoria) => (
+                  <SelectItem key={categoria.id} value={categoria.id}>
+                    {categoria.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Button
               size="sm"
-              onClick={handleAddTag}
+              onClick={handleAddCategoria}
               disabled={
-                !selectedTagId ||
-                addTag.isPending ||
-                tagsDisponiveis.length === 0
+                !selectedCategoriaId ||
+                addCategoria.isPending ||
+                categoriasDisponiveis.length === 0
               }
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {musica.tags.map((tag) => (
-              <Badge key={tag.id} variant="secondary" className="gap-1">
-                {tag.nome}
+            {musica.categorias.map((categoria) => (
+              <Badge key={categoria.id} variant="secondary" className="gap-1">
+                {categoria.nome}
                 <button
-                  onClick={() => removeTag.mutate(tag.id)}
-                  disabled={removeTag.isPending}
+                  onClick={() => removeCategoria.mutate(categoria.id)}
+                  disabled={removeCategoria.isPending}
                   className="ml-1 hover:text-destructive"
                 >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
             ))}
-            {musica.tags.length === 0 && (
+            {musica.categorias.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                Nenhuma tag associada.
+                Nenhuma categoria associada.
               </p>
             )}
           </div>

@@ -16,10 +16,10 @@ router.post('/:musicaId/versoes', musicasController.addVersao);
 router.put('/:musicaId/versoes/:versaoId', musicasController.updateVersao);
 router.delete('/:musicaId/versoes/:versaoId', musicasController.removeVersao);
 
-// Junction: Tags (musicas_tags)
-router.get('/:musicaId/tags', musicasController.listTags);
-router.post('/:musicaId/tags', musicasController.addTag);
-router.delete('/:musicaId/tags/:tagId', musicasController.removeTag);
+// Junction: Categorias (musicas_categorias)
+router.get('/:musicaId/categorias', musicasController.listCategorias);
+router.post('/:musicaId/categorias', musicasController.addCategoria);
+router.delete('/:musicaId/categorias/:categoriaId', musicasController.removeCategoria);
 
 // Junction: Funcoes (musicas_funcoes)
 router.get('/:musicaId/funcoes', musicasController.listFuncoes);

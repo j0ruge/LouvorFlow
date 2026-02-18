@@ -8,7 +8,7 @@ import integrantesRoutes from './routes/integrantes.routes.js';
 import musicasRoutes from './routes/musicas.routes.js';
 import tonalidadesRoutes from './routes/tonalidades.routes.js';
 import funcoesRoutes from './routes/funcoes.routes.js';
-import tagsRoutes from './routes/tags.routes.js';
+import categoriasRoutes from './routes/categorias.routes.js';
 import tiposEventosRoutes from './routes/tipos-eventos.routes.js';
 import eventosRoutes from './routes/eventos.routes.js';
 
@@ -33,7 +33,7 @@ class App {
         this.app.use('/api/musicas', musicasRoutes);
         this.app.use('/api/tonalidades', tonalidadesRoutes);
         this.app.use('/api/funcoes', funcoesRoutes);
-        this.app.use('/api/tags', tagsRoutes);
+        this.app.use('/api/categorias', categoriasRoutes);
         this.app.use('/api/tipos-eventos', tiposEventosRoutes);
         this.app.use('/api/eventos', eventosRoutes);
     }

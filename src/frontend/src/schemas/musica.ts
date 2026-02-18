@@ -32,7 +32,7 @@ export const MusicaSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
   tonalidade: TonalidadeSchema.nullable(),
-  tags: z.array(IdNomeSchema),
+  categorias: z.array(IdNomeSchema),
   versoes: z.array(VersaoSchema),
   funcoes: z.array(IdNomeSchema),
 });

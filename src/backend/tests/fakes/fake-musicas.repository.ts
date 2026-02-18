@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto';
 import {
   generatePaginationMusicas,
   MOCK_ARTISTAS_MUSICAS,
-  MOCK_MUSICAS_TAGS,
+  MOCK_MUSICAS_CATEGORIAS,
   MOCK_MUSICAS_FUNCOES,
   MOCK_TONALIDADES,
-  MOCK_TAGS,
+  MOCK_CATEGORIAS,
   MOCK_FUNCOES,
   MOCK_ARTISTAS,
 } from './mock-data.js';
@@ -17,7 +17,7 @@ import {
 export function createFakeMusicasRepository() {
   let musicasData = generatePaginationMusicas();
   let versoesData = MOCK_ARTISTAS_MUSICAS.map(v => ({ ...v }));
-  let tagsData = MOCK_MUSICAS_TAGS.map(t => ({ ...t }));
+  let categoriasData = MOCK_MUSICAS_CATEGORIAS.map(t => ({ ...t }));
   let funcoesData = MOCK_MUSICAS_FUNCOES.map(f => ({ ...f }));
 
   const getTonalidade = (fk_tonalidade: string) => {
@@ -29,10 +29,10 @@ export function createFakeMusicasRepository() {
     id: musica.id,
     nome: musica.nome,
     musicas_fk_tonalidade_fkey: getTonalidade(musica.fk_tonalidade),
-    Musicas_Tags: tagsData
+    Musicas_Categorias: categoriasData
       .filter(t => t.musica_id === musica.id)
       .map(t => ({
-        musicas_tags_tag_id_fkey: MOCK_TAGS.find(tag => tag.id === t.tag_id)!,
+        musicas_categorias_categoria_id_fkey: MOCK_CATEGORIAS.find(cat => cat.id === t.categoria_id)!,
       })),
     Artistas_Musicas: versoesData
       .filter(v => v.musica_id === musica.id)
@@ -169,32 +169,32 @@ export function createFakeMusicasRepository() {
     findArtistaById: async (artistaId: string) =>
       MOCK_ARTISTAS.find(a => a.id === artistaId) ?? null,
 
-    // --- Tags (musicas_tags) ---
+    // --- Categorias (musicas_categorias) ---
 
-    findTags: async (musicaId: string) =>
-      tagsData
+    findCategorias: async (musicaId: string) =>
+      categoriasData
         .filter(t => t.musica_id === musicaId)
         .map(t => ({
-          musicas_tags_tag_id_fkey: MOCK_TAGS.find(tag => tag.id === t.tag_id)!,
+          musicas_categorias_categoria_id_fkey: MOCK_CATEGORIAS.find(cat => cat.id === t.categoria_id)!,
         })),
 
-    createTag: async (musicaId: string, tagId: string) => {
-      const record = { id: randomUUID(), musica_id: musicaId, tag_id: tagId };
-      tagsData.push(record);
+    createCategoria: async (musicaId: string, categoriaId: string) => {
+      const record = { id: randomUUID(), musica_id: musicaId, categoria_id: categoriaId };
+      categoriasData.push(record);
       return record;
     },
 
-    deleteTag: async (id: string) => {
-      const idx = tagsData.findIndex(t => t.id === id);
+    deleteCategoria: async (id: string) => {
+      const idx = categoriasData.findIndex(t => t.id === id);
       if (idx === -1) return;
-      tagsData.splice(idx, 1);
+      categoriasData.splice(idx, 1);
     },
 
-    findTagDuplicate: async (musicaId: string, tagId: string) =>
-      tagsData.find(t => t.musica_id === musicaId && t.tag_id === tagId) ?? null,
+    findCategoriaDuplicate: async (musicaId: string, categoriaId: string) =>
+      categoriasData.find(t => t.musica_id === musicaId && t.categoria_id === categoriaId) ?? null,
 
-    findTagById: async (tagId: string) =>
-      MOCK_TAGS.find(t => t.id === tagId) ?? null,
+    findCategoriaById: async (categoriaId: string) =>
+      MOCK_CATEGORIAS.find(t => t.id === categoriaId) ?? null,
 
     // --- Funcoes (musicas_funcoes) ---
 
@@ -226,7 +226,7 @@ export function createFakeMusicasRepository() {
     reset: () => {
       musicasData = generatePaginationMusicas();
       versoesData = MOCK_ARTISTAS_MUSICAS.map(v => ({ ...v }));
-      tagsData = MOCK_MUSICAS_TAGS.map(t => ({ ...t }));
+      categoriasData = MOCK_MUSICAS_CATEGORIAS.map(t => ({ ...t }));
       funcoesData = MOCK_MUSICAS_FUNCOES.map(f => ({ ...f }));
     },
   };

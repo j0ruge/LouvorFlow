@@ -51,17 +51,17 @@ const NomeField = z.string().trim().min(1, "Nome é obrigatório");
 /** Validador compartilhado para campos de tom obrigatório. */
 const TomField = z.string().trim().min(1, "Tom é obrigatório");
 
-/** Schema de validação do formulário de criação de tag. */
-export const CreateTagFormSchema = z.object({ nome: NomeField });
+/** Schema de validação do formulário de criação de categoria. */
+export const CreateCategoriaFormSchema = z.object({ nome: NomeField });
 
-/** Tipo inferido dos dados do formulário de criação de tag. */
-export type CreateTagForm = z.infer<typeof CreateTagFormSchema>;
+/** Tipo inferido dos dados do formulário de criação de categoria. */
+export type CreateCategoriaForm = z.infer<typeof CreateCategoriaFormSchema>;
 
-/** Schema de validação do formulário de edição de tag. */
-export const UpdateTagFormSchema = z.object({ nome: NomeField });
+/** Schema de validação do formulário de edição de categoria. */
+export const UpdateCategoriaFormSchema = z.object({ nome: NomeField });
 
-/** Tipo inferido dos dados do formulário de edição de tag. */
-export type UpdateTagForm = z.infer<typeof UpdateTagFormSchema>;
+/** Tipo inferido dos dados do formulário de edição de categoria. */
+export type UpdateCategoriaForm = z.infer<typeof UpdateCategoriaFormSchema>;
 
 /** Schema de validação do formulário de criação de função. */
 export const CreateFuncaoFormSchema = z.object({ nome: NomeField });
