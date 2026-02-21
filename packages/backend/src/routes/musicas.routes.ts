@@ -5,8 +5,10 @@ const router: Router = Router();
 
 // Base CRUD
 router.get('/', musicasController.index);
+router.post('/complete', musicasController.createComplete);
 router.get('/:id', musicasController.show);
 router.post('/', musicasController.create);
+router.put('/:id/complete', musicasController.updateComplete);
 router.put('/:id', musicasController.update);
 router.delete('/:id', musicasController.delete);
 

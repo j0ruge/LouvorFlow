@@ -14,6 +14,8 @@ import {
   createMusica,
   updateMusica,
   deleteMusica,
+  createMusicaComplete,
+  updateMusicaComplete,
   addVersao,
   updateVersao,
   removeVersao,
@@ -22,7 +24,14 @@ import {
   addFuncaoMusica,
   removeFuncaoMusica,
 } from "@/services/musicas";
-import type { CreateMusicaForm, UpdateMusicaForm, CreateVersaoForm, UpdateVersaoForm } from "@/schemas/musica";
+import type {
+  CreateMusicaForm,
+  UpdateMusicaForm,
+  CreateMusicaCompleteForm,
+  UpdateMusicaCompleteForm,
+  CreateVersaoForm,
+  UpdateVersaoForm,
+} from "@/schemas/musica";
 
 /**
  * Hook para buscar músicas com paginação.
@@ -114,6 +123,56 @@ export function useDeleteMusica() {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["musicas"] });
       queryClient.removeQueries({ queryKey: ["musica", id] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/* ========== Complete (música + versão atômica) ========== */
+
+/**
+ * Hook para criar uma música completa (com versão opcional) via mutation.
+ *
+ * Invalida queries de músicas e relatórios, e exibe toast de sucesso/erro.
+ *
+ * @returns Resultado do useMutation para criação completa de música.
+ */
+export function useCreateMusicaComplete() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dados: CreateMusicaCompleteForm) => createMusicaComplete(dados),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["musicas"] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
+      toast.success(data.msg);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para atualizar uma música completa (com versão opcional) via mutation.
+ *
+ * Invalida queries de listagem, detalhe da música e relatórios.
+ *
+ * @returns Resultado do useMutation para atualização completa de música.
+ */
+export function useUpdateMusicaComplete() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, dados }: { id: string; dados: UpdateMusicaCompleteForm }) =>
+      updateMusicaComplete(id, dados),
+    onSuccess: (data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["musicas"] });
+      queryClient.invalidateQueries({ queryKey: ["musica", id] });
       queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },

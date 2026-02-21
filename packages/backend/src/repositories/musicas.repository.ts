@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 import categoriasRepository from './categorias.repository.js';
 import { MUSICA_SELECT } from '../types/index.js';
+import type { CreateMusicaCompleteInput, UpdateMusicaCompleteInput } from '../types/index.js';
 
 class MusicasRepository {
     async findAll(skip: number, take: number) {
@@ -64,6 +65,81 @@ class MusicasRepository {
 
     async delete(id: string) {
         return prisma.musicas.delete({ where: { id } });
+    }
+
+    /**
+     * Cria uma música e opcionalmente uma versão (artista_musicas) em transação atômica.
+     *
+     * @param data - Dados de criação completa (música + versão opcional)
+     * @returns Música criada com todos os relacionamentos (MUSICA_SELECT)
+     */
+    async createWithVersao(data: CreateMusicaCompleteInput) {
+        return prisma.$transaction(async (tx) => {
+            const musica = await tx.musicas.create({
+                data: {
+                    nome: data.nome!,
+                    fk_tonalidade: data.fk_tonalidade ?? null,
+                },
+            });
+
+            if (data.artista_id) {
+                await tx.artistas_Musicas.create({
+                    data: {
+                        artista_id: data.artista_id,
+                        musica_id: musica.id,
+                        bpm: data.bpm ?? null,
+                        cifras: data.cifras ?? null,
+                        lyrics: data.lyrics ?? null,
+                        link_versao: data.link_versao ?? null,
+                    },
+                });
+            }
+
+            return tx.musicas.findUniqueOrThrow({
+                where: { id: musica.id },
+                select: MUSICA_SELECT,
+            });
+        });
+    }
+
+    /**
+     * Atualiza uma música e opcionalmente uma versão existente em transação atômica.
+     *
+     * @param id - UUID da música a atualizar
+     * @param data - Dados de atualização completa (música + versão opcional)
+     * @returns Música atualizada com todos os relacionamentos (MUSICA_SELECT)
+     */
+    async updateWithVersao(id: string, data: UpdateMusicaCompleteInput) {
+        return prisma.$transaction(async (tx) => {
+            const updateData: Record<string, unknown> = {};
+            if (data.nome !== undefined) updateData.nome = data.nome;
+            if (data.fk_tonalidade !== undefined) updateData.fk_tonalidade = data.fk_tonalidade;
+
+            await tx.musicas.update({
+                where: { id },
+                data: updateData,
+            });
+
+            if (data.versao_id) {
+                const versaoUpdate: Record<string, unknown> = {};
+                if (data.bpm !== undefined) versaoUpdate.bpm = data.bpm;
+                if (data.cifras !== undefined) versaoUpdate.cifras = data.cifras;
+                if (data.lyrics !== undefined) versaoUpdate.lyrics = data.lyrics;
+                if (data.link_versao !== undefined) versaoUpdate.link_versao = data.link_versao;
+
+                if (Object.keys(versaoUpdate).length > 0) {
+                    await tx.artistas_Musicas.update({
+                        where: { id: data.versao_id },
+                        data: versaoUpdate,
+                    });
+                }
+            }
+
+            return tx.musicas.findUniqueOrThrow({
+                where: { id },
+                select: MUSICA_SELECT,
+            });
+        });
     }
 
     // --- Versoes (artistas_musicas) ---

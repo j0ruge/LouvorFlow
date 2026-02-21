@@ -7,11 +7,12 @@
 
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
-import { IdNomeSchema, TonalidadeSchema, CrudResponseSchema } from "@/schemas/shared";
+import { IdNomeSchema, TonalidadeSchema, CrudResponseSchema, TonalidadeCreateResponseSchema } from "@/schemas/shared";
 import type {
   IdNome,
   Tonalidade,
   CrudResponse,
+  TonalidadeCreateResponse,
   CreateCategoriaForm,
   UpdateCategoriaForm,
   CreateFuncaoForm,
@@ -152,14 +153,14 @@ export async function deleteFuncao(id: string): Promise<CrudResponse> {
  * Cria uma nova tonalidade.
  *
  * @param dados - Dados do formulário de criação.
- * @returns Resposta da API com mensagem de confirmação.
+ * @returns Resposta da API com mensagem e tonalidade criada (id + tom).
  */
-export async function createTonalidade(dados: CreateTonalidade): Promise<CrudResponse> {
+export async function createTonalidade(dados: CreateTonalidade): Promise<TonalidadeCreateResponse> {
   const data = await apiFetch<unknown>("/tonalidades", {
     method: "POST",
     body: JSON.stringify(dados),
   });
-  return CrudResponseSchema.parse(data);
+  return TonalidadeCreateResponseSchema.parse(data);
 }
 
 /**

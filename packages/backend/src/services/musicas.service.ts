@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import musicasRepository from '../repositories/musicas.repository.js';
 import tonalidadesRepository from '../repositories/tonalidades.repository.js';
-import type { MusicaRaw, Musica } from '../types/index.js';
+import type { MusicaRaw, Musica, CreateMusicaCompleteInput, UpdateMusicaCompleteInput } from '../types/index.js';
 
 /**
  * Converte um registro bruto `MusicaRaw` do banco em um objeto `Musica` normalizado.
@@ -113,6 +113,73 @@ class MusicasService {
 
         await musicasRepository.delete(id);
         return musica;
+    }
+
+    // --- Complete (música + versão atômica) ---
+
+    /**
+     * Cria uma música com versão opcional de forma atômica.
+     * Se campos de versão forem preenchidos, exige `artista_id`.
+     *
+     * @param body - Dados de criação completa
+     * @returns Música criada formatada com todos os relacionamentos
+     * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista não existir
+     */
+    async createComplete(body: CreateMusicaCompleteInput) {
+        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao } = body;
+
+        if (!nome) throw new AppError("Nome da música é obrigatório", 400);
+
+        if (fk_tonalidade) {
+            const tonalidade = await tonalidadesRepository.findById(fk_tonalidade);
+            if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
+        }
+
+        const temCamposVersao = bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined;
+
+        if ((temCamposVersao || artista_id) && !artista_id) {
+            throw new AppError("Artista é obrigatório para criar uma versão", 400);
+        }
+
+        if (artista_id) {
+            const artista = await musicasRepository.findArtistaById(artista_id);
+            if (!artista) throw new AppError("Artista não encontrado", 404);
+        }
+
+        const result = await musicasRepository.createWithVersao(body);
+        return formatMusica(result);
+    }
+
+    /**
+     * Atualiza uma música e opcionalmente sua versão de forma atômica.
+     *
+     * @param id - UUID da música
+     * @param body - Dados de atualização completa
+     * @returns Música atualizada formatada com todos os relacionamentos
+     * @throws {AppError} 400 se nome ausente; 404 se música/tonalidade/versão não existir
+     */
+    async updateComplete(id: string, body: UpdateMusicaCompleteInput) {
+        if (!id) throw new AppError("ID de música não enviado", 400);
+
+        const { nome, fk_tonalidade, versao_id } = body;
+
+        if (!nome) throw new AppError("Nome da música é obrigatório", 400);
+
+        const existente = await musicasRepository.findByIdSimple(id);
+        if (!existente) throw new AppError("A música não foi encontrada ou não existe", 404);
+
+        if (fk_tonalidade) {
+            const tonalidade = await tonalidadesRepository.findById(fk_tonalidade);
+            if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
+        }
+
+        if (versao_id) {
+            const versao = await musicasRepository.findVersaoById(versao_id);
+            if (!versao) throw new AppError("Versão não encontrada", 404);
+        }
+
+        const result = await musicasRepository.updateWithVersao(id, body);
+        return formatMusica(result);
     }
 
     // --- Versoes ---

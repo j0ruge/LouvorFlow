@@ -106,3 +106,12 @@ export const CrudResponseSchema = z.object({
 
 /** Tipo inferido da resposta genérica de CRUD. */
 export type CrudResponse = z.infer<typeof CrudResponseSchema>;
+
+/** Schema da resposta de criação de tonalidade (inclui a tonalidade criada). */
+export const TonalidadeCreateResponseSchema = z.object({
+  msg: z.string(),
+  tonalidade: TonalidadeSchema,
+});
+
+/** Tipo inferido da resposta de criação de tonalidade. */
+export type TonalidadeCreateResponse = z.infer<typeof TonalidadeCreateResponseSchema>;

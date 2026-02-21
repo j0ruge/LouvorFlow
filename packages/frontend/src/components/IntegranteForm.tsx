@@ -98,7 +98,8 @@ export function IntegranteForm({
   const addFuncao = useAddFuncaoIntegrante(integranteId ?? "");
   const removeFuncao = useRemoveFuncaoIntegrante(integranteId ?? "");
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || addFuncao.isPending;
 
   /** Funções disponíveis para adição (excluindo já atribuídas). */
   const funcoesAtribuidas = integrante?.funcoes ?? [];
@@ -135,12 +136,25 @@ export function IntegranteForm({
     [open, isEditing, integrante, form],
   );
 
-  /** Envia os dados do formulário para criação ou atualização. */
+  /**
+   * Envia os dados do formulário para criação ou atualização.
+   *
+   * No modo edição, se houver uma função selecionada no dropdown
+   * que ainda não foi adicionada, dispara `addFuncao` automaticamente
+   * junto com a atualização, evitando que o vínculo se perca ao
+   * clicar "Salvar" sem antes clicar "+".
+   */
   function onSubmit(dados: UpdateIntegranteForm) {
     if (isEditing && integranteId) {
       const payload = { ...dados };
       if (!payload.senha) {
         delete payload.senha;
+      }
+
+      if (selectedFuncaoId) {
+        addFuncao.mutate(selectedFuncaoId, {
+          onSuccess: () => setSelectedFuncaoId(""),
+        });
       }
 
       updateMutation.mutate(

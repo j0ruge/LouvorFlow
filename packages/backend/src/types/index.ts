@@ -46,6 +46,48 @@ export interface IdNome {
     nome: string;
 }
 
+/**
+ * Dados de entrada para criação completa de música (música + versão opcional).
+ *
+ * @property nome - Nome da música (obrigatório)
+ * @property fk_tonalidade - UUID da tonalidade (opcional)
+ * @property artista_id - UUID do artista para a versão (opcional)
+ * @property bpm - Batidas por minuto da versão (opcional)
+ * @property cifras - Cifras da versão (opcional)
+ * @property lyrics - Letra da versão (opcional)
+ * @property link_versao - Link externo da versão (opcional)
+ */
+export interface CreateMusicaCompleteInput {
+    nome?: string;
+    fk_tonalidade?: string;
+    artista_id?: string;
+    bpm?: number;
+    cifras?: string;
+    lyrics?: string;
+    link_versao?: string;
+}
+
+/**
+ * Dados de entrada para atualização completa de música (música + versão existente).
+ *
+ * @property nome - Nome da música (obrigatório)
+ * @property fk_tonalidade - UUID da tonalidade (opcional, `null` para remover)
+ * @property versao_id - UUID da versão a atualizar (opcional)
+ * @property bpm - Batidas por minuto da versão (opcional)
+ * @property cifras - Cifras da versão (opcional)
+ * @property lyrics - Letra da versão (opcional)
+ * @property link_versao - Link externo da versão (opcional)
+ */
+export interface UpdateMusicaCompleteInput {
+    nome?: string;
+    fk_tonalidade?: string | null;
+    versao_id?: string;
+    bpm?: number;
+    cifras?: string;
+    lyrics?: string;
+    link_versao?: string;
+}
+
 export interface IdTom {
     id: string;
     tom: string;
@@ -197,7 +239,8 @@ export const MUSICA_SELECT = {
             artistas_musicas_artista_id_fkey: {
                 select: { id: true, nome: true }
             }
-        }
+        },
+        orderBy: { created_at: 'asc' as const }
     },
     Musicas_Funcoes: {
         select: {

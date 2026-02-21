@@ -88,12 +88,12 @@ model Funcoes {
 model Musicas {
   id                         String             @id @default(uuid()) @db.Uuid
   nome                       String
-  fk_tonalidade              String             @db.Uuid
+  fk_tonalidade              String?            @db.Uuid
   created_at                 DateTime           @default(now()) @db.Timestamp(6)
   updated_at                 DateTime           @updatedAt @db.Timestamp(6)
   Artistas_Musicas           Artistas_Musicas[]
   Eventos_Musicas            Eventos_Musicas[]
-  musicas_fk_tonalidade_fkey Tonalidades        @relation(fields: [fk_tonalidade], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  musicas_fk_tonalidade_fkey Tonalidades?       @relation(fields: [fk_tonalidade], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Musicas_Funcoes            Musicas_Funcoes[]
   Musicas_Categorias         Musicas_Categorias[]
 

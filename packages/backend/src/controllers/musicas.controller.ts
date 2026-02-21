@@ -57,6 +57,40 @@ class MusicasController {
         }
     }
 
+    // --- Complete (música + versão atômica) ---
+
+    /**
+     * Cria uma música com versão opcional de forma atômica.
+     *
+     * @param req - Requisição com corpo contendo dados da música e versão opcional.
+     * @param res - Resposta HTTP com status 201 e a música criada completa.
+     */
+    async createComplete(req: Request, res: Response): Promise<void> {
+        try {
+            const musica = await musicasService.createComplete(req.body);
+            res.status(201).json({ msg: "Música criada com sucesso", musica });
+        } catch (error) {
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao criar música", codigo: 500 });
+        }
+    }
+
+    /**
+     * Atualiza uma música e opcionalmente sua versão de forma atômica.
+     *
+     * @param req - Requisição com `req.params.id` e corpo com dados de atualização.
+     * @param res - Resposta HTTP com status 200 e a música atualizada completa.
+     */
+    async updateComplete(req: Request<{ id: string }>, res: Response): Promise<void> {
+        try {
+            const musica = await musicasService.updateComplete(req.params.id, req.body);
+            res.status(200).json({ msg: "Música editada com sucesso", musica });
+        } catch (error) {
+            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
+            res.status(500).json({ erro: "Erro ao editar música", codigo: 500 });
+        }
+    }
+
     // --- Junction: Versoes ---
 
     async listVersoes(req: Request<{ musicaId: string }>, res: Response): Promise<void> {

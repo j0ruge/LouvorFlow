@@ -13,14 +13,18 @@ import {
   MusicasPaginadasSchema,
   MusicaSchema,
   MusicaCreateResponseSchema,
+  MusicaCompleteResponseSchema,
   VersaoSchema,
 } from "@/schemas/musica";
 import type {
   MusicasPaginadas,
   Musica,
   MusicaCreateResponse,
+  MusicaCompleteResponse,
   CreateMusicaForm,
   UpdateMusicaForm,
+  CreateMusicaCompleteForm,
+  UpdateMusicaCompleteForm,
   CreateVersaoForm,
   UpdateVersaoForm,
   Versao,
@@ -100,6 +104,58 @@ export async function deleteMusica(id: string): Promise<{ msg: string }> {
     method: "DELETE",
   });
   return z.object({ msg: z.string() }).parse(data);
+}
+
+/* ========== Complete (música + versão atômica) ========== */
+
+/**
+ * Limpa strings vazias de um objeto, convertendo-as em `undefined`.
+ *
+ * @param obj - Objeto com possíveis strings vazias.
+ * @returns Novo objeto com strings vazias substituídas por `undefined`.
+ */
+function cleanEmptyStrings(obj: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    cleaned[key] = value === "" ? undefined : value;
+  }
+  return cleaned;
+}
+
+/**
+ * Cria uma música com versão opcional de forma atômica.
+ *
+ * @param dados - Dados do formulário de criação completa.
+ * @returns Resposta da API com mensagem e música completa.
+ */
+export async function createMusicaComplete(
+  dados: CreateMusicaCompleteForm,
+): Promise<MusicaCompleteResponse> {
+  const payload = cleanEmptyStrings(dados as unknown as Record<string, unknown>);
+  const data = await apiFetch<unknown>("/musicas/complete", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return MusicaCompleteResponseSchema.parse(data);
+}
+
+/**
+ * Atualiza uma música e opcionalmente sua versão de forma atômica.
+ *
+ * @param id - UUID da música.
+ * @param dados - Dados do formulário de edição completa.
+ * @returns Resposta da API com mensagem e música atualizada completa.
+ */
+export async function updateMusicaComplete(
+  id: string,
+  dados: UpdateMusicaCompleteForm,
+): Promise<MusicaCompleteResponse> {
+  const payload = cleanEmptyStrings(dados as unknown as Record<string, unknown>);
+  const data = await apiFetch<unknown>(`/musicas/${id}/complete`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  return MusicaCompleteResponseSchema.parse(data);
 }
 
 /* ========== Versões ========== */
