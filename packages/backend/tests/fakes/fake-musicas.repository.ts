@@ -96,6 +96,74 @@ export function createFakeMusicasRepository() {
       musicasData.splice(idx, 1);
     },
 
+    // --- Complete (música + versão atômica) ---
+
+    /**
+     * Cria uma música e opcionalmente uma versão em transação simulada.
+     * @param data - Dados de criação completa (música + versão opcional).
+     * @returns Música criada com todos os relacionamentos (formato MUSICA_SELECT).
+     */
+    createWithVersao: async (data: {
+      nome?: string;
+      fk_tonalidade?: string;
+      artista_id?: string;
+      bpm?: number;
+      cifras?: string;
+      lyrics?: string;
+      link_versao?: string;
+    }) => {
+      const musica = { id: randomUUID(), nome: data.nome!, fk_tonalidade: data.fk_tonalidade ?? '' };
+      musicasData.push(musica);
+
+      if (data.artista_id) {
+        const versao = {
+          id: randomUUID(),
+          artista_id: data.artista_id,
+          musica_id: musica.id,
+          bpm: data.bpm ?? null,
+          cifras: data.cifras ?? null,
+          lyrics: data.lyrics ?? null,
+          link_versao: data.link_versao ?? null,
+        };
+        versoesData.push(versao);
+      }
+
+      return buildMusicaRaw(musica);
+    },
+
+    /**
+     * Atualiza uma música e opcionalmente sua versão em transação simulada.
+     * @param id - UUID da música.
+     * @param data - Dados de atualização completa (música + versão existente).
+     * @returns Música atualizada com todos os relacionamentos (formato MUSICA_SELECT).
+     */
+    updateWithVersao: async (id: string, data: {
+      nome?: string;
+      fk_tonalidade?: string | null;
+      versao_id?: string;
+      bpm?: number;
+      cifras?: string;
+      lyrics?: string;
+      link_versao?: string;
+    }) => {
+      const musica = musicasData.find(m => m.id === id);
+      if (!musica) throw new Error('Música não encontrada no fake');
+      if (data.nome !== undefined) musica.nome = data.nome;
+      if (data.fk_tonalidade !== undefined) musica.fk_tonalidade = data.fk_tonalidade ?? '';
+
+      if (data.versao_id) {
+        const versao = versoesData.find(v => v.id === data.versao_id);
+        if (versao) {
+          if (data.bpm !== undefined) versao.bpm = data.bpm ?? null;
+          if (data.cifras !== undefined) versao.cifras = data.cifras ?? null;
+          if (data.lyrics !== undefined) versao.lyrics = data.lyrics ?? null;
+          if (data.link_versao !== undefined) versao.link_versao = data.link_versao ?? null;
+        }
+      }
+
+      return buildMusicaRaw(musica);
+    },
+
     // --- Versoes (artistas_musicas) ---
 
     findVersoes: async (musicaId: string) =>

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 import categoriasRepository from './categorias.repository.js';
 import { MUSICA_SELECT } from '../types/index.js';
-import type { CreateMusicaCompleteInput, UpdateMusicaCompleteInput } from '../types/index.js';
+import type { CreateMusicaCompleteInput, UpdateMusicaCompleteInput, MusicaRaw } from '../types/index.js';
 
 class MusicasRepository {
     async findAll(skip: number, take: number) {

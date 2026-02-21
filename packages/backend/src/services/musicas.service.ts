@@ -137,7 +137,7 @@ class MusicasService {
 
         const temCamposVersao = bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined;
 
-        if ((temCamposVersao || artista_id) && !artista_id) {
+        if (temCamposVersao && !artista_id) {
             throw new AppError("Artista é obrigatório para criar uma versão", 400);
         }
 

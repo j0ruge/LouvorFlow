@@ -7,7 +7,8 @@
  * Suporta modo edição via prop `musica`, pré-populando com `versoes[0]`.
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -57,8 +58,12 @@ interface MusicaFormProps {
  */
 export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   const isEditing = !!musica;
+
   /** Versão default (mais antiga por created_at) para pré-popular no modo edição. */
-  const versaoDefault = musica?.versoes?.[0] ?? null;
+  const versaoDefault = useMemo(
+    () => musica?.versoes?.[0] ?? null,
+    [musica],
+  );
 
   const form = useForm<CreateMusicaCompleteForm>({
     resolver: zodResolver(CreateMusicaCompleteFormSchema),
@@ -83,16 +88,16 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   /** Opções do combobox de tonalidades mapeadas para { value, label }. */
-  const tonalidadeOptions = (tonalidades ?? []).map((t) => ({
-    value: t.id,
-    label: t.tom,
-  }));
+  const tonalidadeOptions = useMemo(
+    () => (tonalidades ?? []).map((t) => ({ value: t.id, label: t.tom })),
+    [tonalidades],
+  );
 
   /** Opções do combobox de artistas mapeadas para { value, label }. */
-  const artistaOptions = (artistas ?? []).map((a) => ({
-    value: a.id,
-    label: a.nome,
-  }));
+  const artistaOptions = useMemo(
+    () => (artistas ?? []).map((a) => ({ value: a.id, label: a.nome })),
+    [artistas],
+  );
 
   useEffect(
     /**
@@ -140,7 +145,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           id: musica.id,
           dados: {
             ...dados,
-            versao_id: versaoDefault?.id ?? "",
+            versao_id: versaoDefault?.id,
           },
         },
         {
@@ -170,7 +175,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
     try {
       const result = await createTonalidade.mutateAsync({ tom: input });
       return result.tonalidade.id;
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar tonalidade";
+      toast.error(message);
       return undefined;
     }
   }
@@ -185,7 +192,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
     try {
       const result = await createArtista.mutateAsync({ nome: input });
       return result.artista.id;
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar artista";
+      toast.error(message);
       return undefined;
     }
   }

@@ -140,11 +140,11 @@ export function IntegranteForm({
    * Envia os dados do formulário para criação ou atualização.
    *
    * No modo edição, se houver uma função selecionada no dropdown
-   * que ainda não foi adicionada, dispara `addFuncao` automaticamente
-   * junto com a atualização, evitando que o vínculo se perca ao
-   * clicar "Salvar" sem antes clicar "+".
+   * que ainda não foi adicionada, adiciona primeiro via `addFuncao`
+   * e só depois dispara o `updateMutation`, evitando race condition
+   * e garantindo que o dialog só feche após ambas as operações.
    */
-  function onSubmit(dados: UpdateIntegranteForm) {
+  async function onSubmit(dados: UpdateIntegranteForm) {
     if (isEditing && integranteId) {
       const payload = { ...dados };
       if (!payload.senha) {
@@ -152,9 +152,12 @@ export function IntegranteForm({
       }
 
       if (selectedFuncaoId) {
-        addFuncao.mutate(selectedFuncaoId, {
-          onSuccess: () => setSelectedFuncaoId(""),
-        });
+        try {
+          await addFuncao.mutateAsync(selectedFuncaoId);
+          setSelectedFuncaoId("");
+        } catch {
+          return;
+        }
       }
 
       updateMutation.mutate(

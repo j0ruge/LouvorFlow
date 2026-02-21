@@ -80,18 +80,41 @@ export const UpdateMusicaFormSchema = z.object({
 /** Tipo inferido dos dados do formulário de edição de música. */
 export type UpdateMusicaForm = z.infer<typeof UpdateMusicaFormSchema>;
 
+/** Schema do campo BPM para formulários de versão. */
+const bpmFormField = z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal(""));
+
+/** Schema do campo link_versao para formulários de versão. */
+const linkVersaoFormField = z
+  .string()
+  .url("URL inválida")
+  .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
+  .optional()
+  .or(z.literal(""));
+
+/**
+ * Verifica se algum campo de versão foi preenchido (não vazio e não undefined).
+ *
+ * @param data - Dados do formulário com campos de versão opcionais.
+ * @returns `true` se ao menos um campo de versão estiver preenchido.
+ */
+function temCamposVersaoPreenchidos(
+  data: { bpm?: number | ""; cifras?: string; lyrics?: string; link_versao?: string },
+): boolean {
+  return (
+    (data.bpm !== undefined && data.bpm !== "") ||
+    (data.cifras !== undefined && data.cifras !== "") ||
+    (data.lyrics !== undefined && data.lyrics !== "") ||
+    (data.link_versao !== undefined && data.link_versao !== "")
+  );
+}
+
 /** Schema de validação do formulário de criação de versão. */
 export const CreateVersaoFormSchema = z.object({
   artista_id: z.string().uuid("Selecione um artista"),
-  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z
-    .string()
-    .url("URL inválida")
-    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
-    .optional()
-    .or(z.literal("")),
+  link_versao: linkVersaoFormField,
 });
 
 /** Tipo inferido dos dados do formulário de criação de versão. */
@@ -99,15 +122,10 @@ export type CreateVersaoForm = z.infer<typeof CreateVersaoFormSchema>;
 
 /** Schema de validação do formulário de edição de versão. */
 export const UpdateVersaoFormSchema = z.object({
-  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z
-    .string()
-    .url("URL inválida")
-    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
-    .optional()
-    .or(z.literal("")),
+  link_versao: linkVersaoFormField,
 });
 
 /** Tipo inferido dos dados do formulário de edição de versão. */
@@ -122,24 +140,12 @@ export const CreateMusicaCompleteFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   fk_tonalidade: z.string().uuid().optional().or(z.literal("")),
   artista_id: z.string().uuid().optional().or(z.literal("")),
-  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z
-    .string()
-    .url("URL inválida")
-    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
-    .optional()
-    .or(z.literal("")),
+  link_versao: linkVersaoFormField,
 }).superRefine((data, ctx) => {
-  /** Verifica se algum campo de versão foi preenchido. */
-  const temVersao =
-    (data.bpm !== undefined && data.bpm !== "") ||
-    (data.cifras !== undefined && data.cifras !== "") ||
-    (data.lyrics !== undefined && data.lyrics !== "") ||
-    (data.link_versao !== undefined && data.link_versao !== "");
-
-  if (temVersao && (!data.artista_id || data.artista_id === "")) {
+  if (temCamposVersaoPreenchidos(data) && (!data.artista_id || data.artista_id === "")) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Artista é obrigatório quando campos de versão são preenchidos",
@@ -159,15 +165,10 @@ export const UpdateMusicaCompleteFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   fk_tonalidade: z.string().uuid().optional().or(z.literal("")),
   versao_id: z.string().uuid().optional().or(z.literal("")),
-  bpm: z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal("")),
+  bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
-  link_versao: z
-    .string()
-    .url("URL inválida")
-    .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
-    .optional()
-    .or(z.literal("")),
+  link_versao: linkVersaoFormField,
 });
 
 /** Tipo inferido dos dados do formulário de edição completa de música. */

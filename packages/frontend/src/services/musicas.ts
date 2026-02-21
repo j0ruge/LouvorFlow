@@ -109,15 +109,16 @@ export async function deleteMusica(id: string): Promise<{ msg: string }> {
 /* ========== Complete (música + versão atômica) ========== */
 
 /**
- * Limpa strings vazias de um objeto, convertendo-as em `undefined`.
+ * Limpa strings vazias de um objeto de formulário, convertendo-as em `undefined`.
  *
+ * @typeParam T - Tipo do objeto de formulário.
  * @param obj - Objeto com possíveis strings vazias.
  * @returns Novo objeto com strings vazias substituídas por `undefined`.
  */
-function cleanEmptyStrings(obj: Record<string, unknown>): Record<string, unknown> {
-  const cleaned: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    cleaned[key] = value === "" ? undefined : value;
+function cleanEmptyStrings<T extends Record<string, unknown>>(obj: T): { [K in keyof T]: T[K] | undefined } {
+  const cleaned = {} as { [K in keyof T]: T[K] | undefined };
+  for (const key of Object.keys(obj) as Array<keyof T>) {
+    cleaned[key] = obj[key] === "" ? undefined : obj[key];
   }
   return cleaned;
 }
@@ -131,7 +132,7 @@ function cleanEmptyStrings(obj: Record<string, unknown>): Record<string, unknown
 export async function createMusicaComplete(
   dados: CreateMusicaCompleteForm,
 ): Promise<MusicaCompleteResponse> {
-  const payload = cleanEmptyStrings(dados as unknown as Record<string, unknown>);
+  const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>("/musicas/complete", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -150,7 +151,7 @@ export async function updateMusicaComplete(
   id: string,
   dados: UpdateMusicaCompleteForm,
 ): Promise<MusicaCompleteResponse> {
-  const payload = cleanEmptyStrings(dados as unknown as Record<string, unknown>);
+  const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>(`/musicas/${id}/complete`, {
     method: "PUT",
     body: JSON.stringify(payload),

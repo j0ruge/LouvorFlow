@@ -34,3 +34,6 @@ dist-ssr
 .claude/skills
 .windsurf
 .playwright-mcp
+
+# MCP server config (contém credenciais locais)
+.mcp.json

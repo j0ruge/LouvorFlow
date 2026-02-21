@@ -179,6 +179,151 @@ describe('MusicasService', () => {
     });
   });
 
+  // ─── createComplete ───────────────────────────────────────
+  describe('createComplete', () => {
+    it('deve criar música sem versão quando apenas nome é enviado', async () => {
+      const result = await musicasService.createComplete({ nome: 'Música Simples' });
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('nome', 'Música Simples');
+      expect(result).toHaveProperty('versoes');
+      expect(result.versoes).toHaveLength(0);
+    });
+
+    it('deve criar música com tonalidade e versão completa', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Música Completa',
+        fk_tonalidade: MOCK_TONALIDADES[0].id,
+        artista_id: MOCK_ARTISTAS[0].id,
+        bpm: 120,
+        cifras: 'G D Em C',
+        lyrics: 'Letra da música...',
+        link_versao: 'https://exemplo.com/versao',
+      });
+      expect(result).toHaveProperty('id');
+      expect(result.nome).toBe('Música Completa');
+      expect(result.tonalidade).toMatchObject({ id: MOCK_TONALIDADES[0].id, tom: 'G' });
+      expect(result.versoes).toHaveLength(1);
+      expect(result.versoes[0].bpm).toBe(120);
+      expect(result.versoes[0].artista).toMatchObject({ id: MOCK_ARTISTAS[0].id });
+    });
+
+    it('deve lançar AppError 400 quando nome não é enviado', async () => {
+      await expect(musicasService.createComplete({})).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Nome da música é obrigatório',
+      });
+    });
+
+    it('deve lançar AppError 404 quando tonalidade não existe', async () => {
+      await expect(musicasService.createComplete({
+        nome: 'Teste',
+        fk_tonalidade: NON_EXISTENT_ID,
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    it('deve lançar AppError 400 quando campos de versão preenchidos sem artista', async () => {
+      await expect(musicasService.createComplete({
+        nome: 'Teste',
+        bpm: 120,
+      })).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Artista é obrigatório para criar uma versão',
+      });
+    });
+
+    it('deve lançar AppError 404 quando artista não existe', async () => {
+      await expect(musicasService.createComplete({
+        nome: 'Teste',
+        artista_id: NON_EXISTENT_ID,
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Artista não encontrado',
+      });
+    });
+
+    it('deve permitir artista sem campos de versão (cria versão vazia)', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Só Artista',
+        artista_id: MOCK_ARTISTAS[0].id,
+      });
+      expect(result.versoes).toHaveLength(1);
+      expect(result.versoes[0].bpm).toBeNull();
+    });
+  });
+
+  // ─── updateComplete ──────────────────────────────────────
+  describe('updateComplete', () => {
+    it('deve atualizar apenas nome da música', async () => {
+      const result = await musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Nome Atualizado Completo',
+      });
+      expect(result.nome).toBe('Nome Atualizado Completo');
+      expect(result).toHaveProperty('versoes');
+      expect(result).toHaveProperty('categorias');
+    });
+
+    it('deve atualizar música e versão existente', async () => {
+      const result = await musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Rendido Atualizado',
+        fk_tonalidade: MOCK_TONALIDADES[1].id,
+        versao_id: MOCK_ARTISTAS_MUSICAS[0].id,
+        bpm: 85,
+        cifras: 'Am F C G',
+      });
+      expect(result.nome).toBe('Rendido Atualizado');
+      const versaoAtualizada = result.versoes.find(
+        (v: { id: string }) => v.id === MOCK_ARTISTAS_MUSICAS[0].id,
+      );
+      expect(versaoAtualizada).toBeDefined();
+      expect(versaoAtualizada.bpm).toBe(85);
+      expect(versaoAtualizada.cifras).toBe('Am F C G');
+    });
+
+    it('deve lançar AppError 400 quando id não é enviado', async () => {
+      await expect(musicasService.updateComplete('', { nome: 'X' })).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'ID de música não enviado',
+      });
+    });
+
+    it('deve lançar AppError 400 quando nome não é enviado', async () => {
+      await expect(musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {})).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Nome da música é obrigatório',
+      });
+    });
+
+    it('deve lançar AppError 404 quando música não existe', async () => {
+      await expect(musicasService.updateComplete(NON_EXISTENT_ID, { nome: 'X' })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'A música não foi encontrada ou não existe',
+      });
+    });
+
+    it('deve lançar AppError 404 quando tonalidade não existe', async () => {
+      await expect(musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Teste',
+        fk_tonalidade: NON_EXISTENT_ID,
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    it('deve lançar AppError 404 quando versão não existe', async () => {
+      await expect(musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Teste',
+        versao_id: NON_EXISTENT_ID,
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Versão não encontrada',
+      });
+    });
+  });
+
   // ─── listVersoes ────────────────────────────────────────
   describe('listVersoes', () => {
     it('deve retornar versões da música com artista mapeado', async () => {
