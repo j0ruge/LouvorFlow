@@ -60,6 +60,7 @@ export function useCreateEvento() {
     mutationFn: (dados: CreateEventoForm) => createEvento(dados),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -84,6 +85,7 @@ export function useUpdateEvento() {
     onSuccess: (data, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
       queryClient.invalidateQueries({ queryKey: ["eventos", id] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -107,6 +109,7 @@ export function useDeleteEvento() {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
       queryClient.removeQueries({ queryKey: ["eventos", id] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -129,6 +132,7 @@ export function useAddMusicaToEvento(eventoId: string) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -152,6 +156,7 @@ export function useRemoveMusicaFromEvento(eventoId: string) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
