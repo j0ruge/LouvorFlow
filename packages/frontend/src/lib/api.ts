@@ -6,7 +6,14 @@
  * de erro do formato `{ erro, codigo }` e fallback para erros de rede.
  */
 
-/** URL base da API, configurável via variável de ambiente Vite. */
+/**
+ * URL base da API, configurável via variável de ambiente Vite.
+ *
+ * Em desenvolvimento, o proxy do Vite encaminha `/api` para o backend.
+ * Em produção, defina `VITE_API_BASE_URL` ou sirva o frontend atrás de um
+ * reverse proxy que roteia `/api` ao backend — caso contrário, as
+ * requisições retornarão 404.
+ */
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "/api";
 
