@@ -73,7 +73,7 @@ class MusicasRepository {
      * @param data - Dados de criação completa (música + versão opcional)
      * @returns Música criada com todos os relacionamentos (MUSICA_SELECT)
      */
-    async createWithVersao(data: CreateMusicaCompleteInput) {
+    async createWithVersao(data: CreateMusicaCompleteInput): Promise<MusicaRaw> {
         return prisma.$transaction(async (tx) => {
             const musica = await tx.musicas.create({
                 data: {
@@ -109,7 +109,7 @@ class MusicasRepository {
      * @param data - Dados de atualização completa (música + versão opcional)
      * @returns Música atualizada com todos os relacionamentos (MUSICA_SELECT)
      */
-    async updateWithVersao(id: string, data: UpdateMusicaCompleteInput) {
+    async updateWithVersao(id: string, data: UpdateMusicaCompleteInput): Promise<MusicaRaw> {
         return prisma.$transaction(async (tx) => {
             const updateData: Record<string, unknown> = {};
             if (data.nome !== undefined) updateData.nome = data.nome;

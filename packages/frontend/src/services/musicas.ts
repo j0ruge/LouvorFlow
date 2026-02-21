@@ -183,11 +183,7 @@ export async function addVersao(
   musicaId: string,
   dados: CreateVersaoForm,
 ): Promise<{ msg: string; versao: Versao }> {
-  const payload = {
-    ...dados,
-    bpm: dados.bpm === "" ? undefined : dados.bpm,
-    link_versao: dados.link_versao === "" ? undefined : dados.link_versao,
-  };
+  const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>(`/musicas/${musicaId}/versoes`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -208,11 +204,7 @@ export async function updateVersao(
   versaoId: string,
   dados: UpdateVersaoForm,
 ): Promise<{ msg: string; versao: Versao }> {
-  const payload = {
-    ...dados,
-    bpm: dados.bpm === "" ? undefined : dados.bpm,
-    link_versao: dados.link_versao === "" ? undefined : dados.link_versao,
-  };
+  const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>(
     `/musicas/${musicaId}/versoes/${versaoId}`,
     {
