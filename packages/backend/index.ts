@@ -15,6 +15,6 @@ const HOST = process.env.HOST ?? 'localhost';
     }
 
     app.listen(PORT, HOST, () => {
-        console.log(`Servidor rodando em http://${HOST}:${PORT}`);
+        console.log(`Servidor rodando em http://${HOST}:${PORT} 🐀🪽`);
     });
 })();
