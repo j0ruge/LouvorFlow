@@ -100,6 +100,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   /** Indica se o formulário foi submetido com sucesso (evita salvar rascunho ao fechar). */
   const submittedRef = useRef(false);
 
+  /** Indica se o rascunho já foi processado nesta abertura do dialog (evita re-execuções). */
+  const draftInitializedRef = useRef(false);
+
   const createMutation = useCreateMusicaComplete();
   const updateMutation = useUpdateMusicaComplete();
   const { data: tonalidades, isLoading: tonLoading } = useTonalidades();
@@ -127,9 +130,17 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
      * No modo edição, carrega os dados da música existente e da versão default.
      * No modo criação, verifica se existe rascunho salvo: se sim, carrega-o e
      * abre o AlertDialog de recuperação; se não, reseta para os valores padrão.
+     * Usa `draftInitializedRef` para evitar re-execuções quando `draft`/`hasDraft`
+     * mudam enquanto o dialog já está aberto (ex.: ao descartar rascunho).
      */
     function resetOrPopulateForm() {
-      if (!open) return;
+      if (!open) {
+        draftInitializedRef.current = false;
+        return;
+      }
+
+      if (draftInitializedRef.current) return;
+      draftInitializedRef.current = true;
 
       if (isEditing && musica) {
         form.reset({
@@ -185,7 +196,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
         {
           onSuccess: () => {
             form.reset();
-            onOpenChange(false);
+            handleOpenChange(false);
           },
         },
       );
@@ -195,7 +206,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           submittedRef.current = true;
           clearDraft();
           form.reset();
-          onOpenChange(false);
+          handleOpenChange(false);
         },
       });
     }
@@ -425,6 +436,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           <AlertDialogCancel
             onClick={() => {
               clearDraft();
+              form.reset(MUSICA_FORM_DEFAULTS);
               setDraftPromptOpen(false);
             }}
           >
