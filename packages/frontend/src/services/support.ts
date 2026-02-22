@@ -7,12 +7,21 @@
 
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
-import { IdNomeSchema, TonalidadeSchema, CrudResponseSchema, TonalidadeCreateResponseSchema } from "@/schemas/shared";
+import {
+  IdNomeSchema,
+  TonalidadeSchema,
+  CrudResponseSchema,
+  TonalidadeCreateResponseSchema,
+  CategoriaCreateResponseSchema,
+  FuncaoCreateResponseSchema,
+} from "@/schemas/shared";
 import type {
   IdNome,
   Tonalidade,
   CrudResponse,
   TonalidadeCreateResponse,
+  CategoriaCreateResponse,
+  FuncaoCreateResponse,
   CreateCategoriaForm,
   UpdateCategoriaForm,
   CreateFuncaoForm,
@@ -69,14 +78,14 @@ export async function getCategorias(): Promise<IdNome[]> {
  * Cria uma nova categoria.
  *
  * @param dados - Dados do formulário de criação.
- * @returns Resposta da API com mensagem de confirmação.
+ * @returns Resposta da API com mensagem e a categoria criada (id e nome).
  */
-export async function createCategoria(dados: CreateCategoriaForm): Promise<CrudResponse> {
+export async function createCategoria(dados: CreateCategoriaForm): Promise<CategoriaCreateResponse> {
   const data = await apiFetch<unknown>("/categorias", {
     method: "POST",
     body: JSON.stringify(dados),
   });
-  return CrudResponseSchema.parse(data);
+  return CategoriaCreateResponseSchema.parse(data);
 }
 
 /**
@@ -111,14 +120,14 @@ export async function deleteCategoria(id: string): Promise<CrudResponse> {
  * Cria uma nova função.
  *
  * @param dados - Dados do formulário de criação.
- * @returns Resposta da API com mensagem de confirmação.
+ * @returns Resposta da API com mensagem e a função criada (id e nome).
  */
-export async function createFuncao(dados: CreateFuncaoForm): Promise<CrudResponse> {
+export async function createFuncao(dados: CreateFuncaoForm): Promise<FuncaoCreateResponse> {
   const data = await apiFetch<unknown>("/funcoes", {
     method: "POST",
     body: JSON.stringify(dados),
   });
-  return CrudResponseSchema.parse(data);
+  return FuncaoCreateResponseSchema.parse(data);
 }
 
 /**

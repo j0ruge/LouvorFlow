@@ -65,6 +65,10 @@ export interface CreateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** IDs de categorias a associar à música (opcional). */
+    categoria_ids?: string[];
+    /** IDs de funções requeridas a associar à música (opcional). */
+    funcao_ids?: string[];
 }
 
 /**
@@ -86,6 +90,10 @@ export interface UpdateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** IDs de categorias desejadas (se presente, sincroniza; se ausente, mantém). */
+    categoria_ids?: string[];
+    /** IDs de funções requeridas desejadas (se presente, sincroniza; se ausente, mantém). */
+    funcao_ids?: string[];
 }
 
 export interface IdTom {

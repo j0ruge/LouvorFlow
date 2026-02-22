@@ -273,6 +273,10 @@ export function createFakeMusicasRepository() {
     findCategoriaById: async (categoriaId: string) =>
       MOCK_CATEGORIAS.find(t => t.id === categoriaId) ?? null,
 
+    /** Conta quantas categorias existem dentre os IDs fornecidos. */
+    countCategoriasByIds: async (ids: string[]) =>
+      MOCK_CATEGORIAS.filter(c => ids.includes(c.id)).length,
+
     // --- Funcoes (musicas_funcoes) ---
 
     findFuncoes: async (musicaId: string) =>
@@ -299,6 +303,10 @@ export function createFakeMusicasRepository() {
 
     findFuncaoById: async (funcaoId: string) =>
       MOCK_FUNCOES.find(f => f.id === funcaoId) ?? null,
+
+    /** Conta quantas funções existem dentre os IDs fornecidos. */
+    countFuncoesByIds: async (ids: string[]) =>
+      MOCK_FUNCOES.filter(f => ids.includes(f.id)).length,
 
     reset: () => {
       musicasData = generatePaginationMusicas();

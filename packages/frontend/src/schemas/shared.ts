@@ -115,3 +115,21 @@ export const TonalidadeCreateResponseSchema = z.object({
 
 /** Tipo inferido da resposta de criação de tonalidade. */
 export type TonalidadeCreateResponse = z.infer<typeof TonalidadeCreateResponseSchema>;
+
+/** Schema da resposta de criação de categoria (inclui a categoria criada). */
+export const CategoriaCreateResponseSchema = z.object({
+  msg: z.string(),
+  categoria: IdNomeSchema,
+});
+
+/** Tipo inferido da resposta de criação de categoria. */
+export type CategoriaCreateResponse = z.infer<typeof CategoriaCreateResponseSchema>;
+
+/** Schema da resposta de criação de função (inclui a função criada). */
+export const FuncaoCreateResponseSchema = z.object({
+  msg: z.string(),
+  funcao: IdNomeSchema,
+});
+
+/** Tipo inferido da resposta de criação de função. */
+export type FuncaoCreateResponse = z.infer<typeof FuncaoCreateResponseSchema>;

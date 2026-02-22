@@ -118,7 +118,8 @@ export async function deleteMusica(id: string): Promise<{ msg: string }> {
 function cleanEmptyStrings<T extends Record<string, unknown>>(obj: T): { [K in keyof T]: T[K] | undefined } {
   const cleaned = {} as { [K in keyof T]: T[K] | undefined };
   for (const key of Object.keys(obj) as Array<keyof T>) {
-    cleaned[key] = obj[key] === "" ? undefined : obj[key];
+    const value = obj[key];
+    cleaned[key] = value === "" ? undefined : value;
   }
   return cleaned;
 }

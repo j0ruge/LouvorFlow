@@ -120,13 +120,14 @@ class MusicasService {
     /**
      * Cria uma música com versão opcional de forma atômica.
      * Se campos de versão forem preenchidos, exige `artista_id`.
+     * Valida existência de categorias e funções quando fornecidas.
      *
      * @param body - Dados de criação completa
      * @returns Música criada formatada com todos os relacionamentos
-     * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista não existir
+     * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista/categoria/função não existir
      */
-    async createComplete(body: CreateMusicaCompleteInput) {
-        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao } = body;
+    async createComplete(body: CreateMusicaCompleteInput): Promise<Musica> {
+        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 
@@ -146,22 +147,26 @@ class MusicasService {
             if (!artista) throw new AppError("Artista não encontrado", 404);
         }
 
+        await this.validarCategoriaIds(categoria_ids);
+        await this.validarFuncaoIds(funcao_ids);
+
         const result = await musicasRepository.createWithVersao(body);
         return formatMusica(result);
     }
 
     /**
      * Atualiza uma música e opcionalmente sua versão de forma atômica.
+     * Valida existência de categorias e funções quando fornecidas.
      *
      * @param id - UUID da música
      * @param body - Dados de atualização completa
      * @returns Música atualizada formatada com todos os relacionamentos
-     * @throws {AppError} 400 se nome ausente; 404 se música/tonalidade/versão não existir
+     * @throws {AppError} 400 se nome ausente; 404 se música/tonalidade/versão/categoria/função não existir
      */
-    async updateComplete(id: string, body: UpdateMusicaCompleteInput) {
+    async updateComplete(id: string, body: UpdateMusicaCompleteInput): Promise<Musica> {
         if (!id) throw new AppError("ID de música não enviado", 400);
 
-        const { nome, fk_tonalidade, versao_id } = body;
+        const { nome, fk_tonalidade, versao_id, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 
@@ -177,6 +182,9 @@ class MusicasService {
             const versao = await musicasRepository.findVersaoById(versao_id);
             if (!versao) throw new AppError("Versão não encontrada", 404);
         }
+
+        await this.validarCategoriaIds(categoria_ids);
+        await this.validarFuncaoIds(funcao_ids);
 
         const result = await musicasRepository.updateWithVersao(id, body);
         return formatMusica(result);
@@ -334,6 +342,34 @@ class MusicasService {
         if (!registro) throw new AppError("Registro não encontrado", 404);
 
         await musicasRepository.deleteFuncao(registro.id);
+    }
+
+    // --- Validação auxiliar ---
+
+    /**
+     * Valida que todos os IDs de categorias existem no banco via contagem batch.
+     *
+     * @param ids - Array de UUIDs de categorias (undefined = ignorar)
+     * @throws {AppError} 404 se alguma categoria não for encontrada
+     */
+    private async validarCategoriaIds(ids?: string[]) {
+        if (!ids || ids.length === 0) return;
+        const unicos = [...new Set(ids)];
+        const count = await musicasRepository.countCategoriasByIds(unicos);
+        if (count !== unicos.length) throw new AppError("Categoria não encontrada", 404);
+    }
+
+    /**
+     * Valida que todos os IDs de funções existem no banco via contagem batch.
+     *
+     * @param ids - Array de UUIDs de funções (undefined = ignorar)
+     * @throws {AppError} 404 se alguma função não for encontrada
+     */
+    private async validarFuncaoIds(ids?: string[]) {
+        if (!ids || ids.length === 0) return;
+        const unicos = [...new Set(ids)];
+        const count = await musicasRepository.countFuncoesByIds(unicos);
+        if (count !== unicos.length) throw new AppError("Função não encontrada", 404);
     }
 }
 
