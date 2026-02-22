@@ -10,7 +10,7 @@ import { useState, useCallback } from "react";
 import type { CreateMusicaCompleteForm } from "@/schemas/musica";
 
 /** Chave usada no localStorage para o rascunho de criação de música. */
-const STORAGE_KEY = "louvorflow:draft:musica-create";
+export const STORAGE_KEY = "louvorflow:draft:musica-create";
 
 /** Retorno do hook useFormDraft. */
 interface UseFormDraftReturn {
@@ -32,7 +32,7 @@ interface UseFormDraftReturn {
  * @param data - Dados do formulário a verificar.
  * @returns `true` se `nome`, `cifras` ou `lyrics` contêm conteúdo não vazio.
  */
-function hasContent(data: CreateMusicaCompleteForm): boolean {
+export function hasContent(data: CreateMusicaCompleteForm): boolean {
   return (
     (!!data.nome && data.nome.trim() !== "") ||
     (!!data.cifras && data.cifras.trim() !== "") ||
@@ -44,13 +44,20 @@ function hasContent(data: CreateMusicaCompleteForm): boolean {
  * Verifica em tempo de execução se o objeto possui a estrutura mínima
  * esperada de um rascunho `CreateMusicaCompleteForm`.
  *
+ * Valida os campos-chave (`nome`, `fk_tonalidade`, `artista_id`) como strings,
+ * garantindo que dados corrompidos ou de formato incompatível sejam descartados.
+ *
  * @param obj - Valor desconhecido vindo do JSON.parse.
  * @returns `true` se o objeto possui os campos obrigatórios com tipos corretos.
  */
-function isValidDraftShape(obj: unknown): obj is CreateMusicaCompleteForm {
+export function isValidDraftShape(obj: unknown): obj is CreateMusicaCompleteForm {
   if (typeof obj !== "object" || obj === null) return false;
-  const record = obj as Record<string, unknown>;
-  return typeof record.nome === "string";
+  const r = obj as Record<string, unknown>;
+  return (
+    typeof r.nome === "string" &&
+    typeof r.fk_tonalidade === "string" &&
+    typeof r.artista_id === "string"
+  );
 }
 
 /**
@@ -59,7 +66,7 @@ function isValidDraftShape(obj: unknown): obj is CreateMusicaCompleteForm {
  *
  * @returns Dados do rascunho ou `null` se não existir, estiver corrompido ou com formato inválido.
  */
-function readDraft(): CreateMusicaCompleteForm | null {
+export function readDraft(): CreateMusicaCompleteForm | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
