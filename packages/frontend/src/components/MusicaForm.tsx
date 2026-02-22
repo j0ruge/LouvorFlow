@@ -92,7 +92,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
     defaultValues: MUSICA_FORM_DEFAULTS,
   });
 
-  const { draft, hasDraft, saveDraft, clearDraft } = useFormDraft();
+  const { draft, hasDraft, saveDraft, clearDraft, clearStorage } = useFormDraft();
 
   /** Controla a visibilidade do AlertDialog de recuperação de rascunho. */
   const [draftPromptOpen, setDraftPromptOpen] = useState(false);
@@ -425,12 +425,14 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           <AlertDialogCancel
             onClick={() => {
               clearDraft();
-              form.reset(MUSICA_FORM_DEFAULTS);
+              setDraftPromptOpen(false);
             }}
           >
             Descartar
           </AlertDialogCancel>
-          <AlertDialogAction>Recuperar</AlertDialogAction>
+          <AlertDialogAction onClick={() => clearStorage()}>
+            Recuperar
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
