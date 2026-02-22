@@ -104,7 +104,7 @@
 
 - [X] T012 Verificar que o `CrudResponse` retornado por `createCategoria()` e `createFuncao()` em `packages/frontend/src/services/support.ts` inclui o ID da entidade criada (necessário para `handleCreateCategoria`/`handleCreateFuncao` no MusicaForm). O schema `CrudResponseSchema` atual parseia apenas `{ msg }`. Se o backend retorna `{ msg, categoria: { id, nome } }`, mas o frontend descarta o objeto, será necessário: (1) criar um schema de resposta que capture o ID (ex: `CreateCategoriaResponseSchema = z.object({ msg: z.string(), categoria: IdNomeSchema })`); (2) atualizar a função `createCategoria()` para retornar o objeto completo; (3) ajustar o hook `useCreateCategoria` se necessário. Mesmo para `createFuncao`. Esta tarefa pode ser necessária **antes** de T008 — se for o caso, mover para Phase 2.
 
-- [ ] T013 Executar validação do quickstart.md: seguir os 10 passos de verificação rápida documentados em `specs/011-musica-categorias-funcoes/quickstart.md` para confirmar que toda a feature funciona end-to-end.
+- [X] T013 Executar validação do quickstart.md: seguir os 10 passos de verificação rápida documentados em `specs/011-musica-categorias-funcoes/quickstart.md` para confirmar que toda a feature funciona end-to-end.
 
 ---
 
