@@ -85,14 +85,14 @@ Como desenvolvedor, quero que as funções de serviço do frontend (camada de co
 
 ### Functional Requirements
 
-- **FR-001**: O pacote backend DEVE possuir testes unitários para todos os serviços existentes (8 serviços: artistas, categorias, eventos, funcoes, integrantes, musicas, tipos-eventos, tonalidades).
+- **FR-001**: O pacote backend DEVE possuir testes unitários para todos os serviços existentes (9 serviços: artistas, categorias, eventos, funcoes, integrantes, musicas, relatorios, tipos-eventos, tonalidades).
 - **FR-002**: Os testes de serviço do backend DEVEM mockar a camada de repositório, sem depender de banco de dados real.
 - **FR-003**: Os testes de serviço do backend DEVEM cobrir: validação de campos obrigatórios, verificação de existência de entidades referenciadas, formatação/transformação de dados e códigos de erro retornados.
 - **FR-004**: O pacote frontend DEVE possuir framework de teste unitário configurado com suporte a path aliases (`@/`).
-- **FR-005**: O pacote frontend DEVE possuir testes unitários para todos os schemas Zod existentes (5 arquivos: artista, evento, integrante, musica, shared).
+- **FR-005**: O pacote frontend DEVE possuir testes unitários para todos os schemas Zod existentes (6 arquivos: artista, evento, integrante, musica, relatorio, shared).
 - **FR-006**: Os testes de schema do frontend DEVEM cobrir: campos obrigatórios, campos opcionais, coerções de tipo, validações cruzadas (superRefine) e valores de fronteira.
-- **FR-007**: O pacote frontend DEVE possuir testes unitários para as funções de serviço HTTP existentes (5 arquivos: artistas, eventos, integrantes, musicas, support).
-- **FR-008**: Os testes de serviço do frontend DEVEM mockar a camada de comunicação HTTP, sem depender de API real.
+- **FR-007**: O pacote frontend DEVE possuir testes unitários para as funções de serviço HTTP existentes (6 arquivos: artistas, eventos, integrantes, musicas, relatorios, support).
+- **FR-008**: Os testes de serviço do frontend DEVEM mockar a camada de comunicação HTTP via `vi.mock('@/lib/api')` (mock direto do `apiFetch`), sem depender de API real.
 - **FR-009**: Todos os callbacks de teste (`describe`, `it`, `test`) DEVEM possuir docstrings JSDoc em português do Brasil, conforme regra do CLAUDE.md.
 - **FR-010**: Todos os testes DEVEM poder ser executados via `npm run test` no respectivo pacote.
 - **FR-011**: A suíte de testes de cada pacote DEVE executar de forma independente, sem dependência entre pacotes.
@@ -101,12 +101,26 @@ Como desenvolvedor, quero que as funções de serviço do frontend (camada de co
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% dos serviços do backend (8/8) possuem arquivos de teste correspondentes com cenários passando.
-- **SC-002**: 100% dos schemas Zod do frontend (5/5) possuem arquivos de teste correspondentes com cenários passando.
-- **SC-003**: 100% dos serviços HTTP do frontend (5/5) possuem arquivos de teste correspondentes com cenários passando.
+- **SC-001**: 100% dos serviços do backend (9/9) possuem arquivos de teste correspondentes com cenários passando.
+- **SC-002**: 100% dos schemas Zod do frontend (6/6) possuem arquivos de teste correspondentes com cenários passando.
+- **SC-003**: 100% dos serviços HTTP do frontend (6/6) possuem arquivos de teste correspondentes com cenários passando.
 - **SC-004**: `npm run test` executa com sucesso (exit code 0) em ambos os pacotes.
 - **SC-005**: Nenhum teste depende de infraestrutura externa (banco de dados, API real, rede).
 - **SC-006**: A suíte completa de testes de ambos os pacotes executa em menos de 30 segundos.
+
+## Clarifications
+
+### Session 2026-02-21
+
+- Q: Incluir módulo relatorio/relatorios (adicionado após spec original) nas contagens de FR-001, FR-005, FR-007, SC-001, SC-002, SC-003? → A: Sim, atualizar contagens para 9 serviços backend, 6 schemas frontend e 6 serviços frontend.
+- Q: Qual estratégia de mock para testes de serviços HTTP do frontend? → A: Mock direto do `apiFetch` via `vi.mock('@/lib/api')` — simples, sem dependências extras, alinhado com KISS.
+
+### Progress Snapshot (2026-02-21)
+
+- **US1** (Infra frontend): ✅ COMPLETO — `vitest.config.ts` configurado com aliases `@/`.
+- **US2** (Testes backend): ✅ COMPLETO — 9/9 serviços, 205 testes, todos com fakes de repositório.
+- **US3** (Schemas frontend): 🔶 PARCIAL — 1/6 schemas (musica: 21 testes). Faltam: artista, evento, integrante, relatorio, shared.
+- **US4** (Serviços frontend): ❌ NÃO INICIADO — 0/6 serviços.
 
 ## Assumptions
 

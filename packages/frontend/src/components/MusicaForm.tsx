@@ -7,7 +7,7 @@
  * Suporta modo edição via prop `musica`, pré-populando com `versoes[0]`.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +19,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormField,
@@ -39,6 +49,18 @@ import {
   type CreateMusicaCompleteForm,
 } from "@/schemas/musica";
 import type { Musica } from "@/schemas/musica";
+import { useFormDraft } from "@/hooks/use-form-draft";
+
+/** Valores padrão (vazios) para o formulário de criação de música. */
+const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
+  nome: "",
+  fk_tonalidade: "",
+  artista_id: "",
+  bpm: "",
+  cifras: "",
+  lyrics: "",
+  link_versao: "",
+};
 
 /** Propriedades do componente MusicaForm. */
 interface MusicaFormProps {
@@ -67,16 +89,16 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
 
   const form = useForm<CreateMusicaCompleteForm>({
     resolver: zodResolver(CreateMusicaCompleteFormSchema),
-    defaultValues: {
-      nome: "",
-      fk_tonalidade: "",
-      artista_id: "",
-      bpm: "",
-      cifras: "",
-      lyrics: "",
-      link_versao: "",
-    },
+    defaultValues: MUSICA_FORM_DEFAULTS,
   });
+
+  const { draft, hasDraft, saveDraft, clearDraft } = useFormDraft();
+
+  /** Controla a visibilidade do AlertDialog de recuperação de rascunho. */
+  const [draftPromptOpen, setDraftPromptOpen] = useState(false);
+
+  /** Indica se o formulário foi submetido com sucesso (evita salvar rascunho ao fechar). */
+  const submittedRef = useRef(false);
 
   const createMutation = useCreateMusicaComplete();
   const updateMutation = useUpdateMusicaComplete();
@@ -102,8 +124,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   useEffect(
     /**
      * Reseta ou preenche o formulário ao abrir o dialog.
-     * No modo edição, carrega os dados da música existente e da versão default;
-     * no modo criação, reseta os campos para os valores padrão.
+     * No modo edição, carrega os dados da música existente e da versão default.
+     * No modo criação, verifica se existe rascunho salvo: se sim, carrega-o e
+     * abre o AlertDialog de recuperação; se não, reseta para os valores padrão.
      */
     function resetOrPopulateForm() {
       if (!open) return;
@@ -118,20 +141,31 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           lyrics: versaoDefault?.lyrics ?? "",
           link_versao: versaoDefault?.link_versao ?? "",
         });
+      } else if (hasDraft && draft) {
+        form.reset(draft);
+        setDraftPromptOpen(true);
       } else {
-        form.reset({
-          nome: "",
-          fk_tonalidade: "",
-          artista_id: "",
-          bpm: "",
-          cifras: "",
-          lyrics: "",
-          link_versao: "",
-        });
+        form.reset(MUSICA_FORM_DEFAULTS);
       }
     },
-    [open, isEditing, musica, versaoDefault, form],
+    [open, isEditing, musica, versaoDefault, form, hasDraft, draft],
   );
+
+  /**
+   * Intercepta o fechamento do dialog para salvar rascunho automaticamente.
+   * Salva apenas no modo criação e quando o formulário não foi submetido.
+   *
+   * @param nextOpen - Novo estado de visibilidade do dialog.
+   */
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && !isEditing && !submittedRef.current) {
+      saveDraft(form.getValues());
+    }
+    if (!nextOpen) {
+      submittedRef.current = false;
+    }
+    onOpenChange(nextOpen);
+  }
 
   /**
    * Submete o formulário, chamando a mutation de criação ou edição conforme o modo.
@@ -158,6 +192,8 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
     } else {
       createMutation.mutate(dados, {
         onSuccess: () => {
+          submittedRef.current = true;
+          clearDraft();
           form.reset();
           onOpenChange(false);
         },
@@ -200,7 +236,8 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
@@ -361,7 +398,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
               >
                 Cancelar
               </Button>
@@ -373,5 +410,30 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={draftPromptOpen} onOpenChange={setDraftPromptOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Recuperar rascunho?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {draft?.nome
+              ? `Você tem um rascunho salvo para "${draft.nome}". Deseja continuar de onde parou?`
+              : "Você tem um rascunho salvo. Deseja continuar de onde parou?"}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel
+            onClick={() => {
+              clearDraft();
+              form.reset(MUSICA_FORM_DEFAULTS);
+            }}
+          >
+            Descartar
+          </AlertDialogCancel>
+          <AlertDialogAction>Recuperar</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
