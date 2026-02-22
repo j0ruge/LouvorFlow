@@ -29,15 +29,15 @@ const ITEMS_PER_PAGE = 20;
  */
 function SongSkeleton() {
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg border border-border">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border border-border gap-3 sm:gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <Skeleton className="w-12 h-12 rounded-lg" />
         <div className="space-y-2">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-3 w-24" />
         </div>
       </div>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
         <Skeleton className="h-4 w-8" />
         <Skeleton className="h-4 w-16" />
         <Skeleton className="h-5 w-16 rounded-full" />
@@ -173,7 +173,7 @@ const Songs = () => {
                 {filteredSongs.map((song) => (
                   <div
                     key={song.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300 cursor-pointer"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
                     onClick={() => navigate(`/musicas/${song.id}`)}
                     role="button"
                     tabIndex={0}
@@ -181,12 +181,12 @@ const Songs = () => {
                       if (e.key === "Enter") navigate(`/musicas/${song.id}`);
                     }}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                         <Music className="h-6 w-6 text-white" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">
                           {song.nome}
                         </h3>
                         <p className="text-sm text-muted-foreground">
@@ -195,7 +195,7 @@ const Songs = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
                       {song.tonalidade && (
                         <div className="flex items-center gap-2">
                           <Guitar className="h-4 w-4 text-primary" />
@@ -223,6 +223,7 @@ const Songs = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="hidden sm:inline-flex"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/musicas/${song.id}`);
