@@ -217,6 +217,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
         },
         {
           onSuccess: () => {
+            submittedRef.current = true;
             form.reset();
             handleOpenChange(false);
           },
@@ -349,7 +350,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateTonalidade}
                         placeholder="Selecione uma tonalidade"
                         searchPlaceholder="Buscar tonalidade..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={tonLoading}
                       />
                     </FormControl>
@@ -373,7 +373,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateArtista}
                         placeholder="Selecione um artista"
                         searchPlaceholder="Buscar artista..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={artLoading}
                         disabled={isEditing && !!versaoDefault}
                       />
@@ -475,7 +474,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateCategoria}
                         placeholder="Selecione categorias"
                         searchPlaceholder="Buscar categoria..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={catLoading}
                       />
                     </FormControl>
@@ -499,7 +497,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateFuncao}
                         placeholder="Selecione funções"
                         searchPlaceholder="Buscar função..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={funLoading}
                       />
                     </FormControl>

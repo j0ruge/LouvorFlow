@@ -9,6 +9,7 @@ import {
   MOCK_FUNCOES,
   MOCK_ARTISTAS,
 } from './mock-data.js';
+import type { CreateMusicaCompleteInput, UpdateMusicaCompleteInput } from '../../src/types/index.js';
 
 /**
  * Cria fake repository para Músicas com dados em memória (inclui paginação e sub-recursos).
@@ -100,18 +101,12 @@ export function createFakeMusicasRepository() {
 
     /**
      * Cria uma música e opcionalmente uma versão em transação simulada.
-     * @param data - Dados de criação completa (música + versão opcional).
+     * Simula criação de junções de categorias e funções quando fornecidas.
+     *
+     * @param data - Dados de criação completa (música + versão opcional + categorias/funções).
      * @returns Música criada com todos os relacionamentos (formato MUSICA_SELECT).
      */
-    createWithVersao: async (data: {
-      nome?: string;
-      fk_tonalidade?: string;
-      artista_id?: string;
-      bpm?: number;
-      cifras?: string;
-      lyrics?: string;
-      link_versao?: string;
-    }) => {
+    createWithVersao: async (data: CreateMusicaCompleteInput) => {
       const musica = { id: randomUUID(), nome: data.nome!, fk_tonalidade: data.fk_tonalidade ?? '' };
       musicasData.push(musica);
 
@@ -128,24 +123,25 @@ export function createFakeMusicasRepository() {
         versoesData.push(versao);
       }
 
+      for (const catId of data.categoria_ids ?? []) {
+        categoriasData.push({ id: randomUUID(), musica_id: musica.id, categoria_id: catId });
+      }
+      for (const funId of data.funcao_ids ?? []) {
+        funcoesData.push({ id: randomUUID(), musica_id: musica.id, funcao_id: funId });
+      }
+
       return buildMusicaRaw(musica);
     },
 
     /**
      * Atualiza uma música e opcionalmente sua versão em transação simulada.
+     * Sincroniza junções de categorias e funções quando fornecidas.
+     *
      * @param id - UUID da música.
-     * @param data - Dados de atualização completa (música + versão existente).
+     * @param data - Dados de atualização completa (música + versão + categorias/funções).
      * @returns Música atualizada com todos os relacionamentos (formato MUSICA_SELECT).
      */
-    updateWithVersao: async (id: string, data: {
-      nome?: string;
-      fk_tonalidade?: string | null;
-      versao_id?: string;
-      bpm?: number;
-      cifras?: string;
-      lyrics?: string;
-      link_versao?: string;
-    }) => {
+    updateWithVersao: async (id: string, data: UpdateMusicaCompleteInput) => {
       const musica = musicasData.find(m => m.id === id);
       if (!musica) throw new Error('Música não encontrada no fake');
       if (data.nome !== undefined) musica.nome = data.nome;
@@ -158,6 +154,19 @@ export function createFakeMusicasRepository() {
           if (data.cifras !== undefined) versao.cifras = data.cifras ?? null;
           if (data.lyrics !== undefined) versao.lyrics = data.lyrics ?? null;
           if (data.link_versao !== undefined) versao.link_versao = data.link_versao ?? null;
+        }
+      }
+
+      if (data.categoria_ids !== undefined) {
+        categoriasData = categoriasData.filter(c => c.musica_id !== id);
+        for (const catId of data.categoria_ids) {
+          categoriasData.push({ id: randomUUID(), musica_id: id, categoria_id: catId });
+        }
+      }
+      if (data.funcao_ids !== undefined) {
+        funcoesData = funcoesData.filter(f => f.musica_id !== id);
+        for (const funId of data.funcao_ids) {
+          funcoesData.push({ id: randomUUID(), musica_id: id, funcao_id: funId });
         }
       }
 

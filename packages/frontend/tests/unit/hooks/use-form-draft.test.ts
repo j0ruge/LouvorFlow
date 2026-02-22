@@ -23,6 +23,8 @@ const VALID_DRAFT: CreateMusicaCompleteForm = {
   cifras: '',
   lyrics: '',
   link_versao: '',
+  categoria_ids: [],
+  funcao_ids: [],
 };
 
 /** Dados de rascunho completamente vazios. */
@@ -34,6 +36,8 @@ const EMPTY_DRAFT: CreateMusicaCompleteForm = {
   cifras: '',
   lyrics: '',
   link_versao: '',
+  categoria_ids: [],
+  funcao_ids: [],
 };
 
 /** Mock do localStorage para ambiente node. */

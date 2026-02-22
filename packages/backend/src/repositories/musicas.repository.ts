@@ -4,6 +4,16 @@ import categoriasRepository from './categorias.repository.js';
 import { MUSICA_SELECT } from '../types/index.js';
 import type { CreateMusicaCompleteInput, UpdateMusicaCompleteInput, MusicaRaw } from '../types/index.js';
 
+/**
+ * Subconjunto mínimo de um delegate Prisma para tabelas de junção.
+ * Usado pelo método `syncJunction` para operar de forma genérica.
+ */
+interface JunctionDelegate {
+    findMany(args: { where: Record<string, unknown>; select: Record<string, boolean> }): Promise<Record<string, string>[]>;
+    deleteMany(args: { where: Record<string, unknown> }): Promise<unknown>;
+    createMany(args: { data: Record<string, unknown>[] }): Promise<unknown>;
+}
+
 class MusicasRepository {
     async findAll(skip: number, take: number) {
         return prisma.musicas.findMany({
@@ -376,7 +386,7 @@ class MusicasRepository {
         tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
         parentId: string,
         desejadosRaw: string[],
-        config: { model: any; parentKey: string; childKey: string },
+        config: { model: JunctionDelegate; parentKey: string; childKey: string },
     ) {
         const desejados = [...new Set(desejadosRaw)];
         const existentes = await config.model.findMany({

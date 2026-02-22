@@ -7,7 +7,7 @@
  * O popover permanece aberto após cada seleção para facilitar múltiplas escolhas.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Check, ChevronsUpDown, Plus, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +83,10 @@ export function CreatableMultiCombobox({
   /** Opções criadas localmente, exibidas até o refetch das options externas. */
   const [optimisticOptions, setOptimisticOptions] = useState<ComboboxOption[]>([]);
 
+  /** Ref que mantém o valor atualizado de `value` para uso em callbacks assíncronos. */
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   /**
    * Opções mescladas: inclui opções otimistas que ainda não aparecem
    * nas options vindas do React Query.
@@ -101,12 +105,12 @@ export function CreatableMultiCombobox({
   );
 
   /**
-   * Verifica se o texto de busca tem correspondência exata nas opções disponíveis.
-   * Usado para decidir se exibe o botão "Criar X".
+   * Verifica se o texto de busca tem correspondência exata em todas as opções (incluindo já selecionadas).
+   * Usado para decidir se exibe o botão "Criar X", evitando criação de duplicatas.
    */
   const hasExactMatch = useMemo(
-    () => availableOptions.some((opt) => opt.label.toLowerCase() === search.toLowerCase()),
-    [availableOptions, search],
+    () => mergedOptions.some((opt) => opt.label.toLowerCase() === search.toLowerCase()),
+    [mergedOptions, search],
   );
 
   /**
@@ -141,7 +145,7 @@ export function CreatableMultiCombobox({
       const newValue = await onCreate(label);
       if (newValue) {
         setOptimisticOptions((prev) => [...prev, { value: newValue, label }]);
-        onValueChange([...value, newValue]);
+        onValueChange([...valueRef.current, newValue]);
         setSearch("");
       }
     } finally {
