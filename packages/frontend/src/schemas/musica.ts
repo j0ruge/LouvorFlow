@@ -144,6 +144,8 @@ export const CreateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  categoria_ids: z.array(z.string().uuid()).optional().default([]),
+  funcao_ids: z.array(z.string().uuid()).optional().default([]),
 }).superRefine((data, ctx) => {
   if (temCamposVersaoPreenchidos(data) && (!data.artista_id || data.artista_id === "")) {
     ctx.addIssue({
@@ -169,6 +171,8 @@ export const UpdateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  categoria_ids: z.array(z.string().uuid()).optional().default([]),
+  funcao_ids: z.array(z.string().uuid()).optional().default([]),
 });
 
 /** Tipo inferido dos dados do formulário de edição completa de música. */

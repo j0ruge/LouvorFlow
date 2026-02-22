@@ -252,6 +252,54 @@ describe('MusicasService', () => {
       expect(result.versoes).toHaveLength(1);
       expect(result.versoes[0].bpm).toBeNull();
     });
+
+    it('deve aceitar categoria_ids válidos', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Com Categorias',
+        categoria_ids: [MOCK_CATEGORIAS[0].id, MOCK_CATEGORIAS[1].id],
+      });
+      expect(result).toHaveProperty('id');
+      expect(result.nome).toBe('Com Categorias');
+    });
+
+    it('deve lançar AppError 404 quando categoria_ids contém ID inexistente', async () => {
+      await expect(musicasService.createComplete({
+        nome: 'Teste',
+        categoria_ids: [MOCK_CATEGORIAS[0].id, NON_EXISTENT_ID],
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Categoria não encontrada',
+      });
+    });
+
+    it('deve aceitar funcao_ids válidos', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Com Funções',
+        funcao_ids: [MOCK_FUNCOES[0].id],
+      });
+      expect(result).toHaveProperty('id');
+      expect(result.nome).toBe('Com Funções');
+    });
+
+    it('deve lançar AppError 404 quando funcao_ids contém ID inexistente', async () => {
+      await expect(musicasService.createComplete({
+        nome: 'Teste',
+        funcao_ids: [NON_EXISTENT_ID],
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Função não encontrada',
+      });
+    });
+
+    it('deve aceitar arrays vazios de categoria_ids e funcao_ids', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Sem Associações',
+        categoria_ids: [],
+        funcao_ids: [],
+      });
+      expect(result).toHaveProperty('id');
+      expect(result.nome).toBe('Sem Associações');
+    });
   });
 
   // ─── updateComplete ──────────────────────────────────────
@@ -320,6 +368,42 @@ describe('MusicasService', () => {
       })).rejects.toMatchObject({
         statusCode: 404,
         message: 'Versão não encontrada',
+      });
+    });
+
+    it('deve aceitar categoria_ids válidos na atualização', async () => {
+      const result = await musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Atualizado com Categorias',
+        categoria_ids: [MOCK_CATEGORIAS[0].id],
+      });
+      expect(result.nome).toBe('Atualizado com Categorias');
+    });
+
+    it('deve lançar AppError 404 quando categoria_ids contém ID inexistente na atualização', async () => {
+      await expect(musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Teste',
+        categoria_ids: [NON_EXISTENT_ID],
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Categoria não encontrada',
+      });
+    });
+
+    it('deve aceitar funcao_ids válidos na atualização', async () => {
+      const result = await musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Atualizado com Funções',
+        funcao_ids: [MOCK_FUNCOES[0].id, MOCK_FUNCOES[1].id],
+      });
+      expect(result.nome).toBe('Atualizado com Funções');
+    });
+
+    it('deve lançar AppError 404 quando funcao_ids contém ID inexistente na atualização', async () => {
+      await expect(musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: 'Teste',
+        funcao_ids: [MOCK_FUNCOES[0].id, NON_EXISTENT_ID],
+      })).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Função não encontrada',
       });
     });
   });

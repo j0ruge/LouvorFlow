@@ -125,6 +125,49 @@ describe('CreateMusicaCompleteFormSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  // ─── Validação de categoria_ids e funcao_ids ───
+
+  it('deve aceitar categoria_ids como array de UUIDs válidos', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      categoria_ids: [VALID_UUID, VALID_UUID_2],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('deve aceitar funcao_ids como array de UUIDs válidos', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      funcao_ids: [VALID_UUID],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('deve aceitar arrays vazios de categoria_ids e funcao_ids', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      categoria_ids: [],
+      funcao_ids: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('deve rejeitar categoria_ids com UUID inválido', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      categoria_ids: ['nao-uuid'],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('deve usar default vazio quando categoria_ids não é enviado', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({ nome: 'Teste' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.categoria_ids).toEqual([]);
+    }
+  });
+
   // ─── Validação de URL ───
 
   it('deve rejeitar link_versao com URL inválida', () => {
@@ -216,6 +259,34 @@ describe('UpdateMusicaCompleteFormSchema', () => {
     const result = UpdateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       versao_id: 'nao-uuid',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // ─── Validação de categoria_ids e funcao_ids ───
+
+  it('deve aceitar categoria_ids e funcao_ids na atualização', () => {
+    const result = UpdateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      categoria_ids: [VALID_UUID],
+      funcao_ids: [VALID_UUID, VALID_UUID_2],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('deve usar default vazio quando categoria_ids não é enviado na atualização', () => {
+    const result = UpdateMusicaCompleteFormSchema.safeParse({ nome: 'Teste' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.categoria_ids).toEqual([]);
+      expect(result.data.funcao_ids).toEqual([]);
+    }
+  });
+
+  it('deve rejeitar funcao_ids com UUID inválido na atualização', () => {
+    const result = UpdateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      funcao_ids: ['invalido'],
     });
     expect(result.success).toBe(false);
   });

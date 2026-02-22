@@ -72,7 +72,11 @@ export function readDraft(): CreateMusicaCompleteForm | null {
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (!isValidDraftShape(parsed)) return null;
-    return parsed;
+    return {
+      ...parsed,
+      categoria_ids: parsed.categoria_ids ?? [],
+      funcao_ids: parsed.funcao_ids ?? [],
+    };
   } catch {
     return null;
   }

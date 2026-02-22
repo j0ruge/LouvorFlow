@@ -2,8 +2,9 @@
  * Formulário de criação/edição completa de música em dialog.
  *
  * Usa react-hook-form com resolver Zod para validação.
- * Inclui 7 campos: nome, tonalidade (CreatableCombobox), artista (CreatableCombobox),
- * BPM, cifras, lyrics e link da versão.
+ * Inclui 9 campos: nome, tonalidade (CreatableCombobox), artista (CreatableCombobox),
+ * BPM, cifras, lyrics, link da versão, categorias (CreatableMultiCombobox) e
+ * funções requeridas (CreatableMultiCombobox).
  * Suporta modo edição via prop `musica`, pré-populando com `versoes[0]`.
  */
 
@@ -41,8 +42,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { CreatableCombobox } from "@/components/CreatableCombobox";
+import { CreatableMultiCombobox } from "@/components/CreatableMultiCombobox";
 import { useCreateMusicaComplete, useUpdateMusicaComplete } from "@/hooks/use-musicas";
-import { useTonalidades, useCreateTonalidade } from "@/hooks/use-support";
+import { useTonalidades, useCreateTonalidade, useCategorias, useCreateCategoria, useFuncoes, useCreateFuncao } from "@/hooks/use-support";
 import { useArtistas, useCreateArtista } from "@/hooks/use-artistas";
 import {
   CreateMusicaCompleteFormSchema,
@@ -60,6 +62,8 @@ const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
   cifras: "",
   lyrics: "",
   link_versao: "",
+  categoria_ids: [],
+  funcao_ids: [],
 };
 
 /** Propriedades do componente MusicaForm. */
@@ -107,8 +111,12 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   const updateMutation = useUpdateMusicaComplete();
   const { data: tonalidades, isLoading: tonLoading } = useTonalidades();
   const { data: artistas, isLoading: artLoading } = useArtistas();
+  const { data: categorias, isLoading: catLoading } = useCategorias();
+  const { data: funcoes, isLoading: funLoading } = useFuncoes();
   const createTonalidade = useCreateTonalidade();
   const createArtista = useCreateArtista();
+  const createCategoriaMutation = useCreateCategoria();
+  const createFuncaoMutation = useCreateFuncao();
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
@@ -122,6 +130,18 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   const artistaOptions = useMemo(
     () => (artistas ?? []).map((a) => ({ value: a.id, label: a.nome })),
     [artistas],
+  );
+
+  /** Opções do multi-combobox de categorias mapeadas para { value, label }. */
+  const categoriaOptions = useMemo(
+    () => (categorias ?? []).map((c) => ({ value: c.id, label: c.nome })),
+    [categorias],
+  );
+
+  /** Opções do multi-combobox de funções mapeadas para { value, label }. */
+  const funcaoOptions = useMemo(
+    () => (funcoes ?? []).map((f) => ({ value: f.id, label: f.nome })),
+    [funcoes],
   );
 
   useEffect(
@@ -151,6 +171,8 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           cifras: versaoDefault?.cifras ?? "",
           lyrics: versaoDefault?.lyrics ?? "",
           link_versao: versaoDefault?.link_versao ?? "",
+          categoria_ids: musica.categorias.map((c) => c.id),
+          funcao_ids: musica.funcoes.map((f) => f.id),
         });
       } else if (hasDraft && draft) {
         form.reset(draft);
@@ -195,6 +217,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
         },
         {
           onSuccess: () => {
+            submittedRef.current = true;
             form.reset();
             handleOpenChange(false);
           },
@@ -241,6 +264,40 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
       return result.artista.id;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao criar artista";
+      toast.error(message);
+      return undefined;
+    }
+  }
+
+  /**
+   * Cria uma categoria inline via CreatableMultiCombobox e retorna seu UUID.
+   *
+   * @param input - Nome digitado pelo usuário.
+   * @returns UUID da categoria criada ou `undefined` em caso de falha.
+   */
+  async function handleCreateCategoria(input: string): Promise<string | undefined> {
+    try {
+      const result = await createCategoriaMutation.mutateAsync({ nome: input });
+      return result.categoria.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar categoria";
+      toast.error(message);
+      return undefined;
+    }
+  }
+
+  /**
+   * Cria uma função inline via CreatableMultiCombobox e retorna seu UUID.
+   *
+   * @param input - Nome digitado pelo usuário.
+   * @returns UUID da função criada ou `undefined` em caso de falha.
+   */
+  async function handleCreateFuncao(input: string): Promise<string | undefined> {
+    try {
+      const result = await createFuncaoMutation.mutateAsync({ nome: input });
+      return result.funcao.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar função";
       toast.error(message);
       return undefined;
     }
@@ -293,7 +350,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateTonalidade}
                         placeholder="Selecione uma tonalidade"
                         searchPlaceholder="Buscar tonalidade..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={tonLoading}
                       />
                     </FormControl>
@@ -317,7 +373,6 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         onCreate={handleCreateArtista}
                         placeholder="Selecione um artista"
                         searchPlaceholder="Buscar artista..."
-                        createLabel={(input) => `Criar "${input}"`}
                         isLoading={artLoading}
                         disabled={isEditing && !!versaoDefault}
                       />
@@ -397,6 +452,52 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                         type="url"
                         placeholder="https://..."
                         {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Categorias (CreatableMultiCombobox) */}
+              <FormField
+                control={form.control}
+                name="categoria_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categorias</FormLabel>
+                    <FormControl>
+                      <CreatableMultiCombobox
+                        options={categoriaOptions}
+                        value={field.value ?? []}
+                        onValueChange={field.onChange}
+                        onCreate={handleCreateCategoria}
+                        placeholder="Selecione categorias"
+                        searchPlaceholder="Buscar categoria..."
+                        isLoading={catLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Funções Requeridas (CreatableMultiCombobox) */}
+              <FormField
+                control={form.control}
+                name="funcao_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Funções Requeridas</FormLabel>
+                    <FormControl>
+                      <CreatableMultiCombobox
+                        options={funcaoOptions}
+                        value={field.value ?? []}
+                        onValueChange={field.onChange}
+                        onCreate={handleCreateFuncao}
+                        placeholder="Selecione funções"
+                        searchPlaceholder="Buscar função..."
+                        isLoading={funLoading}
                       />
                     </FormControl>
                     <FormMessage />
