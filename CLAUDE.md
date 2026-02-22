@@ -1,4 +1,4 @@
-# LouvorFlow — Padrão de Arquitetura
+﻿# LouvorFlow — Padrão de Arquitetura
 
 ## Visão Geral
 
