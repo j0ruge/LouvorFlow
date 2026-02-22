@@ -22,6 +22,8 @@ interface UseFormDraftReturn {
   saveDraft: (data: CreateMusicaCompleteForm) => void;
   /** Remove o rascunho do localStorage e limpa o estado. */
   clearDraft: () => void;
+  /** Remove o rascunho apenas do localStorage, sem alterar o estado do hook. */
+  clearStorage: () => void;
 }
 
 /**
@@ -39,15 +41,31 @@ function hasContent(data: CreateMusicaCompleteForm): boolean {
 }
 
 /**
- * Tenta ler e parsear o rascunho salvo no localStorage.
+ * Verifica em tempo de execução se o objeto possui a estrutura mínima
+ * esperada de um rascunho `CreateMusicaCompleteForm`.
  *
- * @returns Dados do rascunho ou `null` se não existir ou estiver corrompido.
+ * @param obj - Valor desconhecido vindo do JSON.parse.
+ * @returns `true` se o objeto possui os campos obrigatórios com tipos corretos.
+ */
+function isValidDraftShape(obj: unknown): obj is CreateMusicaCompleteForm {
+  if (typeof obj !== "object" || obj === null) return false;
+  const record = obj as Record<string, unknown>;
+  return typeof record.nome === "string";
+}
+
+/**
+ * Tenta ler e parsear o rascunho salvo no localStorage.
+ * Valida a estrutura do objeto parseado antes de retorná-lo.
+ *
+ * @returns Dados do rascunho ou `null` se não existir, estiver corrompido ou com formato inválido.
  */
 function readDraft(): CreateMusicaCompleteForm | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as CreateMusicaCompleteForm;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidDraftShape(parsed)) return null;
+    return parsed;
   } catch {
     return null;
   }
@@ -92,10 +110,24 @@ export function useFormDraft(): UseFormDraftReturn {
     setDraft(null);
   }, []);
 
+  /**
+   * Remove o rascunho apenas do localStorage, sem alterar o estado do hook.
+   * Útil quando o rascunho já foi aplicado ao formulário e queremos apenas
+   * evitar que seja oferecido novamente em aberturas futuras.
+   */
+  const clearStorage = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // localStorage indisponível — falha silenciosa
+    }
+  }, []);
+
   return {
     draft,
     hasDraft: draft !== null,
     saveDraft,
     clearDraft,
+    clearStorage,
   };
 }
