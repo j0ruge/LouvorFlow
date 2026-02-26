@@ -54,12 +54,16 @@ Regras específicas de cada camada estão em `.claude/rules/`:
 
 - **OBRIGATÓRIO**: Todo bloco de código cercado (fenced code block) deve ter o identificador de linguagem após os três backticks de abertura. Exemplo: ` ```typescript `, ` ```json `, ` ```text `. Nunca usar ` ``` ` sem especificar a linguagem — isso viola a regra MD040 (fenced-code-language) do markdown-lint.
 
-## Manutenção de Documentação
-
+<CRITICAL>  
 **OBRIGATÓRIO**: Toda mudança de código deve ser acompanhada por atualização de documentação relevante.
 
 - Docstrings em português em todo código novo ou modificado.
 - Ao final de cada tarefa: revisar se toda documentação está sincronizada.
+- Se mudar qualquer coisa nos dados de API o @src\backend\docs\openapi.json deve ser atualizado. 
+
+A task não pode ser considerada completa enquanto essa documentação e rules não estiverem atualizadas. 
+
+</CRITICAL>
 
 ## Integração com Ferramentas
 

@@ -18,14 +18,18 @@ vi.mock('bcryptjs', () => ({
 const { default: integrantesService } = await import('../../src/services/integrantes.service.js');
 const bcrypt = (await import('bcryptjs')).default;
 
+/** Testes unitários do serviço de integrantes. */
 describe('IntegrantesService', () => {
+  /** Reseta dados e mocks antes de cada teste. */
   beforeEach(() => {
     fakeRepo.reset();
     vi.clearAllMocks();
   });
 
   // ─── listAll ─────────────────────────────────────────
+  /** Testes do método listAll. */
   describe('listAll', () => {
+    /** Verifica que a listagem retorna integrantes com funções mapeadas e sem senha. */
     it('deve retornar integrantes com funções mapeadas', async () => {
       const result = await integrantesService.listAll();
       expect(result).toHaveLength(MOCK_INTEGRANTES.length);
@@ -36,13 +40,16 @@ describe('IntegrantesService', () => {
   });
 
   // ─── getById ─────────────────────────────────────────
+  /** Testes do método getById. */
   describe('getById', () => {
+    /** Verifica que retorna integrante com funções quando ID é válido. */
     it('deve retornar um integrante com funções pelo id', async () => {
       const result = await integrantesService.getById(MOCK_INTEGRANTES[0].id);
       expect(result).toHaveProperty('funcoes');
       expect(result.Integrantes_Funcoes).toBeUndefined();
     });
 
+    /** Verifica que ID vazio lança AppError 400. */
     it('deve lançar AppError 400 quando id não é enviado', async () => {
       await expect(integrantesService.getById('')).rejects.toMatchObject({
         statusCode: 400,
@@ -50,6 +57,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que ID inexistente lança AppError 404. */
     it('deve lançar AppError 404 quando integrante não existe', async () => {
       await expect(integrantesService.getById(NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
@@ -59,11 +67,12 @@ describe('IntegrantesService', () => {
   });
 
   // ─── create ──────────────────────────────────────────
+  /** Testes do método create. */
   describe('create', () => {
+    /** Verifica que integrante é criado com senha hasheada e sem campo senha no retorno. */
     it('deve criar integrante com senha hasheada e sem campo senha no retorno', async () => {
       const result = await integrantesService.create({
         nome: 'Novo Integrante',
-        doc_id: '55566677788',
         email: 'novo@igreja.com',
         senha: 'senha123',
         telefone: '11999990099',
@@ -74,16 +83,7 @@ describe('IntegrantesService', () => {
       expect(bcrypt.hash).toHaveBeenCalledWith('senha123', 12);
     });
 
-    it('deve normalizar doc_id removendo caracteres não numéricos', async () => {
-      const result = await integrantesService.create({
-        nome: 'Teste CPF',
-        doc_id: '555.666.777-88',
-        email: 'teste@igreja.com',
-        senha: 'senha123',
-      });
-      expect(result.doc_id).toBe('55566677788');
-    });
-
+    /** Verifica que dados obrigatórios ausentes lançam AppError 400. */
     it('deve lançar AppError 400 quando dados obrigatórios não são enviados', async () => {
       await expect(integrantesService.create({})).rejects.toMatchObject({
         statusCode: 400,
@@ -91,27 +91,30 @@ describe('IntegrantesService', () => {
       });
     });
 
-    it('deve lançar AppError 409 quando doc_id é duplicado', async () => {
+    /** Verifica que email duplicado no create lança AppError 409. */
+    it('deve lançar AppError 409 quando email é duplicado', async () => {
       await expect(integrantesService.create({
         nome: 'Outro',
-        doc_id: MOCK_INTEGRANTES[0].doc_id,
-        email: 'outro@igreja.com',
+        email: MOCK_INTEGRANTES[0].email,
         senha: 'senha123',
       })).rejects.toMatchObject({
         statusCode: 409,
-        message: 'Já existe um integrante com esse doc_id',
+        message: 'Já existe um integrante com esse email',
       });
     });
   });
 
   // ─── update ──────────────────────────────────────────
+  /** Testes do método update. */
   describe('update', () => {
+    /** Verifica que atualização com dados válidos retorna integrante atualizado. */
     it('deve atualizar integrante com dados válidos', async () => {
       const result = await integrantesService.update(MOCK_INTEGRANTES[0].id, { nome: 'Nome Atualizado' });
       expect(result.nome).toBe('Nome Atualizado');
       expect(result).not.toHaveProperty('senha');
     });
 
+    /** Verifica que ID vazio no update lança AppError 400. */
     it('deve lançar AppError 400 quando id não é enviado', async () => {
       await expect(integrantesService.update('', { nome: 'X' })).rejects.toMatchObject({
         statusCode: 400,
@@ -119,6 +122,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que ID inexistente no update lança AppError 404. */
     it('deve lançar AppError 404 quando integrante não existe', async () => {
       await expect(integrantesService.update(NON_EXISTENT_ID, { nome: 'X' })).rejects.toMatchObject({
         statusCode: 404,
@@ -126,6 +130,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que body vazio no update lança AppError 400. */
     it('deve lançar AppError 400 quando nenhum dado é enviado', async () => {
       await expect(integrantesService.update(MOCK_INTEGRANTES[0].id, {})).rejects.toMatchObject({
         statusCode: 400,
@@ -133,15 +138,17 @@ describe('IntegrantesService', () => {
       });
     });
 
-    it('deve lançar AppError 409 quando doc_id duplicado no update', async () => {
+    /** Verifica que email duplicado no update lança AppError 409. */
+    it('deve lançar AppError 409 quando email duplicado no update', async () => {
       await expect(integrantesService.update(MOCK_INTEGRANTES[0].id, {
-        doc_id: MOCK_INTEGRANTES[1].doc_id,
+        email: MOCK_INTEGRANTES[1].email,
       })).rejects.toMatchObject({
         statusCode: 409,
-        message: 'Já existe um integrante com esse doc_id',
+        message: 'Já existe um integrante com esse email',
       });
     });
 
+    /** Verifica que nova senha é hasheada corretamente no update. */
     it('deve hashear nova senha no update', async () => {
       await integrantesService.update(MOCK_INTEGRANTES[0].id, { senha: 'novaSenha' });
       expect(bcrypt.hash).toHaveBeenCalledWith('novaSenha', 12);
@@ -149,13 +156,16 @@ describe('IntegrantesService', () => {
   });
 
   // ─── delete ──────────────────────────────────────────
+  /** Testes do método delete. */
   describe('delete', () => {
+    /** Verifica que integrante existente é removido e retornado sem senha. */
     it('deve remover um integrante existente', async () => {
       const result = await integrantesService.delete(MOCK_INTEGRANTES[0].id);
       expect(result).toHaveProperty('id', MOCK_INTEGRANTES[0].id);
       expect(result).not.toHaveProperty('senha');
     });
 
+    /** Verifica que ID vazio no delete lança AppError 400. */
     it('deve lançar AppError 400 quando id não é enviado', async () => {
       await expect(integrantesService.delete('')).rejects.toMatchObject({
         statusCode: 400,
@@ -163,6 +173,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que ID inexistente no delete lança AppError 404. */
     it('deve lançar AppError 404 quando integrante não existe', async () => {
       await expect(integrantesService.delete(NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
@@ -172,7 +183,9 @@ describe('IntegrantesService', () => {
   });
 
   // ─── listFuncoes ─────────────────────────────────────
+  /** Testes do método listFuncoes. */
   describe('listFuncoes', () => {
+    /** Verifica que retorna lista de funções com id e nome. */
     it('deve retornar funções mapeadas do integrante', async () => {
       const result = await integrantesService.listFuncoes(MOCK_INTEGRANTES[0].id);
       expect(result.length).toBeGreaterThan(0);
@@ -182,13 +195,16 @@ describe('IntegrantesService', () => {
   });
 
   // ─── addFuncao ───────────────────────────────────────
+  /** Testes do método addFuncao. */
   describe('addFuncao', () => {
+    /** Verifica que vinculação de função ao integrante resolve sem erro. */
     it('deve vincular uma função ao integrante', async () => {
       const integranteId = MOCK_INTEGRANTES[2].id;
       const funcaoId = MOCK_FUNCOES[0].id;
       await expect(integrantesService.addFuncao(integranteId, funcaoId)).resolves.toBeUndefined();
     });
 
+    /** Verifica que funcao_id ausente lança AppError 400. */
     it('deve lançar AppError 400 quando funcao_id não é enviado', async () => {
       await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, undefined)).rejects.toMatchObject({
         statusCode: 400,
@@ -196,6 +212,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que integrante inexistente no addFuncao lança AppError 404. */
     it('deve lançar AppError 404 quando integrante não existe', async () => {
       await expect(integrantesService.addFuncao(NON_EXISTENT_ID, MOCK_FUNCOES[0].id)).rejects.toMatchObject({
         statusCode: 404,
@@ -203,6 +220,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que função inexistente no addFuncao lança AppError 404. */
     it('deve lançar AppError 404 quando função não existe', async () => {
       await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
@@ -210,6 +228,7 @@ describe('IntegrantesService', () => {
       });
     });
 
+    /** Verifica que vínculo duplicado lança AppError 409. */
     it('deve lançar AppError 409 quando relação já existe', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
       await expect(integrantesService.addFuncao(existing.fk_integrante_id, existing.funcao_id)).rejects.toMatchObject({
@@ -220,12 +239,15 @@ describe('IntegrantesService', () => {
   });
 
   // ─── removeFuncao ────────────────────────────────────
+  /** Testes do método removeFuncao. */
   describe('removeFuncao', () => {
+    /** Verifica que remoção de vínculo existente resolve sem erro. */
     it('deve remover uma função vinculada ao integrante', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
       await expect(integrantesService.removeFuncao(existing.fk_integrante_id, existing.funcao_id)).resolves.toBeUndefined();
     });
 
+    /** Verifica que remoção de vínculo inexistente lança AppError 404. */
     it('deve lançar AppError 404 quando registro não existe', async () => {
       await expect(integrantesService.removeFuncao(MOCK_INTEGRANTES[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,

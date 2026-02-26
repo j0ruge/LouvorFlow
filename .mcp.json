@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "postgres": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "@modelcontextprotocol/server-postgres",
         "postgresql://admin:admin@localhost:35432/louvorflow"
