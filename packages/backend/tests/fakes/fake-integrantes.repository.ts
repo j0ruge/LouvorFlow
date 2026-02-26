@@ -6,10 +6,10 @@ export function createFakeIntegrantesRepository() {
   let data = MOCK_INTEGRANTES.map(i => ({ ...i }));
   let funcoes = MOCK_INTEGRANTES_FUNCOES.map(f => ({ ...f }));
 
+  /** Constrói representação de integrante com funções associadas (simula select com join). */
   const buildWithFuncoes = (integrante: typeof data[0]) => ({
     id: integrante.id,
     nome: integrante.nome,
-    doc_id: integrante.doc_id,
     email: integrante.email,
     telefone: integrante.telefone,
     Integrantes_Funcoes: funcoes
@@ -22,10 +22,10 @@ export function createFakeIntegrantesRepository() {
       }),
   });
 
+  /** Constrói representação pública de integrante (sem senha). */
   const buildPublic = (integrante: typeof data[0]) => ({
     id: integrante.id,
     nome: integrante.nome,
-    doc_id: integrante.doc_id,
     email: integrante.email,
     telefone: integrante.telefone,
   });
@@ -45,12 +45,25 @@ export function createFakeIntegrantesRepository() {
       return integrante ? buildPublic(integrante) : null;
     },
 
-    findByDocId: async (doc_id: string) => data.find(i => i.doc_id === doc_id) ?? null,
+    /**
+     * Busca um integrante pelo email no array em memória.
+     *
+     * @param email - Email a buscar
+     * @returns Integrante encontrado ou `null`
+     */
+    findByEmail: async (email: string) => data.find(i => i.email === email) ?? null,
 
-    findByDocIdExcludingId: async (doc_id: string, excludeId: string) =>
-      data.find(i => i.doc_id === doc_id && i.id !== excludeId) ?? null,
+    /**
+     * Busca um integrante pelo email, excluindo um ID específico.
+     *
+     * @param email - Email a verificar
+     * @param excludeId - ID do integrante a excluir da busca
+     * @returns Integrante encontrado ou `null`
+     */
+    findByEmailExcludingId: async (email: string, excludeId: string) =>
+      data.find(i => i.email === email && i.id !== excludeId) ?? null,
 
-    create: async (input: { nome: string; doc_id: string; email: string; senha: string; telefone: string | null }) => {
+    create: async (input: { nome: string; email: string; senha: string; telefone: string | null }) => {
       const integrante = { id: randomUUID(), ...input };
       data.push(integrante);
       return buildPublic(integrante);

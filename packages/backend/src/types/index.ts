@@ -101,10 +101,50 @@ export interface IdTom {
     tom: string;
 }
 
+/**
+ * Dados de entrada para criação de integrante.
+ *
+ * @property nome - Nome do integrante (obrigatório)
+ * @property email - Email do integrante (obrigatório, único)
+ * @property senha - Senha em texto plano (será hasheada antes de persistir)
+ * @property telefone - Telefone de contato (opcional)
+ */
+export interface CreateIntegranteInput {
+    nome?: string;
+    email?: string;
+    senha?: string;
+    telefone?: string;
+}
+
+/**
+ * Dados de entrada para atualização de integrante.
+ * Todos os campos são opcionais — apenas os enviados serão atualizados.
+ *
+ * @property nome - Novo nome do integrante
+ * @property email - Novo email (verificado contra duplicidade)
+ * @property senha - Nova senha (será hasheada antes de persistir)
+ * @property telefone - Novo telefone de contato
+ */
+export interface UpdateIntegranteInput {
+    nome?: string;
+    email?: string;
+    senha?: string;
+    telefone?: string;
+}
+
+/**
+ * Representação de um integrante com suas funções, retornada pelo Prisma
+ * antes da transformação para a API.
+ *
+ * @property id - Identificador único (UUID)
+ * @property nome - Nome do integrante
+ * @property email - Email do integrante
+ * @property telefone - Telefone de contato ou `null`
+ * @property Integrantes_Funcoes - Funções vinculadas via tabela intermediária
+ */
 export interface IntegranteWithFuncoes {
     id: string;
     nome: string;
-    doc_id: string;
     email: string;
     telefone: string | null;
     Integrantes_Funcoes: {
@@ -219,7 +259,6 @@ export interface EventoShowRaw {
 export const INTEGRANTE_PUBLIC_SELECT = {
     id: true,
     nome: true,
-    doc_id: true,
     email: true,
     telefone: true
 } as const;

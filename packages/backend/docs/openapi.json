@@ -740,7 +740,6 @@
                   {
                     "id": "11111111-aaaa-4000-8000-000000000001",
                     "nome": "João Silva",
-                    "doc_id": "12345678901",
                     "email": "joao.silva@email.com",
                     "telefone": "5521999990001",
                     "funcoes": [
@@ -751,7 +750,6 @@
                   {
                     "id": "11111111-aaaa-4000-8000-000000000002",
                     "nome": "Maria Oliveira",
-                    "doc_id": "98765432100",
                     "email": "maria.oliveira@email.com",
                     "telefone": "5521999990002",
                     "funcoes": [
@@ -761,7 +759,6 @@
                   {
                     "id": "11111111-aaaa-4000-8000-000000000003",
                     "nome": "Pedro Santos",
-                    "doc_id": "45678912300",
                     "email": "pedro.santos@email.com",
                     "telefone": null,
                     "funcoes": [
@@ -778,7 +775,7 @@
       },
       "post": {
         "summary": "Cadastrar integrante",
-        "description": "Cria um novo integrante. O doc_id e email devem ser únicos. A senha é armazenada com hash bcrypt.",
+        "description": "Cria um novo integrante. O email deve ser único. A senha é armazenada com hash bcrypt.",
         "tags": ["Integrantes"],
         "requestBody": {
           "required": true,
@@ -787,7 +784,6 @@
               "schema": { "$ref": "#/components/schemas/IntegranteInput" },
               "example": {
                 "nome": "Ana Costa",
-                "doc_id": "11122233344",
                 "email": "ana.costa@email.com",
                 "senha": "minhasenha123",
                 "telefone": "5511988887777"
@@ -806,7 +802,6 @@
                   "integrante": {
                     "id": "11111111-aaaa-4000-8000-000000000004",
                     "nome": "Ana Costa",
-                    "doc_id": "11122233344",
                     "email": "ana.costa@email.com",
                     "telefone": "5511988887777"
                   }
@@ -835,7 +830,6 @@
                 "example": {
                   "id": "11111111-aaaa-4000-8000-000000000001",
                   "nome": "João Silva",
-                  "doc_id": "12345678901",
                   "email": "joao.silva@email.com",
                   "telefone": "5521999990001",
                   "funcoes": [
@@ -875,7 +869,6 @@
                   "integrante": {
                     "id": "11111111-aaaa-4000-8000-000000000001",
                     "nome": "João Silva",
-                    "doc_id": "12345678901",
                     "email": "joao.silva@email.com",
                     "telefone": "5521992668056"
                   }
@@ -905,7 +898,6 @@
                   "integrante": {
                     "id": "11111111-aaaa-4000-8000-000000000001",
                     "nome": "João Silva",
-                    "doc_id": "12345678901",
                     "email": "joao.silva@email.com",
                     "telefone": "5521999990001"
                   }
@@ -2077,7 +2069,6 @@
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "nome": { "type": "string" },
-          "doc_id": { "type": "string" },
           "email": { "type": "string", "format": "email" },
           "telefone": { "type": "string", "nullable": true },
           "funcoes": {
@@ -2085,24 +2076,22 @@
             "items": { "$ref": "#/components/schemas/IdNome" }
           }
         },
-        "required": ["id", "nome", "doc_id", "email", "funcoes"]
+        "required": ["id", "nome", "email", "funcoes"]
       },
       "IntegranteInput": {
         "type": "object",
         "properties": {
           "nome": { "type": "string", "minLength": 1 },
-          "doc_id": { "type": "string", "minLength": 1 },
           "email": { "type": "string", "format": "email" },
           "senha": { "type": "string", "minLength": 1 },
           "telefone": { "type": "string", "nullable": true }
         },
-        "required": ["nome", "doc_id", "email", "senha"]
+        "required": ["nome", "email", "senha"]
       },
       "IntegranteUpdateInput": {
         "type": "object",
         "properties": {
           "nome": { "type": "string" },
-          "doc_id": { "type": "string" },
           "email": { "type": "string", "format": "email" },
           "senha": { "type": "string" },
           "telefone": { "type": "string", "nullable": true }
@@ -2117,7 +2106,6 @@
             "properties": {
               "id": { "type": "string", "format": "uuid" },
               "nome": { "type": "string" },
-              "doc_id": { "type": "string" },
               "email": { "type": "string", "format": "email" },
               "telefone": { "type": "string", "nullable": true }
             }

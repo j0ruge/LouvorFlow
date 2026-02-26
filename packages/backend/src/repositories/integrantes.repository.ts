@@ -3,6 +3,11 @@ import prisma from '../../prisma/cliente.js';
 import { INTEGRANTE_PUBLIC_SELECT } from '../types/index.js';
 
 class IntegrantesRepository {
+    /**
+     * Lista todos os integrantes com suas funções associadas.
+     *
+     * @returns Lista de integrantes com seleção pública e funções aninhadas
+     */
     async findAll() {
         return prisma.integrantes.findMany({
             select: {
@@ -18,6 +23,12 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Busca um integrante pelo ID, incluindo funções associadas.
+     *
+     * @param id - UUID do integrante
+     * @returns Integrante com funções ou `null` se não encontrado
+     */
     async findById(id: string) {
         return prisma.integrantes.findUnique({
             where: { id },
@@ -34,18 +45,44 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Busca um integrante pelo ID sem selecionar relações.
+     *
+     * @param id - UUID do integrante
+     * @returns Registro completo do integrante ou `null`
+     */
     async findByIdSimple(id: string) {
         return prisma.integrantes.findUnique({ where: { id } });
     }
 
-    async findByDocId(doc_id: string) {
-        return prisma.integrantes.findUnique({ where: { doc_id } });
+    /**
+     * Busca um integrante pelo email.
+     *
+     * @param email - Email do integrante a buscar
+     * @returns Integrante encontrado ou `null`
+     */
+    async findByEmail(email: string) {
+        return prisma.integrantes.findUnique({ where: { email } });
     }
 
-    async findByDocIdExcludingId(doc_id: string, excludeId: string) {
-        return prisma.integrantes.findFirst({ where: { doc_id, NOT: { id: excludeId } } });
+    /**
+     * Busca um integrante pelo email, excluindo um ID específico.
+     * Utilizado para validação de unicidade em operações de atualização.
+     *
+     * @param email - Email a verificar
+     * @param excludeId - ID do integrante a excluir da busca
+     * @returns Integrante encontrado ou `null`
+     */
+    async findByEmailExcludingId(email: string, excludeId: string) {
+        return prisma.integrantes.findFirst({ where: { email, NOT: { id: excludeId } } });
     }
 
+    /**
+     * Cria um novo integrante no banco de dados.
+     *
+     * @param data - Dados de criação conforme Prisma
+     * @returns Integrante criado com seleção pública (sem senha)
+     */
     async create(data: Prisma.IntegrantesCreateInput) {
         return prisma.integrantes.create({
             data,
@@ -53,6 +90,13 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Atualiza os dados de um integrante existente.
+     *
+     * @param id - UUID do integrante a atualizar
+     * @param data - Campos a atualizar conforme Prisma
+     * @returns Integrante atualizado com seleção pública (sem senha)
+     */
     async update(id: string, data: Prisma.IntegrantesUpdateInput) {
         return prisma.integrantes.update({
             where: { id },
@@ -61,10 +105,22 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Remove um integrante pelo ID.
+     *
+     * @param id - UUID do integrante a remover
+     * @returns Registro removido
+     */
     async delete(id: string) {
         return prisma.integrantes.delete({ where: { id } });
     }
 
+    /**
+     * Busca um integrante pelo ID com seleção pública (sem senha).
+     *
+     * @param id - UUID do integrante
+     * @returns Integrante com campos públicos ou `null`
+     */
     async findByIdPublic(id: string) {
         return prisma.integrantes.findUnique({
             where: { id },
@@ -120,10 +176,22 @@ class IntegrantesRepository {
         });
     }
 
+    /**
+     * Remove a associação entre integrante e função pelo ID do registro.
+     *
+     * @param id - UUID do registro de associação
+     * @returns Registro removido
+     */
     async deleteIntegranteFuncao(id: string) {
         return prisma.integrantes_Funcoes.delete({ where: { id } });
     }
 
+    /**
+     * Busca uma função pelo ID.
+     *
+     * @param funcao_id - UUID da função
+     * @returns Função encontrada ou `null`
+     */
     async findFuncaoById(funcao_id: string) {
         return prisma.funcoes.findUnique({ where: { id: funcao_id } });
     }
