@@ -1,0 +1,209 @@
+# API Contract: Integrantes (após remoção de doc_id)
+# Branch: 012-remove-documento-integrante
+# Date: 2026-02-25
+
+openapi: 3.0.3
+info:
+  title: LouvorFlow — Integrantes API
+  version: 2.0.0
+  description: Contrato atualizado após remoção do campo doc_id
+
+paths:
+  /api/integrantes:
+    get:
+      summary: Listar todos os integrantes
+      responses:
+        '200':
+          description: Lista de integrantes com funções
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegranteComFuncoes'
+
+    post:
+      summary: Criar novo integrante
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntegrante'
+      responses:
+        '201':
+          description: Integrante criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegranteResponse'
+        '400':
+          description: Campos obrigatórios ausentes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email já cadastrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/integrantes/{id}:
+    get:
+      summary: Buscar integrante por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Integrante encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegranteComFuncoes'
+        '404':
+          description: Integrante não encontrado
+
+    put:
+      summary: Atualizar integrante
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIntegrante'
+      responses:
+        '200':
+          description: Integrante atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegranteResponse'
+        '409':
+          description: Email já cadastrado por outro integrante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Remover integrante
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Integrante removido
+
+components:
+  schemas:
+    IntegranteComFuncoes:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        telefone:
+          type: string
+          nullable: true
+        funcoes:
+          type: array
+          items:
+            $ref: '#/components/schemas/IdNome'
+      required: [id, nome, email, funcoes]
+      description: >
+        Campo doc_id REMOVIDO nesta versão.
+        Email é o identificador único para login.
+
+    IntegranteResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        telefone:
+          type: string
+          nullable: true
+      required: [id, nome, email]
+
+    CreateIntegrante:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        senha:
+          type: string
+          minLength: 6
+        telefone:
+          type: string
+      required: [nome, email, senha]
+      description: >
+        Campo doc_id REMOVIDO — não enviar no payload.
+
+    UpdateIntegrante:
+      type: object
+      properties:
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+        senha:
+          type: string
+          minLength: 6
+        telefone:
+          type: string
+      description: >
+        Todos os campos são opcionais no update.
+        Campo doc_id REMOVIDO — não enviar no payload.
+
+    IdNome:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+      required: [id, nome]
+
+    ErrorResponse:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+      required: [errors]

@@ -82,7 +82,6 @@ export function IntegranteForm({
     ),
     defaultValues: {
       nome: "",
-      doc_id: "",
       email: "",
       senha: "",
       telefone: "",
@@ -118,7 +117,6 @@ export function IntegranteForm({
       if (isEditing && integrante) {
         form.reset({
           nome: integrante.nome,
-          doc_id: integrante.doc_id,
           email: integrante.email,
           senha: "",
           telefone: integrante.telefone ?? "",
@@ -126,7 +124,6 @@ export function IntegranteForm({
       } else if (!isEditing) {
         form.reset({
           nome: "",
-          doc_id: "",
           email: "",
           senha: "",
           telefone: "",
@@ -216,19 +213,6 @@ export function IntegranteForm({
                     <FormLabel>Nome</FormLabel>
                     <FormControl>
                       <Input placeholder="Nome completo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="doc_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Documento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="CPF ou RG" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

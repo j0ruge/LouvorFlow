@@ -48,7 +48,6 @@ export const MOCK_INTEGRANTES = [
   {
     id: 'fff00001-0000-0000-0000-000000000001',
     nome: 'João Silva',
-    doc_id: '12345678900',
     email: 'joao@igreja.com',
     senha: 'hashed_password_1',
     telefone: '11999990001',
@@ -56,7 +55,6 @@ export const MOCK_INTEGRANTES = [
   {
     id: 'fff00001-0000-0000-0000-000000000002',
     nome: 'Maria Santos',
-    doc_id: '98765432100',
     email: 'maria@igreja.com',
     senha: 'hashed_password_2',
     telefone: null,
@@ -64,7 +62,6 @@ export const MOCK_INTEGRANTES = [
   {
     id: 'fff00001-0000-0000-0000-000000000003',
     nome: 'Pedro Oliveira',
-    doc_id: '11122233344',
     email: 'pedro@igreja.com',
     senha: 'hashed_password_3',
     telefone: '11999990003',

@@ -139,7 +139,6 @@ model Musicas_Categorias {
 model Integrantes {
   id                  String                @id @default(uuid()) @db.Uuid
   nome                String
-  doc_id              String                @unique
   email               String                @unique @db.VarChar(255)
   senha               String                @db.VarChar(255)
   telefone            String?               @db.VarChar(20)

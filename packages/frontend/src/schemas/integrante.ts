@@ -12,7 +12,6 @@ import { IdNomeSchema } from "@/schemas/shared";
 export const IntegranteComFuncoesSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
-  doc_id: z.string(),
   email: z.string().email(),
   telefone: z.string().nullable(),
   funcoes: z.array(IdNomeSchema),
@@ -27,7 +26,6 @@ export const IntegranteResponseSchema = z.object({
   integrante: z.object({
     id: z.string().uuid(),
     nome: z.string(),
-    doc_id: z.string(),
     email: z.string().email(),
     telefone: z.string().nullable(),
   }),
@@ -39,7 +37,6 @@ export type IntegranteResponse = z.infer<typeof IntegranteResponseSchema>;
 /** Schema de validação do formulário de criação de integrante. */
 export const CreateIntegranteFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  doc_id: z.string().min(1, "Documento é obrigatório"),
   email: z.string().email("E-mail inválido"),
   senha: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
   telefone: z.string().optional(),
@@ -51,7 +48,6 @@ export type CreateIntegranteForm = z.infer<typeof CreateIntegranteFormSchema>;
 /** Schema de validação do formulário de edição de integrante (senha opcional). */
 export const UpdateIntegranteFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  doc_id: z.string().min(1, "Documento é obrigatório"),
   email: z.string().email("E-mail inválido"),
   senha: z
     .string()
