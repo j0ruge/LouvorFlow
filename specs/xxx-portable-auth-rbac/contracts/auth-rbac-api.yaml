@@ -1,0 +1,564 @@
+openapi: 3.0.3
+info:
+  title: Portable Auth & RBAC API
+  description: |
+    Technology-agnostic REST API contract for authentication, session management,
+    and role-based access control. Derived from warehouse_explorer_api reference
+    implementation, abstracted for portability.
+  version: 1.0.0
+
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: http://localhost:3333
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+          enum: [error]
+        message:
+          type: string
+      example:
+        status: error
+        message: "Incorrect email/password combination"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatar:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserACL:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+          description: Short-lived JWT access token
+        refresh_token:
+          type: string
+          description: Long-lived JWT refresh token
+
+paths:
+  /sessions:
+    post:
+      tags: [Sessions]
+      summary: Login (authenticate user)
+      description: Validate credentials and return access token + refresh token + user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Invalid credentials or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/refresh-token:
+    post:
+      tags: [Sessions]
+      summary: Refresh access token
+      description: |
+        Exchange a valid refresh token for a new access token and new refresh token (token rotation).
+        The refresh token can be provided via request body, `x-access-token` header, or query parameter `token`.
+        The server checks these sources in order: body → header → query.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Current refresh token
+      parameters:
+        - name: x-access-token
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Alternative source for refresh token
+        - name: token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Alternative source for refresh token
+      responses:
+        "200":
+          description: New token pair issued (old refresh token invalidated)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: New short-lived JWT access token
+                  refresh_token:
+                    type: string
+                    description: New long-lived JWT refresh token
+        "400":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/logout:
+    post:
+      tags: [Sessions]
+      summary: Logout (revoke all sessions)
+      description: Delete all refresh tokens for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Logout successful, all refresh tokens deleted
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    post:
+      tags: [Users]
+      summary: Create user
+      description: Register a new user (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Email already used or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /users/acl/{userId}:
+    post:
+      tags: [Users]
+      summary: Assign ACL to user
+      description: Assign roles and direct permissions to a user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles, permissions]
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: ACL updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: User, role, or permission not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags: [Users]
+      summary: List user ACL
+      description: Get a user's full access control list — roles and permissions (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User ACL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserACL"
+        "400":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /roles:
+    post:
+      tags: [Roles]
+      summary: Create role
+      description: Create a new role (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "400":
+          description: Role already exists or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /roles/{roleId}:
+    post:
+      tags: [Roles]
+      summary: Assign permissions to role
+      description: Set the permissions for a role (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        "200":
+          description: Permissions assigned to role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        "400":
+          description: Role or permissions not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /permissions:
+    post:
+      tags: [Permissions]
+      summary: Create permission
+      description: Create a new permission (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Permission created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Permission"
+        "400":
+          description: Permission already exists or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /password/forgot:
+    post:
+      tags: [Password]
+      summary: Request password recovery
+      description: Generate recovery token and send reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "204":
+          description: |
+            Request accepted. If the email is registered, a recovery email is sent.
+            The response is ALWAYS 204 regardless of whether the email exists,
+            to prevent email enumeration (FR-021).
+
+  /password/reset:
+    post:
+      tags: [Password]
+      summary: Reset password
+      description: Reset password using a valid recovery token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password, password_confirmation]
+              properties:
+                token:
+                  type: string
+                  format: uuid
+                password:
+                  type: string
+                password_confirmation:
+                  type: string
+      responses:
+        "204":
+          description: Password reset successful
+        "400":
+          description: Invalid/expired token or validation error
+
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Show profile
+      description: Get the authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+    put:
+      tags: [Profile]
+      summary: Update profile
+      description: Update the authenticated user's name, email, or password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                old_password:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Validation error or old password required/incorrect
