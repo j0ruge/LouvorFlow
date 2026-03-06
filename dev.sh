@@ -76,7 +76,17 @@ fi
 log_info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
-# 6 & 7. Iniciar backend e frontend em paralelo
+# 6. Prisma generate + migrate (backend)
+# ---------------------------------------------------------------------------
+log_info "Gerando Prisma Client e aplicando migrations..."
+if ! (cd "${DIR}/packages/backend" && npx prisma generate && npx prisma migrate deploy); then
+  log_error "Falha ao configurar Prisma (generate/migrate)."
+  exit 1
+fi
+log_info "Prisma Client gerado e migrations aplicadas."
+
+# ---------------------------------------------------------------------------
+# 7 & 8. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 BACK_PID=""
 FRONT_PID=""
@@ -91,7 +101,7 @@ cleanup() {
 }
 
 # ---------------------------------------------------------------------------
-# 8. Trap SIGINT/SIGTERM para matar processos filhos
+# 9. Trap SIGINT/SIGTERM para matar processos filhos
 # ---------------------------------------------------------------------------
 trap cleanup EXIT
 
@@ -113,6 +123,6 @@ log_info "========================================="
 echo ""
 
 # ---------------------------------------------------------------------------
-# 9. Wait nos processos
+# 10. Wait nos processos
 # ---------------------------------------------------------------------------
 wait

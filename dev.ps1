@@ -92,7 +92,25 @@ try {
 Write-Info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
-# 6 & 7. Iniciar backend e frontend em paralelo
+# 6. Prisma generate + migrate (backend)
+# ---------------------------------------------------------------------------
+Write-Info "Gerando Prisma Client e aplicando migrations..."
+Push-Location "$DIR\packages\backend"
+try {
+    npx prisma generate
+    if ($LASTEXITCODE -ne 0) { throw "prisma generate falhou" }
+    npx prisma migrate deploy
+    if ($LASTEXITCODE -ne 0) { throw "prisma migrate deploy falhou" }
+} catch {
+    Write-Erro "Falha ao configurar Prisma (generate/migrate)."
+    exit 1
+} finally {
+    Pop-Location
+}
+Write-Info "Prisma Client gerado e migrations aplicadas."
+
+# ---------------------------------------------------------------------------
+# 7 & 8. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 $backProc  = $null
 $frontProc = $null
@@ -125,7 +143,7 @@ try {
     }
 } finally {
     # ---------------------------------------------------------------------------
-    # 8. Cleanup — encerrar processos filhos
+    # 9. Cleanup — encerrar processos filhos
     # ---------------------------------------------------------------------------
     Write-Host ""
     Write-Warn "Encerrando processos..."
