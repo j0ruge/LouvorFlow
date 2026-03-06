@@ -2,6 +2,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "dev": "bash dev.sh"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2"
   }

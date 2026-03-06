@@ -16,6 +16,7 @@ O **LouvorFlow** é uma aplicação web para organizar escalas de músicas em cu
 - [Funcionalidades](#funcionalidades)
 - [Tecnologias](#tecnologias)
 - [Instalação](#instalação)
+  - [Início Rápido](#início-rápido)
   - [Pré-requisitos](#pré-requisitos)
   - [Banco de Dados](#1-banco-de-dados)
   - [Backend](#2-backend)
@@ -66,6 +67,26 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - [Node.js](https://nodejs.org/) >= 18
 - [Docker](https://www.docker.com/) e Docker Compose
 - [Git](https://git-scm.com/)
+
+### Início Rápido
+
+Os scripts abaixo sobem toda a infraestrutura de desenvolvimento (Docker/PostgreSQL, backend e frontend) com um único comando:
+
+**Linux / macOS:**
+
+```bash
+./dev.sh
+```
+
+**Windows (PowerShell):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File dev.ps1
+```
+
+> **Dica:** Pressione `Ctrl+C` para encerrar todos os processos de uma vez.
+
+Se preferir controle granular sobre cada serviço, siga os passos manuais abaixo.
 
 ### 1. Banco de Dados
 
