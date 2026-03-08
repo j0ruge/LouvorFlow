@@ -28,6 +28,12 @@ class CreateRolePermissionService {
         const foundPermissions =
             await permissionsRepository.findByIds(permissions);
 
+        if (foundPermissions.length !== permissions.length) {
+            const foundPermissionIds = foundPermissions.map((p) => p.id);
+            const notFoundIds = permissions.filter(id => !foundPermissionIds.includes(id));
+            throw new AppError(`Permissions not found: ${notFoundIds.join(', ')}`, 400);
+        }
+
         const foundPermissionIds = foundPermissions.map((p) => p.id);
 
         const updatedRole = await rolesRepository.save(roleId, {
