@@ -33,7 +33,13 @@
     { "name": "Categorias", "description": "Classificações de músicas" },
     { "name": "Tonalidades", "description": "Tons musicais disponíveis" },
     { "name": "Funções", "description": "Funções/instrumentos do ministério" },
-    { "name": "Tipos de Eventos", "description": "Categorias de eventos" }
+    { "name": "Tipos de Eventos", "description": "Categorias de eventos" },
+    { "name": "Sessions", "description": "Autenticação, refresh de token e logout" },
+    { "name": "Users", "description": "Gerenciamento de usuários (admin)" },
+    { "name": "Roles", "description": "Gerenciamento de papéis RBAC (admin)" },
+    { "name": "Permissions", "description": "Gerenciamento de permissões RBAC (admin)" },
+    { "name": "Password", "description": "Recuperação e redefinição de senha" },
+    { "name": "Profile", "description": "Perfil do usuário autenticado" }
   ],
   "paths": {
     "/artistas": {
@@ -1897,6 +1903,334 @@
           "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
+    },
+    "/sessions": {
+      "post": {
+        "summary": "Login — criar sessão",
+        "description": "Autentica o usuário com email e senha, retornando access token, refresh token e dados do usuário.",
+        "tags": ["Sessions"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sessão criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/sessions/refresh-token": {
+      "post": {
+        "summary": "Renovar token de acesso",
+        "description": "Gera um novo par de tokens a partir de um refresh token válido. O refresh token antigo é invalidado (rotação).",
+        "tags": ["Sessions"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshTokenInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens renovados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenPairResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/sessions/logout": {
+      "post": {
+        "summary": "Logout — encerrar sessão",
+        "description": "Remove todos os refresh tokens do usuário autenticado, invalidando a sessão.",
+        "tags": ["Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Logout realizado com sucesso" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "summary": "Criar usuário",
+        "description": "Cria um novo usuário no sistema. Requer papel 'admin'.",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/users/acl/{userId}": {
+      "post": {
+        "summary": "Atribuir ACL ao usuário",
+        "description": "Associa papéis e permissões a um usuário. Requer papel 'admin'.",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserAclInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ACL atribuída com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "get": {
+        "summary": "Consultar ACL do usuário",
+        "description": "Retorna os papéis e permissões de um usuário. Requer papel 'admin'.",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/UserIdParam" }],
+        "responses": {
+          "200": {
+            "description": "ACL retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserAclResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/roles": {
+      "post": {
+        "summary": "Criar papel (role)",
+        "description": "Cria um novo papel no sistema RBAC. Requer papel 'admin'.",
+        "tags": ["Roles"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateRoleInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Papel criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Role" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/roles/{roleId}/permissions": {
+      "post": {
+        "summary": "Atribuir permissões ao papel",
+        "description": "Associa permissões a um papel existente. Requer papel 'admin'.",
+        "tags": ["Roles"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/RoleIdParam" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RolePermissionsInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissões atribuídas com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Role" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/permissions": {
+      "post": {
+        "summary": "Criar permissão",
+        "description": "Cria uma nova permissão no sistema RBAC. Requer papel 'admin'.",
+        "tags": ["Permissions"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePermissionInput" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Permissão criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Permission" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/password/forgot": {
+      "post": {
+        "summary": "Solicitar recuperação de senha",
+        "description": "Envia um e-mail com token de recuperação. Sempre retorna 204 para não revelar existência de contas.",
+        "tags": ["Password"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ForgotPasswordInput" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Solicitação processada (sem revelar se o email existe)" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/password/reset": {
+      "post": {
+        "summary": "Redefinir senha",
+        "description": "Redefine a senha do usuário usando o token de recuperação recebido por e-mail. O token expira em 2 horas.",
+        "tags": ["Password"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ResetPasswordInput" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "Senha redefinida com sucesso" },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/profile": {
+      "get": {
+        "summary": "Exibir perfil",
+        "description": "Retorna os dados do perfil do usuário autenticado, incluindo papéis e permissões.",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Perfil retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "put": {
+        "summary": "Atualizar perfil",
+        "description": "Atualiza nome, email e/ou senha do usuário autenticado. Para trocar senha, é necessário informar a senha atual.",
+        "tags": ["Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileInput" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/ValidationError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
     }
   },
   "components": {
@@ -2241,6 +2575,160 @@
           }
         },
         "required": ["erro", "codigo"]
+      },
+      "LoginInput": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 1 }
+        },
+        "required": ["email", "password"]
+      },
+      "RefreshTokenInput": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" }
+        }
+      },
+      "CreateUserInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 6 }
+        },
+        "required": ["name", "email", "password"]
+      },
+      "CreateRoleInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 }
+        },
+        "required": ["name", "description"]
+      },
+      "CreatePermissionInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 }
+        },
+        "required": ["name", "description"]
+      },
+      "RolePermissionsInput": {
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "minItems": 1
+          }
+        },
+        "required": ["permissions"]
+      },
+      "UserAclInput": {
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "permissions": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          }
+        },
+        "required": ["roles", "permissions"]
+      },
+      "ForgotPasswordInput": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "format": "email" }
+        },
+        "required": ["email"]
+      },
+      "ResetPasswordInput": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "format": "uuid" },
+          "password": { "type": "string", "minLength": 6 },
+          "password_confirmation": { "type": "string", "minLength": 6 }
+        },
+        "required": ["token", "password", "password_confirmation"]
+      },
+      "UpdateProfileInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "format": "email" },
+          "old_password": { "type": "string" },
+          "password": { "type": "string", "minLength": 6 }
+        }
+      },
+      "UserPublic": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "avatar": { "type": "string", "nullable": true },
+          "avatar_url": { "type": "string", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "roles": { "type": "array", "items": { "type": "object" } },
+          "permissions": { "type": "array", "items": { "type": "object" } }
+        },
+        "required": ["id", "name", "email", "created_at", "updated_at"]
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/UserPublic" },
+          "token": { "type": "string" },
+          "refresh_token": { "type": "string" }
+        },
+        "required": ["user", "token", "refresh_token"]
+      },
+      "TokenPairResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "refresh_token": { "type": "string" }
+        },
+        "required": ["token", "refresh_token"]
+      },
+      "Role": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "permissions": { "type": "array", "items": { "type": "object" } }
+        },
+        "required": ["id", "name", "description"]
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "name", "description"]
+      },
+      "UserAclResponse": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "roles": { "type": "array", "items": { "type": "object" } },
+          "permissions": { "type": "array", "items": { "type": "object" } }
+        },
+        "required": ["userId", "name", "roles", "permissions"]
       }
     },
     "parameters": {
@@ -2285,6 +2773,20 @@
         "required": true,
         "description": "ID da função (UUID)",
         "schema": { "type": "string", "format": "uuid" }
+      },
+      "UserIdParam": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "ID do usuário (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
+      },
+      "RoleIdParam": {
+        "name": "roleId",
+        "in": "path",
+        "required": true,
+        "description": "ID do papel (UUID)",
+        "schema": { "type": "string", "format": "uuid" }
       }
     },
     "responses": {
@@ -2323,6 +2825,32 @@
             "example": { "erro": "Erro interno do servidor", "codigo": 500 }
           }
         }
+      },
+      "UnauthorizedError": {
+        "description": "Token de autenticação inválido ou ausente",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "Invalid authentication token", "codigo": 401 }
+          }
+        }
+      },
+      "ForbiddenError": {
+        "description": "Usuário não tem o papel ou permissão necessária",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+            "example": { "erro": "User does not have the required role", "codigo": 403 }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT obtido via POST /sessions"
       }
     }
   }

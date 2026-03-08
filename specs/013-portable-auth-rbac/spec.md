@@ -206,7 +206,7 @@ Responsibility: Define data structures, attributes, types, and relationships. No
 - **AR-001**: Each entity MUST extend a common Base Entity providing: unique identifier (UUID), creation timestamp, update timestamp
 - **AR-002**: Models MUST define relationships declaratively (many-to-many, many-to-one) without referencing any specific ORM
 - **AR-003**: Models MUST NOT contain persistence logic, HTTP logic, or business rules
-- **AR-004**: Sensitive fields (e.g., password hash) MUST be marked for exclusion from serialized output. The exclusion mechanism is implementation-specific: decorators (`@Exclude()` in class-transformer), `toJSON()` overrides, serializer allowlists, or DTO mapping. The key requirement is that the `password` field MUST NEVER appear in any API response, regardless of the mechanism used.
+- **AR-004**: Sensitive fields (e.g., password hash) MUST be marked for exclusion from serialized output. The exclusion mechanism is implementation-specific: decorators (`@Exclude()` in class-transformer), `toJSON()` overrides, serializer allowlists, or DTO mapping. The key requirement is that the `password` field MUST NEVER appear in any API response, regardless of the mechanism used. **Recommended dual mechanism**: (1) **Query-level exclusion** — repository methods that return user data (e.g., `findById`) SHOULD exclude the password field at the query level (e.g., Prisma `select`, TypeORM `select`, SQL column list). This prevents the password hash from ever being loaded into memory unnecessarily. (2) **Service/serialization-level exclusion** — as a defense-in-depth measure, the controller or service layer SHOULD also strip the password field before returning the response (e.g., `const { password: _, ...user } = rawUser`). **Asymmetry**: `findByEmail()` MUST return the password hash (it is needed by `AuthenticateUserService` to compare credentials). `findById()` and other query methods SHOULD NOT return the password hash. This intentional asymmetry is a key design decision that implementers must be aware of.
 
 #### Layer 2 — Repositories (Data Access Interfaces)
 
@@ -300,6 +300,27 @@ Responsibility: Map HTTP endpoints (method + path) to controllers, apply middlew
 | **Password** | `POST /password/forgot`, `POST /password/reset` | Input validation only (public) |
 | **Profile** | `GET /profile`, `PUT /profile` | ensureAuthenticated + validation |
 
+### Middleware Execution Order
+
+For protected routes, middleware MUST execute in the following order:
+
+```text
+input validation → ensureAuthenticated → is()/can() → controller
+```
+
+**Rationale**: The `is()` and `can()` middleware depend on `req.user` (or equivalent request context) being populated by `ensureAuthenticated`. If `is()`/`can()` execute before `ensureAuthenticated`, they will fail because the user identity is not yet available. Input validation runs first to reject malformed requests before any authentication/authorization overhead.
+
+**Example (Express-style)**:
+
+```text
+router.post('/users',
+  validateCreateUser,        // 1. Reject invalid input early
+  ensureAuthenticated,       // 2. Verify JWT, attach req.user
+  is(['admin']),             // 3. Check role (uses req.user.id)
+  usersController.create     // 4. Execute business logic
+);
+```
+
 ### Cross-Cutting Concerns — Provider Interfaces
 
 The system uses provider interfaces to abstract external capabilities that vary across implementations.
@@ -321,15 +342,21 @@ The system uses provider interfaces to abstract external capabilities that vary 
 
 - **AR-023**: Authentication middleware (`ensureAuthenticated`) MUST extract the Bearer token from the Authorization header, verify it, and attach the user identity (`{ id }`) to the request context
 - **AR-024**: Role authorization middleware (`is(roles[])`) MUST load the user's roles and check if any match the required roles; return 403 Forbidden if not
-- **AR-025**: Permission authorization middleware (`can(permissions[])`) MUST load both the user's direct permissions AND permissions inherited from the user's roles, then check if any match the required permissions; return 403 Forbidden if not (the user IS authenticated but lacks the required permission — 403 is semantically correct per FR-022). **Resolution strategy**: The middleware loads the user with their direct permissions AND all roles (with each role's permissions). It flattens all permission names into a single set: `Set(user.permissions[].name) ∪ Set(user.roles[].permissions[].name)`. It then checks whether the intersection with the required permissions is non-empty. This MAY be implemented as a single query with joins, two separate queries merged in memory, or a dedicated repository method — the approach is an implementation detail.
+- **AR-025**: Permission authorization middleware (`can(permissions[])`) MUST load both the user's direct permissions AND permissions inherited from the user's roles, then check if any match the required permissions; return 403 Forbidden if not (the user IS authenticated but lacks the required permission — 403 is semantically correct per FR-022). **Resolution strategy**: The middleware loads the user with their direct permissions AND all roles (with each role's permissions). It flattens all permission names into a single set: `Set(user.permissions[].name) ∪ Set(user.roles[].permissions[].name)`. It then checks whether the intersection with the required permissions is non-empty. This MAY be implemented as a single query with joins, two separate queries merged in memory, or a dedicated repository method — the approach is an implementation detail. **OR logic (default)**: The `can()` middleware uses **OR semantics** (`Array.some()` / set intersection non-empty) — the user needs **at least one** of the listed permissions to pass. Example: `can(["create_users", "manage_users"])` grants access if the user has either `create_users` OR `manage_users`. If AND semantics are needed (user must have ALL listed permissions), implementers SHOULD create a separate `canAll()` middleware rather than changing `can()` behavior.
 
 ### Token Specification
 
 - **AR-028**: Access tokens MUST contain the claim `{ sub: <userId> }` as the payload. They are signed with the `APP_SECRET` environment variable. Recommended signing algorithm: HS256 (HMAC-SHA256) for symmetric secrets. RS256 may be used if asymmetric key pairs are preferred but is not required.
-- **AR-029**: Refresh tokens MUST contain the claims `{ sub: <userId>, email: <userEmail> }` as the payload. They are signed with the `APP_SECRET_REFRESH_TOKEN` environment variable (a DIFFERENT secret than the access token).
+- **AR-029**: Refresh tokens MUST contain the claims `{ sub: <userId>, email: <userEmail> }` as the payload. They are signed with the `APP_SECRET_REFRESH_TOKEN` environment variable (a DIFFERENT secret than the access token). **Note on email claim**: The `email` field is included in the refresh token payload as a convenience for token introspection (e.g., logging, debugging, admin dashboards). It is NOT used by the `UserRefreshTokenService` for business logic — the service identifies the user by `sub` (userId) only. Implementers MAY omit the `email` claim if their project does not need it; the system will function correctly with `{ sub: <userId> }` alone.
 - **AR-030**: The `ensureAuthenticated` middleware MUST verify access tokens using `APP_SECRET`. It MUST NOT use the refresh token secret.
 - **AR-031**: The token refresh endpoint MUST verify the incoming refresh token using `APP_SECRET_REFRESH_TOKEN`, then issue BOTH a new access token (signed with `APP_SECRET`) AND a new refresh token (signed with `APP_SECRET_REFRESH_TOKEN`). The old refresh token MUST be deleted (token rotation).
 - **AR-032**: Recommended production token expiration values: access token 15 minutes to 1 hour, refresh token 7 to 30 days. The reference project uses 90 days for access tokens which is NOT recommended for production. All expiration values MUST be configurable via environment variables.
+
+#### AR-033 — findByIds Behavior in Real Repositories
+
+The `findByIds(ids)` method in repository interfaces (`IRolesRepository`, `IPermissionsRepository`) returns only the entities that exist in the database — it performs **partial matching**. If 3 IDs are provided but only 2 exist, the method returns 2 entities without throwing an error. This "silent assignment" pattern is the **default behavior** specified for both fake and real (ORM-backed) repositories.
+
+**Recommendation for production**: Implementers SHOULD consider adding **strict validation** at the service layer for critical operations: compare `findByIds(ids).length` against `ids.length` and throw an `AppError` if they differ. This prevents silent data loss where an admin believes they assigned 5 permissions but only 3 were valid. The spec defaults to "silent assignment" for simplicity, but strict validation is the safer choice for production systems.
 
 ### Configuration & Environment Variables
 
@@ -347,6 +374,8 @@ The following environment variables MUST be documented and supported:
 | `ADMIN_NAME` | Initial admin user name for seed | Yes (seed only) |
 | `APP_API_URL` | Base API URL (used for avatar URL computation) | Yes |
 | `APP_WEB_URL` | Frontend URL (used for password reset links in emails) | Yes |
+
+**Security note**: Environment variable defaults (e.g., `APP_SECRET || 'default-dev-secret'`) are acceptable ONLY for local development convenience. Production deployments MUST set real, cryptographically random secrets via environment variables. Fallback values like `'default-dev-secret'` MUST NOT be used in production — they are predictable and allow token forgery. Implementers SHOULD add a startup check that fails loudly if secrets are still set to development defaults in a production environment (e.g., `if (process.env.NODE_ENV === 'production' && secret === 'default-dev-secret') throw new Error(...)`).
 
 **Auth configuration** SHOULD be organized into a single config structure that can be loaded at application startup:
 
@@ -376,8 +405,10 @@ authConfig = {
 | **IResponseDTO** (Login) | user: SanitizedUser (User without password), token: string, refresh_token: string | AuthenticateUserService |
 | **ILogoutDTO** | user_id: string | LogoutUserService |
 | **IShowProfileDTO** | user_id: string | ShowProfileService |
-| **IUpdateProfileDTO** | user_id: string, name: string, email: string, old_password?: string, password?: string | UpdateProfileService |
+| **IUpdateProfileDTO** | user_id: string, name?: string, email?: string, old_password?: string, password?: string | UpdateProfileService |
 | **IUserACLsDTO** | userId: string, name: string, roles: Role[], permissions: Permission[] | ListUserAccessControlListService |
+
+**Note on IUpdateProfileDTO**: `name` and `email` are optional because a user may update only one field (e.g., just the name). The service MUST guard against `undefined` values — when `name` or `email` is not provided, the service MUST keep the user's current value (e.g., `user.name = dto.name ?? user.name`). This prevents accidentally setting fields to `undefined` or `null`.
 
 ### Functional Requirements
 
@@ -408,8 +439,8 @@ authConfig = {
 - **FR-025**: System MUST support configurable token expiration times for both access and refresh tokens
 - **FR-026**: System MUST provide a seed/bootstrap mechanism implemented as a **standalone CLI command** (e.g., `npm run seed`, `python manage.py seed`, `go run cmd/seed/main.go`). It MUST NOT run automatically on application startup to avoid unintended side effects in production. The seed creates: (1) the `admin_full_access` permission, (2) the `admin` role with `admin_full_access` assigned, and (3) the admin user (from env vars) with the `admin` role. This is the minimum required set — implementers MAY add additional default permissions as needed for their project.
 - **FR-027**: System MUST support explicit logout that deletes all refresh tokens for the authenticated user, terminating all active sessions; the access token remains valid until its natural expiration
-- **FR-028**: System MUST return all error responses in the canonical format `{ status: "error", message: "<description>" }` with the appropriate HTTP status code in the response header (e.g., 400, 401, 403, 404)
-- **FR-029**: System MUST implement a global error handler middleware that catches all errors at the HTTP boundary. For `AppError` instances, it returns the error's `message` and `statusCode`. For unknown/unexpected errors, it returns `{ status: "error", message: "Internal server error" }` with HTTP 500. This middleware MUST be registered as the last middleware in the HTTP pipeline.
+- **FR-028**: System MUST return all error responses in a consistent, project-canonical format with the appropriate HTTP status code in the response header (e.g., 400, 401, 403, 404). **Reference format**: `{ status: "error", message: "<description>" }`. Implementers SHOULD adapt this to their project's existing error response convention (e.g., `{ errors: ["message"] }`, `{ error: { code, message } }`, etc.). The key requirement is consistency — all error responses in the project MUST use the same shape.
+- **FR-029**: System MUST implement a global error handler middleware that catches all errors at the HTTP boundary. For `AppError` instances, it returns the error's `message` and `statusCode` in the project's canonical error format. For unknown/unexpected errors, it returns a generic "Internal server error" message with HTTP 500. This middleware MUST be registered as the last middleware in the HTTP pipeline. **Note**: Projects with an existing centralized error handler SHOULD integrate `AppError` into it rather than creating a second error handler. The error handler MAY coexist with per-controller error handling if the project convention requires it, but `AppError` propagation from services MUST always be caught at the HTTP boundary.
 
 ### Standard Error Messages
 
@@ -431,6 +462,10 @@ The following error messages MUST be used consistently across implementations to
 | is() middleware | User lacks required role | "User does not have the required role" | 403 |
 | can() middleware | User lacks required permission | "User does not have the required permission" | 403 |
 | UserRefreshTokenService | Invalid/expired refresh token | "Refresh token does not exist" | 400 |
+| CreateRolePermissionService | Role not found by roleId | "Role not found" | 400 |
+| CreateUserAccessControlListService | User not found by userId | "User not found" | 400 |
+| ListUserAccessControlListService | User not found by userId | "User not found" | 400 |
+| ResetPasswordService | Password and confirmation do not match | "Password confirmation does not match" | 400 |
 | Global error handler | Unexpected error | "Internal server error" | 500 |
 
 ### Key Entities
@@ -462,6 +497,18 @@ The following error messages MUST be used consistently across implementations to
 - **SC-008**: The system can be implemented with any ORM, hashing library, token library, or dependency injection framework without changing the business logic or interfaces
 - **SC-009**: All repository, hash provider, date provider, and token provider interfaces are fully decoupled from their implementations
 - **SC-010**: An integration smoke test covering the full flow (register → login → access profile) completes successfully without manual intervention
+
+## Out-of-Scope but Recommended Extensions
+
+The following capabilities are intentionally excluded from this core specification but are strongly recommended for production deployments:
+
+- **Rate limiting**: Apply rate limiting to authentication endpoints (`POST /sessions`, `POST /password/forgot`, `POST /password/reset`) to prevent brute-force attacks. Recommended: 5–10 attempts per minute per IP for login, 3 attempts per hour per email for password recovery.
+- **CORS configuration**: Configure Cross-Origin Resource Sharing headers appropriate to the deployment environment. Restrict allowed origins to the frontend domain(s) in production.
+- **Audit logging**: Log authentication events (login success/failure, logout, password reset, role/permission changes) for security auditing and incident investigation.
+- **Account lockout**: Temporarily lock accounts after repeated failed login attempts (e.g., 5 failures within 15 minutes → 30-minute lockout). Requires adding a `failed_attempts` counter and `locked_until` timestamp to the User entity.
+- **Token blacklisting**: For immediate access token revocation (e.g., on password change or account compromise), maintain a blacklist of revoked access token JTIs checked by `ensureAuthenticated`. This adds statefulness to access token validation but provides stronger security guarantees.
+- **Atomic refresh token rotation**: The current spec deletes the old refresh token and creates a new one as separate operations. In high-concurrency scenarios, a race condition can occur where two concurrent refresh requests both succeed with the same token. For production, consider wrapping the delete+create in a database transaction or using an atomic compare-and-swap mechanism.
+- **Password complexity rules**: The spec requires only a minimum length (6 characters recommended). Production systems SHOULD enforce additional complexity rules (uppercase, lowercase, digit, special character) configurable per project policy.
 
 ## Clarifications
 
