@@ -65,7 +65,7 @@ export const roleIdParamsSchema = z.object({
  */
 export const rolePermissionsBodySchema = z.object({
     permissions: z.array(
-        z.string({ required_error: 'Cada permissão deve ser uma string' }),
+        uuidSchema,
         { required_error: 'Permissões são obrigatórias' },
     ).min(1, 'Pelo menos uma permissão deve ser informada'),
 });
@@ -96,11 +96,11 @@ export const userIdParamsSchema = z.object({
  */
 export const userAclBodySchema = z.object({
     roles: z.array(
-        z.string({ required_error: 'Cada papel deve ser uma string' }),
+        uuidSchema,
         { required_error: 'Papéis são obrigatórios' },
     ),
     permissions: z.array(
-        z.string({ required_error: 'Cada permissão deve ser uma string' }),
+        uuidSchema,
         { required_error: 'Permissões são obrigatórias' },
     ),
 });
