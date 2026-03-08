@@ -81,8 +81,8 @@ export interface IShowProfileDTO {
 /** Dados de entrada para atualização de perfil. */
 export interface IUpdateProfileDTO {
     user_id: string;
-    name: string;
-    email: string;
+    name?: string;
+    email?: string;
     old_password?: string;
     password?: string;
 }

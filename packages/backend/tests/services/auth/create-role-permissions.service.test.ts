@@ -2,8 +2,7 @@
  * Testes unitários do serviço de atribuição de permissões a roles.
  *
  * Valida a associação de permissões válidas a uma role existente,
- * rejeição de role inexistente e tratamento silencioso de permissões
- * inexistentes.
+ * rejeição de role inexistente e rejeição de permissões inexistentes.
  */
 
 import { AppError } from '../../../src/errors/AppError.js';
@@ -73,8 +72,8 @@ describe('CreateRolePermissionService', () => {
         });
     });
 
-    /** Deve ignorar permissões inexistentes silenciosamente, atribuindo apenas as válidas. */
-    it('deve ignorar permissões inexistentes silenciosamente', async () => {
+    /** Deve lançar erro ao receber permissões inexistentes. */
+    it('deve lançar erro ao receber permissões inexistentes', async () => {
         const role = await fakeRolesRepo.create({
             name: 'editor',
             description: 'Editor de conteúdo',
@@ -85,13 +84,11 @@ describe('CreateRolePermissionService', () => {
             description: 'Permite editar conteúdo',
         });
 
-        const result = await createRolePermissionService.execute({
-            roleId: role.id,
-            permissions: [validPerm.id, 'non-existent-perm-id'],
-        });
-
-        expect(result).toHaveProperty('id', role.id);
-        expect(result!.permissions).toHaveLength(1);
-        expect(result!.permissions[0]).toHaveProperty('id', validPerm.id);
+        await expect(
+            createRolePermissionService.execute({
+                roleId: role.id,
+                permissions: [validPerm.id, 'non-existent-perm-id'],
+            }),
+        ).rejects.toThrow(AppError);
     });
 });

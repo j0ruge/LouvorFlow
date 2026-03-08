@@ -14,6 +14,6 @@ import { createPermissionBodySchema } from '../../validators/auth.validators.js'
 const router: Router = Router();
 
 /** Criação de uma nova permissão no sistema. */
-router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createPermissionBodySchema }), permissionsController.create);
+router.post('/', validateRequest({ body: createPermissionBodySchema }), ensureAuthenticated, is(['admin']), permissionsController.create);
 
 export default router;

@@ -30,8 +30,8 @@ class UsersRepository {
      * @returns Usuário completo ou `null` se não encontrado
      */
     async findByEmail(email: string) {
-        return prisma.users.findUnique({
-            where: { email },
+        return prisma.users.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } },
         });
     }
 
