@@ -60,10 +60,12 @@ APP_WEB_URL=http://localhost:3000
 
 **Goal**: Define all input/output data contracts.
 
-Create all 9 DTOs as interfaces/types (see spec AR-026/AR-027):
+Create all 12 DTOs as interfaces/types (see spec AR-026/AR-027):
 - `ICreateUserDTO`, `ICreateUserRoleDTO`, `ICreateUserPermissionDTO`
 - `ICreateRolePermissionsDTO`, `ICreateUserAccessControlListDTO`
-- `ICreateUserRefreshTokenDTO`, `IRequestDTO`, `IResponseDTO`, `IUserACLsDTO`
+- `ICreateUserRefreshTokenDTO`, `IRequestDTO`, `IResponseDTO`
+- `ILogoutDTO`, `IShowProfileDTO`, `IUpdateProfileDTO`
+- `IUserACLsDTO`
 
 ### Phase 3 — Provider Interfaces + Fakes (Cross-Cutting)
 
@@ -189,11 +191,12 @@ Wire all routes with middleware and validation (see [API contract](./contracts/a
 
 ### Phase 11 — Global Error Handler
 
-**Goal**: Catch all errors and format responses.
+**Goal**: Catch all errors and format responses using the project's canonical error format.
 
-Create a global error handler middleware that:
-- Catches `AppError`: returns `{ status: "error", message }` with `statusCode`
-- Catches unknown errors: returns `{ status: "error", message: "Internal server error" }` with 500
+Create a global error handler middleware (or integrate into existing error handler) that:
+- Catches `AppError`: returns the error's `message` and `statusCode` in the project's error response format
+- Catches unknown errors: returns "Internal server error" with HTTP 500 in the project's error response format
+- **Note**: The error response shape is project-specific (e.g., `{ status: "error", message }`, `{ errors: ["message"] }`, etc.). Use whatever format the project already follows for consistency. If the project already has a centralized error handler, add `AppError` handling to it rather than creating a new one.
 
 ### Phase 12 — Seed Command (CLI)
 

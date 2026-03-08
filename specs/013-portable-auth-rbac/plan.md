@@ -52,6 +52,11 @@ specs/003-portable-auth-rbac/
 src/
 ├── config/
 │   ├── auth.{ext}                  # Token secrets, expiration config
+│   │                               # ⚠ SECURITY: Fallback values (e.g., 'default-dev-secret')
+│   │                               #   are for LOCAL DEVELOPMENT ONLY. Production deployments
+│   │                               #   MUST set real, cryptographically random secrets via
+│   │                               #   environment variables. Add a startup check that fails
+│   │                               #   if dev defaults are used in production.
 │   └── env.{ext}                   # Environment variable loader
 ├── shared/
 │   ├── errors/

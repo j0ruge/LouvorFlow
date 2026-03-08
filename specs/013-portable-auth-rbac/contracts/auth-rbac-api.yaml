@@ -22,6 +22,11 @@ components:
 
   schemas:
     ErrorResponse:
+      description: |
+        Reference error response format. Implementers SHOULD adapt this schema
+        to match their project's existing error convention (e.g., { errors: ["message"] },
+        { error: { code, message } }, etc.). The key requirement is consistency —
+        all error responses in the project MUST use the same shape.
       type: object
       required: [status, message]
       properties:
@@ -466,6 +471,80 @@ paths:
         "403":
           description: Not authorized (requires admin role)
 
+  # --- OPTIONAL endpoints (recommended for admin dashboard) ---
+
+  /roles/list:
+    get:
+      tags: [Roles]
+      summary: "[OPTIONAL] List all roles"
+      description: |
+        OPTIONAL — Recommended for admin dashboards. List all roles in the system.
+        Not part of the core spec; add as a project-specific extension.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of all roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /permissions/list:
+    get:
+      tags: [Permissions]
+      summary: "[OPTIONAL] List all permissions"
+      description: |
+        OPTIONAL — Recommended for admin dashboards. List all permissions in the system.
+        Not part of the core spec; add as a project-specific extension.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of all permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Permission"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  /users/list:
+    get:
+      tags: [Users]
+      summary: "[OPTIONAL] List all users"
+      description: |
+        OPTIONAL — Recommended for admin dashboards. List all users in the system.
+        Password field MUST be excluded from response. Not part of the core spec;
+        add as a project-specific extension.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of all users (without password)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Not authorized (requires admin role)
+
+  # --- End of OPTIONAL endpoints ---
+
   /password/forgot:
     post:
       tags: [Password]
@@ -519,12 +598,18 @@ paths:
     get:
       tags: [Profile]
       summary: Show profile
-      description: Get the authenticated user's profile
+      description: |
+        Get the authenticated user's profile. The response includes the full User
+        object with roles, permissions, avatar_url (computed), and timestamps.
+        The password field is NEVER included.
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: User profile
+          description: |
+            User profile with roles, permissions, and timestamps.
+            The `roles` array includes each role's permissions.
+            The `permissions` array contains the user's direct permissions.
           content:
             application/json:
               schema:

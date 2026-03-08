@@ -135,18 +135,53 @@
 
 ## R7: Error Handling Pattern
 
-**Decision**: Custom `AppError` class with `message` and `statusCode`, caught by a global error handler.
+**Decision**: Custom `AppError` class with `message` and `statusCode`, caught by a global error handler that formats errors into the **project's canonical error format**.
 
 **Rationale**:
 - Domain errors (`AppError`) are thrown by services and caught at the HTTP boundary
-- A global error handler middleware formats them into the canonical `{ status: "error", message }` response
+- A global error handler middleware formats them into the project's canonical error response format
 - Non-domain errors (unexpected crashes) return a generic 500 response
+- The error response format is **project-specific** — each project defines its own canonical format (e.g., `{ status: "error", message }`, `{ errors: ["message"] }`, `{ error: { code, message } }`)
 
 **Pattern**:
-```
+
+```text
 Service throws AppError(message, statusCode)
   → Controller does NOT catch (lets it propagate)
     → Global error handler catches:
-        - If AppError: respond { status: "error", message } with statusCode
-        - If unknown error: respond { status: "error", message: "Internal server error" } with 500
+        - If AppError: respond with message and statusCode in the project's error format
+        - If unknown error: respond with "Internal server error" and 500 in the project's error format
 ```
+
+**Integration note**: If the project already has a centralized error handler, integrate `AppError` into it (e.g., add a condition to check `if (error instanceof AppError)`) rather than creating a separate handler. The key requirement is that `AppError` instances are caught at the HTTP boundary and translated to the correct HTTP status code.
+
+---
+
+## R8: Seed Idempotency Strategy
+
+**Decision**: Use upsert with unique key as conflict target for seed operations.
+
+**Rationale**:
+- Seeds must be idempotent — running them multiple times must not create duplicates or fail
+- Two strategies are available, with different trade-offs
+
+**Strategy comparison**:
+
+| Strategy | Approach | Pros | Cons |
+|----------|----------|------|------|
+| **Check-before-create** | `findByName(x)` → if null → `create(x)` | Simple, explicit, easy to debug | Race condition if run concurrently; 2 queries per entity |
+| **Upsert** | `upsert({ where: { name: x }, create: {...}, update: {} })` | Atomic, single query, no race condition | Requires unique constraint on conflict target; `update: {}` (no-op) is non-obvious |
+
+**Recommendation**: Use **upsert** with the entity's unique field (`name` for roles/permissions, `email` for users) as the conflict target. The `update` clause can be a no-op (empty object or re-setting the same values) to achieve "create if not exists" semantics.
+
+**Example (Prisma)**:
+
+```typescript
+await prisma.role.upsert({
+  where: { name: 'admin' },
+  create: { name: 'admin', description: 'System administrator' },
+  update: {},  // no-op — already exists, don't change it
+});
+```
+
+**Fallback**: If the ORM does not support upsert natively, use check-before-create with a try/catch on the unique constraint violation as a safety net.

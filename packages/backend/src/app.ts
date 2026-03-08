@@ -12,6 +12,12 @@ import categoriasRoutes from './routes/categorias.routes.js';
 import tiposEventosRoutes from './routes/tipos-eventos.routes.js';
 import eventosRoutes from './routes/eventos.routes.js';
 import relatoriosRoutes from './routes/relatorios.routes.js';
+import sessionsRoutes from './routes/auth/sessions.routes.js';
+import authUsersRoutes from './routes/auth/users.routes.js';
+import rolesRoutes from './routes/auth/roles.routes.js';
+import permissionsRoutes from './routes/auth/permissions.routes.js';
+import passwordRoutes from './routes/auth/password.routes.js';
+import profileRoutes from './routes/auth/profile.routes.js';
 
 class App {
     app: Express;
@@ -38,6 +44,12 @@ class App {
         this.app.use('/api/tipos-eventos', tiposEventosRoutes);
         this.app.use('/api/eventos', eventosRoutes);
         this.app.use('/api/relatorios', relatoriosRoutes);
+        this.app.use('/api/sessions', sessionsRoutes);
+        this.app.use('/api/users', authUsersRoutes);
+        this.app.use('/api/roles', rolesRoutes);
+        this.app.use('/api/permissions', permissionsRoutes);
+        this.app.use('/api/password', passwordRoutes);
+        this.app.use('/api/profile', profileRoutes);
     }
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

@@ -57,7 +57,11 @@ All entities inherit from a common base.
 - Many-to-Many with **Permissions** via `users_permissions` — Same requirement: `user.permissions` MUST be populated when the user is returned from the repository.
 
 **Computed property**:
-- `avatar_url` — A read-only computed value (not stored in the database). Computed as: `{APP_API_URL}/files/{avatar}` when `avatar` is non-null, otherwise `null`. This SHOULD be implemented as a getter method, `toJSON()` override, or serialization hook — NOT as a database column.
+- `avatar_url` — A read-only computed value (NOT stored in the database). Computed at the **service or serialization layer** as: `avatar ? \`${APP_API_URL}/files/${avatar}\` : null`. This MUST NOT be a database column. **Implementation options** (choose one per project):
+  - **Getter method on entity/model**: `get avatar_url() { return this.avatar ? \`${APP_API_URL}/files/${this.avatar}\` : null; }` — works well with class-based entities (TypeORM, Sequelize).
+  - **`toJSON()` override**: Add `avatar_url` during JSON serialization — works with any framework.
+  - **Service/controller layer**: Compute in the controller or a serialization utility before returning the response — most portable, works with any ORM including Prisma (which generates plain objects, not class instances).
+  - **ORM extension**: e.g., Prisma `$extends` with a computed field — ORM-specific but keeps the logic close to the data layer.
 
 **Indexes**:
 - UNIQUE index on `email`
@@ -179,18 +183,25 @@ All entities inherit from a common base.
 
 ## Validation Rules (at service/route level)
 
-| Entity | Field | Validation |
-|--------|-------|------------|
-| User | email | Valid email format, unique |
-| User | password | Required (minimum length deferred to project policy) |
-| User | name | Required, non-empty |
-| Role | name | Required, unique |
-| Role | description | Required |
-| Permission | name | Required, unique |
-| Permission | description | Required |
-| Password Reset | password_confirmation | Must match `password` |
-| Password Reset | token | Valid UUID format |
-| Profile Update | old_password | Required when `password` is provided |
+| Entity | Field | Validation | Notes |
+|--------|-------|------------|-------|
+| User | email | Valid email format (RFC 5322), unique, required | Case-insensitive uniqueness check recommended |
+| User | password | Required, minimum 6 characters (recommended) | Minimum length is a recommended default; adjust per project security policy |
+| User | name | Required, non-empty string | |
+| Role | name | Required, unique, non-empty string | |
+| Role | description | Required, non-empty string | |
+| Permission | name | Required, unique, non-empty string | |
+| Permission | description | Required, non-empty string | |
+| Password Reset | password | Required, minimum 6 characters | Same minimum as user creation |
+| Password Reset | password_confirmation | Required, must match `password` exactly | Validated at route/validation layer, NOT in the service |
+| Password Reset | token | Required, valid UUID v4 format | |
+| Profile Update | name | Optional (string if provided) | When omitted, current value is preserved |
+| Profile Update | email | Optional (valid email format if provided) | When omitted, current value is preserved |
+| Profile Update | old_password | Required when `password` is provided | |
+| Profile Update | password | Optional, minimum 6 characters if provided | |
+| ACL Assignment | roles | Required, array of UUID v4 strings | May be empty array `[]` |
+| ACL Assignment | permissions | Required, array of UUID v4 strings | May be empty array `[]` |
+| Route params | userId, roleId | Valid UUID v4 format | Validated at route level before reaching controller |
 
 ## Migration Strategy
 
