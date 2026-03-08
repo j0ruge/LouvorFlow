@@ -10,6 +10,7 @@ class PermissionsController {
      * Cria uma nova permissão no sistema.
      * @param req - Requisição contendo `name` e `description` no body.
      * @param res - Resposta com os dados da permissão criada (status 201).
+     * @returns Promise<void> — envia HTTP 201 com o objeto da permissão criada no body.
      */
     async create(req: Request, res: Response): Promise<void> {
         const { name, description } = req.body;

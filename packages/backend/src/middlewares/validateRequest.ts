@@ -1,7 +1,7 @@
 /**
  * Middleware genérico de validação de requisição usando Zod.
  *
- * Valida body, params e/ou query da requisição contra schemas Zod.
+ * Valida body e/ou params da requisição contra schemas Zod.
  * Em caso de erro, retorna 400 com as mensagens de validação.
  */
 

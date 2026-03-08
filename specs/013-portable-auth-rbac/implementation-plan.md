@@ -161,7 +161,7 @@ RecoveryTokens    — id, token (UUID), integrante_id (FK CASCADE), timestamps
 | POST | `/api/sessions/refresh-token` | (público) | Rotação de refresh token |
 | POST | `/api/sessions/logout` | ensureAuthenticated | Logout — revoga todos refresh tokens |
 | POST | `/api/roles` | ensureAuthenticated + is(["admin"]) | Criar role |
-| POST | `/api/roles/:roleId` | ensureAuthenticated + is(["admin"]) | Atribuir permissions a role |
+| POST | `/api/roles/:roleId/permissions` | ensureAuthenticated + is(["admin"]) | Atribuir permissions a role |
 | POST | `/api/permissions` | ensureAuthenticated + is(["admin"]) | Criar permission |
 | GET | `/api/integrantes/:id/acl` | ensureAuthenticated + is(["admin"]) | Listar ACL do integrante |
 | POST | `/api/integrantes/:id/acl` | ensureAuthenticated + is(["admin"]) | Atribuir roles/permissions ao integrante |

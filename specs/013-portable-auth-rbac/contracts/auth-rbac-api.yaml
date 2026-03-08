@@ -196,12 +196,6 @@ paths:
           schema:
             type: string
           description: Alternative source for refresh token
-        - name: token
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Alternative source for refresh token
       responses:
         "200":
           description: New token pair issued (old refresh token invalidated)

@@ -6,6 +6,7 @@
  * quando o email não é encontrado, evitando enumeração de contas (FR-021).
  */
 
+import { AppError } from '../../errors/AppError.js';
 import usersRepository from '../../repositories/auth/users.repository.js';
 import mailProvider from '../../providers/mail.provider.js';
 import recoveryTokensRepository from '../../repositories/auth/recovery-tokens.repository.js';
@@ -30,8 +31,13 @@ class SendForgotPasswordEmailService {
 
         const recoveryToken = await recoveryTokensRepository.generate(user.id);
 
-        const appWebUrl = process.env.APP_WEB_URL ?? 'http://localhost:3000';
-        const resetLink = `${appWebUrl}/reset?token=${recoveryToken.token}`;
+        const appWebUrl = process.env.APP_WEB_URL;
+
+        if (!appWebUrl && process.env.NODE_ENV === 'production') {
+            throw new AppError('APP_WEB_URL é obrigatória em ambiente de produção', 500);
+        }
+
+        const resetLink = `${appWebUrl ?? 'http://localhost:3000'}/reset?token=${recoveryToken.token}`;
 
         await mailProvider.sendMail({
             to: email,

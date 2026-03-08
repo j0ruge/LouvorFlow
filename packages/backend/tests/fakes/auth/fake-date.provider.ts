@@ -68,14 +68,14 @@ class FakeDateProvider implements IDateProvider {
 
   /**
    * Adiciona N dias à data atual controlada e retorna a nova data.
+   * Utiliza aritmética em milissegundos (UTC-safe) para evitar
+   * problemas com horário de verão e fuso horário local.
    *
    * @param days - Número de dias a adicionar.
    * @returns Nova data com os dias adicionados à data atual do fake.
    */
   addDays(days: number): Date {
-    const result = new Date(this.currentDate);
-    result.setDate(result.getDate() + days);
-    return result;
+    return new Date(this.currentDate.getTime() + days * 24 * 60 * 60 * 1000);
   }
 }
 

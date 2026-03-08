@@ -305,18 +305,18 @@ Responsibility: Map HTTP endpoints (method + path) to controllers, apply middlew
 For protected routes, middleware MUST execute in the following order:
 
 ```text
-input validation → ensureAuthenticated → is()/can() → controller
+ensureAuthenticated → is()/can() → input validation → controller
 ```
 
-**Rationale**: The `is()` and `can()` middleware depend on `req.user` (or equivalent request context) being populated by `ensureAuthenticated`. If `is()`/`can()` execute before `ensureAuthenticated`, they will fail because the user identity is not yet available. Input validation runs first to reject malformed requests before any authentication/authorization overhead.
+**Rationale**: Authentication and authorization MUST execute before input validation for protected routes. The `is()` and `can()` middleware depend on `req.user` being populated by `ensureAuthenticated`. Running validation before authentication would return 400 (Bad Request) instead of the correct 401 (Unauthorized) or 403 (Forbidden) for unauthenticated/unauthorized requests, leaking information about which inputs are valid.
 
 **Example (Express-style)**:
 
 ```text
 router.post('/users',
-  validateCreateUser,        // 1. Reject invalid input early
-  ensureAuthenticated,       // 2. Verify JWT, attach req.user
-  is(['admin']),             // 3. Check role (uses req.user.id)
+  ensureAuthenticated,       // 1. Verify JWT, attach req.user
+  is(['admin']),             // 2. Check role (uses req.user.id)
+  validateCreateUser,        // 3. Validate input after auth
   usersController.create     // 4. Execute business logic
 );
 ```
@@ -354,9 +354,9 @@ The system uses provider interfaces to abstract external capabilities that vary 
 
 #### AR-033 — findByIds Behavior in Real Repositories
 
-The `findByIds(ids)` method in repository interfaces (`IRolesRepository`, `IPermissionsRepository`) returns only the entities that exist in the database — it performs **partial matching**. If 3 IDs are provided but only 2 exist, the method returns 2 entities without throwing an error. This "silent assignment" pattern is the **default behavior** specified for both fake and real (ORM-backed) repositories.
+The `findByIds(ids)` method in repository interfaces (`IRolesRepository`, `IPermissionsRepository`) returns only the entities that exist in the database — it performs **partial matching**. If 3 IDs are provided but only 2 exist, the method returns 2 entities without throwing an error.
 
-**Recommendation for production**: Implementers SHOULD consider adding **strict validation** at the service layer for critical operations: compare `findByIds(ids).length` against `ids.length` and throw an `AppError` if they differ. This prevents silent data loss where an admin believes they assigned 5 permissions but only 3 were valid. The spec defaults to "silent assignment" for simplicity, but strict validation is the safer choice for production systems.
+**Strict validation requirement**: Service-layer code that uses `findByIds(ids)` for assignment operations (e.g., assigning permissions to a role, assigning roles/permissions to a user) MUST compare `findByIds(ids).length` against `ids.length` and throw an `AppError` if they differ. This prevents silent data loss where an admin believes they assigned 5 permissions but only 3 were valid. The service MUST list the missing IDs in the error message to aid debugging.
 
 ### Configuration & Environment Variables
 

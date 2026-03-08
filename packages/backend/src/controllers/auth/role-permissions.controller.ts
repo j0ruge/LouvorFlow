@@ -10,6 +10,7 @@ class CreateRolePermissionController {
      * Associa permissões a um papel (role) específico.
      * @param req - Requisição contendo `roleId` nos params e `permissions` (array) no body.
      * @param res - Resposta com os dados do papel atualizado com as permissões.
+     * @returns Promise<void> — envia na resposta o objeto do papel atualizado com as permissões e o status HTTP correspondente.
      */
     async create(req: Request<{ roleId: string }>, res: Response): Promise<void> {
         const { roleId } = req.params;

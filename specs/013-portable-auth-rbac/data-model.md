@@ -185,7 +185,7 @@ All entities inherit from a common base.
 
 | Entity | Field | Validation | Notes |
 |--------|-------|------------|-------|
-| User | email | Valid email format (RFC 5322), unique, required | Case-insensitive uniqueness check recommended |
+| User | email | Valid email format (RFC 5322), unique (case-insensitive), required | Implementations MUST enforce case-insensitive uniqueness at the persistence layer (index/constraint) and `findByEmail()` MUST perform case-insensitive lookup |
 | User | password | Required, minimum 6 characters (recommended) | Minimum length is a recommended default; adjust per project security policy |
 | User | name | Required, non-empty string | |
 | Role | name | Required, unique, non-empty string | |
