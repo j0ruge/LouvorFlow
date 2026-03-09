@@ -8,21 +8,16 @@
 import { userAclBodySchema } from '../../src/validators/auth.validators.js';
 
 describe('userAclBodySchema', () => {
-    const validUuid1 = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
-    const validUuid2 = 'b2c3d4e5-f6a7-8901-bcde-f12345678901';
-
-    /** Aceita arrays de UUIDs válidos para roles e permissions. */
     it('deve aceitar UUIDs válidos em roles e permissions', () => {
         const result = userAclBodySchema.safeParse({
-            roles: [validUuid1],
-            permissions: [validUuid2],
+            roles: [crypto.randomUUID()],
+            permissions: [crypto.randomUUID()],
         });
 
         expect(result.success).toBe(true);
     });
 
-    /** Aceita arrays vazios para roles e permissions. */
-    it('deve aceitar arrays vazios para roles e permissions', () => {
+    it('deve aceitar arrays vazios para roles e permissions (usuário sem ACL atribuído)', () => {
         const result = userAclBodySchema.safeParse({
             roles: [],
             permissions: [],
@@ -31,8 +26,7 @@ describe('userAclBodySchema', () => {
         expect(result.success).toBe(true);
     });
 
-    /** Rejeita strings arbitrárias (não-UUID) em roles. */
-    it('deve rejeitar strings não-UUID em roles', () => {
+    it('deve rejeitar strings não-UUID em roles para impedir referências inválidas no banco', () => {
         const result = userAclBodySchema.safeParse({
             roles: ['not-a-uuid', 'also-invalid'],
             permissions: [],
@@ -44,8 +38,7 @@ describe('userAclBodySchema', () => {
         }
     });
 
-    /** Rejeita strings arbitrárias (não-UUID) em permissions. */
-    it('deve rejeitar strings não-UUID em permissions', () => {
+    it('deve rejeitar strings não-UUID em permissions para impedir referências inválidas no banco', () => {
         const result = userAclBodySchema.safeParse({
             roles: [],
             permissions: ['invalid-permission-id'],
@@ -57,11 +50,19 @@ describe('userAclBodySchema', () => {
         }
     });
 
-    /** Rejeita quando roles ou permissions não são arrays. */
     it('deve rejeitar quando roles não é um array', () => {
         const result = userAclBodySchema.safeParse({
             roles: 'not-an-array',
             permissions: [],
+        });
+
+        expect(result.success).toBe(false);
+    });
+
+    it('deve rejeitar quando permissions não é um array', () => {
+        const result = userAclBodySchema.safeParse({
+            roles: [],
+            permissions: 'not-an-array',
         });
 
         expect(result.success).toBe(false);
