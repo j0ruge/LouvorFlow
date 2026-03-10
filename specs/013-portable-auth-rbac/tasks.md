@@ -361,7 +361,7 @@
 
 ### User Story Dependencies
 
-```
+```text
 Foundational ──┬── US1 (Login) ─── US2 (Refresh)
                │
                ├── US3 (Route Protection) ──┬── US9 (Logout)
@@ -408,7 +408,7 @@ Foundational ──┬── US1 (Login) ─── US2 (Refresh)
 
 ## Parallel Example: User Story 5 (largest story)
 
-```
+```text
 # Step 1: Launch all tests in parallel
 Task: "Unit test for CreateRoleService in src/tests/.../CreateRoleService.spec.{ext}"
 Task: "Unit test for CreatePermissionService in src/tests/.../CreatePermissionService.spec.{ext}"

@@ -16,7 +16,7 @@ class CreateRolePermissionService {
      *
      * @param dto - Objeto contendo o ID da role e a lista de IDs de permissões.
      * @returns A role atualizada com as permissões associadas.
-     * @throws AppError 400 se a role não for encontrada.
+     * @throws AppError 400 se a role não for encontrada ou se alguma permissão não existir.
      */
     async execute({ roleId, permissions }: ICreateRolePermissionsDTO) {
         const role = await rolesRepository.findById(roleId);
@@ -28,13 +28,18 @@ class CreateRolePermissionService {
         const foundPermissions =
             await permissionsRepository.findByIds(permissions);
 
-        if (foundPermissions.length !== permissions.length) {
-            const foundPermissionIds = foundPermissions.map((p) => p.id);
-            const notFoundIds = permissions.filter(id => !foundPermissionIds.includes(id));
-            throw new AppError(`Permissions not found: ${notFoundIds.join(', ')}`, 400);
-        }
-
         const foundPermissionIds = foundPermissions.map((p) => p.id);
+
+        const missingIds = permissions.filter(
+            (id) => !foundPermissionIds.includes(id),
+        );
+
+        if (missingIds.length > 0) {
+            throw new AppError(
+                `Permissões não encontradas: ${missingIds.join(', ')}`,
+                400,
+            );
+        }
 
         const updatedRole = await rolesRepository.save(roleId, {
             permissions: foundPermissionIds,

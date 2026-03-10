@@ -18,13 +18,13 @@ function Write-Front { param([string]$Msg) Write-Host "[FRONT] $Msg" -Foreground
 # ---------------------------------------------------------------------------
 # 2. Verificar Docker daemon
 # ---------------------------------------------------------------------------
-try {
-    docker info 2>$null | Out-Null
-} catch {
-    Write-Erro "Docker nao esta rodando. Inicie o Docker Desktop e tente novamente."
-    exit 1
-}
-if ($LASTEXITCODE -ne 0) {
+$oldPref = $ErrorActionPreference
+$ErrorActionPreference = 'SilentlyContinue'
+docker info 2>$null | Out-Null
+$dockerExit = $LASTEXITCODE
+$ErrorActionPreference = $oldPref
+
+if ($dockerExit -ne 0) {
     Write-Erro "Docker nao esta rodando. Inicie o Docker Desktop e tente novamente."
     exit 1
 }

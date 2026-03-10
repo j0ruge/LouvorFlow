@@ -2588,7 +2588,8 @@
         "type": "object",
         "properties": {
           "token": { "type": "string" }
-        }
+        },
+        "required": ["token"]
       },
       "CreateUserInput": {
         "type": "object",
@@ -2675,8 +2676,8 @@
           "avatar_url": { "type": "string", "nullable": true },
           "created_at": { "type": "string", "format": "date-time" },
           "updated_at": { "type": "string", "format": "date-time" },
-          "roles": { "type": "array", "items": { "type": "object" } },
-          "permissions": { "type": "array", "items": { "type": "object" } }
+          "roles": { "type": "array", "items": { "$ref": "#/components/schemas/Role" } },
+          "permissions": { "type": "array", "items": { "$ref": "#/components/schemas/Permission" } }
         },
         "required": ["id", "name", "email", "created_at", "updated_at"]
       },
@@ -2705,7 +2706,7 @@
           "description": { "type": "string" },
           "created_at": { "type": "string", "format": "date-time" },
           "updated_at": { "type": "string", "format": "date-time" },
-          "permissions": { "type": "array", "items": { "type": "object" } }
+          "permissions": { "type": "array", "items": { "$ref": "#/components/schemas/Permission" } }
         },
         "required": ["id", "name", "description"]
       },
@@ -2725,8 +2726,8 @@
         "properties": {
           "userId": { "type": "string", "format": "uuid" },
           "name": { "type": "string" },
-          "roles": { "type": "array", "items": { "type": "object" } },
-          "permissions": { "type": "array", "items": { "type": "object" } }
+          "roles": { "type": "array", "items": { "$ref": "#/components/schemas/Role" } },
+          "permissions": { "type": "array", "items": { "$ref": "#/components/schemas/Permission" } }
         },
         "required": ["userId", "name", "roles", "permissions"]
       }

@@ -24,7 +24,7 @@ Before starting, choose your stack:
 
 Set up environment variables:
 
-```
+```bash
 APP_SECRET=<jwt-access-token-secret>
 APP_SECRET_REFRESH_TOKEN=<jwt-refresh-token-secret>
 ACCESS_TOKEN_EXPIRES_IN=1h

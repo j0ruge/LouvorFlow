@@ -2,8 +2,7 @@
  * Testes unitários do serviço de atribuição de permissões a roles.
  *
  * Valida a associação de permissões válidas a uma role existente,
- * rejeição de role inexistente e tratamento silencioso de permissões
- * inexistentes.
+ * rejeição de role inexistente e rejeição de permissões inexistentes.
  */
 
 import { AppError } from '../../../src/errors/AppError.js';
@@ -11,11 +10,19 @@ import { AppError } from '../../../src/errors/AppError.js';
 import fakeRolesRepo from '../../fakes/auth/fake-roles.repository.js';
 import fakePermissionsRepo from '../../fakes/auth/fake-permissions.repository.js';
 
+/**
+ * Substitui o repositório real de roles pelo fake para isolamento de testes.
+ * @returns Módulo com o export default apontando para o repositório fake de roles.
+ */
 vi.mock('../../../src/repositories/auth/roles.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-roles.repository.js');
     return { default: fake.default };
 });
 
+/**
+ * Substitui o repositório real de permissões pelo fake para isolamento de testes.
+ * @returns Módulo com o export default apontando para o repositório fake de permissões.
+ */
 vi.mock('../../../src/repositories/auth/permissions.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-permissions.repository.js');
     return { default: fake.default };
@@ -25,7 +32,11 @@ const { default: createRolePermissionService } = await import(
     '../../../src/services/auth/create-role-permissions.service.js'
 );
 
-/** @group CreateRolePermissionService */
+/**
+ * Suite de testes do serviço CreateRolePermissionService.
+ * Cobre cenários de atribuição de permissões válidas a uma role,
+ * rejeição de role inexistente e rejeição de permissões inexistentes.
+ */
 describe('CreateRolePermissionService', () => {
     /** Reinicia os repositórios fake antes de cada teste para isolamento. */
     beforeEach(() => {
@@ -73,8 +84,8 @@ describe('CreateRolePermissionService', () => {
         });
     });
 
-    /** Deve ignorar permissões inexistentes silenciosamente, atribuindo apenas as válidas. */
-    it('deve ignorar permissões inexistentes silenciosamente', async () => {
+    /** Deve lançar AppError 400 quando alguma permissão informada não existe. */
+    it('deve lançar erro para permissões inexistentes', async () => {
         const role = await fakeRolesRepo.create({
             name: 'editor',
             description: 'Editor de conteúdo',
@@ -85,13 +96,13 @@ describe('CreateRolePermissionService', () => {
             description: 'Permite editar conteúdo',
         });
 
-        const result = await createRolePermissionService.execute({
-            roleId: role.id,
-            permissions: [validPerm.id, 'non-existent-perm-id'],
+        await expect(
+            createRolePermissionService.execute({
+                roleId: role.id,
+                permissions: [validPerm.id, 'non-existent-perm-id'],
+            }),
+        ).rejects.toMatchObject({
+            statusCode: 400,
         });
-
-        expect(result).toHaveProperty('id', role.id);
-        expect(result!.permissions).toHaveLength(1);
-        expect(result!.permissions[0]).toHaveProperty('id', validPerm.id);
     });
 });

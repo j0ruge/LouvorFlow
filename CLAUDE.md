@@ -25,13 +25,14 @@ Nunca refatore código a menos que explicitamente solicitado.
 | **Banco**     | PostgreSQL 17                             |
 | **ORM**       | Prisma 6                                  |
 | **Validação** | Zod                                       |
+| **Auth**      | bcryptjs, jsonwebtoken, dayjs, nodemailer  |
 | **Testes**    | Vitest 4                                  |
 | **Infra**     | Docker Compose                            |
 
 ## Estrutura do Monorepo
 
 ```text
-src/
+packages/
 ├── backend/     # API RESTful (Express + Prisma)
 └── frontend/    # SPA (React + Vite + shadcn/ui)
 ```
@@ -59,10 +60,24 @@ Regras específicas de cada camada estão em `.claude/rules/`:
 
 - Docstrings em português em todo código novo ou modificado.
 - Ao final de cada tarefa: revisar se toda documentação está sincronizada.
-- Se mudar qualquer coisa nos dados de API o @src\backend\docs\openapi.json deve ser atualizado. 
+- Se mudar qualquer coisa nos dados de API o @packages\backend\docs\openapi.json deve ser atualizado. 
 
 A task não pode ser considerada completa enquanto essa documentação e rules não estiverem atualizadas. 
 
+</CRITICAL>
+
+## Finalização de Tasks
+
+<CRITICAL>
+**OBRIGATÓRIO**: Um pool de tasks NÃO pode ser considerado finalizado enquanto TODA a documentação do projeto não estiver atualizada e sincronizada com as mudanças implementadas. Isso inclui:
+
+- Docstrings JSDoc em PT-BR em todo código novo ou modificado.
+- `packages/backend/docs/openapi.json` refletindo qualquer alteração de API.
+- `.claude/rules/backend-api.md` e `.claude/rules/frontend-react.md` atualizados com novos padrões, diretórios ou convenções introduzidos.
+- `CLAUDE.md` atualizado se houver mudança na stack, estrutura do monorepo ou regras gerais.
+- MEMORY.md atualizado com novos padrões ou correções de informações desatualizadas.
+
+Se a documentação não estiver 100% sincronizada com o código, a implementação está **INCOMPLETA** — independentemente de todos os testes passarem.
 </CRITICAL>
 
 ## Integração com Ferramentas

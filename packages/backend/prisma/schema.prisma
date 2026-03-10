@@ -241,7 +241,7 @@ model UsersRefreshTokens {
 
 model UsersRecoveryTokens {
   id         String   @id @default(uuid()) @db.Uuid
-  token      String   @default(uuid()) @db.Uuid
+  token      String   @unique @default(uuid()) @db.Uuid
   user_id    String   @db.Uuid
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt @db.Timestamp(6)

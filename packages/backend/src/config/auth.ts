@@ -34,10 +34,20 @@ export const authConfig = {
         secret: requireSecret('APP_SECRET', 'default-dev-secret'),
         expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN ?? '1h',
     },
-    /** Configuração do refresh token (longa duração). */
+    /**
+     * Configuração do refresh token (longa duração).
+     * - expiresIn: string passada ao jwt.sign (ex: "30d"). Controla a expiração do JWT.
+     * - expiresDays: número inteiro de dias usado por dateProvider.addDays para calcular expires_date no banco.
+     * Ambos devem representar o mesmo período para evitar divergência entre expiração JWT e DB.
+     */
     refreshToken: {
         secret: requireSecret('APP_SECRET_REFRESH_TOKEN', 'default-dev-refresh-secret'),
         expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN ?? '30d',
-        expiresDays: Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS ?? 30),
+        expiresDays: (() => {
+            const raw = process.env.REFRESH_TOKEN_EXPIRES_DAYS;
+            if (!raw) return 30;
+            const parsed = parseInt(raw, 10);
+            return Number.isFinite(parsed) ? parsed : 30;
+        })(),
     },
 };

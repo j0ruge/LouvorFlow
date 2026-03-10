@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/frontend/**"
+  - "packages/frontend/**"
 ---
 
 # Frontend — Regras de Desenvolvimento
@@ -23,7 +23,7 @@ paths:
 ## Estrutura do Frontend
 
 ```text
-src/frontend/src/
+packages/frontend/src/
 ├── components/
 │   ├── ui/          # Componentes shadcn/ui (NÃO MODIFICAR DIRETAMENTE)
 │   ├── AppLayout.tsx

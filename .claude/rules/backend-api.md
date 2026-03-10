@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/backend/**"
+  - "packages/backend/**"
 ---
 
 # Backend — Regras de Desenvolvimento
@@ -8,24 +8,35 @@ paths:
 ## Arquitetura em Camadas
 
 ```text
-Request → Routes → Controllers → Services → Repositories → Prisma → PostgreSQL
+Request → Routes → Middlewares (auth/validation) → Controllers → Services → Repositories → Prisma → PostgreSQL
 ```
 
 Estrutura do backend:
 
 ```text
-src/backend/
+packages/backend/
 ├── src/
 │   ├── routes/          # Definições de rota
+│   │   └── auth/        # Rotas de autenticação e RBAC
 │   ├── controllers/     # Manipuladores de requisição HTTP
+│   │   └── auth/        # Controllers de auth (sessions, users, roles, permissions, profile, password)
 │   ├── services/        # Lógica de negócio e validações
+│   │   └── auth/        # Services de auth
 │   ├── repositories/    # Acesso a dados (Prisma ORM)
+│   │   └── auth/        # Repositories de auth
+│   ├── middlewares/      # Middlewares Express (ensureAuthenticated, is, can, validateRequest)
+│   ├── providers/        # Singletons com interface (HashProvider, TokenProvider, DateProvider, MailProvider)
+│   ├── config/           # Configurações (auth.ts com requireSecret())
+│   ├── validators/       # Schemas Zod (auth.validators.ts)
 │   ├── errors/          # AppError (erro padronizado)
 │   └── types/           # Interfaces TypeScript
+│       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (14 modelos)
+│   ├── schema.prisma    # Schema do banco (22 modelos: 14 domínio + 8 auth)
 │   ├── cliente.ts       # Singleton do Prisma Client
 │   └── migrations/      # Migrações do banco
+├── seeds/
+│   └── admin.ts         # Bootstrap idempotente do admin
 ├── tests/
 │   ├── services/        # Testes unitários dos services
 │   └── fakes/           # Repositórios falsos para testes
@@ -41,12 +52,14 @@ Crie endpoints, modelos de banco de dados, testes e documentação simultaneamen
 Exemplo de padrão correto:
 
 ```text
-- Write("src/backend/src/routes/recurso.routes.ts", routes)
-- Write("src/backend/src/controllers/recurso.controller.ts", controller)
-- Write("src/backend/src/services/recurso.service.ts", service)
-- Write("src/backend/src/repositories/recurso.repository.ts", repository)
-- Write("src/backend/tests/services/recurso.service.test.ts", tests)
-- Write("src/backend/docs/openapi.json", spec)  # atualizar
+- Write("packages/backend/src/routes/recurso.routes.ts", routes)
+- Write("packages/backend/src/controllers/recurso.controller.ts", controller)
+- Write("packages/backend/src/services/recurso.service.ts", service)
+- Write("packages/backend/src/repositories/recurso.repository.ts", repository)
+- Write("packages/backend/src/validators/recurso.validators.ts", validators)
+- Write("packages/backend/src/middlewares/recurso.middleware.ts", middleware)  # se necessário
+- Write("packages/backend/tests/services/recurso.service.test.ts", tests)
+- Write("packages/backend/docs/openapi.json", spec)  # atualizar
 ```
 
 ## Formato de erros
@@ -57,11 +70,49 @@ Todas as respostas de erro devem seguir o formato padronizado usando `AppError`:
 { "erro": "Mensagem descritiva do erro", "codigo": 400 }
 ```
 
-Códigos HTTP utilizados: `200`, `201`, `400`, `404`, `409`, `500`.
+Controllers **NÃO** usam try-catch. Express 5 suporta async error handling nativo — erros lançados em controllers/services/repositories propagam automaticamente para o error handler centralizado em `app.ts`.
+
+Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`.
+
+## Autenticação e Autorização (RBAC)
+
+### Middleware chain para rotas protegidas
+
+```text
+ensureAuthenticated → is(roles) / can(permissions) → validateRequest({ body, params }) → controller
+```
+
+### Middlewares disponíveis
+
+- **`ensureAuthenticated`**: Verifica JWT no header `Authorization: Bearer <token>`, injeta `req.user.id`. Retorna `401` se token inválido/ausente.
+- **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (cacheadas em `req.user.roles`). Retorna `403` se não autorizado.
+- **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (cacheadas em `req.user`). Retorna `403` se não autorizado.
+- **`validateRequest({ body?, params? })`**: Factory de middleware que valida request body/params contra schemas Zod. Retorna `400` com detalhes de validação.
+
+### Providers
+
+Singletons em `src/providers/` com interfaces definidas em `src/types/auth/`:
+
+| Provider | Responsabilidade |
+|----------|-----------------|
+| `HashProvider` | Hashing de senhas (bcryptjs) |
+| `TokenProvider` | Geração/verificação de JWT (jsonwebtoken) |
+| `DateProvider` | Manipulação de datas/expiração (dayjs) |
+| `MailProvider` | Envio de e-mails (nodemailer) |
+
+### Config
+
+`src/config/auth.ts` — Configurações de JWT (secret, expiração). Usa `requireSecret()` que lança erro em produção se `APP_SECRET` não estiver definido.
+
+### Seeds
+
+`seeds/admin.ts` — Bootstrap idempotente do usuário admin com role `admin`. Usa variáveis de ambiente `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`.
 
 ## Validação de entrada
 
 Validação de entrada obrigatória usando **Zod** em todos os endpoints.
+Schemas de validação ficam em `src/validators/` (ex.: `auth.validators.ts`).
+O middleware `validateRequest()` aplica os schemas automaticamente.
 
 ## Convenções de Código
 
@@ -80,16 +131,16 @@ Validação de entrada obrigatória usando **Zod** em todos os endpoints.
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `src/backend/prisma/schema.prisma` (14 modelos).
-- Singleton do client: `src/backend/prisma/cliente.ts`.
+- Schema: `packages/backend/prisma/schema.prisma` (22 modelos: 14 domínio + 8 auth).
+- Singleton do client: `packages/backend/prisma/cliente.ts`.
 - Migrações via `npx prisma migrate dev`. Nunca usar SQL direto para alterar schema.
 - Convenção de FK: `fk_nome_entidade` para 1:N, `[entidade]_id` para N:N.
 
 ## Manutenção de Documentação
 
-- Após nova funcionalidade: atualizar `src/backend/docs/openapi.json`.
+- Após nova funcionalidade: atualizar `packages/backend/docs/openapi.json`.
 - Após modificação de API (rotas, contratos): atualizar spec OpenAPI.
-- Novas entidades/modelos: atualizar `src/backend/prisma/schema.prisma` e documentar.
+- Novas entidades/modelos: atualizar `packages/backend/prisma/schema.prisma` e documentar.
 
 ## Integração com Ferramentas
 

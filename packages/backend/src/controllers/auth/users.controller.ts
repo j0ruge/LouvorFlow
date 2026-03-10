@@ -10,6 +10,7 @@ class UsersController {
      * Cria um novo usuário no sistema.
      * @param req - Requisição contendo `name`, `email` e `password` no body.
      * @param res - Resposta com os dados do usuário criado (status 201).
+     * @returns Promise<void> — envia HTTP 201 com os dados do usuário criado (sem o campo senha). Retorna 409 se o email já estiver em uso.
      */
     async create(req: Request, res: Response): Promise<void> {
         const { name, email, password } = req.body;
