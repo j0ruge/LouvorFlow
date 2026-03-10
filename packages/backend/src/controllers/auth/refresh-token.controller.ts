@@ -9,18 +9,18 @@ import { AppError } from '../../errors/AppError.js';
 class UsersRefreshTokensController {
     /**
      * Cria um novo par de tokens a partir de um refresh token válido.
-     * O token pode ser enviado via body ou header `x-access-token`.
-     * @param req - Requisição contendo o refresh token.
+     * O token deve ser enviado exclusivamente via body para evitar riscos de CSRF.
+     * @param req - Requisição contendo o refresh token no body.
      * @param res - Resposta com o novo token de acesso e refresh token.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const token = req.body.token ?? req.headers['x-access-token'];
+        const token = req.body.token;
 
-        if (!token) {
+        if (!token || typeof token !== 'string') {
             throw new AppError('Refresh token é obrigatório', 400);
         }
 
-        const result = await userRefreshTokenService.execute(token as string);
+        const result = await userRefreshTokenService.execute(token);
         res.status(200).json(result);
     }
 }

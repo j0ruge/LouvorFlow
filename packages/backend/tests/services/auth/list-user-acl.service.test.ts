@@ -43,6 +43,6 @@ describe('ListUserAccessControlListService', () => {
     it('deve lancar erro para usuario inexistente', async () => {
         await expect(
             service.execute('non-existent-id'),
-        ).rejects.toThrow('User not found');
+        ).rejects.toThrow('Usuário não encontrado');
     });
 });

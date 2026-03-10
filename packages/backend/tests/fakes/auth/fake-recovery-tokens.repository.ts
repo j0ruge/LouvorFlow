@@ -93,6 +93,19 @@ class FakeRecoveryTokensRepository {
     }
 
     /**
+     * Remove todos os tokens de recuperação de um usuário.
+     * Utilizado antes de gerar um novo token para evitar acúmulo.
+     *
+     * @param userId - UUID do usuário
+     * @returns Contagem de registros removidos
+     */
+    async deleteAllByUserId(userId: string) {
+        const before = this.tokens.length;
+        this.tokens = this.tokens.filter((t) => t.user_id !== userId);
+        return { count: before - this.tokens.length };
+    }
+
+    /**
      * Reinicia os arrays de tokens e referências de usuário em memória.
      * Utilizado entre testes para garantir isolamento.
      */

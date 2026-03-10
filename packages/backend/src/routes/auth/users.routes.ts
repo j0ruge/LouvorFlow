@@ -15,12 +15,12 @@ import { createUserBodySchema, userIdParamsSchema, userAclBodySchema } from '../
 const router: Router = Router();
 
 /** Criação de um novo usuário no sistema. */
-router.post('/', validateRequest({ body: createUserBodySchema }), ensureAuthenticated, is(['admin']), usersController.create);
+router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createUserBodySchema }), usersController.create);
 
 /** Atribuição de permissões/papéis a um usuário específico. */
-router.post('/acl/:userId', validateRequest({ params: userIdParamsSchema, body: userAclBodySchema }), ensureAuthenticated, is(['admin']), userAclController.create);
+router.post('/acl/:userId', ensureAuthenticated, is(['admin']), validateRequest({ params: userIdParamsSchema, body: userAclBodySchema }), userAclController.create);
 
 /** Consulta das permissões/papéis atribuídos a um usuário específico. */
-router.get('/acl/:userId', validateRequest({ params: userIdParamsSchema }), ensureAuthenticated, is(['admin']), userAclController.show);
+router.get('/acl/:userId', ensureAuthenticated, is(['admin']), validateRequest({ params: userIdParamsSchema }), userAclController.show);
 
 export default router;

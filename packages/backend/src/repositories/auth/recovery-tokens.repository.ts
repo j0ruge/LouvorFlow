@@ -46,6 +46,19 @@ class RecoveryTokensRepository {
             where: { id },
         });
     }
+
+    /**
+     * Remove todos os tokens de recuperação de um usuário.
+     * Utilizado antes de gerar um novo token para evitar acúmulo no banco.
+     *
+     * @param userId - UUID do usuário
+     * @returns Contagem de registros removidos
+     */
+    async deleteAllByUserId(userId: string) {
+        return prisma.usersRecoveryTokens.deleteMany({
+            where: { user_id: userId },
+        });
+    }
 }
 
 export default new RecoveryTokensRepository();

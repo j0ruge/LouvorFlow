@@ -22,7 +22,7 @@ class ResetPasswordService {
      * @param token - UUID do token de recuperação recebido por email.
      * @param password - Nova senha em texto plano a ser definida.
      * @throws AppError 400 se o token não existir.
-     * @throws AppError 400 se o token estiver expirado (mais de 2 horas).
+     * @throws AppError 400 se o token estiver expirado (2 horas ou mais).
      */
     async execute(token: string, password: string): Promise<void> {
         const recoveryToken = await recoveryTokensRepository.findByToken(token);
@@ -36,7 +36,8 @@ class ResetPasswordService {
             dateProvider.dateNow(),
         );
 
-        if (hoursSinceCreation > 2) {
+        if (hoursSinceCreation >= 2) {
+            await recoveryTokensRepository.deleteById(recoveryToken.id);
             throw new AppError('Token expired', 400);
         }
 
