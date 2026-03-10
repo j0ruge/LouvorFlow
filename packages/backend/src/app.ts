@@ -19,20 +19,43 @@ import permissionsRoutes from './routes/auth/permissions.routes.js';
 import passwordRoutes from './routes/auth/password.routes.js';
 import profileRoutes from './routes/auth/profile.routes.js';
 
+/**
+ * Classe principal da aplicação Express.
+ *
+ * Inicializa a instância do Express configurando middlewares globais,
+ * registro de rotas e o handler centralizado de erros.
+ */
 class App {
     app: Express;
 
+    /**
+     * Cria a instância Express e executa a configuração inicial
+     * de middlewares, rotas e tratamento de erros.
+     */
     constructor() {
         this.app = express();
         this.middlewares();
         this.routes();
         this.errorHandler();
     }
+
+    /**
+     * Registra os middlewares globais da aplicação.
+     *
+     * Configura CORS, parsing de URL-encoded e parsing de JSON.
+     */
     middlewares(): void {
         this.app.use(cors());
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.json());
     }
+
+    /**
+     * Registra todas as rotas da aplicação na instância Express.
+     *
+     * Inclui rotas de domínio (artistas, músicas, escalas, etc.)
+     * e rotas de autenticação/RBAC (sessions, users, roles, permissions, profile, password).
+     */
     routes(): void {
         this.app.use('/', homeRoutes);
         this.app.use('/api/artistas', artistasRoutes);
@@ -51,13 +74,22 @@ class App {
         this.app.use('/api/password', passwordRoutes);
         this.app.use('/api/profile', profileRoutes);
     }
+    /**
+     * Registra o handler centralizado de erros da aplicação.
+     *
+     * Trata instâncias de `AppError` retornando o status e mensagem correspondentes.
+     * Para erros genéricos, mascara a mensagem em produção retornando status 500.
+     */
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
             if (err instanceof AppError) {
                 res.status(err.statusCode).json({ erro: err.errors ? err.errors.join('; ') : err.message, codigo: err.statusCode });
                 return;
             }
-            res.status(500).json({ erro: err.message || "Erro interno do servidor", codigo: 500 });
+            const message = process.env.NODE_ENV === 'production'
+                ? 'Erro interno do servidor'
+                : err.message || 'Erro interno do servidor';
+            res.status(500).json({ erro: message, codigo: 500 });
         });
     }
 }

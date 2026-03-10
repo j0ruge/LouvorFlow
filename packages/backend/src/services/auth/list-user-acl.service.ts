@@ -18,17 +18,19 @@ class ListUserAccessControlListService {
      *
      * @param userId - UUID do usuário cuja ACL será consultada.
      * @returns DTO com userId, name, roles e permissões do usuário.
-     * @throws AppError 400 se o usuário não for encontrado.
+     * @throws AppError 404 se o usuário não for encontrado.
      */
     async execute(userId: string): Promise<IUserACLsDTO> {
         const user = await usersRepository.findById(userId);
 
         if (!user) {
-            throw new AppError('User not found', 400);
+            throw new AppError('Usuário não encontrado', 404);
         }
 
-        const roles = await usersRepository.getUserRoles(userId);
-        const permissions = await usersRepository.getUserPermissions(userId);
+        const [roles, permissions] = await Promise.all([
+            usersRepository.getUserRoles(userId),
+            usersRepository.getUserPermissions(userId),
+        ]);
 
         return {
             userId: user.id,

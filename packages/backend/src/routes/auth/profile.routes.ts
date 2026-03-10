@@ -16,6 +16,6 @@ const router: Router = Router();
 router.get('/', ensureAuthenticated, profileController.show);
 
 /** Atualização dos dados do perfil do usuário autenticado. */
-router.put('/', validateRequest({ body: updateProfileBodySchema }), ensureAuthenticated, profileController.update);
+router.put('/', ensureAuthenticated, validateRequest({ body: updateProfileBodySchema }), profileController.update);
 
 export default router;

@@ -30,10 +30,16 @@ class UserRefreshTokenService {
                 token,
                 authConfig.refreshToken.secret,
             );
-            sub = decoded.sub as string;
-            email = decoded.email as string;
-        } catch {
-            throw new AppError('Refresh token does not exist', 400);
+
+            if (typeof decoded.sub !== 'string' || typeof decoded.email !== 'string') {
+                throw new AppError('Refresh token inválido', 400);
+            }
+
+            sub = decoded.sub;
+            email = decoded.email;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError('Refresh token inválido', 400);
         }
 
         const existingToken =
@@ -43,7 +49,7 @@ class UserRefreshTokenService {
             );
 
         if (!existingToken) {
-            throw new AppError('Refresh token does not exist', 400);
+            throw new AppError('Refresh token não encontrado', 400);
         }
 
         await refreshTokensRepository.deleteById(existingToken.id);

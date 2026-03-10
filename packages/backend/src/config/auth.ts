@@ -25,6 +25,8 @@ function requireSecret(envVar: string, devFallback: string): string {
         throw new Error(`${envVar} é obrigatória em ambiente de produção.`);
     }
 
+    console.warn(`[Auth] ${envVar} não definida — usando fallback de desenvolvimento. NÃO usar em produção.`);
+
     return devFallback;
 }
 

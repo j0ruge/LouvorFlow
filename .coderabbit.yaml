@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "pt-BR"
+tone_instructions: "Seja direto. Ignore estilo/formatação. Foco em bugs de lógica, segurança e performance. Docstrings JSDoc em PT-BR são obrigatórias em todo código novo."
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: true
+  path_instructions:
+    - path: "packages/backend/**"
+      instructions: |
+        ## Backend (Express 5 + Prisma 6 + TypeScript)
+        - Arquitetura em camadas: Routes → Middlewares → Controllers → Services → Repositories → Prisma → PostgreSQL.
+        - Controllers NÃO usam try-catch — Express 5 propaga erros async para o error handler centralizado.
+        - Erros padronizados via AppError: `{ "erro": "mensagem", "codigo": 400 }`. Códigos válidos: 200, 201, 400, 401, 403, 404, 409, 500.
+        - Validação de entrada obrigatória com Zod via middleware `validateRequest({ body?, params? })`.
+        - Middleware chain para rotas protegidas: `ensureAuthenticated → is(roles)/can(permissions) → validateRequest → controller`.
+        - Campo `senha` nunca aparece em respostas — excluído via `INTEGRANTE_PUBLIC_SELECT` e Prisma `$extends`.
+        - Entidades nomeadas em português (integrantes, musicas, escalas).
+        - Junction endpoints aninhados sob recurso pai: `/api/musicas/:musicaId/versoes`.
+        - Providers são singletons em `src/providers/` (Hash, Token, Date, Mail).
+        - Prisma 6: `$use()` foi REMOVIDO. Usar `$extends({ query: { ... } })`.
+        - Schema Prisma: 22 modelos (14 domínio + 8 auth). FK: `fk_nome_entidade` (1:N), `[entidade]_id` (N:N).
+        - Testes unitários com Vitest: services testados com fakes em `tests/fakes/`. Callbacks de teste devem ter docstrings JSDoc em PT-BR.
+        - Mudanças em rotas ou contratos de API exigem atualização do `openapi.json`.
+
+    - path: "packages/frontend/**"
+      instructions: |
+        ## Frontend (React 18 + Vite + TailwindCSS + shadcn/ui)
+        - Componentes em `ui/` são gerados pelo shadcn/ui — NUNCA editar diretamente. Criar wrappers se necessário.
+        - Estilização exclusivamente com TailwindCSS. Sem CSS inline ou .css customizados.
+        - Formulários: `react-hook-form` + resolvers Zod.
+        - Requisições HTTP: TanStack React Query.
+        - Roteamento: `react-router-dom` v6, páginas em `pages/`.
+        - Ícones: apenas `lucide-react`.
+        - Toasts: apenas Sonner (`import { toast } from "sonner"`). NUNCA usar useToast/toaster do Radix/shadcn.
+        - Segurança XSS: URLs dinâmicas em `href` devem ser validadas com `isSafeUrl()` de `@/lib/utils`. Defesa em profundidade: Zod `.refine()` (http/https) + guarda `isSafeUrl()` na renderização. Evitar `dangerouslySetInnerHTML`.
+
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+    drafts: false
+
+chat:
+  auto_reply: true

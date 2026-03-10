@@ -15,9 +15,9 @@ import { createRoleBodySchema, roleIdParamsSchema, rolePermissionsBodySchema } f
 const router: Router = Router();
 
 /** Criação de um novo papel (role) no sistema. */
-router.post('/', validateRequest({ body: createRoleBodySchema }), ensureAuthenticated, is(['admin']), rolesController.create);
+router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createRoleBodySchema }), rolesController.create);
 
 /** Atribuição de permissões a um papel específico. */
-router.post('/:roleId/permissions', validateRequest({ params: roleIdParamsSchema, body: rolePermissionsBodySchema }), ensureAuthenticated, is(['admin']), rolePermissionsController.create);
+router.post('/:roleId/permissions', ensureAuthenticated, is(['admin']), validateRequest({ params: roleIdParamsSchema, body: rolePermissionsBodySchema }), rolePermissionsController.create);
 
 export default router;

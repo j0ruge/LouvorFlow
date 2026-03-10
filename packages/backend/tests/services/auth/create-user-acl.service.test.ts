@@ -72,11 +72,11 @@ describe('CreateUserAccessControlListService', () => {
                 roles: [],
                 permissions: [],
             }),
-        ).rejects.toThrow('User not found');
+        ).rejects.toThrow('Usuário não encontrado');
     });
 
-    /** Verifica que IDs inexistentes de roles e permissoes sao ignorados e apenas os validos sao atribuidos. */
-    it('deve ignorar roles/permissoes inexistentes', async () => {
+    /** Verifica que um AppError e lancado quando IDs de roles inexistentes sao informados. */
+    it('deve lancar erro para roles inexistentes', async () => {
         const user = await fakeUsersRepository.create({
             name: 'Maria Souza',
             email: 'maria@test.com',
@@ -88,19 +88,34 @@ describe('CreateUserAccessControlListService', () => {
             description: 'Editor de conteudo',
         });
 
+        await expect(
+            service.execute({
+                userId: user.id,
+                roles: [role.id, 'non-existent-role-id'],
+                permissions: [],
+            }),
+        ).rejects.toThrow('Roles não encontradas');
+    });
+
+    /** Verifica que um AppError e lancado quando IDs de permissoes inexistentes sao informados. */
+    it('deve lancar erro para permissoes inexistentes', async () => {
+        const user = await fakeUsersRepository.create({
+            name: 'Carlos Lima',
+            email: 'carlos@test.com',
+            password: 'hashed-password',
+        });
+
         const permission = await fakePermissionsRepository.create({
             name: 'edit_content',
             description: 'Editar conteudo',
         });
 
-        const result = await service.execute({
-            userId: user.id,
-            roles: [role.id, 'non-existent-role-id'],
-            permissions: [permission.id, 'non-existent-permission-id'],
-        });
-
-        expect(result).toHaveProperty('id', user.id);
-        expect(result!.roles).toHaveLength(1);
-        expect(result!.permissions).toHaveLength(1);
+        await expect(
+            service.execute({
+                userId: user.id,
+                roles: [],
+                permissions: [permission.id, 'non-existent-permission-id'],
+            }),
+        ).rejects.toThrow('Permissões não encontradas');
     });
 });

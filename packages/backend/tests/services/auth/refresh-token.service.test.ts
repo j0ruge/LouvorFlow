@@ -9,7 +9,6 @@ import { AppError } from '../../../src/errors/AppError.js';
 
 import fakeRefreshTokensRepo from '../../fakes/auth/fake-refresh-tokens.repository.js';
 import fakeTokenProvider from '../../fakes/auth/fake-token.provider.js';
-import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
 
 vi.mock('../../../src/repositories/auth/refresh-tokens.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-refresh-tokens.repository.js');
@@ -35,14 +34,19 @@ describe('UserRefreshTokenService', () => {
     /** ID de usuário utilizado nos testes. */
     const userId = 'user-id-123';
 
-    /** Reinicia o repositório fake antes de cada teste para isolamento. */
+    /** Reinicia os repositórios e providers fake antes de cada teste para isolamento. */
     beforeEach(() => {
         fakeRefreshTokensRepo.reset();
+        fakeTokenProvider.reset();
     });
 
     /** Deve renovar tokens com refresh token válido, deletar o antigo e retornar novo par. */
     it('deve renovar tokens com refresh token válido', async () => {
-        const fakeToken = `fake-token-${userId}`;
+        const fakeToken = fakeTokenProvider.sign(
+            { email: 'test@test.com' },
+            'any-secret',
+            { subject: userId, expiresIn: '30d' },
+        );
 
         await fakeRefreshTokensRepo.create({
             user_id: userId,
@@ -62,14 +66,21 @@ describe('UserRefreshTokenService', () => {
     it('deve lançar erro para refresh token inválido', async () => {
         await expect(
             userRefreshTokenService.execute('invalid-token'),
+        ).rejects.toBeInstanceOf(AppError);
+        await expect(
+            userRefreshTokenService.execute('invalid-token'),
         ).rejects.toMatchObject({
-            message: 'Refresh token does not exist',
+            message: 'Refresh token inválido',
         });
     });
 
     /** Deve lançar AppError quando o token foi revogado (removido do repositório). */
     it('deve lançar erro para token já revogado', async () => {
-        const fakeToken = `fake-token-${userId}`;
+        const fakeToken = fakeTokenProvider.sign(
+            { email: 'test@test.com' },
+            'any-secret',
+            { subject: userId, expiresIn: '30d' },
+        );
 
         const record = await fakeRefreshTokensRepo.create({
             user_id: userId,
@@ -81,8 +92,11 @@ describe('UserRefreshTokenService', () => {
 
         await expect(
             userRefreshTokenService.execute(fakeToken),
+        ).rejects.toBeInstanceOf(AppError);
+        await expect(
+            userRefreshTokenService.execute(fakeToken),
         ).rejects.toMatchObject({
-            message: 'Refresh token does not exist',
+            message: 'Refresh token não encontrado',
         });
     });
 });

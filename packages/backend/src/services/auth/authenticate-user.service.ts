@@ -56,6 +56,8 @@ class AuthenticateUserService {
             authConfig.refreshToken.expiresDays,
         );
 
+        await refreshTokensRepository.deleteAllByUserId(user.id);
+
         await refreshTokensRepository.create({
             user_id: user.id,
             refresh_token,

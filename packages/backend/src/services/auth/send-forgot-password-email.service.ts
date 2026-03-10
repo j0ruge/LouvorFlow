@@ -29,6 +29,8 @@ class SendForgotPasswordEmailService {
             return;
         }
 
+        await recoveryTokensRepository.deleteAllByUserId(user.id);
+
         const recoveryToken = await recoveryTokensRepository.generate(user.id);
 
         const appWebUrl = process.env.APP_WEB_URL;
