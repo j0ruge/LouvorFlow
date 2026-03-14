@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import createRolePermissionService from '../../services/auth/create-role-permissions.service.js';
+import { flattenRolePermissions } from '../../types/auth.types.js';
 
 /**
  * Controller responsável pela associação de permissões a papéis.
@@ -16,7 +17,7 @@ class CreateRolePermissionController {
         const { roleId } = req.params;
         const { permissions } = req.body;
         const role = await createRolePermissionService.execute({ roleId, permissions });
-        res.status(200).json(role);
+        res.status(200).json(flattenRolePermissions(role));
     }
 }
 

@@ -86,7 +86,17 @@ fi
 log_info "Prisma Client gerado e migrations aplicadas."
 
 # ---------------------------------------------------------------------------
-# 7 & 8. Iniciar backend e frontend em paralelo
+# 7. Admin seed (idempotente — seguro re-executar)
+# ---------------------------------------------------------------------------
+log_info "Executando seed do admin..."
+if ! (cd "${DIR}/packages/backend" && npx tsx seeds/admin.ts); then
+  log_error "Falha ao executar seed do admin."
+  exit 1
+fi
+log_info "Seed do admin executado."
+
+# ---------------------------------------------------------------------------
+# 8 & 9. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 BACK_PID=""
 FRONT_PID=""
@@ -101,7 +111,7 @@ cleanup() {
 }
 
 # ---------------------------------------------------------------------------
-# 9. Trap SIGINT/SIGTERM para matar processos filhos
+# 10. Trap SIGINT/SIGTERM para matar processos filhos
 # ---------------------------------------------------------------------------
 trap cleanup EXIT
 
@@ -123,6 +133,6 @@ log_info "========================================="
 echo ""
 
 # ---------------------------------------------------------------------------
-# 10. Wait nos processos
+# 11. Wait nos processos
 # ---------------------------------------------------------------------------
 wait

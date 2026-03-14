@@ -10,9 +10,12 @@ import userAclController from '../../controllers/auth/user-acl.controller.js';
 import { ensureAuthenticated } from '../../middlewares/ensureAuthenticated.js';
 import { is } from '../../middlewares/is.js';
 import { validateRequest } from '../../middlewares/validateRequest.js';
-import { createUserBodySchema, userIdParamsSchema, userAclBodySchema } from '../../validators/auth.validators.js';
+import { createUserBodySchema, userIdParamsSchema, userAclBodySchema, paginationQuerySchema } from '../../validators/auth.validators.js';
 
 const router: Router = Router();
+
+/** Listagem de todos os usuários do sistema (sem senha). */
+router.get('/', ensureAuthenticated, is(['admin']), validateRequest({ query: paginationQuerySchema }), usersController.list);
 
 /** Criação de um novo usuário no sistema. */
 router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createUserBodySchema }), usersController.create);

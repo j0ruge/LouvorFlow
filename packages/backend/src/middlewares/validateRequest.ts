@@ -16,12 +16,14 @@ interface ValidateOptions {
     body?: ZodSchema;
     /** Schema Zod para validar os parâmetros de rota. */
     params?: ZodSchema;
+    /** Schema Zod para validar os query params da requisição. */
+    query?: ZodSchema;
 }
 
 /**
  * Cria um middleware Express que valida a requisição contra os schemas Zod fornecidos.
  *
- * @param options - Objeto contendo schemas opcionais para body e params.
+ * @param options - Objeto contendo schemas opcionais para body, params e query.
  * @returns Middleware que valida a requisição e retorna 400 em caso de falha.
  */
 export function validateRequest(options: ValidateOptions) {
@@ -32,6 +34,9 @@ export function validateRequest(options: ValidateOptions) {
             }
             if (options.params) {
                 req.params = options.params.parse(req.params);
+            }
+            if (options.query) {
+                options.query.parse(req.query);
             }
             next();
         } catch (error) {

@@ -16,7 +16,7 @@ const ROLE_WITH_PERMISSIONS_SELECT = {
     permissions: {
         select: {
             permission: {
-                select: { id: true, name: true, description: true },
+                select: { id: true, name: true, description: true, created_at: true, updated_at: true },
             },
         },
     },
@@ -24,14 +24,26 @@ const ROLE_WITH_PERMISSIONS_SELECT = {
 
 class RolesRepository {
     /**
-     * Lista todas as roles com suas permissões carregadas.
+     * Lista roles com suas permissões carregadas.
+     * Suporta paginação opcional via `page` e `limit`.
      *
-     * @returns Array de roles com permissões
+     * @param options - Opções de paginação (page e limit). Se omitidos, retorna todas.
+     * @returns Objeto com `data` (array de roles com permissões), `total`, `page` e `limit`
      */
-    async findAll() {
-        return prisma.roles.findMany({
-            select: ROLE_WITH_PERMISSIONS_SELECT,
-        });
+    async findAll(options?: { page?: number; limit?: number }) {
+        const page = options?.page;
+        const limit = options?.limit;
+        const isPaginated = page !== undefined && limit !== undefined;
+
+        const [data, total] = await Promise.all([
+            prisma.roles.findMany({
+                select: ROLE_WITH_PERMISSIONS_SELECT,
+                ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
+            }),
+            prisma.roles.count(),
+        ]);
+
+        return { data, total, page: page ?? 1, limit: limit ?? total };
     }
 
     /**

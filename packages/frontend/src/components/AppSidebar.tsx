@@ -1,7 +1,27 @@
+/**
+ * Barra lateral de navegação principal da aplicação.
+ *
+ * Renderiza o menu de navegação com itens de domínio (acessíveis a todos
+ * os usuários autenticados) e uma seção "Administração" condicional
+ * (visível apenas para usuários com role "admin").
+ */
+
 import { useEffect } from "react";
-import { Music, Calendar, Users, BarChart3, History, Home, Settings } from "lucide-react";
+import {
+  Music,
+  Calendar,
+  Users,
+  BarChart3,
+  History,
+  Home,
+  Settings,
+  Shield,
+  UserCog,
+  Key,
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/use-auth";
 
 import {
   Sidebar,
@@ -16,6 +36,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+/** Itens do menu de domínio (acessíveis a todos os autenticados). */
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Músicas", url: "/musicas", icon: Music },
@@ -26,19 +47,28 @@ const menuItems = [
   { title: "Histórico", url: "/historico", icon: History },
 ];
 
+/** Itens do menu de administração (visíveis apenas para admins). */
+const adminItems = [
+  { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
+  { title: "Roles", url: "/admin/roles", icon: Shield },
+  { title: "Permissões", url: "/admin/permissoes", icon: Key },
+];
+
 /**
- * Barra lateral de navegação principal da aplicação.
+ * Componente da barra lateral de navegação.
  *
- * Renderiza o menu de navegação com itens de rota, suporte a colapso
- * e indicação visual da rota ativa.
+ * Renderiza menu de domínio para todos os autenticados e seção
+ * "Administração" apenas para admins. Suporta colapso e fecha
+ * automaticamente em mobile ao mudar de rota.
  *
- * @returns {JSX.Element} Elemento React com a sidebar de navegação.
+ * @returns Elemento React com a sidebar de navegação.
  */
 export function AppSidebar() {
   const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  const { isAdmin } = useAuth();
 
   /**
    * Fecha o menu mobile (Sheet) automaticamente quando a rota muda.
@@ -50,7 +80,14 @@ export function AppSidebar() {
     }
   }, [currentPath, isMobile, setOpenMobile]);
 
-  const isActive = (path: string) => currentPath === path;
+  /**
+   * Verifica se a rota informada está ativa.
+   *
+   * @param path - Caminho da rota a verificar.
+   * @returns `true` se a rota está ativa.
+   */
+  const isActive = (path: string) =>
+    path === "/" ? currentPath === "/" : currentPath.startsWith(path);
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
@@ -78,7 +115,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink
                       to={item.url}
-                      end
+                      end={item.url === "/"}
                       className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent font-medium"
                     >
@@ -91,6 +128,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className={collapsed ? "text-center" : ""}>
+              {!collapsed && "Administração"}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink
+                        to={item.url}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
+                        activeClassName="bg-sidebar-accent font-medium"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

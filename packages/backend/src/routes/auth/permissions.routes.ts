@@ -9,9 +9,12 @@ import permissionsController from '../../controllers/auth/permissions.controller
 import { ensureAuthenticated } from '../../middlewares/ensureAuthenticated.js';
 import { is } from '../../middlewares/is.js';
 import { validateRequest } from '../../middlewares/validateRequest.js';
-import { createPermissionBodySchema } from '../../validators/auth.validators.js';
+import { createPermissionBodySchema, paginationQuerySchema } from '../../validators/auth.validators.js';
 
 const router: Router = Router();
+
+/** Listagem de todas as permissões do sistema. */
+router.get('/', ensureAuthenticated, is(['admin']), validateRequest({ query: paginationQuerySchema }), permissionsController.list);
 
 /** Criação de uma nova permissão no sistema. */
 router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createPermissionBodySchema }), permissionsController.create);

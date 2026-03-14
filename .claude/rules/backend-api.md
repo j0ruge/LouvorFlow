@@ -114,6 +114,19 @@ Validação de entrada obrigatória usando **Zod** em todos os endpoints.
 Schemas de validação ficam em `src/validators/` (ex.: `auth.validators.ts`).
 O middleware `validateRequest()` aplica os schemas automaticamente.
 
+### Express 5 Breaking Changes
+
+- **`req.query` é read-only** (getter). Middlewares NÃO devem reatribuir `req.query = ...`. Para validação, usar `schema.parse(req.query)` sem reatribuição — o resultado validado pode ser usado localmente, mas não deve substituir `req.query`.
+- **Async error handling nativo**: Express 5 propaga automaticamente erros de funções async para o error handler. Controllers NÃO precisam de try-catch.
+
+## Transformações Prisma → API Response
+
+Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** transformar o formato antes de retornar ao frontend:
+
+1. **Junction table → flat**: Prisma M:N retorna `{ role: { id, name } }`. O controller DEVE achatar para `{ id, name }` usando `flattenUserRelations()` ou `flattenRolePermissions()` de `src/types/auth.types.ts`.
+2. **Campos computados**: `avatar_url` não existe no banco. TODO endpoint que retorna User DEVE computar: `avatar_url = avatar ? "${APP_API_URL}/files/${avatar}" : null`.
+3. **Timestamps em relações**: Selects Prisma de relações M:N devem incluir `created_at` e `updated_at` nos nested objects.
+
 ## Convenções de Código
 
 - Use RESTful APIs com verbos HTTP padrão (GET, POST, PUT, DELETE).

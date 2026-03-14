@@ -110,7 +110,23 @@ try {
 Write-Info "Prisma Client gerado e migrations aplicadas."
 
 # ---------------------------------------------------------------------------
-# 7 & 8. Iniciar backend e frontend em paralelo
+# 7. Admin seed (idempotente — seguro re-executar)
+# ---------------------------------------------------------------------------
+Write-Info "Executando seed do admin..."
+Push-Location "$DIR\packages\backend"
+try {
+    npx tsx seeds/admin.ts
+    if ($LASTEXITCODE -ne 0) { throw "admin seed falhou" }
+} catch {
+    Write-Erro "Falha ao executar seed do admin."
+    exit 1
+} finally {
+    Pop-Location
+}
+Write-Info "Seed do admin executado."
+
+# ---------------------------------------------------------------------------
+# 8 & 9. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 $backProc  = $null
 $frontProc = $null
@@ -143,7 +159,7 @@ try {
     }
 } finally {
     # ---------------------------------------------------------------------------
-    # 9. Cleanup — encerrar processos filhos
+    # 10. Cleanup — encerrar processos filhos
     # ---------------------------------------------------------------------------
     Write-Host ""
     Write-Warn "Encerrando processos..."

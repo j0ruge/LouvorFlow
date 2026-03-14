@@ -1973,6 +1973,62 @@
       }
     },
     "/users": {
+      "get": {
+        "summary": "Listar todos os usuários",
+        "description": "Retorna a lista paginada de usuários cadastrados no sistema. Requer papel 'admin'.",
+        "tags": ["Users"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número da página (padrão: 1)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Quantidade de itens por página (padrão: retorna todos)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de usuários retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/UserPublic" }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total de registros encontrados"
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Página atual"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Quantidade de itens por página"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
       "post": {
         "summary": "Criar usuário",
         "description": "Cria um novo usuário no sistema. Requer papel 'admin'.",
@@ -2055,6 +2111,62 @@
       }
     },
     "/roles": {
+      "get": {
+        "summary": "Listar todos os papéis",
+        "description": "Retorna a lista paginada de papéis (roles) com suas permissões associadas. Requer papel 'admin'.",
+        "tags": ["Roles"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número da página (padrão: 1)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Quantidade de itens por página (padrão: retorna todos)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de papéis retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Role" }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total de registros encontrados"
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Página atual"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Quantidade de itens por página"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
       "post": {
         "summary": "Criar papel (role)",
         "description": "Cria um novo papel no sistema RBAC. Requer papel 'admin'.",
@@ -2116,6 +2228,62 @@
       }
     },
     "/permissions": {
+      "get": {
+        "summary": "Listar todas as permissões",
+        "description": "Retorna a lista paginada de permissões cadastradas no sistema RBAC. Requer papel 'admin'.",
+        "tags": ["Permissions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Número da página (padrão: 1)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Quantidade de itens por página (padrão: retorna todos)",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista paginada de permissões retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Permission" }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total de registros encontrados"
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Página atual"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Quantidade de itens por página"
+                    }
+                  },
+                  "required": ["data", "total", "page", "limit"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
       "post": {
         "summary": "Criar permissão",
         "description": "Cria uma nova permissão no sistema RBAC. Requer papel 'admin'.",

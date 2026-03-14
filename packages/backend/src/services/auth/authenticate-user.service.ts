@@ -12,6 +12,7 @@ import tokenProvider from '../../providers/token.provider.js';
 import refreshTokensRepository from '../../repositories/auth/refresh-tokens.repository.js';
 import dateProvider from '../../providers/date.provider.js';
 import { authConfig } from '../../config/auth.js';
+import { flattenUserRelations } from '../../types/auth.types.js';
 import type { ILoginDTO, IResponseDTO } from '../../types/auth.types.js';
 
 class AuthenticateUserService {
@@ -66,8 +67,9 @@ class AuthenticateUserService {
 
         const { password: _password, ...userWithoutPassword } = user;
         const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
+        const flattened = flattenUserRelations(userWithoutPassword);
         const sanitizedUser = {
-            ...userWithoutPassword,
+            ...flattened,
             avatar_url: userWithoutPassword.avatar
                 ? `${appApiUrl}/files/${userWithoutPassword.avatar}`
                 : null,

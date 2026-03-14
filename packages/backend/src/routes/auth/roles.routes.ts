@@ -10,9 +10,12 @@ import rolePermissionsController from '../../controllers/auth/role-permissions.c
 import { ensureAuthenticated } from '../../middlewares/ensureAuthenticated.js';
 import { is } from '../../middlewares/is.js';
 import { validateRequest } from '../../middlewares/validateRequest.js';
-import { createRoleBodySchema, roleIdParamsSchema, rolePermissionsBodySchema } from '../../validators/auth.validators.js';
+import { createRoleBodySchema, roleIdParamsSchema, rolePermissionsBodySchema, paginationQuerySchema } from '../../validators/auth.validators.js';
 
 const router: Router = Router();
+
+/** Listagem de todos os papéis (roles) do sistema com permissões. */
+router.get('/', ensureAuthenticated, is(['admin']), validateRequest({ query: paginationQuerySchema }), rolesController.list);
 
 /** Criação de um novo papel (role) no sistema. */
 router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createRoleBodySchema }), rolesController.create);
