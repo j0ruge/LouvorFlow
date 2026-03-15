@@ -27,8 +27,8 @@ const Dashboard = () => {
   /** Total de músicas extraído dos metadados de paginação. */
   const totalMusicas = musicasData?.meta.total ?? 0;
 
-  /** Total de integrantes. */
-  const totalIntegrantes = integrantes?.length ?? 0;
+  /** Total de integrantes com pelo menos uma função musical vinculada. */
+  const totalIntegrantes = integrantes?.filter((i) => i.funcoes.length > 0).length ?? 0;
 
   /** Total de escalas. */
   const totalEscalas = eventos?.length ?? 0;

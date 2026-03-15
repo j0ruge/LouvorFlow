@@ -92,6 +92,24 @@ try {
 Write-Info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
+# 5.5. Matar processos Node orfaos que travam a DLL do Prisma (porta 3000)
+# ---------------------------------------------------------------------------
+$staleProcs = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    } |
+    Where-Object { $_.ProcessName -eq 'node' }
+
+if ($staleProcs) {
+    Write-Warn "Processos Node orfaos detectados na porta 3000. Encerrando..."
+    $staleProcs | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        Write-Info "  Processo node (PID $($_.Id)) encerrado."
+    }
+    Start-Sleep -Seconds 1
+}
+
+# ---------------------------------------------------------------------------
 # 6. Prisma generate + migrate (backend)
 # ---------------------------------------------------------------------------
 Write-Info "Gerando Prisma Client e aplicando migrations..."

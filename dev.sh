@@ -76,6 +76,17 @@ fi
 log_info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
+# 5.5. Matar processos Node orfaos que travam a porta 3000
+# ---------------------------------------------------------------------------
+STALE_PID=$(lsof -ti :3000 2>/dev/null || true)
+if [ -n "${STALE_PID}" ]; then
+    log_warn "Processos orfaos detectados na porta 3000 (PID: ${STALE_PID}). Encerrando..."
+    echo "${STALE_PID}" | xargs kill -9 2>/dev/null || true
+    sleep 1
+    log_info "Processos orfaos encerrados."
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Prisma generate + migrate (backend)
 # ---------------------------------------------------------------------------
 log_info "Gerando Prisma Client e aplicando migrations..."

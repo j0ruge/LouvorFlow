@@ -100,30 +100,27 @@ class EventosRepository {
         return prisma.musicas.findUnique({ where: { id: musicasId } });
     }
 
-    // --- Integrantes (eventos_integrantes) ---
+    // --- Integrantes (eventos_users) ---
 
     /**
-     * Retorna os integrantes vinculados a um evento, incluindo suas funções.
+     * Retorna os users vinculados a um evento, incluindo suas funções musicais.
      *
-     * Cada registro retornado possui a estrutura aninhada do Prisma:
-     * `eventos_integrantes_fk_integrante_id_fkey` → `{ id, nome, Integrantes_Funcoes }`,
-     * onde cada item de `Integrantes_Funcoes` contém
-     * `integrantes_funcoes_funcao_id_fkey` → `{ id, nome }`.
+     * Opera sobre `Eventos_Users` → `Users` → `Users_Funcoes`.
      *
      * @param eventoId - ID do evento
-     * @returns Lista de registros de `Eventos_Integrantes` com as relações aninhadas de integrante e funções
+     * @returns Lista de registros de `Eventos_Users` com relações aninhadas de user e funções
      */
     async findIntegrantes(eventoId: string) {
-        return prisma.eventos_Integrantes.findMany({
+        return prisma.eventos_Users.findMany({
             where: { evento_id: eventoId },
             select: {
-                eventos_integrantes_fk_integrante_id_fkey: {
+                eventos_users_fk_user_id_fkey: {
                     select: {
                         id: true,
-                        nome: true,
-                        Integrantes_Funcoes: {
+                        name: true,
+                        Users_Funcoes: {
                             select: {
-                                integrantes_funcoes_funcao_id_fkey: {
+                                users_funcoes_funcao_id_fkey: {
                                     select: { id: true, nome: true }
                                 }
                             }
@@ -135,49 +132,49 @@ class EventosRepository {
     }
 
     /**
-     * Cria a associação entre um evento e um integrante.
+     * Cria a associação entre um evento e um user.
      *
      * @param eventoId - ID do evento
-     * @param integranteId - ID do integrante a ser vinculado
-     * @returns Registro criado na tabela Eventos_Integrantes
+     * @param userId - ID do user a ser vinculado
+     * @returns Registro criado na tabela Eventos_Users
      */
-    async createIntegrante(eventoId: string, integranteId: string) {
-        return prisma.eventos_Integrantes.create({
-            data: { evento_id: eventoId, fk_integrante_id: integranteId }
+    async createIntegrante(eventoId: string, userId: string) {
+        return prisma.eventos_Users.create({
+            data: { evento_id: eventoId, fk_user_id: userId }
         });
     }
 
     /**
-     * Remove a associação entre um evento e um integrante pelo ID do registro.
+     * Remove a associação entre um evento e um user pelo ID do registro.
      *
-     * @param id - ID do registro em Eventos_Integrantes
+     * @param id - ID do registro em Eventos_Users
      * @returns Registro removido
      */
     async deleteIntegrante(id: string) {
-        return prisma.eventos_Integrantes.delete({ where: { id } });
+        return prisma.eventos_Users.delete({ where: { id } });
     }
 
     /**
-     * Verifica se já existe um vínculo entre o evento e o integrante informados.
+     * Verifica se já existe um vínculo entre o evento e o user informados.
      *
      * @param eventoId - ID do evento
-     * @param integranteId - ID do integrante
+     * @param userId - ID do user
      * @returns Registro existente ou `null` se não houver duplicata
      */
-    async findIntegranteDuplicate(eventoId: string, integranteId: string) {
-        return prisma.eventos_Integrantes.findUnique({
-            where: { evento_id_fk_integrante_id: { evento_id: eventoId, fk_integrante_id: integranteId } }
+    async findIntegranteDuplicate(eventoId: string, userId: string) {
+        return prisma.eventos_Users.findUnique({
+            where: { evento_id_fk_user_id: { evento_id: eventoId, fk_user_id: userId } }
         });
     }
 
     /**
-     * Busca um integrante pelo seu ID na tabela de integrantes.
+     * Busca um user pelo ID (valida existência antes de vincular a evento).
      *
-     * @param integranteId - ID do integrante
-     * @returns Integrante encontrado ou `null` se não existir
+     * @param userId - ID do user
+     * @returns User encontrado ou `null` se não existir
      */
-    async findIntegranteById(integranteId: string) {
-        return prisma.integrantes.findUnique({ where: { id: integranteId } });
+    async findIntegranteById(userId: string) {
+        return prisma.users.findUnique({ where: { id: userId } });
     }
 }
 

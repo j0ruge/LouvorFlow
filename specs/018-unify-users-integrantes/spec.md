@@ -34,7 +34,7 @@ As rotas `/api/integrantes` continuam funcionando com o mesmo contrato de respos
 
 **Acceptance Scenarios**:
 
-1. **Given** o backend rodando com o schema unificado, **When** `GET /api/integrantes` é chamado, **Then** retorna a lista de users com os campos esperados (`id`, `nome`, `email`, `telefone`, `funcoes[]`).
+1. **Given** o backend rodando com o schema unificado, **When** `GET /api/integrantes` é chamado, **Then** retorna a lista de todos os users com os campos esperados (`id`, `nome`, `email`, `telefone`, `funcoes[]`).
 2. **Given** o backend unificado, **When** `POST /api/integrantes` cria um novo membro com nome, email, senha e telefone, **Then** um novo user é criado no banco com `password` hasheada, e o novo membro pode fazer login com essas credenciais.
 3. **Given** um user existente com funções musicais vinculadas, **When** `GET /api/integrantes/:id` é chamado com o ID do user, **Then** retorna os dados do user com suas funções achatadas no formato esperado.
 4. **Given** um user criado via `/api/integrantes`, **When** ele faz login via `/api/sessions`, **Then** o login funciona e o user aparece tanto na listagem de integrantes quanto na de users admin.
@@ -83,7 +83,7 @@ O Dashboard e a tela de Histórico, que atualmente contam integrantes, passam a 
 
 **Acceptance Scenarios**:
 
-1. **Given** 10 users no banco, **When** o Dashboard é aberto, **Then** o card "Equipe" mostra 10 membros.
+1. **Given** 10 users no banco (8 com funções musicais, 2 admins sem funções), **When** o Dashboard é aberto, **Then** o card "Equipe" mostra 8 membros (apenas users com pelo menos uma função musical vinculada).
 
 ---
 
@@ -101,16 +101,16 @@ O Dashboard e a tela de Histórico, que atualmente contam integrantes, passam a 
 
 - **FR-001**: O sistema DEVE migrar todos os registros de `integrantes` para `users`, preservando vínculos com eventos (`Eventos_Integrantes`) e funções musicais (`Integrantes_Funcoes`).
 - **FR-002**: O sistema DEVE fazer merge de integrantes e users com mesmo email, priorizando dados de auth do user existente e absorvendo `telefone` do integrante.
-- **FR-003**: O sistema DEVE criar novos users para integrantes sem user correspondente, atribuindo uma senha temporária hasheada.
+- **FR-003**: O sistema DEVE criar novos users para integrantes sem user correspondente, atribuindo um hash aleatório (UUID) como senha — forçando o uso do fluxo "Esqueci minha senha" para primeiro acesso.
 - **FR-004**: O sistema DEVE adicionar o campo `telefone` (varchar 20, nullable) ao model `Users`.
 - **FR-005**: O sistema DEVE remover completamente o model `Integrantes`, a tabela `integrantes` e o campo legado `senha` do schema.
 - **FR-006**: O sistema DEVE renomear as tabelas junction: `Eventos_Integrantes` → `Eventos_Users` (referenciando `user_id`) e `Integrantes_Funcoes` → `Users_Funcoes` (referenciando `user_id`).
-- **FR-007**: O sistema DEVE manter a retrocompatibilidade dos endpoints `/api/integrantes/*`, retornando os mesmos campos no response (`id`, `nome`, `email`, `telefone`, `funcoes[]`).
+- **FR-007**: O sistema DEVE manter a retrocompatibilidade dos endpoints `/api/integrantes/*`, retornando os mesmos campos no response (`id`, `nome`, `email`, `telefone`, `funcoes[]`). A listagem `GET /api/integrantes` retorna todos os users (sem filtro por funções musicais).
 - **FR-008**: O sistema DEVE permitir que um membro criado via `/api/integrantes` faça login via `/api/sessions` com as credenciais fornecidas.
 - **FR-009**: O sistema DEVE atualizar o frontend (services, hooks, schemas, pages) para consumir o model unificado.
 - **FR-010**: O sistema DEVE remover a extensão Prisma `$extends` que filtrava `senha` de integrantes em `prisma/cliente.ts`.
 - **FR-011**: O sistema DEVE atualizar a documentação OpenAPI, os testes, os fakes e os mocks para refletir o model unificado.
-- **FR-012**: O sistema DEVE atualizar os endpoints de eventos (`/api/eventos/:eventoId/integrantes`) para referenciar users.
+- **FR-012**: O sistema DEVE atualizar os endpoints de eventos (`/api/eventos/:eventoId/integrantes`) para operar sobre a tabela `Eventos_Users`, mantendo a URL `/integrantes` inalterada para retrocompatibilidade.
 
 ### Key Entities
 
@@ -127,17 +127,27 @@ O Dashboard e a tela de Histórico, que atualmente contam integrantes, passam a 
 - **SC-001**: 100% dos integrantes existentes são preservados como users após a migração, sem perda de vínculos com eventos ou funções.
 - **SC-002**: Todas as funcionalidades existentes (CRUD de membros, gerenciamento de funções, escalas de eventos, dashboard) continuam funcionando sem regressão.
 - **SC-003**: Membros criados via `/api/integrantes` conseguem fazer login via `/api/sessions` com as credenciais fornecidas na criação.
-- **SC-004**: A contagem de tabelas no banco reduz de 22 para 20 (remoção de `integrantes`, renomeação de 2 junction tables).
+- **SC-004**: A contagem de tabelas no banco reduz de 22 para 21 (remoção de `integrantes`; junction tables são renomeadas, não removidas).
 - **SC-005**: Todos os testes existentes passam (com adaptações) após a unificação.
 - **SC-006**: O email continua sendo único no sistema — não é possível criar dois users com o mesmo email (seja via `/api/users` ou `/api/integrantes`).
 
 ## Assumptions
 
 - A senha legada dos integrantes (`senha`) não é utilizada para autenticação e pode ser descartada sem impacto.
-- Integrantes sem user correspondente receberão uma senha temporária e deverão usar "Esqueci minha senha" para ativar seu acesso.
+- Integrantes sem user correspondente receberão um hash aleatório (UUID) como senha, impossível de adivinhar — deverão usar "Esqueci minha senha" para ativar seu acesso.
 - O campo `telefone` será adicionado como nullable ao model `Users` — users existentes sem telefone terão `telefone = null`.
 - Os endpoints `/api/integrantes` serão mantidos para retrocompatibilidade, operando sobre a tabela `users` com mapeamento de campos (name↔nome, password↔senha).
-- A migração será implementada como uma Prisma migration, garantindo que rode automaticamente em todos os ambientes.
+- A migração será implementada como uma Prisma migration com script de dados em transação única (`$transaction`), garantindo rollback total em caso de falha e que rode automaticamente em todos os ambientes.
+
+## Clarifications
+
+### Session 2026-03-15
+
+- Q: Qual a senha padrão para integrantes migrados sem user correspondente? → A: Hash aleatório (UUID) — força reset via "Esqueci minha senha". Nenhuma credencial temporária previsível existirá no sistema.
+- Q: Dashboard "Equipe" deve contar todos os users ou apenas membros ativos da equipe? → A: Contar apenas users com pelo menos uma função musical vinculada (`Users_Funcoes`).
+- Q: O endpoint `/api/eventos/:eventoId/integrantes` deve ser renomeado para `/users`? → A: Manter `/api/eventos/:eventoId/integrantes` para retrocompatibilidade. Internamente opera sobre `Eventos_Users`.
+- Q: Estratégia de rollback se a migração falhar no meio? → A: Transação única — rollback total em caso de falha, garantindo integridade dos dados.
+- Q: `/api/integrantes` e `/api/users` (admin) mostram o mesmo pool após unificação? → A: Sim, intencional. Ambas as listagens mostram todos os users sem filtro. `/api/integrantes` é uma "view" com campos mapeados para português.
 
 ## Scope Exclusions
 
