@@ -105,6 +105,17 @@ export const userAclBodySchema = z.object({
     ),
 });
 
+// ─── Pagination (query params) ──────────────────────────────────────────────
+
+/**
+ * Schema de validação para query params de paginação (GET /api/users, /api/roles, /api/permissions).
+ * Ambos opcionais; quando presentes, devem ser inteiros >= 1.
+ */
+export const paginationQuerySchema = z.object({
+    page: z.coerce.number().int().min(1, 'page deve ser >= 1').optional(),
+    limit: z.coerce.number().int().min(1, 'limit deve ser >= 1').max(100, 'limit deve ser <= 100').optional(),
+});
+
 // ─── Password ───────────────────────────────────────────────────────────────
 
 /**

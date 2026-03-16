@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import createUserAclService from '../../services/auth/create-user-acl.service.js';
 import listUserAclService from '../../services/auth/list-user-acl.service.js';
+import { flattenUserRelations } from '../../types/auth.types.js';
 
 /**
  * Controller responsável pelo gerenciamento da Lista de Controle de Acesso (ACL) dos usuários.
@@ -16,7 +17,11 @@ class UserAclController {
         const { userId } = req.params;
         const { roles, permissions } = req.body;
         const user = await createUserAclService.execute({ userId, roles, permissions });
-        res.status(200).json(user);
+        const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
+        res.status(200).json({
+            ...flattenUserRelations(user),
+            avatar_url: user.avatar ? `${appApiUrl}/files/${user.avatar}` : null,
+        });
     }
 
     /**

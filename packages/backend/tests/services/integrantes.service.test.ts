@@ -34,8 +34,8 @@ describe('IntegrantesService', () => {
       const result = await integrantesService.listAll();
       expect(result).toHaveLength(MOCK_INTEGRANTES.length);
       expect(result[0]).toHaveProperty('funcoes');
-      expect(result[0]).not.toHaveProperty('senha');
-      expect(result[0].Integrantes_Funcoes).toBeUndefined();
+      expect(result[0]).not.toHaveProperty('password');
+      expect(result[0]).not.toHaveProperty('Users_Funcoes');
     });
   });
 
@@ -46,7 +46,7 @@ describe('IntegrantesService', () => {
     it('deve retornar um integrante com funções pelo id', async () => {
       const result = await integrantesService.getById(MOCK_INTEGRANTES[0].id);
       expect(result).toHaveProperty('funcoes');
-      expect(result.Integrantes_Funcoes).toBeUndefined();
+      expect(result).not.toHaveProperty('Users_Funcoes');
     });
 
     /** Verifica que ID vazio lança AppError 400. */
@@ -79,7 +79,7 @@ describe('IntegrantesService', () => {
       });
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('nome', 'Novo Integrante');
-      expect(result).not.toHaveProperty('senha');
+      expect(result).not.toHaveProperty('password');
       expect(bcrypt.hash).toHaveBeenCalledWith('senha123', 12);
     });
 
@@ -111,7 +111,7 @@ describe('IntegrantesService', () => {
     it('deve atualizar integrante com dados válidos', async () => {
       const result = await integrantesService.update(MOCK_INTEGRANTES[0].id, { nome: 'Nome Atualizado' });
       expect(result.nome).toBe('Nome Atualizado');
-      expect(result).not.toHaveProperty('senha');
+      expect(result).not.toHaveProperty('password');
     });
 
     /** Verifica que ID vazio no update lança AppError 400. */
@@ -162,7 +162,7 @@ describe('IntegrantesService', () => {
     it('deve remover um integrante existente', async () => {
       const result = await integrantesService.delete(MOCK_INTEGRANTES[0].id);
       expect(result).toHaveProperty('id', MOCK_INTEGRANTES[0].id);
-      expect(result).not.toHaveProperty('senha');
+      expect(result).not.toHaveProperty('password');
     });
 
     /** Verifica que ID vazio no delete lança AppError 400. */
@@ -231,7 +231,7 @@ describe('IntegrantesService', () => {
     /** Verifica que vínculo duplicado lança AppError 409. */
     it('deve lançar AppError 409 quando relação já existe', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
-      await expect(integrantesService.addFuncao(existing.fk_integrante_id, existing.funcao_id)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(existing.fk_user_id, existing.funcao_id)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });
@@ -244,7 +244,7 @@ describe('IntegrantesService', () => {
     /** Verifica que remoção de vínculo existente resolve sem erro. */
     it('deve remover uma função vinculada ao integrante', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
-      await expect(integrantesService.removeFuncao(existing.fk_integrante_id, existing.funcao_id)).resolves.toBeUndefined();
+      await expect(integrantesService.removeFuncao(existing.fk_user_id, existing.funcao_id)).resolves.toBeUndefined();
     });
 
     /** Verifica que remoção de vínculo inexistente lança AppError 404. */

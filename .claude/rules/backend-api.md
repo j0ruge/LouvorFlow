@@ -32,7 +32,7 @@ packages/backend/
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (22 modelos: 14 domínio + 8 auth)
+│   ├── schema.prisma    # Schema do banco (21 modelos: 13 domínio + 8 auth)
 │   ├── cliente.ts       # Singleton do Prisma Client
 │   └── migrations/      # Migrações do banco
 ├── seeds/
@@ -79,15 +79,23 @@ Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`
 ### Middleware chain para rotas protegidas
 
 ```text
-ensureAuthenticated → is(roles) / can(permissions) → validateRequest({ body, params }) → controller
+ensureAuthenticated → ensureHasRole / is(roles) / can(permissions) → validateRequest({ body, params }) → controller
 ```
 
 ### Middlewares disponíveis
 
 - **`ensureAuthenticated`**: Verifica JWT no header `Authorization: Bearer <token>`, injeta `req.user.id`. Retorna `401` se token inválido/ausente.
+- **`ensureHasRole`**: Verifica se o usuário possui **pelo menos uma role** atribuída (qualquer role serve). Retorna `403` se não possuir nenhuma. Usado em endpoints de escrita (POST/PUT/DELETE) de domínio.
 - **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (cacheadas em `req.user.roles`). Retorna `403` se não autorizado.
 - **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (cacheadas em `req.user`). Retorna `403` se não autorizado.
 - **`validateRequest({ body?, params? })`**: Factory de middleware que valida request body/params contra schemas Zod. Retorna `400` com detalhes de validação.
+
+### Proteção de rotas de domínio
+
+Todos os endpoints de domínio (artistas, categorias, eventos, funções, integrantes, músicas, tipos-eventos, tonalidades, relatórios) são protegidos:
+
+- **GET**: `ensureAuthenticated` — qualquer usuário logado pode ler
+- **POST / PUT / DELETE**: `ensureAuthenticated, ensureHasRole` — exige pelo menos uma role atribuída
 
 ### Providers
 
@@ -114,6 +122,19 @@ Validação de entrada obrigatória usando **Zod** em todos os endpoints.
 Schemas de validação ficam em `src/validators/` (ex.: `auth.validators.ts`).
 O middleware `validateRequest()` aplica os schemas automaticamente.
 
+### Express 5 Breaking Changes
+
+- **`req.query` é read-only** (getter). Middlewares NÃO devem reatribuir `req.query = ...`. Para validação, usar `schema.parse(req.query)` sem reatribuição — o resultado validado pode ser usado localmente, mas não deve substituir `req.query`.
+- **Async error handling nativo**: Express 5 propaga automaticamente erros de funções async para o error handler. Controllers NÃO precisam de try-catch.
+
+## Transformações Prisma → API Response
+
+Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** transformar o formato antes de retornar ao frontend:
+
+1. **Junction table → flat**: Prisma M:N retorna `{ role: { id, name } }`. O controller DEVE achatar para `{ id, name }` usando `flattenUserRelations()` ou `flattenRolePermissions()` de `src/types/auth.types.ts`.
+2. **Campos computados**: `avatar_url` não existe no banco. TODO endpoint que retorna User DEVE computar: `avatar_url = avatar ? "${APP_API_URL}/files/${avatar}" : null`.
+3. **Timestamps em relações**: Selects Prisma de relações M:N devem incluir `created_at` e `updated_at` nos nested objects.
+
 ## Convenções de Código
 
 - Use RESTful APIs com verbos HTTP padrão (GET, POST, PUT, DELETE).
@@ -131,8 +152,9 @@ O middleware `validateRequest()` aplica os schemas automaticamente.
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `packages/backend/prisma/schema.prisma` (22 modelos: 14 domínio + 8 auth).
-- Singleton do client: `packages/backend/prisma/cliente.ts`.
+- Schema: `packages/backend/prisma/schema.prisma` (21 modelos: 13 domínio + 8 auth).
+- Singleton do client: `packages/backend/prisma/cliente.ts` (sem `$extends` — exclusão de `senha` é feita via `INTEGRANTE_PUBLIC_SELECT`).
+- **Unificação users/integrantes (spec 018)**: A tabela `integrantes` foi removida. Os endpoints `/api/integrantes/*` operam sobre a tabela `Users`. Junction tables: `eventos_users` (antes `eventos_integrantes`), `users_funcoes` (antes `integrantes_funcoes`). O campo `name` do Users é mapeado para `nome` na resposta da API de integrantes.
 - Migrações via `npx prisma migrate dev`. Nunca usar SQL direto para alterar schema.
 - Convenção de FK: `fk_nome_entidade` para 1:N, `[entidade]_id` para N:N.
 

@@ -43,46 +43,46 @@ export const MOCK_ARTISTAS = [
   { id: 'eee00001-0000-0000-0000-000000000003', nome: 'Gabriela Rocha' },
 ];
 
-// ─── Integrantes ─────────────────────────────────────────
+// ─── Integrantes (opera sobre Users após unificação) ─────
 export const MOCK_INTEGRANTES = [
   {
     id: 'fff00001-0000-0000-0000-000000000001',
-    nome: 'João Silva',
+    name: 'João Silva',
     email: 'joao@igreja.com',
-    senha: 'hashed_password_1',
+    password: 'hashed_password_1',
     telefone: '11999990001',
   },
   {
     id: 'fff00001-0000-0000-0000-000000000002',
-    nome: 'Maria Santos',
+    name: 'Maria Santos',
     email: 'maria@igreja.com',
-    senha: 'hashed_password_2',
+    password: 'hashed_password_2',
     telefone: null,
   },
   {
     id: 'fff00001-0000-0000-0000-000000000003',
-    nome: 'Pedro Oliveira',
+    name: 'Pedro Oliveira',
     email: 'pedro@igreja.com',
-    senha: 'hashed_password_3',
+    password: 'hashed_password_3',
     telefone: '11999990003',
   },
 ];
 
-// ─── Integrantes_Funcoes (junction) ──────────────────────
+// ─── Users_Funcoes (junction — ex-Integrantes_Funcoes) ───
 export const MOCK_INTEGRANTES_FUNCOES = [
   {
     id: 'jjj00001-0000-0000-0000-000000000001',
-    fk_integrante_id: 'fff00001-0000-0000-0000-000000000001',
+    fk_user_id: 'fff00001-0000-0000-0000-000000000001',
     funcao_id: 'ccc00001-0000-0000-0000-000000000001',
   },
   {
     id: 'jjj00001-0000-0000-0000-000000000002',
-    fk_integrante_id: 'fff00001-0000-0000-0000-000000000001',
+    fk_user_id: 'fff00001-0000-0000-0000-000000000001',
     funcao_id: 'ccc00001-0000-0000-0000-000000000002',
   },
   {
     id: 'jjj00001-0000-0000-0000-000000000003',
-    fk_integrante_id: 'fff00001-0000-0000-0000-000000000002',
+    fk_user_id: 'fff00001-0000-0000-0000-000000000002',
     funcao_id: 'ccc00001-0000-0000-0000-000000000003',
   },
 ];
@@ -186,10 +186,10 @@ export const MOCK_EVENTOS_MUSICAS = [
   { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002' },
 ];
 
-// ─── Eventos_Integrantes (junction) ──────────────────────
+// ─── Eventos_Users (junction — ex-Eventos_Integrantes) ───
 export const MOCK_EVENTOS_INTEGRANTES = [
-  { id: 'jjj00006-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', fk_integrante_id: 'fff00001-0000-0000-0000-000000000001' },
-  { id: 'jjj00006-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', fk_integrante_id: 'fff00001-0000-0000-0000-000000000002' },
+  { id: 'jjj00006-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', fk_user_id: 'fff00001-0000-0000-0000-000000000001' },
+  { id: 'jjj00006-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', fk_user_id: 'fff00001-0000-0000-0000-000000000002' },
 ];
 
 // ─── UUID inexistente para testes de 404 ─────────────────

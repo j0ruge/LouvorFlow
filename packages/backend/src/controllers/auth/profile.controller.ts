@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import showProfileService from '../../services/auth/show-profile.service.js';
 import updateProfileService from '../../services/auth/update-profile.service.js';
+import { flattenUserRelations } from '../../types/auth.types.js';
 
 /**
  * Controller responsável pelo gerenciamento do perfil do usuário autenticado.
@@ -15,7 +16,11 @@ class ProfileController {
     async show(req: Request, res: Response): Promise<void> {
         const user_id = req.user!.id;
         const user = await showProfileService.execute({ user_id });
-        res.status(200).json(user);
+        const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
+        res.status(200).json({
+            ...flattenUserRelations(user),
+            avatar_url: user.avatar ? `${appApiUrl}/files/${user.avatar}` : null,
+        });
     }
 
     /**
@@ -28,7 +33,11 @@ class ProfileController {
         const user_id = req.user!.id;
         const { name, email, old_password, password } = req.body;
         const user = await updateProfileService.execute({ user_id, name, email, old_password, password });
-        res.status(200).json(user);
+        const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
+        res.status(200).json({
+            ...flattenUserRelations(user),
+            avatar_url: user.avatar ? `${appApiUrl}/files/${user.avatar}` : null,
+        });
     }
 }
 

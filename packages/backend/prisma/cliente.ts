@@ -1,31 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Creates a PrismaClient instance extended so that all integrantes query results have the `senha` field removed.
+ * Instância singleton do Prisma Client.
  *
- * @returns A PrismaClient augmented with a query-level extension that strips the `senha` property from integrantes query results.
+ * Após a unificação users/integrantes, a extensão que filtrava o campo `senha`
+ * de integrantes foi removida — o model Integrantes não existe mais.
+ * O campo `password` do model Users é protegido via select explícito nos repositories.
  */
-function createPrismaClient() {
-    return new PrismaClient().$extends({
-        query: {
-            integrantes: {
-                async $allOperations({ args, query }) {
-                    const result = await query(args);
-                    const strip = (value: unknown): unknown => {
-                        if (value && typeof value === 'object' && !Array.isArray(value)) {
-                            delete (value as { senha?: unknown }).senha;
-                        }
-                        return value;
-                    };
-                    return Array.isArray(result) ? result.map(strip) : strip(result);
-                }
-            }
-        }
-    });
-}
-
-const prisma = createPrismaClient();
-
-export type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+const prisma = new PrismaClient();
 
 export default prisma;

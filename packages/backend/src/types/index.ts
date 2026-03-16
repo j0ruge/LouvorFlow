@@ -102,11 +102,12 @@ export interface IdTom {
 }
 
 /**
- * Dados de entrada para criação de integrante.
+ * Dados de entrada para criação de integrante (opera sobre model Users).
+ * Campos usam naming em português para retrocompatibilidade da API.
  *
- * @property nome - Nome do integrante (obrigatório)
+ * @property nome - Nome do integrante (mapeado para `name` no Users)
  * @property email - Email do integrante (obrigatório, único)
- * @property senha - Senha em texto plano (será hasheada antes de persistir)
+ * @property senha - Senha em texto plano (mapeada para `password`, será hasheada)
  * @property telefone - Telefone de contato (opcional)
  */
 export interface CreateIntegranteInput {
@@ -117,12 +118,12 @@ export interface CreateIntegranteInput {
 }
 
 /**
- * Dados de entrada para atualização de integrante.
+ * Dados de entrada para atualização de integrante (opera sobre model Users).
  * Todos os campos são opcionais — apenas os enviados serão atualizados.
  *
- * @property nome - Novo nome do integrante
+ * @property nome - Novo nome (mapeado para `name` no Users)
  * @property email - Novo email (verificado contra duplicidade)
- * @property senha - Nova senha (será hasheada antes de persistir)
+ * @property senha - Nova senha (mapeada para `password`, será hasheada)
  * @property telefone - Novo telefone de contato
  */
 export interface UpdateIntegranteInput {
@@ -133,22 +134,22 @@ export interface UpdateIntegranteInput {
 }
 
 /**
- * Representação de um integrante com suas funções, retornada pelo Prisma
- * antes da transformação para a API.
+ * Representação de um user com funções musicais, retornada pelo Prisma
+ * antes da transformação para a API de integrantes.
  *
  * @property id - Identificador único (UUID)
- * @property nome - Nome do integrante
- * @property email - Email do integrante
+ * @property name - Nome do user (mapeado para `nome` na resposta)
+ * @property email - Email do user
  * @property telefone - Telefone de contato ou `null`
- * @property Integrantes_Funcoes - Funções vinculadas via tabela intermediária
+ * @property Users_Funcoes - Funções musicais vinculadas via tabela intermediária
  */
 export interface IntegranteWithFuncoes {
     id: string;
-    nome: string;
+    name: string;
     email: string;
     telefone: string | null;
-    Integrantes_Funcoes: {
-        integrantes_funcoes_funcao_id_fkey: IdNome;
+    Users_Funcoes: {
+        users_funcoes_funcao_id_fkey: IdNome;
     }[];
 }
 
@@ -214,7 +215,7 @@ export interface Musica {
  * @property descricao - Descrição do evento
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id e nome)
- * @property Eventos_Integrantes - Integrantes vinculados (cada item contém id e nome)
+ * @property Eventos_Users - Users vinculados (cada item contém id e nome)
  */
 export interface EventoIndexRaw {
     id: string;
@@ -222,7 +223,7 @@ export interface EventoIndexRaw {
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
-    Eventos_Integrantes: { eventos_integrantes_fk_integrante_id_fkey: IdNome }[];
+    Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
 }
 
 export interface EventoShowMusica {
@@ -231,10 +232,17 @@ export interface EventoShowMusica {
     musicas_fk_tonalidade_fkey: IdTom | null;
 }
 
+/**
+ * Representação de um user vinculado a um evento (show), com funções musicais.
+ *
+ * @property id - Identificador único do user
+ * @property name - Nome do user
+ * @property Users_Funcoes - Funções musicais vinculadas
+ */
 export interface EventoShowIntegrante {
     id: string;
-    nome: string;
-    Integrantes_Funcoes: { integrantes_funcoes_funcao_id_fkey: IdNome }[];
+    name: string;
+    Users_Funcoes: { users_funcoes_funcao_id_fkey: IdNome }[];
 }
 
 /**
@@ -245,7 +253,7 @@ export interface EventoShowIntegrante {
  * @property descricao - Descrição do evento
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id, nome e tonalidade)
- * @property Eventos_Integrantes - Integrantes vinculados (cada item contém id, nome e funções)
+ * @property Eventos_Users - Users vinculados (cada item contém id, nome e funções)
  */
 export interface EventoShowRaw {
     id: string;
@@ -253,14 +261,18 @@ export interface EventoShowRaw {
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
-    Eventos_Integrantes: { eventos_integrantes_fk_integrante_id_fkey: EventoShowIntegrante }[];
+    Eventos_Users: { eventos_users_fk_user_id_fkey: EventoShowIntegrante }[];
 }
 
+/**
+ * Select de campos públicos para consultas de integrantes (opera sobre Users).
+ * Exclui `password` e `avatar` da resposta.
+ */
 export const INTEGRANTE_PUBLIC_SELECT = {
     id: true,
-    nome: true,
+    name: true,
     email: true,
-    telefone: true
+    telefone: true,
 } as const;
 
 export const MUSICA_SELECT = {
@@ -312,10 +324,10 @@ export const EVENTO_INDEX_SELECT = {
             }
         }
     },
-    Eventos_Integrantes: {
+    Eventos_Users: {
         select: {
-            eventos_integrantes_fk_integrante_id_fkey: {
-                select: { id: true, nome: true }
+            eventos_users_fk_user_id_fkey: {
+                select: { id: true, name: true }
             }
         }
     }
@@ -341,15 +353,15 @@ export const EVENTO_SHOW_SELECT = {
             }
         }
     },
-    Eventos_Integrantes: {
+    Eventos_Users: {
         select: {
-            eventos_integrantes_fk_integrante_id_fkey: {
+            eventos_users_fk_user_id_fkey: {
                 select: {
                     id: true,
-                    nome: true,
-                    Integrantes_Funcoes: {
+                    name: true,
+                    Users_Funcoes: {
                         select: {
-                            integrantes_funcoes_funcao_id_fkey: {
+                            users_funcoes_funcao_id_fkey: {
                                 select: { id: true, nome: true }
                             }
                         }

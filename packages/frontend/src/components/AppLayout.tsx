@@ -1,12 +1,29 @@
+/**
+ * Layout principal da aplicação.
+ *
+ * Envolve o conteúdo com sidebar de navegação, header sticky
+ * com controles de tema e menu do usuário autenticado.
+ */
+
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { ReactNode } from "react";
 
+/** Props do AppLayout. */
 interface AppLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Componente de layout que estrutura sidebar, header e área de conteúdo.
+ *
+ * O header inclui o trigger do sidebar, toggle de tema e menu do usuário.
+ *
+ * @param children - Conteúdo da página renderizado na área principal.
+ * @returns Elemento React com o layout completo.
+ */
 export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
@@ -17,6 +34,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <SidebarTrigger />
             <div className="flex-1" />
             <ThemeToggle />
+            <UserMenu />
           </header>
           <div className="p-6">
             {children}

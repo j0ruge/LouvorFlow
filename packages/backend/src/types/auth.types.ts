@@ -50,6 +50,25 @@ export interface ILoginDTO {
     password: string;
 }
 
+/** Permissão achatada retornada ao frontend. */
+export interface IFlatPermission {
+    id: string;
+    name: string;
+    description: string;
+    created_at: Date;
+    updated_at: Date;
+}
+
+/** Role achatada com permissões retornada ao frontend. */
+export interface IFlatRole {
+    id: string;
+    name: string;
+    description: string;
+    created_at: Date;
+    updated_at: Date;
+    permissions: IFlatPermission[];
+}
+
 /** Usuário sanitizado sem campo de senha. */
 export interface SanitizedUser {
     id: string;
@@ -57,6 +76,8 @@ export interface SanitizedUser {
     email: string;
     avatar: string | null;
     avatar_url: string | null;
+    roles: IFlatRole[];
+    permissions: IFlatPermission[];
     created_at: Date;
     updated_at: Date;
 }
@@ -218,10 +239,12 @@ export const USER_PUBLIC_SELECT = {
                     id: true,
                     name: true,
                     description: true,
+                    created_at: true,
+                    updated_at: true,
                     permissions: {
                         select: {
                             permission: {
-                                select: { id: true, name: true, description: true }
+                                select: { id: true, name: true, description: true, created_at: true, updated_at: true }
                             }
                         }
                     }
@@ -232,8 +255,44 @@ export const USER_PUBLIC_SELECT = {
     permissions: {
         select: {
             permission: {
-                select: { id: true, name: true, description: true }
+                select: { id: true, name: true, description: true, created_at: true, updated_at: true }
             }
         }
     }
 } as const;
+
+/**
+ * Achata as relações de junction table do Prisma para o formato
+ * plano esperado pelo frontend (roles e permissions como arrays diretos).
+ *
+ * @param user - Usuário com relações em formato junction table do Prisma.
+ * @returns Usuário com roles e permissions achatados.
+ */
+export function flattenUserRelations<T extends { roles: { role: any }[]; permissions: { permission: any }[] }>(
+    user: T,
+) {
+    return {
+        ...user,
+        roles: user.roles.map((ur: { role: any }) => ({
+            ...ur.role,
+            permissions: ur.role.permissions?.map((rp: { permission: any }) => rp.permission) ?? [],
+        })),
+        permissions: user.permissions.map((up: { permission: any }) => up.permission),
+    };
+}
+
+/**
+ * Achata as permissões de junction table do Prisma para formato plano
+ * esperado pelo frontend (permissions como array direto de objetos).
+ *
+ * @param role - Role com permissões em formato junction table do Prisma.
+ * @returns Role com permissions achatadas.
+ */
+export function flattenRolePermissions<T extends { permissions: { permission: any }[] }>(
+    role: T,
+) {
+    return {
+        ...role,
+        permissions: role.permissions.map((rp: { permission: any }) => rp.permission),
+    };
+}

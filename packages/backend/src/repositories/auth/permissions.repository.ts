@@ -7,6 +7,29 @@ import prisma from '../../../prisma/cliente.js';
 
 class PermissionsRepository {
     /**
+     * Lista permissões cadastradas no sistema.
+     * Suporta paginação opcional via `page` e `limit`.
+     *
+     * @param options - Opções de paginação (page e limit). Se omitidos, retorna todas.
+     * @returns Objeto com `data` (array de permissões), `total`, `page` e `limit`
+     */
+    async findAll(options?: { page?: number; limit?: number }) {
+        const page = options?.page;
+        const limit = options?.limit;
+        const isPaginated = page !== undefined && limit !== undefined;
+
+        const [data, total] = await Promise.all([
+            prisma.permissions.findMany({
+                orderBy: { name: 'asc' },
+                ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
+            }),
+            prisma.permissions.count(),
+        ]);
+
+        return { data, total, page: page ?? 1, limit: limit ?? total };
+    }
+
+    /**
      * Busca uma permissão pelo ID.
      *
      * @param id - UUID da permissão

@@ -92,6 +92,24 @@ try {
 Write-Info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
+# 5.5. Matar processos Node orfaos que travam a DLL do Prisma (porta 3000)
+# ---------------------------------------------------------------------------
+$staleProcs = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    } |
+    Where-Object { $_.ProcessName -eq 'node' }
+
+if ($staleProcs) {
+    Write-Warn "Processos Node orfaos detectados na porta 3000. Encerrando..."
+    $staleProcs | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        Write-Info "  Processo node (PID $($_.Id)) encerrado."
+    }
+    Start-Sleep -Seconds 1
+}
+
+# ---------------------------------------------------------------------------
 # 6. Prisma generate + migrate (backend)
 # ---------------------------------------------------------------------------
 Write-Info "Gerando Prisma Client e aplicando migrations..."
@@ -110,7 +128,23 @@ try {
 Write-Info "Prisma Client gerado e migrations aplicadas."
 
 # ---------------------------------------------------------------------------
-# 7 & 8. Iniciar backend e frontend em paralelo
+# 7. Admin seed (idempotente — seguro re-executar)
+# ---------------------------------------------------------------------------
+Write-Info "Executando seed do admin..."
+Push-Location "$DIR\packages\backend"
+try {
+    npx tsx seeds/admin.ts
+    if ($LASTEXITCODE -ne 0) { throw "admin seed falhou" }
+} catch {
+    Write-Erro "Falha ao executar seed do admin."
+    exit 1
+} finally {
+    Pop-Location
+}
+Write-Info "Seed do admin executado."
+
+# ---------------------------------------------------------------------------
+# 8 & 9. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 $backProc  = $null
 $frontProc = $null
@@ -143,7 +177,7 @@ try {
     }
 } finally {
     # ---------------------------------------------------------------------------
-    # 9. Cleanup — encerrar processos filhos
+    # 10. Cleanup — encerrar processos filhos
     # ---------------------------------------------------------------------------
     Write-Host ""
     Write-Warn "Encerrando processos..."

@@ -47,6 +47,8 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
 - **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos.
 - **Histórico de escalas** — Consulta de escalas anteriores.
+- **Autenticação e RBAC** — Login com JWT (access + refresh token), recuperação de senha por e-mail, gestão de usuários, papéis (roles) e permissões. Painel administrativo com controle de acesso baseado em roles.
+- **Perfil do usuário** — Edição de nome, e-mail e senha pelo próprio usuário.
 
 ## Tecnologias
 
@@ -57,6 +59,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 | **Banco**      | PostgreSQL 17                               |
 | **ORM**        | Prisma 6                                    |
 | **Validação**  | Zod                                         |
+| **Auth**       | bcryptjs, jsonwebtoken, dayjs, nodemailer   |
 | **Testes**     | Vitest 4 (unitários), Playwright (E2E)      |
 | **Infra**      | Docker Compose                              |
 
@@ -100,20 +103,27 @@ docker-compose up -d
 ### 2. Backend
 
 ```bash
-cd src/backend
+cd packages/backend
 npm install
 cp .env.example .env
 # Edite o .env — a DATABASE_URL deve corresponder ao banco
+# Configure também as variáveis de autenticação:
+#   APP_SECRET, APP_SECRET_REFRESH_TOKEN — segredos JWT
+#   ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME — credenciais do admin inicial
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS — servidor de e-mail (recuperação de senha)
 npx prisma migrate dev
+npx prisma db seed   # OBRIGATÓRIO — cria o usuário admin inicial
 npm run dev
 ```
+
+> **Importante:** O comando `npx prisma db seed` é **obrigatório** na primeira execução. Ele cria o usuário admin inicial necessário para login e acesso ao sistema. O seed é idempotente — pode ser re-executado com segurança. Se usar os scripts `dev.sh` ou `dev.ps1`, o seed é executado automaticamente.
 
 O servidor inicia em `http://localhost:3000`.
 
 ### 3. Frontend
 
 ```bash
-cd src/frontend
+cd packages/frontend
 npm install
 npm run dev
 ```
@@ -123,19 +133,44 @@ O frontend inicia em `http://localhost:8080`.
 Para rodar os testes E2E (requer backend e frontend em execução):
 
 ```bash
-cd src/frontend
+cd packages/frontend
 npx playwright test
 ```
 
 ## Uso
 
-Com o servidor rodando, faça requisições para a API REST. Exemplos com `curl`:
+Com o servidor rodando, faça requisições para a API REST. A maioria dos endpoints requer autenticação via JWT.
 
-**Criar um artista:**
+**1. Fazer login para obter o token:**
+
+```bash
+curl -X POST http://localhost:3000/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@louvorflow.com", "password": "sua-senha"}'
+```
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": "uuid",
+    "name": "Admin",
+    "email": "admin@louvorflow.com",
+    "roles": [{ "id": "uuid", "name": "admin" }],
+    "permissions": []
+  }
+}
+```
+
+> **Nota:** Use o `token` retornado no header `Authorization: Bearer <token>` das requisições abaixo.
+
+**2. Criar um artista:**
 
 ```bash
 curl -X POST http://localhost:3000/api/artistas \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"nome": "Aline Barros"}'
 ```
 
@@ -149,11 +184,12 @@ curl -X POST http://localhost:3000/api/artistas \
 }
 ```
 
-**Cadastrar uma música:**
+**3. Cadastrar uma música:**
 
 ```bash
 curl -X POST http://localhost:3000/api/musicas \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"nome": "Rendido Estou", "fk_tonalidade": "tonalidade-id"}'
 ```
 
@@ -168,10 +204,11 @@ curl -X POST http://localhost:3000/api/musicas \
 }
 ```
 
-**Listar músicas com paginação:**
+**4. Listar músicas com paginação:**
 
 ```bash
-curl "http://localhost:3000/api/musicas?page=1&limit=10"
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:3000/api/musicas?page=1&limit=10"
 ```
 
 ```json
@@ -219,7 +256,7 @@ Base URL: `http://localhost:3000/api`
 
 ### Recursos principais
 
-| Recurso          | Rota base           | CRUD | Sub-recursos                           |
+| Recurso          | Rota base           | CRUD | Sub-recursos / Notas                   |
 |------------------|---------------------|------|----------------------------------------|
 | Artistas         | `/artistas`         | Sim  | —                                      |
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
@@ -229,6 +266,12 @@ Base URL: `http://localhost:3000/api`
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
 | Funções          | `/funcoes`          | Sim  | —                                      |
 | Tipos de Eventos | `/tipos-eventos`    | Sim  | —                                      |
+| Sessions         | `/sessions`         | —    | Login, refresh token, logout           |
+| Users            | `/users`            | Sim  | Requer role `admin`                    |
+| Roles            | `/roles`            | Sim  | `/permissions`. Requer role `admin`    |
+| Permissions      | `/permissions`      | Sim  | Requer role `admin`                    |
+| Profile          | `/profile`          | —    | Visualizar e editar perfil próprio     |
+| Password         | `/password`         | —    | Esqueci senha, redefinir senha         |
 
 ### Padrão CRUD
 
@@ -286,37 +329,44 @@ Todas as respostas de erro seguem o formato padronizado via `AppError`:
 }
 ```
 
-Códigos HTTP utilizados: `200`, `201`, `400`, `404`, `409`, `500`.
+Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`.
 
 ## Arquitetura
 
 O backend segue uma arquitetura em camadas com separação clara de responsabilidades:
 
 ```text
-Request → Routes → Controllers → Services → Repositories → Prisma → PostgreSQL
+Request → Routes → Middlewares → Controllers → Services → Repositories → Prisma → PostgreSQL
 ```
 
-| Camada         | Responsabilidade                                      |
-|----------------|-------------------------------------------------------|
-| **Routes**     | Definição de rotas e mapeamento para controllers      |
-| **Controllers**| Receber requisição HTTP e devolver resposta            |
-| **Services**   | Lógica de negócio, validações e regras                 |
-| **Repositories**| Acesso a dados via Prisma ORM                         |
+| Camada          | Responsabilidade                                           |
+|-----------------|-----------------------------------------------------------|
+| **Routes**      | Definição de rotas e mapeamento para controllers           |
+| **Middlewares**  | Autenticação (JWT), autorização (roles/permissions), validação (Zod) |
+| **Controllers** | Receber requisição HTTP e devolver resposta                |
+| **Services**    | Lógica de negócio, validações e regras                     |
+| **Repositories**| Acesso a dados via Prisma ORM                              |
 
 ## Estrutura do Projeto
 
 ```text
 LouvorFlow/
-├── src/
+├── packages/
 │   ├── backend/                  # API REST
 │   │   ├── src/
 │   │   │   ├── routes/           # Definições de rotas
+│   │   │   │   └── auth/        # Rotas de auth (sessions, users, roles, permissions, profile, password)
 │   │   │   ├── controllers/      # Handlers HTTP
 │   │   │   ├── services/         # Regras de negócio
 │   │   │   ├── repositories/     # Acesso a dados (Prisma)
+│   │   │   ├── middlewares/      # Auth (JWT), autorização (roles/permissions), validação (Zod)
+│   │   │   ├── providers/        # Hash, Token, Date, Mail providers
+│   │   │   ├── config/           # Configurações (auth, etc.)
+│   │   │   ├── validators/       # Schemas Zod de validação
 │   │   │   ├── errors/           # AppError
 │   │   │   └── types/            # Interfaces TypeScript
 │   │   ├── prisma/               # Schema e migrações
+│   │   ├── seeds/                # Seed do admin inicial
 │   │   ├── tests/                # Testes unitários (Vitest)
 │   │   │   ├── services/         # Testes dos services
 │   │   │   └── fakes/            # Repositórios falsos
@@ -324,11 +374,13 @@ LouvorFlow/
 │   └── frontend/                 # SPA React (Vite + TailwindCSS)
 │       └── src/
 │           ├── pages/            # Páginas da aplicação
+│           │   └── admin/       # Páginas administrativas (usuários, roles, permissões)
 │           ├── components/       # Componentes React + shadcn/ui
-│           ├── hooks/            # Custom hooks (React Query)
-│           ├── services/         # Serviços de acesso à API
-│           ├── schemas/          # Schemas Zod
-│           ├── lib/              # Utilitários
+│           ├── contexts/         # AuthContext (estado global de autenticação)
+│           ├── hooks/            # Custom hooks (React Query, auth, admin)
+│           ├── services/         # Serviços de acesso à API (auth, admin)
+│           ├── schemas/          # Schemas Zod (auth, formulários)
+│           ├── lib/              # Utilitários (apiFetch com auto-refresh)
 │           └── tests/e2e/        # Testes E2E (Playwright)
 ├── infra/
 │   └── postgres/                 # Docker Compose para PostgreSQL
@@ -342,7 +394,7 @@ LouvorFlow/
 - [x] Testes unitários com repositórios mockados
 - [x] Integração frontend-backend — Fase 1 (listagem e criação de músicas, escalas, integrantes)
 - [x] Integração frontend-backend — Fase 2 (CRUD completo, configurações, dashboard real, busca, testes E2E)
-- [ ] Autenticação com JWT
+- [x] Autenticação com JWT e RBAC (backend + frontend)
 - [ ] Seleção de versão ao associar música a escala (débito técnico)
 - [ ] Compartilhamento de escalas via WhatsApp
 - [ ] Relatórios de frequência de execução
@@ -380,7 +432,7 @@ Toda contribuição é bem-vinda — código, design, documentação ou testes!
 | Modelagem do Banco       | [`doc/readme.md`](./doc/readme.md)              |
 | Infraestrutura (Docker)  | [`infra/README.md`](./infra/README.md)          |
 | Especificações           | [`specs/`](./specs/)                            |
-| OpenAPI (Swagger)        | [`src/backend/docs/openapi.json`](./src/backend/docs/openapi.json) |
+| OpenAPI (Swagger)        | [`packages/backend/docs/openapi.json`](./packages/backend/docs/openapi.json) |
 | Entrevistas com Usuários | [`entrevistas/`](./entrevistas/)                |
 
 ## Licença

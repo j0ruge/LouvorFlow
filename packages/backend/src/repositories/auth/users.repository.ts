@@ -9,6 +9,31 @@ import { USER_PUBLIC_SELECT } from '../../types/auth.types.js';
 
 class UsersRepository {
     /**
+     * Lista usuários com seleção pública (sem senha),
+     * incluindo roles e permissões carregadas.
+     * Suporta paginação opcional via `page` e `limit`.
+     *
+     * @param options - Opções de paginação (page e limit). Se omitidos, retorna todos.
+     * @returns Objeto com `data` (array de usuários), `total`, `page` e `limit`
+     */
+    async findAll(options?: { page?: number; limit?: number }) {
+        const page = options?.page;
+        const limit = options?.limit;
+        const isPaginated = page !== undefined && limit !== undefined;
+
+        const [data, total] = await Promise.all([
+            prisma.users.findMany({
+                select: USER_PUBLIC_SELECT,
+                orderBy: { name: 'asc' },
+                ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
+            }),
+            prisma.users.count(),
+        ]);
+
+        return { data, total, page: page ?? 1, limit: limit ?? total };
+    }
+
+    /**
      * Busca um usuário pelo ID com seleção pública (sem senha),
      * incluindo roles e permissões carregadas.
      *
@@ -32,6 +57,35 @@ class UsersRepository {
     async findByEmail(email: string) {
         return prisma.users.findFirst({
             where: { email: { equals: email, mode: 'insensitive' } },
+            include: {
+                roles: {
+                    select: {
+                        role: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true,
+                                created_at: true,
+                                updated_at: true,
+                                permissions: {
+                                    select: {
+                                        permission: {
+                                            select: { id: true, name: true, description: true, created_at: true, updated_at: true }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                permissions: {
+                    select: {
+                        permission: {
+                            select: { id: true, name: true, description: true, created_at: true, updated_at: true }
+                        }
+                    }
+                }
+            },
         });
     }
 
@@ -47,7 +101,7 @@ class UsersRepository {
             where: { user_id: id },
             select: {
                 permission: {
-                    select: { id: true, name: true, description: true },
+                    select: { id: true, name: true, description: true, created_at: true, updated_at: true },
                 },
             },
         });
@@ -71,10 +125,12 @@ class UsersRepository {
                         id: true,
                         name: true,
                         description: true,
+                        created_at: true,
+                        updated_at: true,
                         permissions: {
                             select: {
                                 permission: {
-                                    select: { id: true, name: true, description: true },
+                                    select: { id: true, name: true, description: true, created_at: true, updated_at: true },
                                 },
                             },
                         },
@@ -87,6 +143,8 @@ class UsersRepository {
             id: ur.role.id,
             name: ur.role.name,
             description: ur.role.description,
+            created_at: ur.role.created_at,
+            updated_at: ur.role.updated_at,
             permissions: ur.role.permissions.map((rp) => rp.permission),
         }));
     }

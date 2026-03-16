@@ -296,7 +296,7 @@ describe('EventosService', () => {
 
     it('deve lançar AppError 409 quando registro duplicado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];
-      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_integrante_id)).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_user_id)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });
@@ -307,7 +307,7 @@ describe('EventosService', () => {
   describe('removeIntegrante', () => {
     it('deve remover integrante vinculado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];
-      await expect(eventosService.removeIntegrante(existing.evento_id, existing.fk_integrante_id)).resolves.toBeUndefined();
+      await expect(eventosService.removeIntegrante(existing.evento_id, existing.fk_user_id)).resolves.toBeUndefined();
     });
 
     it('deve lançar AppError 404 quando registro não existe', async () => {

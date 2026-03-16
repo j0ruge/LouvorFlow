@@ -75,6 +75,7 @@ A task não pode ser considerada completa enquanto essa documentação e rules n
 - `packages/backend/docs/openapi.json` refletindo qualquer alteração de API.
 - `.claude/rules/backend-api.md` e `.claude/rules/frontend-react.md` atualizados com novos padrões, diretórios ou convenções introduzidos.
 - `CLAUDE.md` atualizado se houver mudança na stack, estrutura do monorepo ou regras gerais.
+- `README.md` atualizado se houver mudança em funcionalidades, stack, estrutura do projeto, rotas de API ou roadmap.
 - MEMORY.md atualizado com novos padrões ou correções de informações desatualizadas.
 
 Se a documentação não estiver 100% sincronizada com o código, a implementação está **INCOMPLETA** — independentemente de todos os testes passarem.

@@ -16,7 +16,10 @@ function formatEventoIndex(e: EventoIndexRaw) {
         descricao: e.descricao,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
-        integrantes: e.Eventos_Integrantes.map(i => i.eventos_integrantes_fk_integrante_id_fkey)
+        integrantes: e.Eventos_Users.map(i => {
+            const user = i.eventos_users_fk_user_id_fkey;
+            return { id: user.id, nome: user.name };
+        })
     };
 }
 
@@ -40,12 +43,12 @@ function formatEventoShow(e: EventoShowRaw) {
                 tonalidade: musica.musicas_fk_tonalidade_fkey
             };
         }),
-        integrantes: e.Eventos_Integrantes.map(i => {
-            const integrante = i.eventos_integrantes_fk_integrante_id_fkey;
+        integrantes: e.Eventos_Users.map(i => {
+            const user = i.eventos_users_fk_user_id_fkey;
             return {
-                id: integrante.id,
-                nome: integrante.nome,
-                funcoes: integrante.Integrantes_Funcoes.map(f => f.integrantes_funcoes_funcao_id_fkey)
+                id: user.id,
+                nome: user.name,
+                funcoes: user.Users_Funcoes.map(f => f.users_funcoes_funcao_id_fkey)
             };
         })
     };
@@ -193,11 +196,11 @@ class EventosService {
 
         const integrantes = await eventosRepository.findIntegrantes(eventoId);
         return integrantes.map(i => {
-            const integrante = i.eventos_integrantes_fk_integrante_id_fkey;
+            const user = i.eventos_users_fk_user_id_fkey;
             return {
-                id: integrante.id,
-                nome: integrante.nome,
-                funcoes: integrante.Integrantes_Funcoes.map(f => f.integrantes_funcoes_funcao_id_fkey)
+                id: user.id,
+                nome: user.name,
+                funcoes: user.Users_Funcoes.map(f => f.users_funcoes_funcao_id_fkey)
             };
         });
     }

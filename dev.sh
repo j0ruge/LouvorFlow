@@ -76,6 +76,17 @@ fi
 log_info "Dependencias instaladas."
 
 # ---------------------------------------------------------------------------
+# 5.5. Matar processos Node orfaos que travam a porta 3000
+# ---------------------------------------------------------------------------
+STALE_PID=$(lsof -ti :3000 2>/dev/null || true)
+if [ -n "${STALE_PID}" ]; then
+    log_warn "Processos orfaos detectados na porta 3000 (PID: ${STALE_PID}). Encerrando..."
+    echo "${STALE_PID}" | xargs kill -9 2>/dev/null || true
+    sleep 1
+    log_info "Processos orfaos encerrados."
+fi
+
+# ---------------------------------------------------------------------------
 # 6. Prisma generate + migrate (backend)
 # ---------------------------------------------------------------------------
 log_info "Gerando Prisma Client e aplicando migrations..."
@@ -86,7 +97,17 @@ fi
 log_info "Prisma Client gerado e migrations aplicadas."
 
 # ---------------------------------------------------------------------------
-# 7 & 8. Iniciar backend e frontend em paralelo
+# 7. Admin seed (idempotente — seguro re-executar)
+# ---------------------------------------------------------------------------
+log_info "Executando seed do admin..."
+if ! (cd "${DIR}/packages/backend" && npx tsx seeds/admin.ts); then
+  log_error "Falha ao executar seed do admin."
+  exit 1
+fi
+log_info "Seed do admin executado."
+
+# ---------------------------------------------------------------------------
+# 8 & 9. Iniciar backend e frontend em paralelo
 # ---------------------------------------------------------------------------
 BACK_PID=""
 FRONT_PID=""
@@ -101,7 +122,7 @@ cleanup() {
 }
 
 # ---------------------------------------------------------------------------
-# 9. Trap SIGINT/SIGTERM para matar processos filhos
+# 10. Trap SIGINT/SIGTERM para matar processos filhos
 # ---------------------------------------------------------------------------
 trap cleanup EXIT
 
@@ -123,6 +144,6 @@ log_info "========================================="
 echo ""
 
 # ---------------------------------------------------------------------------
-# 10. Wait nos processos
+# 11. Wait nos processos
 # ---------------------------------------------------------------------------
 wait

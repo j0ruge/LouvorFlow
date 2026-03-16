@@ -29,6 +29,34 @@ export function toDatetimeLocalValue(dateString: string): string {
 }
 
 /**
+ * Extrai as iniciais do nome para exibir em avatares.
+ *
+ * @param name - Nome completo do usuário.
+ * @returns Até duas iniciais em maiúsculo.
+ */
+export function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
+
+/**
+ * Verifica se uma URL de redirecionamento é segura (interna).
+ *
+ * Previne open redirect validando que a URL começa com `/`
+ * e não com `//` (protocolo relativo que levaria a domínio externo).
+ *
+ * @param url - String da URL de redirecionamento.
+ * @returns `true` se a URL for um caminho interno seguro.
+ */
+export function isSafeRedirect(url: string): boolean {
+  return url.startsWith("/") && !url.startsWith("//");
+}
+
+/**
  * Verifica se a URL usa protocolo seguro (http ou https).
  *
  * Previne XSS via protocolos perigosos como `javascript:` ou `data:`
