@@ -66,12 +66,25 @@ export function createFakeIntegrantesRepository() {
     findByEmailExcludingId: async (email: string, excludeId: string) =>
       data.find(i => i.email === email && i.id !== excludeId) ?? null,
 
+    /**
+     * Cria um novo user no array em memória e retorna a projeção pública.
+     *
+     * @param input - Dados de criação: name, email, password e telefone (opcional).
+     * @returns Projeção pública do user criado (sem senha).
+     */
     create: async (input: { name: string; email: string; password: string; telefone?: string | null }) => {
       const user = { id: randomUUID(), ...input, telefone: input.telefone ?? null };
       data.push(user);
       return buildPublic(user);
     },
 
+    /**
+     * Atualiza um user existente no array em memória.
+     *
+     * @param id - UUID do user a atualizar.
+     * @param updateData - Campos a sobrescrever no registro.
+     * @returns Projeção pública do user atualizado ou `null` se não encontrado.
+     */
     update: async (id: string, updateData: Record<string, unknown>) => {
       const user = data.find(i => i.id === id);
       if (!user) return null;
@@ -79,6 +92,12 @@ export function createFakeIntegrantesRepository() {
       return buildPublic(user);
     },
 
+    /**
+     * Remove um user do array em memória pelo ID.
+     *
+     * @param id - UUID do user a remover.
+     * @returns Registro removido ou `undefined` se não encontrado.
+     */
     delete: async (id: string) => {
       const idx = data.findIndex(i => i.id === id);
       if (idx === -1) return undefined;
@@ -86,6 +105,12 @@ export function createFakeIntegrantesRepository() {
       return removed;
     },
 
+    /**
+     * Retorna as funções associadas a um user pelo ID.
+     *
+     * @param userId - UUID do user.
+     * @returns Array de objetos com a relação `users_funcoes_funcao_id_fkey` contendo id e nome da função.
+     */
     findFuncoesByIntegranteId: async (userId: string) =>
       funcoes
         .filter(f => f.fk_user_id === userId)

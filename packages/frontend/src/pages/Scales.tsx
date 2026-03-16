@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { useCan } from "@/hooks/use-can";
 import type { EventoIndex } from "@/schemas/evento";
 
 /**
@@ -72,6 +73,7 @@ const Scales = () => {
   const navigate = useNavigate();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
   const deleteEvento = useDeleteEvento();
+  const { can: canWrite } = useCan("escalas.write");
 
   /** Abre o formulário em modo edição para o evento informado. */
   function handleEdit(evento: EventoIndex) {
@@ -104,16 +106,18 @@ const Scales = () => {
             Gerencie as escalas de culto
           </p>
         </div>
-        <Button
-          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={() => {
-            setEditingEvento(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Escala
-        </Button>
+        {canWrite && (
+          <Button
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+            onClick={() => {
+              setEditingEvento(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Escala
+          </Button>
+        )}
       </div>
 
       {isLoading && (
@@ -219,21 +223,25 @@ const Scales = () => {
                     {scale.musicas.length} músicas selecionadas
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(scale)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeletingEvento(scale)}
-                    >
-                      Excluir
-                    </Button>
+                    {canWrite && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(scale)}
+                        >
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeletingEvento(scale)}
+                        >
+                          Excluir
+                        </Button>
+                      </>
+                    )}
                     <Button
                       variant="default"
                       size="sm"

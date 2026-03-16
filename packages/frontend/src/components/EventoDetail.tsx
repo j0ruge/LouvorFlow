@@ -44,6 +44,7 @@ import { useIntegrantes } from "@/hooks/use-integrantes";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { useCan } from "@/hooks/use-can";
 
 /**
  * Página de detalhe de evento com gerenciamento de associações.
@@ -78,6 +79,7 @@ export function EventoDetail() {
   const removeMusica = useRemoveMusicaFromEvento(id ?? "");
   const addIntegrante = useAddIntegranteToEvento(id ?? "");
   const removeIntegrante = useRemoveIntegranteFromEvento(id ?? "");
+  const { can: canWrite } = useCan("escalas.write");
 
   if (isLoading) {
     return (
@@ -151,24 +153,26 @@ export function EventoDetail() {
           </h1>
           <p className="text-muted-foreground mt-1">{evento.descricao}</p>
         </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setEditFormOpen(true)}
-          >
-            <Pencil className="h-4 w-4 mr-1" />
-            Editar
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Excluir
-          </Button>
-        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditFormOpen(true)}
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Excluir
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card className="shadow-soft border-0">
@@ -205,44 +209,46 @@ export function EventoDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedMusicaId}
-              onValueChange={setSelectedMusicaId}
-              disabled={musicasDisponiveis.length === 0}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue
-                  placeholder={
-                    (allMusicas?.items.length ?? 0) === 0
-                      ? "Nenhuma música cadastrada no sistema"
-                      : musicasDisponiveis.length === 0
-                        ? "Todas as músicas já foram adicionadas"
-                        : "Selecione uma música para adicionar"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {musicasDisponiveis.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.nome}
-                    {m.tonalidade ? ` (${m.tonalidade.tom})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleAddMusica}
-              disabled={
-                !selectedMusicaId ||
-                addMusica.isPending ||
-                musicasDisponiveis.length === 0
-              }
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedMusicaId}
+                onValueChange={setSelectedMusicaId}
+                disabled={musicasDisponiveis.length === 0}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue
+                    placeholder={
+                      (allMusicas?.items.length ?? 0) === 0
+                        ? "Nenhuma música cadastrada no sistema"
+                        : musicasDisponiveis.length === 0
+                          ? "Todas as músicas já foram adicionadas"
+                          : "Selecione uma música para adicionar"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {musicasDisponiveis.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.nome}
+                      {m.tonalidade ? ` (${m.tonalidade.tom})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleAddMusica}
+                disabled={
+                  !selectedMusicaId ||
+                  addMusica.isPending ||
+                  musicasDisponiveis.length === 0
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
           {evento.musicas.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
@@ -265,14 +271,16 @@ export function EventoDetail() {
                       </Badge>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeMusica.mutate(musica.id)}
-                    disabled={removeMusica.isPending}
-                  >
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {canWrite && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeMusica.mutate(musica.id)}
+                      disabled={removeMusica.isPending}
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -324,43 +332,45 @@ export function EventoDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedIntegranteId}
-              onValueChange={setSelectedIntegranteId}
-              disabled={integrantesDisponiveis.length === 0}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue
-                  placeholder={
-                    (allIntegrantes?.length ?? 0) === 0
-                      ? "Nenhum integrante cadastrado no sistema"
-                      : integrantesDisponiveis.length === 0
-                        ? "Todos os integrantes já foram adicionados"
-                        : "Selecione um integrante para adicionar"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {integrantesDisponiveis.map((i) => (
-                  <SelectItem key={i.id} value={i.id}>
-                    {i.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleAddIntegrante}
-              disabled={
-                !selectedIntegranteId ||
-                addIntegrante.isPending ||
-                integrantesDisponiveis.length === 0
-              }
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedIntegranteId}
+                onValueChange={setSelectedIntegranteId}
+                disabled={integrantesDisponiveis.length === 0}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue
+                    placeholder={
+                      (allIntegrantes?.length ?? 0) === 0
+                        ? "Nenhum integrante cadastrado no sistema"
+                        : integrantesDisponiveis.length === 0
+                          ? "Todos os integrantes já foram adicionados"
+                          : "Selecione um integrante para adicionar"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {integrantesDisponiveis.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleAddIntegrante}
+                disabled={
+                  !selectedIntegranteId ||
+                  addIntegrante.isPending ||
+                  integrantesDisponiveis.length === 0
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
 
           {evento.integrantes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
@@ -388,14 +398,16 @@ export function EventoDetail() {
                       ))}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeIntegrante.mutate(integrante.id)}
-                    disabled={removeIntegrante.isPending}
-                  >
-                    <X className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {canWrite && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeIntegrante.mutate(integrante.id)}
+                      disabled={removeIntegrante.isPending}
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

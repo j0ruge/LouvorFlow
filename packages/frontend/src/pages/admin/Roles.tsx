@@ -191,12 +191,12 @@ const AdminRoles = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link to={`/admin/roles/${role.id}/permissoes`}>
-                        <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/admin/roles/${role.id}/permissoes`}>
                           <Key className="mr-1 h-3 w-3" />
                           Gerenciar Permissões
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

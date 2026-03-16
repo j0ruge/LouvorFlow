@@ -4834,11 +4834,12 @@
           },
           "senha": {
             "type": "string",
-            "minLength": 1
+            "minLength": 6
           },
           "telefone": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "maxLength": 20
           }
         },
         "required": [
@@ -4852,18 +4853,21 @@
         "description": "Dados para atualização de integrante (usuário). Todos os campos são opcionais.",
         "properties": {
           "nome": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "email": {
             "type": "string",
             "format": "email"
           },
           "senha": {
-            "type": "string"
+            "type": "string",
+            "minLength": 6
           },
           "telefone": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "maxLength": 20
           }
         }
       },

@@ -153,7 +153,7 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 
 - ORM: **Prisma 6** com PostgreSQL 17.
 - Schema: `packages/backend/prisma/schema.prisma` (21 modelos: 13 domínio + 8 auth).
-- Singleton do client: `packages/backend/prisma/cliente.ts` (sem `$extends` — exclusão de `senha` é feita via `INTEGRANTE_PUBLIC_SELECT`).
+- Singleton do client: `packages/backend/prisma/cliente.ts` (sem `$extends` ou middleware automático). **Proteção do campo `password`**: não há mascaramento automático — toda query que retorna dados de usuário ao frontend **DEVE** usar `USER_PUBLIC_SELECT` (auth) ou `INTEGRANTE_PUBLIC_SELECT` (domínio), ambos excluem `password` via Prisma `select`. Queries sem esses selects podem expor o hash da senha.
 - **Unificação users/integrantes (spec 018)**: A tabela `integrantes` foi removida. Os endpoints `/api/integrantes/*` operam sobre a tabela `Users`. Junction tables: `eventos_users` (antes `eventos_integrantes`), `users_funcoes` (antes `integrantes_funcoes`). O campo `name` do Users é mapeado para `nome` na resposta da API de integrantes.
 - Migrações via `npx prisma migrate dev`. Nunca usar SQL direto para alterar schema.
 - Convenção de FK: `fk_nome_entidade` para 1:N, `[entidade]_id` para N:N.

@@ -34,6 +34,7 @@ import {
   useUpdateTipoEvento,
   useDeleteTipoEvento,
 } from "@/hooks/use-support";
+import { useCan } from "@/hooks/use-can";
 import type { Artista } from "@/schemas/artista";
 import type { IdNome, Tonalidade } from "@/schemas/shared";
 
@@ -43,6 +44,7 @@ import type { IdNome, Tonalidade } from "@/schemas/shared";
  * @returns Elemento JSX com a página de configurações em abas.
  */
 const Settings = () => {
+  const { can: canWrite } = useCan("configuracoes.write");
   const tabsListRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -154,6 +156,7 @@ const Settings = () => {
                 isCreating={createArtista.isPending}
                 isUpdating={updateArtista.isPending}
                 isDeleting={deleteArtista.isPending}
+                readOnly={!canWrite}
               />
             </TabsContent>
 
@@ -184,6 +187,7 @@ const Settings = () => {
                 isCreating={createCategoria.isPending}
                 isUpdating={updateCategoria.isPending}
                 isDeleting={deleteCategoria.isPending}
+                readOnly={!canWrite}
               />
             </TabsContent>
 
@@ -211,6 +215,7 @@ const Settings = () => {
                 isCreating={createFuncao.isPending}
                 isUpdating={updateFuncao.isPending}
                 isDeleting={deleteFuncao.isPending}
+                readOnly={!canWrite}
               />
             </TabsContent>
 
@@ -241,6 +246,7 @@ const Settings = () => {
                 isCreating={createTonalidade.isPending}
                 isUpdating={updateTonalidade.isPending}
                 isDeleting={deleteTonalidade.isPending}
+                readOnly={!canWrite}
               />
             </TabsContent>
 
@@ -271,6 +277,7 @@ const Settings = () => {
                 isCreating={createTipoEvento.isPending}
                 isUpdating={updateTipoEvento.isPending}
                 isDeleting={deleteTipoEvento.isPending}
+                readOnly={!canWrite}
               />
             </TabsContent>
           </CardContent>

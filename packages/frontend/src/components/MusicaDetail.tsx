@@ -47,6 +47,7 @@ import {
 import { useTonalidades, useCategorias, useFuncoes } from "@/hooks/use-support";
 import type { Musica, Versao, CreateVersaoForm } from "@/schemas/musica";
 import { isSafeUrl } from "@/lib/utils";
+import { useCan } from "@/hooks/use-can";
 
 /** Propriedades do componente MusicaDetail. */
 interface MusicaDetailProps {
@@ -91,6 +92,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   const addFuncao = useAddFuncaoMusica(musica.id);
   const removeFuncao = useRemoveFuncaoMusica(musica.id);
 
+  const { can: canWrite } = useCan("musicas.write");
   const { data: tonalidades } = useTonalidades();
   const { data: allCategorias } = useCategorias();
   const { data: allFuncoes } = useFuncoes();
@@ -229,13 +231,15 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 <div>
                   <CardTitle className="text-xl flex items-center gap-2">
                     {musica.nome}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditingName(true)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    {canWrite && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditingName(true)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
                   </CardTitle>
                   {musica.tonalidade && (
                     <div className="flex items-center gap-1 mt-1">
@@ -248,14 +252,16 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 </div>
               )}
             </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Excluir
-            </Button>
+            {canWrite && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            )}
           </div>
         </CardHeader>
       </Card>
@@ -268,16 +274,18 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
               <LinkIcon className="h-5 w-5" />
               Versões ({musica.versoes.length})
             </CardTitle>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingVersao(null);
-                setVersaoFormOpen(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Nova Versão
-            </Button>
+            {canWrite && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingVersao(null);
+                  setVersaoFormOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Nova Versão
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -311,26 +319,28 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                       </a>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingVersao(versao);
-                        setVersaoFormOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeVersao.mutate(versao.id)}
-                      disabled={removeVersao.isPending}
-                    >
-                      <X className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+                  {canWrite && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingVersao(versao);
+                          setVersaoFormOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeVersao.mutate(versao.id)}
+                        disabled={removeVersao.isPending}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -347,54 +357,58 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedCategoriaId}
-              onValueChange={setSelectedCategoriaId}
-              disabled={categoriasDisponiveis.length === 0}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue
-                  placeholder={
-                    (allCategorias?.length ?? 0) === 0
-                      ? "Nenhuma categoria cadastrada no sistema"
-                      : categoriasDisponiveis.length === 0
-                        ? "Todas as categorias já foram adicionadas"
-                        : "Selecione uma categoria para adicionar"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {categoriasDisponiveis.map((categoria) => (
-                  <SelectItem key={categoria.id} value={categoria.id}>
-                    {categoria.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleAddCategoria}
-              disabled={
-                !selectedCategoriaId ||
-                addCategoria.isPending ||
-                categoriasDisponiveis.length === 0
-              }
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedCategoriaId}
+                onValueChange={setSelectedCategoriaId}
+                disabled={categoriasDisponiveis.length === 0}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue
+                    placeholder={
+                      (allCategorias?.length ?? 0) === 0
+                        ? "Nenhuma categoria cadastrada no sistema"
+                        : categoriasDisponiveis.length === 0
+                          ? "Todas as categorias já foram adicionadas"
+                          : "Selecione uma categoria para adicionar"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoriasDisponiveis.map((categoria) => (
+                    <SelectItem key={categoria.id} value={categoria.id}>
+                      {categoria.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleAddCategoria}
+                disabled={
+                  !selectedCategoriaId ||
+                  addCategoria.isPending ||
+                  categoriasDisponiveis.length === 0
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {musica.categorias.map((categoria) => (
               <Badge key={categoria.id} variant="secondary" className="gap-1">
                 {categoria.nome}
-                <button
-                  onClick={() => removeCategoria.mutate(categoria.id)}
-                  disabled={removeCategoria.isPending}
-                  className="ml-1 hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => removeCategoria.mutate(categoria.id)}
+                    disabled={removeCategoria.isPending}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </Badge>
             ))}
             {musica.categorias.length === 0 && (
@@ -415,54 +429,58 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedFuncaoId}
-              onValueChange={setSelectedFuncaoId}
-              disabled={funcoesDisponiveis.length === 0}
-            >
-              <SelectTrigger className="flex-1">
-                <SelectValue
-                  placeholder={
-                    (allFuncoes?.length ?? 0) === 0
-                      ? "Nenhuma função cadastrada no sistema"
-                      : funcoesDisponiveis.length === 0
-                        ? "Todas as funções já foram adicionadas"
-                        : "Selecione uma função para adicionar"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {funcoesDisponiveis.map((funcao) => (
-                  <SelectItem key={funcao.id} value={funcao.id}>
-                    {funcao.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={handleAddFuncao}
-              disabled={
-                !selectedFuncaoId ||
-                addFuncao.isPending ||
-                funcoesDisponiveis.length === 0
-              }
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedFuncaoId}
+                onValueChange={setSelectedFuncaoId}
+                disabled={funcoesDisponiveis.length === 0}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue
+                    placeholder={
+                      (allFuncoes?.length ?? 0) === 0
+                        ? "Nenhuma função cadastrada no sistema"
+                        : funcoesDisponiveis.length === 0
+                          ? "Todas as funções já foram adicionadas"
+                          : "Selecione uma função para adicionar"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {funcoesDisponiveis.map((funcao) => (
+                    <SelectItem key={funcao.id} value={funcao.id}>
+                      {funcao.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleAddFuncao}
+                disabled={
+                  !selectedFuncaoId ||
+                  addFuncao.isPending ||
+                  funcoesDisponiveis.length === 0
+                }
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {musica.funcoes.map((funcao) => (
               <Badge key={funcao.id} variant="outline" className="gap-1">
                 {funcao.nome}
-                <button
-                  onClick={() => removeFuncao.mutate(funcao.id)}
-                  disabled={removeFuncao.isPending}
-                  className="ml-1 hover:text-destructive"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                {canWrite && (
+                  <button
+                    onClick={() => removeFuncao.mutate(funcao.id)}
+                    disabled={removeFuncao.isPending}
+                    className="ml-1 hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </Badge>
             ))}
             {musica.funcoes.length === 0 && (

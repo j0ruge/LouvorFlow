@@ -24,6 +24,7 @@ import {
   setOnAuthFailure,
 } from "@/lib/api";
 import { login as loginService, refreshToken as refreshTokenService, logout as logoutService, getProfile } from "@/services/auth";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser, LoginForm } from "@/schemas/auth";
 
 /** Estado de autenticação exposto pelo contexto. */
@@ -62,6 +63,7 @@ interface AuthProviderProps {
  * @returns Elemento React com o AuthProvider.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -77,7 +79,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     clearTokens();
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
 
   /**
    * Configura o callback de falha de autenticação no apiFetch.
@@ -88,12 +91,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setOnAuthFailure(() => {
       clearTokens();
       setUser(null);
+      queryClient.clear();
     });
 
     return () => {
       setOnAuthFailure(null);
     };
-  }, []);
+  }, [queryClient]);
 
   /**
    * Inicializa a sessão ao carregar a aplicação.

@@ -88,7 +88,16 @@ const Profile = () => {
 
     if (Object.keys(payload).length === 0) return;
 
-    updateMutation.mutate(payload);
+    updateMutation.mutate(payload, {
+      onSuccess: () => {
+        reset({
+          name: profile?.name ?? dados.name,
+          email: profile?.email ?? dados.email,
+          old_password: "",
+          password: "",
+        });
+      },
+    });
   }
 
   if (isLoading) {
