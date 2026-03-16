@@ -2,7 +2,8 @@
  * Barra lateral de navegação principal da aplicação.
  *
  * Renderiza o menu de navegação com itens de domínio (acessíveis a todos
- * os usuários autenticados) e uma seção "Administração" condicional
+ * os usuários autenticados), filtrando "Configurações" para usuários com
+ * permissão `configuracoes.write`, e uma seção "Administração" condicional
  * (visível apenas para usuários com role "admin").
  */
 
@@ -22,6 +23,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
+import { useCan } from "@/hooks/use-can";
 
 import {
   Sidebar,
@@ -57,7 +59,8 @@ const adminItems = [
 /**
  * Componente da barra lateral de navegação.
  *
- * Renderiza menu de domínio para todos os autenticados e seção
+ * Renderiza menu de domínio para todos os autenticados, ocultando
+ * "Configurações" para quem não tem `configuracoes.write`, e seção
  * "Administração" apenas para admins. Suporta colapso e fecha
  * automaticamente em mobile ao mudar de rota.
  *
@@ -69,6 +72,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const { isAdmin } = useAuth();
+  const { can: canConfig } = useCan("configuracoes.write");
 
   /**
    * Fecha o menu mobile (Sheet) automaticamente quando a rota muda.
@@ -110,7 +114,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems.filter((item) => item.url !== "/configuracoes" || canConfig).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink

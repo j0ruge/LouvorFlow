@@ -19,6 +19,7 @@ import { useMusicas } from "@/hooks/use-musicas";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
+import { useCan } from "@/hooks/use-can";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -55,6 +56,7 @@ function SongSkeleton() {
  * @returns Elemento JSX com a página de músicas.
  */
 const Songs = () => {
+  const { can: canWrite } = useCan("musicas.write");
   const [formOpen, setFormOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -112,13 +114,15 @@ const Songs = () => {
             Gerencie o repertório do ministério
           </p>
         </div>
-        <Button
-          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={() => setFormOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Música
-        </Button>
+        {canWrite && (
+          <Button
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+            onClick={() => setFormOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Música
+          </Button>
+        )}
       </div>
 
       <Card className="shadow-soft border-0">

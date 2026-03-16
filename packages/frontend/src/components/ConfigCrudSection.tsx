@@ -49,6 +49,8 @@ interface ConfigCrudSectionProps<T> {
   isUpdating?: boolean;
   /** Indica se uma operação de exclusão está em andamento. */
   isDeleting?: boolean;
+  /** Quando `true`, oculta controles de criação, edição e exclusão (modo somente-leitura). */
+  readOnly?: boolean;
 }
 
 /**
@@ -67,6 +69,7 @@ export function ConfigCrudSection<T>({
   isCreating = false,
   isUpdating = false,
   isDeleting = false,
+  readOnly = false,
 }: ConfigCrudSectionProps<T>) {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -122,29 +125,31 @@ export function ConfigCrudSection<T>({
 
   return (
     <div className="space-y-4">
-      {/* Formulário de criação */}
-      <div className="flex items-center gap-2">
-        <Input
-          placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleCreate();
-          }}
-          disabled={isCreating}
-        />
-        <Button
-          size="sm"
-          onClick={handleCreate}
-          disabled={isCreating || !newName.trim()}
-        >
-          {isCreating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
+      {/* Formulário de criação (oculto em modo somente-leitura) */}
+      {!readOnly && (
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate();
+            }}
+            disabled={isCreating}
+          />
+          <Button
+            size="sm"
+            onClick={handleCreate}
+            disabled={isCreating || !newName.trim()}
+          >
+            {isCreating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Lista de itens */}
       {isLoading ? (
@@ -205,24 +210,26 @@ export function ConfigCrudSection<T>({
                 ) : (
                   <>
                     <span className="font-medium">{name}</span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEditing(id, name)}
-                        aria-label={`Editar ${config.label.toLowerCase()}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeleteTarget({ id, name })}
-                        aria-label={`Excluir ${config.label.toLowerCase()}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    {!readOnly && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditing(id, name)}
+                          aria-label={`Editar ${config.label.toLowerCase()}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteTarget({ id, name })}
+                          aria-label={`Excluir ${config.label.toLowerCase()}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

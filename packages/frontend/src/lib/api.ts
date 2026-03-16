@@ -9,6 +9,8 @@
  * de access token via refresh token (padrão singleton promise).
  */
 
+import { toast } from "sonner";
+
 /**
  * URL base da API, configurável via variável de ambiente Vite.
  *
@@ -222,6 +224,11 @@ export async function apiFetch<T>(
       }
     } catch {
       // Resposta sem corpo JSON — usa mensagem genérica
+    }
+
+    /** Exibe toast de permissão negada para respostas 403. */
+    if (response.status === 403) {
+      toast.error("Permissão negada", { description: errorMessage });
     }
 
     throw new ApiError(errorMessage, response.status);

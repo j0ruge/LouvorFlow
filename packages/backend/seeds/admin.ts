@@ -65,21 +65,43 @@ async function main(): Promise<void> {
     });
     console.log('✓ Role "admin" ready');
 
-    /** Associa a permissão ao papel, caso ainda não esteja associada. */
-    await prisma.permissionsRoles.upsert({
-      where: {
-        role_id_permission_id: {
-          role_id: adminRole.id,
-          permission_id: adminPermission.id,
+    /** Garante a existência das permissões granulares de domínio. */
+    const domainPermissions = [
+      { name: 'configuracoes.write', description: 'Permite criar, editar e excluir dados de configuração (artistas, categorias, funções, tonalidades, tipos de eventos)' },
+      { name: 'integrantes.write', description: 'Permite criar, editar e excluir integrantes' },
+      { name: 'escalas.write', description: 'Permite criar, editar e excluir escalas e gerenciar suas músicas e integrantes' },
+      { name: 'musicas.write', description: 'Permite criar, editar e excluir músicas, versões, categorias e funções associadas' },
+    ];
+
+    const createdDomainPermissions = [];
+    for (const perm of domainPermissions) {
+      const created = await prisma.permissions.upsert({
+        where: { name: perm.name },
+        update: {},
+        create: perm,
+      });
+      createdDomainPermissions.push(created);
+      console.log(`✓ Permission "${perm.name}" ready`);
+    }
+
+    /** Associa todas as permissões (admin + domínio) ao papel admin. */
+    const allPermissions = [adminPermission, ...createdDomainPermissions];
+    for (const perm of allPermissions) {
+      await prisma.permissionsRoles.upsert({
+        where: {
+          role_id_permission_id: {
+            role_id: adminRole.id,
+            permission_id: perm.id,
+          },
         },
-      },
-      update: {},
-      create: {
-        role_id: adminRole.id,
-        permission_id: adminPermission.id,
-      },
-    });
-    console.log('✓ Permission "admin_full_access" assigned to role "admin"');
+        update: {},
+        create: {
+          role_id: adminRole.id,
+          permission_id: perm.id,
+        },
+      });
+    }
+    console.log('✓ All permissions assigned to role "admin"');
 
     /** Cria o usuário admin com senha hasheada, caso não exista. */
     const hashedPassword = await bcrypt.hash(adminPassword, 12);

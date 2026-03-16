@@ -16,6 +16,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Search, Mail, Phone, Trash2 } from "lucide-react";
 import { useIntegrantes, useDeleteIntegrante } from "@/hooks/use-integrantes";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCan } from "@/hooks/use-can";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { IntegranteForm } from "@/components/IntegranteForm";
@@ -77,6 +79,8 @@ const Members = () => {
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
   const deleteMutation = useDeleteIntegrante();
+  const { user } = useAuth();
+  const { can: canWrite } = useCan("integrantes.write");
 
   /** Debounce de 300ms para o termo de busca. */
   useEffect(
@@ -144,13 +148,15 @@ const Members = () => {
             Gerencie os membros do ministério
           </p>
         </div>
-        <Button
-          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-          onClick={handleOpenCreateForm}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Integrante
-        </Button>
+        {canWrite && (
+          <Button
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+            onClick={handleOpenCreateForm}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Integrante
+          </Button>
+        )}
       </div>
 
       <Card className="shadow-soft border-0">
@@ -216,14 +222,16 @@ const Members = () => {
                         <h3 className="font-semibold text-foreground text-lg">
                           {member.nome}
                         </h3>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={() => setDeletingMember({ id: member.id, nome: member.nome })}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canWrite && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeletingMember({ id: member.id, nome: member.nome })}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
 
                       <div className="space-y-2">
@@ -252,14 +260,16 @@ const Members = () => {
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => handleOpenEditForm(member.id)}
-                        >
-                          Editar
-                        </Button>
+                        {(canWrite || member.id === user?.id) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleOpenEditForm(member.id)}
+                          >
+                            Editar
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" className="flex-1">
                           Contatar
                         </Button>
