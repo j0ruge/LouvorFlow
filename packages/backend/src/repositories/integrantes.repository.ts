@@ -118,7 +118,7 @@ class IntegrantesRepository {
      * @returns Registro removido
      */
     async delete(id: string) {
-        return prisma.users.delete({ where: { id } });
+        return prisma.users.delete({ where: { id }, select: INTEGRANTE_PUBLIC_SELECT });
     }
 
     /**

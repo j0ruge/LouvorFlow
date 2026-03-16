@@ -36,6 +36,8 @@ export function validateRequest(options: ValidateOptions) {
                 req.params = options.params.parse(req.params);
             }
             if (options.query) {
+                // Apenas valida (lança ZodError se inválido). O resultado não é reatribuído
+                // porque req.query é read-only no Express 5 (getter imutável).
                 options.query.parse(req.query);
             }
             next();

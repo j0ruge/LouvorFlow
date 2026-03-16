@@ -416,25 +416,54 @@ function Update-SpecificAgent {
 function Update-AllExistingAgents {
     $found = $false
     $ok = $true
-    if (Test-Path $CLAUDE_FILE)   { if (-not (Update-AgentFile -TargetFile $CLAUDE_FILE   -AgentName 'Claude Code')) { $ok = $false }; $found = $true }
-    if (Test-Path $GEMINI_FILE)   { if (-not (Update-AgentFile -TargetFile $GEMINI_FILE   -AgentName 'Gemini CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $COPILOT_FILE)  { if (-not (Update-AgentFile -TargetFile $COPILOT_FILE  -AgentName 'GitHub Copilot')) { $ok = $false }; $found = $true }
-    if (Test-Path $CURSOR_FILE)   { if (-not (Update-AgentFile -TargetFile $CURSOR_FILE   -AgentName 'Cursor IDE')) { $ok = $false }; $found = $true }
-    if (Test-Path $QWEN_FILE)     { if (-not (Update-AgentFile -TargetFile $QWEN_FILE     -AgentName 'Qwen Code')) { $ok = $false }; $found = $true }
-    if (Test-Path $AGENTS_FILE)   { if (-not (Update-AgentFile -TargetFile $AGENTS_FILE   -AgentName 'Codex/opencode')) { $ok = $false }; $found = $true }
-    if (Test-Path $WINDSURF_FILE) { if (-not (Update-AgentFile -TargetFile $WINDSURF_FILE -AgentName 'Windsurf')) { $ok = $false }; $found = $true }
-    if (Test-Path $KILOCODE_FILE) { if (-not (Update-AgentFile -TargetFile $KILOCODE_FILE -AgentName 'Kilo Code')) { $ok = $false }; $found = $true }
-    if (Test-Path $AUGGIE_FILE)   { if (-not (Update-AgentFile -TargetFile $AUGGIE_FILE   -AgentName 'Auggie CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $ROO_FILE)      { if (-not (Update-AgentFile -TargetFile $ROO_FILE      -AgentName 'Roo Code')) { $ok = $false }; $found = $true }
-    if (Test-Path $CODEBUDDY_FILE) { if (-not (Update-AgentFile -TargetFile $CODEBUDDY_FILE -AgentName 'CodeBuddy CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $QODER_FILE)    { if (-not (Update-AgentFile -TargetFile $QODER_FILE    -AgentName 'Qoder CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $SHAI_FILE)     { if (-not (Update-AgentFile -TargetFile $SHAI_FILE     -AgentName 'SHAI')) { $ok = $false }; $found = $true }
-    if (Test-Path $TABNINE_FILE)  { if (-not (Update-AgentFile -TargetFile $TABNINE_FILE  -AgentName 'Tabnine CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $KIRO_FILE)     { if (-not (Update-AgentFile -TargetFile $KIRO_FILE     -AgentName 'Kiro CLI')) { $ok = $false }; $found = $true }
-    if (Test-Path $AGY_FILE)      { if (-not (Update-AgentFile -TargetFile $AGY_FILE      -AgentName 'Antigravity')) { $ok = $false }; $found = $true }
-    if (Test-Path $BOB_FILE)      { if (-not (Update-AgentFile -TargetFile $BOB_FILE      -AgentName 'IBM Bob')) { $ok = $false }; $found = $true }
-    if (Test-Path $VIBE_FILE)     { if (-not (Update-AgentFile -TargetFile $VIBE_FILE     -AgentName 'Mistral Vibe')) { $ok = $false }; $found = $true }
-    if (Test-Path $KIMI_FILE)     { if (-not (Update-AgentFile -TargetFile $KIMI_FILE     -AgentName 'Kimi Code')) { $ok = $false }; $found = $true }
+    /** Conjunto de caminhos absolutos já processados para evitar atualização duplicada de arquivos compartilhados (ex.: AGENTS.md). */
+    $processedFiles = New-Object System.Collections.Generic.HashSet[string]
+
+    /**
+     * Atualiza um arquivo de agente se ele existir e ainda não tiver sido processado.
+     *
+     * @param FilePath  Caminho do arquivo de contexto do agente.
+     * @param AgentName Nome legível do agente para mensagens de log.
+     */
+    function Update-IfNotProcessed {
+        param(
+            [Parameter(Mandatory=$true)]
+            [string]$FilePath,
+            [Parameter(Mandatory=$true)]
+            [string]$AgentName
+        )
+        if (-not (Test-Path $FilePath)) { return }
+        $resolvedPath = (Get-Item -LiteralPath $FilePath).FullName
+        if ($processedFiles.Contains($resolvedPath)) {
+            Write-Info "Skipping $AgentName (already processed $resolvedPath)"
+            $script:found = $true
+            return
+        }
+        [void]$processedFiles.Add($resolvedPath)
+        if (-not (Update-AgentFile -TargetFile $FilePath -AgentName $AgentName)) { $script:ok = $false }
+        $script:found = $true
+    }
+
+    Update-IfNotProcessed -FilePath $CLAUDE_FILE   -AgentName 'Claude Code'
+    Update-IfNotProcessed -FilePath $GEMINI_FILE   -AgentName 'Gemini CLI'
+    Update-IfNotProcessed -FilePath $COPILOT_FILE  -AgentName 'GitHub Copilot'
+    Update-IfNotProcessed -FilePath $CURSOR_FILE   -AgentName 'Cursor IDE'
+    Update-IfNotProcessed -FilePath $QWEN_FILE     -AgentName 'Qwen Code'
+    Update-IfNotProcessed -FilePath $AGENTS_FILE   -AgentName 'Codex/opencode'
+    Update-IfNotProcessed -FilePath $WINDSURF_FILE -AgentName 'Windsurf'
+    Update-IfNotProcessed -FilePath $KILOCODE_FILE -AgentName 'Kilo Code'
+    Update-IfNotProcessed -FilePath $AUGGIE_FILE   -AgentName 'Auggie CLI'
+    Update-IfNotProcessed -FilePath $ROO_FILE      -AgentName 'Roo Code'
+    Update-IfNotProcessed -FilePath $CODEBUDDY_FILE -AgentName 'CodeBuddy CLI'
+    Update-IfNotProcessed -FilePath $QODER_FILE    -AgentName 'Qoder CLI'
+    Update-IfNotProcessed -FilePath $SHAI_FILE     -AgentName 'SHAI'
+    Update-IfNotProcessed -FilePath $TABNINE_FILE  -AgentName 'Tabnine CLI'
+    Update-IfNotProcessed -FilePath $KIRO_FILE     -AgentName 'Kiro CLI'
+    Update-IfNotProcessed -FilePath $AGY_FILE      -AgentName 'Antigravity'
+    Update-IfNotProcessed -FilePath $BOB_FILE      -AgentName 'IBM Bob'
+    Update-IfNotProcessed -FilePath $VIBE_FILE     -AgentName 'Mistral Vibe'
+    Update-IfNotProcessed -FilePath $KIMI_FILE     -AgentName 'Kimi Code'
+
     if (-not $found) {
         Write-Info 'No existing agent files found, creating default Claude file...'
         if (-not (Update-AgentFile -TargetFile $CLAUDE_FILE -AgentName 'Claude Code')) { $ok = $false }
