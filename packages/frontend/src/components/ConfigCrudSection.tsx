@@ -80,12 +80,8 @@ export function ConfigCrudSection<T>({
   async function handleCreate() {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    try {
-      await onCreate(trimmed);
-      setNewName("");
-    } catch (error) {
-      throw error;
-    }
+    await onCreate(trimmed);
+    setNewName("");
   }
 
   /** Inicia a edição de um item existente. */
@@ -105,12 +101,8 @@ export function ConfigCrudSection<T>({
     if (!editingId) return;
     const trimmed = editName.trim();
     if (!trimmed) return;
-    try {
-      await onUpdate(editingId, trimmed);
-      cancelEditing();
-    } catch (error) {
-      throw error;
-    }
+    await onUpdate(editingId, trimmed);
+    cancelEditing();
   }
 
   /** Confirma e executa a exclusão do item selecionado. */

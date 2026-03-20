@@ -25,6 +25,16 @@ name: CD Staging
 on:
   push:
     branches: [develop]
+    # -------------------------------------------------------------------------
+    # CONDITIONAL: PATHS_FILTER (monorepo only)
+    # If PATHS_FILTER is defined in project-config, uncomment and set paths:
+    #   paths:
+    #     - '<PATHS_FILTER>'
+    #     - '.github/workflows/cd-staging-<PACKAGE>.yml'
+    # This ensures CD only triggers for changes in this package.
+    # In monorepos, rename this file to cd-staging-<PACKAGE>.yml
+    # (e.g., cd-staging-backend.yml, cd-staging-frontend.yml).
+    # -------------------------------------------------------------------------
 
 permissions:
   packages: write
@@ -116,7 +126,8 @@ jobs:
       - name: Generate .env
         working-directory: <COMPOSE_PATH>
         run: |
-          cat <<EOF > .env
+          umask 077
+          cat <<'EOF' > .env
           <ENV_VARS_BLOCK>
           IMAGE_TAG=staging
           NGINX_NETWORK_NAME=${{ secrets.NGINX_NETWORK_NAME }}

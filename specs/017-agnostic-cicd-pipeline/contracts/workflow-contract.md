@@ -1,6 +1,6 @@
 # Workflow Contracts: Pipeline CI/CD Agnóstico
 
-**Date**: 2026-03-18 | **Feature**: `002-agnostic-cicd-pipeline` | **Template Version**: 1.1.0
+**Date**: 2026-03-20 | **Feature**: `017-agnostic-cicd-pipeline` | **Template Version**: 1.2.0
 
 > Define a estrutura esperada dos workflows e docker-compose files. Usa placeholders `<PLACEHOLDER>` que são substituídos pelos valores do `project-config.md` de cada repositório.
 
@@ -55,7 +55,7 @@ concurrency:
 
 ### Image Tagging
 
-```
+```text
 ghcr.io/<ORG>/<REPO_NAME>:staging
 ```
 
@@ -96,7 +96,7 @@ permissions:
 
 ### Image Tagging
 
-```
+```text
 ghcr.io/<ORG>/<REPO_NAME>:<TAG_VERSION>
 ghcr.io/<ORG>/<REPO_NAME>:latest
 ```
@@ -176,6 +176,7 @@ networks:
 ```
 
 **Diferenças do Contract 4 (API):**
+
 - Sem `VIRTUAL_PORT` (nginx = porta 80 = default do proxy)
 - Sem `env_file` (VITE_* já embeddados no JS bundle)
 - Com `healthcheck` (wget no index.html)
@@ -205,9 +206,67 @@ Secrets devem conter TODAS as variáveis listadas em `ENV_VARS` do project-confi
 
 ---
 
+## Contract 8: Padrão Multi-Config (Monorepo)
+
+**Escopo**: Define convenções para adoção do template em repositórios monorepo com múltiplos packages.
+
+### Convenção de Nomes
+
+| Artefato | Single-repo | Monorepo (por package) |
+|----------|-------------|------------------------|
+| Project Config | `project-config.md` | `project-config-<package>.md` (ex: `project-config-backend.md`) |
+| CI Workflow | `ci.yml` | `ci-<package>.yml` (ex: `ci-backend.yml`) |
+| CD Staging | `cd-staging.yml` | `cd-staging-<package>.yml` (ex: `cd-staging-backend.yml`) |
+| CD Production | `cd-production.yml` | `cd-production-<package>.yml` (ex: `cd-production-frontend.yml`) |
+| Compose | `docker-compose.yml` | `docker-compose.yml` em diretório separado (ex: `infra/backend/docker-compose.yml`) |
+| Dockerfile | `Dockerfile` | `packages/<package>/Dockerfile` ou `infra/<package>/Dockerfile` |
+
+### Path Filters
+
+Cada workflow DEVE incluir `paths:` no trigger para restringir execução ao package correspondente:
+
+```yaml
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'packages/backend/**'
+      - '.github/workflows/ci-backend.yml'
+```
+
+> **Regra:** Incluir o próprio workflow no path filter para que mudanças no workflow também disparem CI.
+> **Regra:** `PATHS_FILTER` no project-config define os globs. O workflow do package próprio é adicionado manualmente.
+
+### Tags de Produção
+
+| Tipo | Padrão | Exemplo |
+|------|--------|---------|
+| Single-repo | `v*` | `v1.5.0` |
+| Monorepo | `<package>-v*` | `backend-v1.5.0`, `frontend-v2.0.0` |
+
+### Secrets
+
+| Tipo | Escopo | Exemplos |
+|------|--------|----------|
+| Compartilhados | Mesmo valor em todos os packages | `NGINX_NETWORK_NAME`, `VIRTUAL_HOST` (se mesmo domínio) |
+| Package-specific | Valor único por package | `DATABASE_URL` (backend only), `VITE_API_URL` (frontend only), `APP_PORT` |
+
+> **Regra:** Secrets compartilhados são configurados uma vez no environment. Secrets package-specific devem ser nomeados sem ambiguidade (o nome do secret no GitHub não precisa de prefixo, pois cada workflow acessa apenas os secrets que referencia).
+
+### Campos Opcionais no Project Config
+
+| Campo | Tipo | Default | Descrição |
+|-------|------|---------|-----------|
+| `PATHS_FILTER` | list | (não definido) | Globs para trigger. Se ausente, workflow dispara para qualquer mudança |
+| `WORKING_DIR` | path | `.` | Diretório de trabalho do package para install, lint, test e build context |
+
+> **Regra:** Repos single-package NÃO precisam definir esses campos. Backward-compatible.
+
+---
+
 ## Contract 7: Template Changelog
 
-**Location**: `specs/002-agnostic-cicd-pipeline/CHANGELOG.md`
+**Location**: `specs/017-agnostic-cicd-pipeline/CHANGELOG.md`
 
 ### Format
 

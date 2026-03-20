@@ -21,6 +21,14 @@ name: CI
 on:
   pull_request:
     branches: [develop, main]
+    # -------------------------------------------------------------------------
+    # CONDITIONAL: PATHS_FILTER (monorepo only)
+    # If PATHS_FILTER is defined in project-config, uncomment and set paths:
+    #   paths:
+    #     - '<PATHS_FILTER>'
+    #     - '.github/workflows/ci-<PACKAGE>.yml'
+    # This ensures CI only triggers for changes in this package.
+    # -------------------------------------------------------------------------
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -35,8 +43,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: <NODE_VERSION>
-          cache: <PACKAGE_MANAGER>
+          node-version: "<NODE_VERSION>"
+          cache: "<PACKAGE_MANAGER>"
 
       - run: <INSTALL_CMD>
 

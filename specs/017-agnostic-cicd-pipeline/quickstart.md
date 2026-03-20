@@ -1,6 +1,6 @@
 # Quickstart: Pipeline CI/CD Agnóstico
 
-**Date**: 2026-03-18 | **Feature**: `002-agnostic-cicd-pipeline` | **Template Version**: 1.1.0
+**Date**: 2026-03-20 | **Feature**: `017-agnostic-cicd-pipeline` | **Template Version**: 1.2.0
 
 ---
 
@@ -35,12 +35,14 @@ Copiar os 3 workflow templates para `.github/workflows/` e substituir placeholde
 Atualizar `<COMPOSE_PATH>/docker-compose.yml` conforme Contract 4 (API) ou Contract 5 (Frontend).
 
 **Para APIs** (`PROJECT_TYPE = api`):
+
 - `image: ghcr.io/<ORG>/<REPO_NAME>:${IMAGE_TAG:-staging}`
 - `env_file: .env`
 - `VIRTUAL_HOST`, `LETSENCRYPT_HOST`, `VIRTUAL_PORT` (se porta ≠ 80)
 - Rede externa do proxy
 
 **Para Frontends** (`PROJECT_TYPE = frontend`):
+
 - Mesmo `image`, sem `env_file`, sem `VIRTUAL_PORT`, com `healthcheck`
 
 ### Step 4: Configurar GitHub Secrets (15 min)
@@ -70,12 +72,14 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
 ### Infraestrutura
 
 - [ ] **1. DNS resolve para o servidor correto**
+
   ```bash
   dig <subdominio-staging> +short  # Deve resolver para IP do servidor de staging
   dig <subdominio-producao> +short  # Deve resolver para IP do servidor de produção
   ```
 
 - [ ] **2. Nome da rede do proxy está correto**
+
   ```bash
   # No servidor:
   docker network ls | grep proxy
@@ -83,6 +87,7 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
   ```
 
 - [ ] **3. Porta 80 acessível (Let's Encrypt HTTP-01)**
+
   ```bash
   curl -sv http://<subdominio> 2>&1 | head -5
   ```
@@ -111,6 +116,7 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
   - Port mapping só deve existir em `docker-compose-dev.yml`
 
 - [ ] **9. Runner user no grupo docker**
+
   ```bash
   # No servidor:
   groups $(whoami) | grep docker
@@ -120,6 +126,7 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
 ### CI
 
 - [ ] **10. Lint e testes passam localmente**
+
   ```bash
   <INSTALL_CMD>
   <LINT_CMD>
@@ -127,6 +134,7 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
   ```
 
 - [ ] **11. Self-hosted runner consegue pull de imagem GHCR**
+
   ```bash
   # No servidor (como runner user):
   docker pull ghcr.io/<ORG>/<REPO_NAME>:staging
@@ -135,12 +143,73 @@ Executar o **Checklist Pré-Deploy** abaixo antes do primeiro deploy.
 
 ---
 
+## Adoção em Monorepo
+
+Para repositórios com múltiplos packages (ex: `packages/backend/` + `packages/frontend/`), siga o padrão multi-config:
+
+### Step 1: Criar um Project Config por Package (10 min)
+
+Criar um arquivo de configuração para cada package:
+
+- `project-config-backend.md` — com `PATHS_FILTER: packages/backend/**` e `WORKING_DIR: packages/backend`
+- `project-config-frontend.md` — com `PATHS_FILTER: packages/frontend/**` e `WORKING_DIR: packages/frontend`
+
+### Step 2: Copiar e Renomear Workflows por Package (20 min)
+
+Copiar os 3 workflow templates para `.github/workflows/` **uma vez por package**, renomeando:
+
+| Package | CI | CD Staging | CD Production |
+|---------|-------|------------|---------------|
+| backend | `ci-backend.yml` | `cd-staging-backend.yml` | `cd-production-backend.yml` |
+| frontend | `ci-frontend.yml` | `cd-staging-frontend.yml` | `cd-production-frontend.yml` |
+
+### Step 3: Configurar Path Filters (5 min)
+
+Em cada workflow, descomentar o bloco `paths:` e preencher com o `PATHS_FILTER` do project-config:
+
+```yaml
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'packages/backend/**'
+      - '.github/workflows/ci-backend.yml'
+```
+
+Para CD Production, usar tags prefixadas por package:
+
+```yaml
+on:
+  push:
+    tags:
+      - 'backend-v*'
+```
+
+### Step 4: Cada Package com seu Dockerfile e Compose (15 min)
+
+- Criar Dockerfile em cada package (ex: `packages/backend/Dockerfile`)
+- Criar compose file em diretório separado (ex: `infra/backend/docker-compose.yml`)
+- Ajustar `DOCKERFILE_PATH` e `COMPOSE_PATH` no project-config de cada package
+
+### Step 5: Configurar Secrets (10 min)
+
+- Secrets compartilhados: `NGINX_NETWORK_NAME` (mesmo valor para todos os packages)
+- Secrets package-specific: `DATABASE_URL` (backend only), `VITE_API_URL` (frontend only)
+- Cada workflow referencia apenas os secrets que precisa
+
+### Step 6: Validar
+
+Executar o Checklist Pré-Deploy acima **para cada package** individualmente.
+
+---
+
 ## Runner Setup (por servidor)
 
 ```bash
 # Download e instalação
 mkdir -p /opt/actions-runner && cd /opt/actions-runner
-curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64-2.321.0.tar.gz
+curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64.tar.gz
+# Nota: este exemplo usa o endpoint latest. Revise a release atual do runner se o nome do artefato mudar.
 tar xzf actions-runner-linux-x64.tar.gz
 
 # Configuração (staging)
@@ -179,7 +248,7 @@ sudo usermod -aG docker $(whoami)
 
 ```bash
 # 1. Pull imagem anterior
-docker compose -p <CONTAINER_NAME> -f <COMPOSE_PATH>/docker-compose.yml pull ghcr.io/<ORG>/<REPO>:<tag-anterior>
+docker pull ghcr.io/<ORG>/<REPO>:<tag-anterior>
 
 # 2. Recriar container
 docker compose -p <CONTAINER_NAME> -f <COMPOSE_PATH>/docker-compose.yml up -d --force-recreate

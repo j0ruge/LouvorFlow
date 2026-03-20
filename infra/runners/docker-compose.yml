@@ -1,0 +1,46 @@
+## ==========================================
+## LouvorFlow — GitHub Actions Self-Hosted Runner
+## ==========================================
+## Runner dockerizado para o repositório LouvorFlow.
+## Replicar em cada servidor (staging / production) variando apenas o .env.
+##
+## Uso:
+##   docker compose up -d                              # Subir runner
+##   docker compose pull && docker compose up -d       # Atualizar imagem
+##   docker compose logs -f                            # Logs
+##   docker compose down                               # Parar e desregistrar
+
+x-runner-base: &runner-base
+  image: myoung34/github-runner:latest
+  restart: unless-stopped
+  stop_grace_period: 30s
+  security_opt:
+    - label:disable
+
+x-runner-env: &runner-env
+  ACCESS_TOKEN: ${ACCESS_TOKEN}
+  LABELS: ${RUNNER_LABELS}
+  RUNNER_SCOPE: repo
+  DISABLE_AUTO_UPDATE: "1"
+  DISABLE_AUTOMATIC_DEREGISTRATION: "true"
+  RANDOM_RUNNER_SUFFIX: "false"
+  UNSET_CONFIG_VARS: "true"
+  RUN_AS_ROOT: "true"
+
+services:
+  louvorflow-runner:
+    <<: *runner-base
+    container_name: louvorflow-runner
+    environment:
+      <<: *runner-env
+      REPO_URL: https://github.com/j0ruge/LouvorFlow
+      RUNNER_NAME: louvorflow-${RUNNER_LABELS}
+      RUNNER_WORKDIR: /tmp/runner/louvorflow
+      CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /home/runner/config/louvorflow
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/runner/louvorflow:/tmp/runner/louvorflow
+      - runner-config-louvorflow:/home/runner/config/louvorflow
+
+volumes:
+  runner-config-louvorflow:

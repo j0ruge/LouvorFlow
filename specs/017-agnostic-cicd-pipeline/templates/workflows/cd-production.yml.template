@@ -28,6 +28,14 @@ on:
   push:
     tags:
       - 'v*'
+      # -------------------------------------------------------------------
+      # CONDITIONAL: Monorepo tag pattern
+      # In monorepos, replace 'v*' with a package-prefixed pattern:
+      #   - 'backend-v*'    # for backend package
+      #   - 'frontend-v*'   # for frontend package
+      # This ensures production deploy only triggers for this package's
+      # releases. Rename this file to cd-production-<PACKAGE>.yml.
+      # -------------------------------------------------------------------
 
 permissions:
   packages: write
@@ -126,11 +134,10 @@ jobs:
       - name: Deploy
         working-directory: <COMPOSE_PATH>
         run: |
-          docker compose -p <CONTAINER_NAME> pull
-          docker compose -p <CONTAINER_NAME> up -d --force-recreate
+          docker compose -p <CONTAINER_NAME> pull && docker compose -p <CONTAINER_NAME> up -d --force-recreate
 
-      - name: Cleanup images
-        run: docker image prune -f
+      - name: Cleanup project images
+        run: docker image prune -f --filter "label=org.opencontainers.image.source=https://github.com/<ORG>/<REPO_NAME>"
 
       - name: Cleanup .env
         if: always()

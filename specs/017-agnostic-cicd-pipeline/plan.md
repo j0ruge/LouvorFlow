@@ -1,7 +1,7 @@
 # Implementation Plan: Pipeline CI/CD Agnóstico para Organização
 
-**Branch**: `002-agnostic-cicd-pipeline` | **Date**: 2026-03-18 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/002-agnostic-cicd-pipeline/spec.md`
+**Branch**: `017-agnostic-cicd-pipeline` | **Date**: 2026-03-20 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/017-agnostic-cicd-pipeline/spec.md`
 
 ## Summary
 
@@ -17,7 +17,7 @@ Criar um template reutilizável e versionado de pipeline CI/CD para a organizaç
 **Project Type**: CI/CD infrastructure templates + documentation
 **Performance Goals**: Deploy staging <10 min (SC-002), deploy produção <15 min (SC-003), adoção <1 hora (SC-006)
 **Constraints**: Self-hosted runners (sem SSH), imagens privadas no GHCR, zero secrets no código
-**Scale/Scope**: 4+ repositórios, 2 ambientes, 2 servidores, 2 tipos de projeto (api/frontend)
+**Scale/Scope**: 4+ repositórios (incl. monorepos), 2 ambientes, 2 servidores, 2 tipos de projeto (api/frontend)
 
 ## Constitution Check
 
@@ -30,19 +30,19 @@ Constitution not configured (template only). No gates to enforce. Proceeding.
 ### Documentation (this feature)
 
 ```text
-specs/002-agnostic-cicd-pipeline/
+specs/017-agnostic-cicd-pipeline/
 ├── plan.md              # This file
-├── research.md          # Phase 0 output — consolidated decisions
-├── data-model.md        # Phase 1 output — entity model
+├── research.md          # Phase 0 output — consolidated decisions (R-001..R-011)
+├── data-model.md        # Phase 1 output — entity model (20 campos incl. monorepo)
 ├── quickstart.md        # Phase 1 output — adoption guide + pre-deploy checklist
 ├── contracts/
-│   └── workflow-contract.md  # Phase 1 output — 7 contracts
+│   └── workflow-contract.md  # Phase 1 output — 8 contracts (incl. Contract 8: Multi-Config)
 ├── checklists/
 │   └── requirements.md       # Spec quality checklist
 └── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
-### Source Code (repository root)
+### Source Code — estimates_api (Fase A, referência)
 
 ```text
 .github/
@@ -59,7 +59,35 @@ infra/
 Dockerfile                        # Multi-stage build — já existe (validar compatibilidade)
 ```
 
-**Structure Decision**: Esta feature é primariamente de documentação/templates — os artefatos de infra já existem no repositório `estimates_api`. O trabalho consiste em: (1) extrair os padrões em templates agnósticos, (2) criar o changelog versionado, (3) validar os artefatos existentes contra os contracts, (4) criar a instância do project-config para estimates_api como referência.
+### Source Code — LouvorFlow (Fase B, a criar)
+
+```text
+.github/
+└── workflows/
+    ├── ci-backend.yml              # CI para packages/backend (PR → develop/main)
+    ├── ci-frontend.yml             # CI para packages/frontend (PR → develop/main)
+    ├── cd-staging-backend.yml      # CD Staging backend (push → develop)
+    ├── cd-staging-frontend.yml     # CD Staging frontend (push → develop)
+    ├── cd-production-backend.yml   # CD Production backend (tag backend-v*)
+    └── cd-production-frontend.yml  # CD Production frontend (tag frontend-v*)
+
+packages/
+├── backend/
+│   └── Dockerfile                  # Multi-stage: node:22-alpine → build → runtime
+└── frontend/
+    ├── Dockerfile                  # Multi-stage: node:22-alpine → build → nginx:alpine
+    └── nginx.conf                  # SPA fallback, gzip, cache
+
+infra/
+├── postgres/                       # Já existe (dev only)
+├── backend/
+│   └── docker-compose.yml          # Deploy compose (Contract 4)
+└── frontend/
+    └── docker-compose.yml          # Deploy compose (Contract 5)
+```
+
+**Structure Decision (Fase A)**: Extrair padrões em templates agnósticos a partir do `estimates_api`.
+**Structure Decision (Fase B)**: Instanciar templates para LouvorFlow monorepo via padrão multi-config. Yarn workspaces com lockfile na raiz — Dockerfiles copiam `yarn.lock` da raiz e usam `yarn install --frozen-lockfile`.
 
 ## Complexity Tracking
 
@@ -71,13 +99,17 @@ Nenhuma violação de constitution identificada (constitution não configurada).
 
 ### Approach
 
-Esta feature não altera código-fonte em `src/`. Os deliverables são:
+Esta feature tem duas fases:
+
+**Fase A (completa)** — Extração de templates do `estimates_api`: não altera código-fonte em `src/`. Deliverables:
 
 1. **Templates agnósticos** (extraídos dos workflows/compose existentes) — vivem na spec como referência
 2. **Project-config validado** para `estimates_api` — confirma que o repo existente está em conformidade
 3. **Quickstart + checklist** — guia de adoção para novos repos (já criado como artefato do plan)
 4. **Changelog v1.0.0** — baseline do template
 5. **Validação** — verificar que os artefatos existentes no repo estão em conformidade com os contracts
+
+**Fase B (pendente)** — Implementação no LouvorFlow (monorepo): instanciar os templates para os packages `backend` e `frontend` seguindo o padrão multi-config (Contract 8). Cria Dockerfiles, compose files, e 6 workflows GitHub Actions.
 
 ### What Already Exists (estimates_api)
 
@@ -108,7 +140,7 @@ Esta feature não altera código-fonte em `src/`. Os deliverables são:
 
 ### Execution Order
 
-```
+```text
 Phase 1: Validação — verificar conformidade dos artefatos existentes
 Phase 2: Project Config — criar instância atualizada para estimates_api
 Phase 3: Changelog — criar baseline v1.0.0
@@ -120,7 +152,7 @@ Phase 5: Polish — documentação final
 
 ## Notes
 
-- Esta feature é fundamentalmente diferente da 001: a 001 criou os artefatos do zero; a 002 extrai padrões e valida conformidade
+- Esta feature é fundamentalmente diferente da 001: a 001 criou os artefatos do zero; a 017 extrai padrões e valida conformidade
 - Os workflows já existem e funcionam — o risco de regressão é baixo
 - O quickstart e checklist pré-deploy já foram criados como artefatos do plan (Phase 1)
 - O principal valor agregado é: qualquer novo repo pode adotar o pipeline consultando os contracts, project-config schema, e quickstart

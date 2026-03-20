@@ -1,0 +1,15 @@
+services:
+  api:
+    image: ghcr.io/j0ruge/louvorflow-api:${IMAGE_TAG:-staging}
+    container_name: louvorflow-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - VIRTUAL_HOST=${VIRTUAL_HOST}
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
+      - VIRTUAL_PORT=3000
+
+networks:
+  default:
+    name: ${NGINX_NETWORK_NAME}
+    external: true

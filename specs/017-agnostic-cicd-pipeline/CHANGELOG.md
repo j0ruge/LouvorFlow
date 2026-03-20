@@ -10,6 +10,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Template version
 
 ---
 
+## [1.2.0] - 2026-03-20
+
+### Added
+
+- **Suporte a monorepos via padrão multi-config**: Cada package de um monorepo é tratado como projeto independente com seu próprio project-config, workflows e compose files. Zero breaking changes — repos single-package não são afetados.
+- **Campo `PATHS_FILTER`** (opcional): Lista de globs para restringir trigger de CI/CD ao package alterado. Ex: `packages/backend/**`. Adicionado ao schema do project-config e ao data-model.
+- **Campo `WORKING_DIR`** (opcional, default `.`)**: Diretório de trabalho do package para install, lint, test e build context. Adicionado ao schema do project-config e ao data-model.
+- **Contract 8: Padrão Multi-Config (Monorepo)**: Convenções de nomes, path filters, tags prefixadas, e gestão de secrets compartilhados vs package-specific (`workflow-contract.md`).
+- **Seção "Adoção em Monorepo"** no quickstart.md: 6 passos para configurar CI/CD em monorepos.
+- **Seção "Uso em Monorepo"** no templates/README.md: Convenção de nomes e referências.
+- **Blocos `paths:` comentados** nos 3 workflow templates: Seções condicionais para monorepos, seguindo o padrão existente de seções condicionais comentadas.
+- **Padrão de tags prefixadas** no cd-production.yml.template: Documentação para tags `<package>-v*` como alternativa em monorepos.
+- **R-011** no research.md: Decisão de design — multi-config vs template rewrite, com justificativa e alternativas descartadas.
+
+### Updated Files
+
+- `spec.md` — Clarifications (Q&A monorepo), Out of Scope, Assumptions
+- `data-model.md` — 2 campos opcionais, nota de relacionamento para monorepos
+- `research.md` — R-011
+- `templates/project-config-template.md` — PATHS_FILTER, WORKING_DIR, seção Multi-Config, version bump
+- `templates/workflows/ci.yml.template` — bloco paths: comentado
+- `templates/workflows/cd-staging.yml.template` — bloco paths: comentado, nota de rename
+- `templates/workflows/cd-production.yml.template` — padrão de tags prefixadas
+- `contracts/workflow-contract.md` — Contract 8
+- `quickstart.md` — seção Adoção em Monorepo
+- `templates/README.md` — seção Uso em Monorepo
+- `CHANGELOG.md` — esta entrada
+
+---
+
 ## [1.1.0] - 2026-03-20
 
 ### Bug Fixes

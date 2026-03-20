@@ -6,7 +6,7 @@
 # Key differences from API template:
 #   - No env_file (VITE_* are baked into JS bundle at build time)
 #   - No VIRTUAL_PORT (nginx serves on port 80, which is the proxy default)
-#   - Includes healthcheck (wget on index.html)
+#   - Includes healthcheck (curl on index.html)
 #
 # IMPORTANT: Frontend images are environment-specific.
 #   Staging and production are different images with different VITE_* values.
@@ -23,7 +23,7 @@ services:
       - VIRTUAL_HOST=${VIRTUAL_HOST}
       - LETSENCRYPT_HOST=${VIRTUAL_HOST}
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:80/index.html || exit 1']
+      test: ['CMD-SHELL', 'curl -f http://localhost:80/index.html || exit 1']
       interval: 30s
       timeout: 3s
       retries: 3

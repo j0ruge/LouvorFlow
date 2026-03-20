@@ -1,0 +1,42 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation
+*.md
+!packages/*/README.md
+specs/
+.specify/
+.claude/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies (reinstalled in Docker build)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Infrastructure (not needed in app images)
+infra/

@@ -1,6 +1,6 @@
 # Feature Specification: Pipeline CI/CD Agnóstico para Organização
 
-**Feature Branch**: `002-agnostic-cicd-pipeline`
+**Feature Branch**: `017-agnostic-cicd-pipeline`
 **Created**: 2026-03-18
 **Status**: Draft
 **Input**: User description: "Pipeline CI/CD agnóstico e reutilizável para qualquer repositório Node/React da organização, baseado nas lições aprendidas da implementação-referência"
@@ -106,7 +106,7 @@ Como responsável pela segurança, quero que todas as credenciais sejam gerencia
 ### Session 2026-03-18
 
 - Q: Os workflows devem ser copiados manualmente ou gerados por uma ferramenta CLI? → A: Na v1, copiados manualmente a partir de templates e adaptados via project-config. Geração automatizada (CLI/script) é evolução futura (v2).
-- Q: O pipeline suporta monorepos? → A: Não. Cada repositório = um projeto = um pipeline. Monorepos estão fora do escopo.
+- Q: O pipeline suporta monorepos? → A: Sim, via padrão multi-config — um project-config por package, workflows nomeados por package (ex: `ci-backend.yml`, `cd-staging-frontend.yml`). Cada package é tratado como projeto independente com seu próprio Dockerfile, compose file e project-config. Os templates de workflow/compose não mudam; apenas são instanciados uma vez por package.
 - Q: Qual a estratégia de notificação para falhas? → A: Notificações nativas do provedor CI/CD (email + status checks na UI). Zero configuração adicional.
 - Q: Qual a estratégia de rollback? → A: Rollback manual via pull de tag anterior + recreate. Rollback automatizado está fora do escopo.
 - Q: Como o pipeline trata projetos frontend (ex: Vite/React) onde variáveis de configuração são injetadas no build, não no runtime? → A: Frontends requerem variáveis de configuração (ex: VITE_*) como build args do Docker, produzindo imagens específicas por ambiente. O job de build precisa de acesso aos secrets do ambiente. Isso é coberto por um FR explícito (FR-016).
@@ -166,6 +166,7 @@ Como responsável pela segurança, quero que todas as credenciais sejam gerencia
 - DNS já está configurado apontando para os respectivos servidores (deve ser verificado como pré-requisito antes de cada deploy em novo domínio).
 - Os runners serão instalados nos servidores com labels de ambiente para roteamento correto dos jobs.
 - Cada aplicação roda em seu próprio container Docker isolado.
+- Para monorepos, cada package DEVE ter seu próprio Dockerfile, compose file e project-config. Path filters nos workflows garantem que apenas o package alterado dispara CI/CD.
 
 ## Out of Scope
 
@@ -175,7 +176,7 @@ Como responsável pela segurança, quero que todas as credenciais sejam gerencia
 - Configuração de banco de dados nos servidores (assume-se bancos já operacionais).
 - Testes end-to-end (E2E) no pipeline — apenas lint e testes unitários/integração existentes.
 - CI/CD para infraestrutura (IaC) — apenas para código das aplicações.
-- Suporte a monorepos — cada repositório é um projeto independente.
+- Monorepos são suportados via padrão multi-config (ver Clarifications). Orquestração cross-package (ex: build condicional baseado em dependências entre packages) está fora do escopo.
 - Geração automatizada de workflows via CLI/script (v1 é manual com templates; automação é evolução futura).
 - Suporte a projetos que não sejam Node.js/React (adaptação para outras stacks é evolução futura).
 

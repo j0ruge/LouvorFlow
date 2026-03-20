@@ -19,8 +19,8 @@ services:
     environment:
       - VIRTUAL_HOST=${VIRTUAL_HOST}
       - LETSENCRYPT_HOST=${VIRTUAL_HOST}
-      # Required if APP_PORT ≠ 80. Remove this line if your app listens on port 80.
-      - VIRTUAL_PORT=${<APP_PORT_VAR>}
+      # Required if APP_PORT ≠ 80. Replace APP_PORT if your env var uses another name.
+      - VIRTUAL_PORT=${APP_PORT}
     # IMPORTANT: Do NOT add 'ports:' here.
     # The proxy routes internally via Docker network. Exposing ports bypasses SSL.
 

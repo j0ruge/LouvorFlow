@@ -18,6 +18,34 @@ docker compose up -d
 
 ---
 
+## Deploy — Backend (CI/CD)
+
+Compose file de deploy para o backend (API Express). Usado pelos workflows `cd-staging-backend.yml` e `cd-production-backend.yml`.
+
+```text
+infra/backend/
+├── docker-compose.yml   # Compose de deploy (Contract 4)
+└── .env.example         # Referência de variáveis (secrets no GitHub)
+```
+
+O arquivo `.env` é gerado automaticamente pelo pipeline a partir de GitHub Secrets e removido após o deploy.
+
+---
+
+## Deploy — Frontend (CI/CD)
+
+Compose file de deploy para o frontend (Vite/React + nginx). Usado pelos workflows `cd-staging-frontend.yml` e `cd-production-frontend.yml`.
+
+```text
+infra/frontend/
+├── docker-compose.yml   # Compose de deploy (Contract 5)
+└── .env.example         # Referência de variáveis (proxy only)
+```
+
+Variáveis `VITE_*` são injetadas em build-time via Docker build-args, não em runtime.
+
+---
+
 ## Restore do Banco de Dados
 
 ```bash
