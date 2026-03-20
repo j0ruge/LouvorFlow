@@ -97,6 +97,16 @@ jobs:
             ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }} \
             npx prisma migrate deploy --schema packages/backend/prisma/schema.prisma
 
+      - name: Run admin seed
+        run: |
+          docker run --rm --network ${{ secrets.NGINX_NETWORK_NAME }} \
+            -e DB_URL=${{ secrets.DB_URL }} \
+            -e ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }} \
+            -e ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }} \
+            -e ADMIN_NAME=${{ secrets.ADMIN_NAME }} \
+            ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }} \
+            npx tsx packages/backend/seeds/admin.ts
+
       - name: Generate .env
         working-directory: infra/backend
         run: |
