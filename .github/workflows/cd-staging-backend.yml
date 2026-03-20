@@ -92,10 +92,10 @@ jobs:
 
       - name: Run database migrations
         run: |
-          yarn install --frozen-lockfile
-          cd packages/backend && npx prisma migrate deploy
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
+          docker run --rm --network ${{ secrets.NGINX_NETWORK_NAME }} \
+            -e DB_URL=${{ secrets.DB_URL }} \
+            ghcr.io/j0ruge/louvorflow-api:staging \
+            npx prisma migrate deploy --schema packages/backend/prisma/schema.prisma
 
       - name: Generate .env
         working-directory: infra/backend
