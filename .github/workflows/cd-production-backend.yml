@@ -43,6 +43,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: yarn workspace backend run prisma generate
+        env:
+          DB_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
       - name: Lint
         run: yarn workspace backend run typecheck
