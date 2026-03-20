@@ -1,0 +1,64 @@
+# =============================================================================
+# CI Pipeline Template (Agnostic)
+# =============================================================================
+# Placeholders:
+#   <NODE_VERSION>    — Node.js version (e.g., 22, 20, 18)
+#   <PACKAGE_MANAGER> — Package manager for cache (e.g., npm, yarn, pnpm)
+#   <INSTALL_CMD>     — package install command (e.g., npm ci, pnpm install --frozen-lockfile)
+#   <LINT_CMD>        — lint/format check command (e.g., npx biome check .)
+#   <TEST_CMD>        — test runner command (e.g., npx vitest run, npm test)
+#
+# Conditional rules:
+#   - When TEST_FRAMEWORK = none, omit the "test" job entirely.
+#   - When TEST_FRAMEWORK is set, uncomment the "test" job below and replace <TEST_CMD>.
+#   - When DB_SERVICE_IMAGE is defined (e.g., mcr.microsoft.com/mssql/server:2022-latest),
+#     add a "services:" block to the test job with the appropriate image, ports, env, and
+#     health check for the database container.
+# =============================================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: <NODE_VERSION>
+          cache: <PACKAGE_MANAGER>
+
+      - run: <INSTALL_CMD>
+
+      - run: <LINT_CMD>
+
+  # ---------------------------------------------------------------------------
+  # Test job — include only when TEST_FRAMEWORK != none
+  # When DB_SERVICE_IMAGE is defined, add a "services:" block under this job
+  # with the database container configuration (image, ports, env, health check).
+  # ---------------------------------------------------------------------------
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   needs: lint
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: <NODE_VERSION>
+  #         cache: <PACKAGE_MANAGER>
+  #
+  #     - run: <INSTALL_CMD>
+  #
+  #     - run: <TEST_CMD>
