@@ -14,6 +14,11 @@ interface JunctionDelegate {
     createMany(args: { data: Record<string, unknown>[] }): Promise<unknown>;
 }
 
+/** Adaptador que converte qualquer delegate Prisma para JunctionDelegate. */
+function asJunction(delegate: { findMany: Function; deleteMany: Function; createMany: Function }): JunctionDelegate {
+    return delegate as unknown as JunctionDelegate;
+}
+
 class MusicasRepository {
     async findAll(skip: number, take: number) {
         return prisma.musicas.findMany({
@@ -163,7 +168,7 @@ class MusicasRepository {
 
             if (data.categoria_ids !== undefined) {
                 await this.syncJunction(tx, id, data.categoria_ids, {
-                    model: tx.musicas_Categorias,
+                    model: asJunction(tx.musicas_Categorias),
                     parentKey: 'musica_id',
                     childKey: 'categoria_id',
                 });
@@ -171,7 +176,7 @@ class MusicasRepository {
 
             if (data.funcao_ids !== undefined) {
                 await this.syncJunction(tx, id, data.funcao_ids, {
-                    model: tx.musicas_Funcoes,
+                    model: asJunction(tx.musicas_Funcoes),
                     parentKey: 'musica_id',
                     childKey: 'funcao_id',
                 });

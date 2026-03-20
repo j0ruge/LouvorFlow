@@ -25,6 +25,9 @@ jobs:
 
       - run: yarn install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: yarn workspace backend run prisma generate
+
       - run: yarn workspace backend run typecheck
 
   test:
@@ -54,6 +57,9 @@ jobs:
           cache: "yarn"
 
       - run: yarn install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: yarn workspace backend run prisma generate
 
       - run: yarn workspace backend run test
         env:
