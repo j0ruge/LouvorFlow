@@ -13,7 +13,7 @@
 [![React Query](https://img.shields.io/badge/React%20Query-5.83.0-FF4154?style=flat&logo=react-query&logoColor=white)](https://tanstack.com/query)
 [![Zod](https://img.shields.io/badge/Zod-3.25.76-3E67B1?style=flat&logo=zod&logoColor=white)](https://zod.dev/)
 
-[Demo](https://LouvorFlow.lovable.app) · [Reportar Bug](https://github.com/j0ruge/LouvorFlow/issues) · [Solicitar Feature](https://github.com/j0ruge/LouvorFlow/issues)
+[Reportar Bug](https://github.com/j0ruge/LouvorFlow/issues) · [Solicitar Feature](https://github.com/j0ruge/LouvorFlow/issues)
 
 </div>
 
@@ -371,7 +371,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 **LouvorFlow** - Projeto do Grupo de Jovens
 
-- 🌐 Website: [LouvorFlow.lovable.app](https://LouvorFlow.lovable.app)
 - 📧 Email: <contato@LouvorFlow.com>
 - 💬 GitHub Issues: [Criar Issue](https://github.com/j0ruge/LouvorFlow/issues)
 
@@ -379,7 +378,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 🙏 Agradecimentos
 
-- [Lovable](https://lovable.dev) - Plataforma de desenvolvimento
 - [shadcn/ui](https://ui.shadcn.com/) - Componentes UI
 - [Lucide Icons](https://lucide.dev/) - Biblioteca de ícones
 - Todos os membros do grupo que contribuem para este projeto
