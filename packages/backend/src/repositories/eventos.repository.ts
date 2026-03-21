@@ -149,12 +149,16 @@ class EventosRepository {
             });
 
             if (funcaoIds.length > 0) {
-                await tx.eventos_Users_Funcoes.createMany({
-                    data: funcaoIds.map(funcaoId => ({
-                        evento_user_id: eventoUser.id,
-                        funcao_id: funcaoId,
-                    }))
-                });
+                await Promise.all(
+                    funcaoIds.map(funcaoId =>
+                        tx.eventos_Users_Funcoes.create({
+                            data: {
+                                evento_user_id: eventoUser.id,
+                                funcao_id: funcaoId,
+                            }
+                        })
+                    )
+                );
             }
 
             return eventoUser;
