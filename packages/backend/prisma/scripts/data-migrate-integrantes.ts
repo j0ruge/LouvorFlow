@@ -1,3 +1,7 @@
+// @ts-nocheck — Script de migração one-shot já executado.
+// O model `integrantes` foi removido do schema (spec 018).
+// Mantido apenas como referência histórica.
+
 /**
  * Script de migração de dados: integrantes → users.
  *

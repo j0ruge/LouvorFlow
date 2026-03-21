@@ -5,6 +5,7 @@ import {
   MOCK_TIPOS_EVENTOS,
   MOCK_MUSICAS_BASE,
   MOCK_INTEGRANTES,
+  MOCK_INTEGRANTES_FUNCOES,
   MOCK_EVENTOS_MUSICAS,
   MOCK_EVENTOS_INTEGRANTES,
   NON_EXISTENT_ID,
@@ -267,10 +268,37 @@ describe('EventosService', () => {
 
   // ─── addIntegrante ──────────────────────────────────────
   describe('addIntegrante', () => {
-    it('deve vincular integrante ao evento', async () => {
+    /** Deve vincular integrante ao evento usando todas as funções globais quando funcao_ids não é fornecido. */
+    it('deve vincular integrante ao evento com todas as funções quando funcao_ids não fornecido', async () => {
       await expect(
         eventosService.addIntegrante(MOCK_EVENTOS[0].id, MOCK_INTEGRANTES[2].id)
       ).resolves.toBeUndefined();
+    });
+
+    /** Deve vincular integrante ao evento com funcao_ids específicas. */
+    it('deve vincular integrante ao evento com funcao_ids específicas', async () => {
+      const funcaoId = MOCK_INTEGRANTES_FUNCOES
+        .filter(iif => iif.fk_user_id === MOCK_INTEGRANTES[0].id)
+        .map(iif => iif.funcao_id);
+      await expect(
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoId[0]])
+      ).resolves.toBeUndefined();
+
+      const integrantes = await eventosService.listIntegrantes(MOCK_EVENTOS[2].id);
+      const added = integrantes.find(i => i.id === MOCK_INTEGRANTES[0].id);
+      expect(added).toBeDefined();
+      expect(added!.funcoes).toHaveLength(1);
+      expect(added!.funcoes[0].id).toBe(funcaoId[0]);
+    });
+
+    /** Deve lançar AppError 400 quando funcao_ids contém ID que não pertence ao integrante. */
+    it('deve lançar AppError 400 quando funcao_ids contém ID inválido', async () => {
+      await expect(
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [NON_EXISTENT_ID])
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Função inválida: não pertence ao integrante',
+      });
     });
 
     it('deve lançar AppError 400 quando fk_integrante_id não é enviado', async () => {

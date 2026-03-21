@@ -25,6 +25,11 @@ jobs:
 
       - run: yarn install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: yarn workspace backend run prisma generate
+        env:
+          DB_URL: postgresql://dummy:dummy@localhost:5432/dummy
+
       - run: yarn workspace backend run typecheck
 
   test:
@@ -54,6 +59,11 @@ jobs:
           cache: "yarn"
 
       - run: yarn install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: yarn workspace backend run prisma generate
+        env:
+          DB_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
       - run: yarn workspace backend run test
         env:

@@ -152,13 +152,13 @@ const Scales = () => {
               className="shadow-soft border-0 hover:shadow-medium transition-all duration-300"
             >
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                       <Calendar className="h-6 w-6 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">
+                      <CardTitle className="text-lg sm:text-xl">
                         {new Date(scale.data).toLocaleDateString("pt-BR", {
                           weekday: "long",
                           year: "numeric",
@@ -176,7 +176,7 @@ const Scales = () => {
                   {scale.tipoEvento && (
                     <Badge
                       variant="default"
-                      className="bg-primary text-primary-foreground"
+                      className="bg-primary text-primary-foreground self-start sm:self-auto"
                     >
                       {scale.tipoEvento.nome}
                     </Badge>
@@ -217,12 +217,12 @@ const Scales = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Music className="h-4 w-4" />
+                    <Music className="h-4 w-4 shrink-0" />
                     {scale.musicas.length} músicas selecionadas
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {canWrite && (
                       <>
                         <Button

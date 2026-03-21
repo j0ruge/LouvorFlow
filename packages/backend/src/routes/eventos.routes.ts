@@ -9,6 +9,8 @@ import { Router } from 'express';
 import eventosController from '../controllers/eventos.controller.js';
 import { ensureAuthenticated } from '../middlewares/ensureAuthenticated.js';
 import { can } from '../middlewares/can.js';
+import { validateRequest } from '../middlewares/validateRequest.js';
+import { addIntegranteBodySchema } from '../validators/eventos.validators.js';
 
 const router: Router = Router();
 
@@ -26,7 +28,7 @@ router.delete('/:eventoId/musicas/:musicaId', ensureAuthenticated, can(['escalas
 
 // Junction: Integrantes (eventos_integrantes)
 router.get('/:eventoId/integrantes', ensureAuthenticated, eventosController.listIntegrantes);
-router.post('/:eventoId/integrantes', ensureAuthenticated, can(['escalas.write']), eventosController.addIntegrante);
+router.post('/:eventoId/integrantes', ensureAuthenticated, can(['escalas.write']), validateRequest({ body: addIntegranteBodySchema }), eventosController.addIntegrante);
 router.delete('/:eventoId/integrantes/:integranteId', ensureAuthenticated, can(['escalas.write']), eventosController.removeIntegrante);
 
 export default router;

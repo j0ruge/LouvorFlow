@@ -73,3 +73,20 @@ export function isSafeUrl(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Converte valor do input datetime-local para string ISO 8601 UTC.
+ *
+ * O input `datetime-local` produz strings no formato `YYYY-MM-DDThh:mm`,
+ * que são interpretadas como horário local pelo construtor `Date`.
+ * Esta função converte para ISO UTC (`...Z`) para envio ao backend.
+ *
+ * @param datetimeLocal - Valor do input datetime-local.
+ * @returns String ISO 8601 em UTC.
+ */
+export function localDatetimeToISO(datetimeLocal: string): string {
+  const date = new Date(datetimeLocal);
+  if (isNaN(date.getTime())) return "";
+
+  return date.toISOString();
+}

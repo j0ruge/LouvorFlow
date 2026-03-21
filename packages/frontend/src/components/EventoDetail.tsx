@@ -44,7 +44,9 @@ import { useIntegrantes } from "@/hooks/use-integrantes";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
 import { useCan } from "@/hooks/use-can";
+import type { IntegranteComFuncoes } from "@/schemas/integrante";
 
 /**
  * Página de detalhe de evento com gerenciamento de associações.
@@ -61,6 +63,8 @@ export function EventoDetail() {
   const [selectedIntegranteId, setSelectedIntegranteId] = useState("");
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [funcaoDialogIntegrante, setFuncaoDialogIntegrante] =
+    useState<IntegranteComFuncoes | null>(null);
 
   const {
     data: evento,
@@ -127,13 +131,44 @@ export function EventoDetail() {
   }
 
   /**
-   * Adiciona o integrante selecionado ao evento.
+   * Inicia o fluxo de adicionar integrante ao evento.
+   * Se o integrante tem 2+ funções, abre dialog para seleção.
+   * Caso contrário, adiciona diretamente com todas as funções.
    */
   function handleAddIntegrante() {
     if (!selectedIntegranteId) return;
-    addIntegrante.mutate(selectedIntegranteId, {
-      onSuccess: () => setSelectedIntegranteId(""),
-    });
+    const integrante = allIntegrantes?.find(
+      (i) => i.id === selectedIntegranteId,
+    );
+    if (!integrante) return;
+
+    if (integrante.funcoes.length >= 2) {
+      setFuncaoDialogIntegrante(integrante);
+    } else {
+      addIntegrante.mutate(
+        { integranteId: selectedIntegranteId },
+        { onSuccess: () => setSelectedIntegranteId("") },
+      );
+    }
+  }
+
+  /**
+   * Callback do dialog de seleção de funções.
+   * Adiciona o integrante ao evento com as funções selecionadas.
+   *
+   * @param funcaoIds - IDs das funções selecionadas.
+   */
+  function handleFuncaoDialogConfirm(funcaoIds: string[]) {
+    if (!funcaoDialogIntegrante) return;
+    addIntegrante.mutate(
+      { integranteId: funcaoDialogIntegrante.id, funcaoIds },
+      {
+        onSuccess: () => {
+          setSelectedIntegranteId("");
+          setFuncaoDialogIntegrante(null);
+        },
+      },
+    );
   }
 
   return (
@@ -322,6 +357,23 @@ export function EventoDetail() {
         }}
         isLoading={deleteEvento.isPending}
       />
+
+      {/* Dialog de seleção de funções */}
+      {funcaoDialogIntegrante && (
+        <FuncaoSelectDialog
+          open={!!funcaoDialogIntegrante}
+          onOpenChange={(open) => {
+            if (!open) {
+              setFuncaoDialogIntegrante(null);
+              setSelectedIntegranteId("");
+            }
+          }}
+          integranteNome={funcaoDialogIntegrante.nome}
+          funcoes={funcaoDialogIntegrante.funcoes}
+          onConfirm={handleFuncaoDialogConfirm}
+          isLoading={addIntegrante.isPending}
+        />
+      )}
 
       {/* Integrantes associados */}
       <Card className="shadow-soft border-0">

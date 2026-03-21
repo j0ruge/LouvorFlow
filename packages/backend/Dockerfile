@@ -21,10 +21,10 @@ COPY packages/backend/package.json packages/backend/package.json
 # Install all dependencies (yarn workspaces hoists to root node_modules)
 RUN yarn install --frozen-lockfile
 
-# Copy Prisma schema and generate client
+# Copy Prisma schema and generate client (DB_URL dummy — generate não conecta)
 COPY packages/backend/prisma/ packages/backend/prisma/
 COPY packages/backend/prisma.config.ts packages/backend/prisma.config.ts
-RUN cd packages/backend && npx prisma generate
+RUN cd packages/backend && DB_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
 
 # Copy backend source code
 COPY packages/backend/ packages/backend/

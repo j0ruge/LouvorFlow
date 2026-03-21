@@ -26,8 +26,11 @@ function formatEventoIndex(e: EventoIndexRaw) {
 /**
  * Converte um registro bruto de evento no formato detalhado para exibição (show).
  *
- * @param e - Registro bruto do evento (EventoShowRaw), incluindo as relações `Eventos_Musicas` e `Eventos_Integrantes`
- * @returns Objeto com `id`, `data`, `descricao`, `tipoEvento`, `musicas` (array de `{ id, nome, tonalidade }`) e `integrantes` (array de `{ id, nome, funcoes }` onde `funcoes` é um array de objetos com `id` e `nome`)
+ * Funções do integrante vêm da tabela `Eventos_Users_Funcoes` (seleção por evento),
+ * não mais de `Users_Funcoes` (funções globais).
+ *
+ * @param e - Registro bruto do evento (EventoShowRaw)
+ * @returns Objeto formatado com músicas e integrantes com funções do evento
  */
 function formatEventoShow(e: EventoShowRaw) {
     return {
@@ -48,7 +51,7 @@ function formatEventoShow(e: EventoShowRaw) {
             return {
                 id: user.id,
                 nome: user.name,
-                funcoes: user.Users_Funcoes.map(f => f.users_funcoes_funcao_id_fkey)
+                funcoes: i.Eventos_Users_Funcoes.map(f => f.eventos_users_funcoes_funcao_fkey)
             };
         })
     };
@@ -83,6 +86,13 @@ class EventosService {
             errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
         }
 
+        if (data && !isNaN(Date.parse(String(data)))) {
+            const parsedYear = new Date(data).getFullYear();
+            if (parsedYear < 1900 || parsedYear > 9999) {
+                errors.push("Ano da data do evento deve estar entre 1900 e 9999");
+            }
+        }
+
         if (errors.length > 0) throw new AppError(errors[0], 400, errors);
 
         const parsedDate = new Date(data!);
@@ -111,6 +121,13 @@ class EventosService {
 
         if (data !== undefined && isNaN(Date.parse(String(data)))) {
             throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
+        }
+
+        if (data !== undefined && !isNaN(Date.parse(String(data)))) {
+            const parsedYear = new Date(data).getFullYear();
+            if (parsedYear < 1900 || parsedYear > 9999) {
+                throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
+            }
         }
 
         const updateData: Prisma.EventosUncheckedUpdateInput = {};
@@ -184,10 +201,10 @@ class EventosService {
     // --- Integrantes ---
 
     /**
-     * Lista os integrantes vinculados a um evento, incluindo suas funções.
+     * Lista os integrantes vinculados a um evento com funções selecionadas para o evento.
      *
      * @param eventoId - ID do evento
-     * @returns Array de integrantes com `id`, `nome` e `funcoes` (array de objetos com `id` e `nome`)
+     * @returns Array de integrantes com `id`, `nome` e `funcoes` selecionadas para o evento
      * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
      */
     async listIntegrantes(eventoId: string) {
@@ -200,22 +217,28 @@ class EventosService {
             return {
                 id: user.id,
                 nome: user.name,
-                funcoes: user.Users_Funcoes.map(f => f.users_funcoes_funcao_id_fkey)
+                funcoes: i.Eventos_Users_Funcoes.map(f => f.eventos_users_funcoes_funcao_fkey)
             };
         });
     }
 
     /**
-     * Adiciona um integrante a um evento.
+     * Adiciona um integrante a um evento com funções selecionadas.
+     *
+        * Se `funcao_ids` não for fornecido (ou for `null`), todas as funções globais do integrante serão usadas.
+        * Se `funcao_ids` for um array vazio (`[]`), nenhuma função será vinculada ao registro do evento.
+        * Se fornecido com itens, valida que cada ID pertence às funções globais do integrante.
      *
      * @param eventoId - ID do evento
-     * @param fk_integrante_id - ID do integrante a ser adicionado (opcional, lança erro se ausente)
+     * @param fk_integrante_id - ID do integrante a ser adicionado
+    * @param funcao_ids - IDs das funções selecionadas (opcional — usa todas se omitido/null e nenhuma se array vazio)
      * @throws {AppError} 400 — "ID do integrante é obrigatório" se `fk_integrante_id` não for informado
+     * @throws {AppError} 400 — "Função inválida" se algum `funcao_id` não pertence ao integrante
      * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
      * @throws {AppError} 404 — "Integrante não encontrado" se o integrante não existir
      * @throws {AppError} 409 — "Registro duplicado" se o vínculo já existir
      */
-    async addIntegrante(eventoId: string, fk_integrante_id?: string) {
+    async addIntegrante(eventoId: string, fk_integrante_id?: string, funcao_ids?: string[]) {
         if (!fk_integrante_id) throw new AppError("ID do integrante é obrigatório", 400);
 
         const evento = await eventosRepository.findByIdSimple(eventoId);
@@ -227,7 +250,23 @@ class EventosService {
         const existente = await eventosRepository.findIntegranteDuplicate(eventoId, fk_integrante_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await eventosRepository.createIntegrante(eventoId, fk_integrante_id);
+        const userFuncoes = await eventosRepository.findUserFuncoes(fk_integrante_id);
+        const userFuncaoIds = new Set(userFuncoes.map(f => f.funcao_id));
+
+        let selectedFuncaoIds: string[];
+        if (funcao_ids == null) {
+            selectedFuncaoIds = Array.from(userFuncaoIds);
+        } else if (funcao_ids.length === 0) {
+            selectedFuncaoIds = [];
+        } else {
+            const invalidas = funcao_ids.filter(id => !userFuncaoIds.has(id));
+            if (invalidas.length > 0) {
+                throw new AppError("Função inválida: não pertence ao integrante", 400);
+            }
+            selectedFuncaoIds = funcao_ids;
+        }
+
+        await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds);
     }
 
     async removeIntegrante(eventoId: string, integranteId: string) {

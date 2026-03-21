@@ -43,7 +43,7 @@ import {
   type CreateEventoForm,
 } from "@/schemas/evento";
 import type { EventoIndex } from "@/schemas/evento";
-import { toDatetimeLocalValue } from "@/lib/utils";
+import { toDatetimeLocalValue, localDatetimeToISO } from "@/lib/utils";
 
 /** Propriedades do componente EventoForm. */
 interface EventoFormProps {
@@ -118,14 +118,19 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
    * @param dados - Dados validados do formulário.
    */
   function onSubmit(dados: CreateEventoForm) {
+    const payload = {
+      ...dados,
+      data: localDatetimeToISO(dados.data),
+    };
+
     if (isEditing && evento) {
       updateMutation.mutate(
         {
           id: evento.id,
           dados: {
-            data: dados.data,
-            fk_tipo_evento: dados.fk_tipo_evento,
-            descricao: dados.descricao,
+            data: payload.data,
+            fk_tipo_evento: payload.fk_tipo_evento,
+            descricao: payload.descricao,
           },
         },
         {
@@ -136,7 +141,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
         },
       );
     } else {
-      createMutation.mutate(dados, {
+      createMutation.mutate(payload, {
         onSuccess: (response) => {
           form.reset();
           onOpenChange(false);
@@ -168,7 +173,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
                 <FormItem>
                   <FormLabel>Data</FormLabel>
                   <FormControl>
-                    <Input type="datetime-local" {...field} />
+                    <Input type="datetime-local" max="9999-12-31T23:59" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
