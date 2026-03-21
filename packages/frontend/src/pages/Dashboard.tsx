@@ -79,7 +79,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -104,7 +104,7 @@ const Dashboard = () => {
               {isLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-3xl font-bold text-foreground">
+                <div className="text-2xl font-bold text-foreground">
                   {stat.value}
                 </div>
               )}
@@ -167,58 +167,44 @@ const Dashboard = () => {
         <Card className="shadow-soft border-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Resumo do Ministério
+              <Users className="h-5 w-5 text-primary" />
+              Equipe do Ministério
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {integrantesLoading ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
+            ) : !integrantes || integrantes.filter(i => i.funcoes.length > 0).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Nenhum integrante com funções atribuídas.
+              </p>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
-                      <Music className="h-5 w-5" />
+              <div className="space-y-3">
+                {integrantes
+                  .filter(i => i.funcoes.length > 0)
+                  .slice(0, 5)
+                  .map((integrante) => (
+                    <div
+                      key={integrante.id}
+                      className="flex items-center gap-3 p-3 rounded-lg bg-gradient-card border border-border"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                        {integrante.nome.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground text-sm truncate">
+                          {integrante.nome}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {integrante.funcoes.map(f => f.nome).join(", ")}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">Repertório</p>
-                      <p className="text-sm text-muted-foreground">
-                        {totalMusicas} músicas cadastradas
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">Equipe</p>
-                      <p className="text-sm text-muted-foreground">
-                        {totalIntegrantes} integrantes ativos
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex items-center justify-center text-white font-bold">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">Agenda</p>
-                      <p className="text-sm text-muted-foreground">
-                        {totalEscalas} escalas criadas
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  ))}
               </div>
             )}
           </CardContent>

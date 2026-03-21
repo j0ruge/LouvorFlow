@@ -14,8 +14,11 @@ interface JunctionDelegate {
     createMany(args: { data: Record<string, unknown>[] }): Promise<unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Prisma delegates têm assinaturas genéricas complexas
+type PrismaDelegate = { findMany: (...args: any[]) => any; deleteMany: (...args: any[]) => any; createMany: (...args: any[]) => any };
+
 /** Adaptador que converte qualquer delegate Prisma para JunctionDelegate. */
-function asJunction(delegate: { findMany: Function; deleteMany: Function; createMany: Function }): JunctionDelegate {
+function asJunction(delegate: PrismaDelegate): JunctionDelegate {
     return delegate as unknown as JunctionDelegate;
 }
 

@@ -143,7 +143,7 @@ const UserAcl = () => {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             ACL de {userAcl?.name ?? "Usuário"}
           </h1>
           <p className="text-muted-foreground mt-1">

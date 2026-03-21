@@ -225,13 +225,13 @@ class EventosService {
     /**
      * Adiciona um integrante a um evento com funções selecionadas.
      *
-        * Se `funcao_ids` não for fornecido (ou for `null`), todas as funções globais do integrante serão usadas.
-        * Se `funcao_ids` for um array vazio (`[]`), nenhuma função será vinculada ao registro do evento.
-        * Se fornecido com itens, valida que cada ID pertence às funções globais do integrante.
+     * Se `funcao_ids` não for fornecido (ou for `null`), todas as funções globais do integrante serão usadas.
+     * Se `funcao_ids` for um array vazio (`[]`), nenhuma função será vinculada ao registro do evento.
+     * Se fornecido com itens, valida que cada ID pertence às funções globais do integrante.
      *
      * @param eventoId - ID do evento
      * @param fk_integrante_id - ID do integrante a ser adicionado
-    * @param funcao_ids - IDs das funções selecionadas (opcional — usa todas se omitido/null e nenhuma se array vazio)
+     * @param funcao_ids - IDs das funções selecionadas (opcional — usa todas se omitido/null e nenhuma se array vazio)
      * @throws {AppError} 400 — "ID do integrante é obrigatório" se `fk_integrante_id` não for informado
      * @throws {AppError} 400 — "Função inválida" se algum `funcao_id` não pertence ao integrante
      * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir

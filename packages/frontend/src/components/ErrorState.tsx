@@ -24,7 +24,7 @@ interface ErrorStateProps {
  */
 export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="flex flex-col items-center justify-center py-8 text-center">
       <AlertCircle className="h-12 w-12 text-destructive mb-4" />
       <h3 className="text-lg font-semibold text-foreground">
         Erro ao carregar dados

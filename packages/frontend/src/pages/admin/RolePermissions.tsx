@@ -125,7 +125,7 @@ const RolePermissions = () => {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Permissões de {currentRole?.name ?? "Role"}
           </h1>
           <p className="text-muted-foreground mt-1">

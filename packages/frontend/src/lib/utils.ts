@@ -81,8 +81,8 @@ export function isSafeUrl(url: string): boolean {
  * que são interpretadas como horário local pelo construtor `Date`.
  * Esta função converte para ISO UTC (`...Z`) para envio ao backend.
  *
- * @param datetimeLocal - Valor do input datetime-local.
- * @returns String ISO 8601 em UTC.
+ * @param datetimeLocal - Valor do input datetime-local (ex: `"2026-03-21T10:00"`).
+ * @returns String ISO 8601 em UTC, ou string vazia se a data for inválida.
  */
 export function localDatetimeToISO(datetimeLocal: string): string {
   const date = new Date(datetimeLocal);

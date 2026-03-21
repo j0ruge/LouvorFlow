@@ -70,6 +70,14 @@ packages/frontend/src/
 - **Sidebar RBAC**: Todos os itens de domínio visíveis para qualquer autenticado. Seção "Administração" visível apenas para `isAdmin`.
 - **UserMenu**: Avatar no header → dropdown com nome, e-mail, "Meu Perfil" e "Sair".
 
+## Design System
+
+O design system completo (tokens, cores, tipografia, padrões de progressive disclosure, adaptações mobile) está documentado em:
+
+- **`packages/frontend/.interface-design/system.md`** — Referência canônica para decisões visuais e de interação.
+
+Consultar esse arquivo antes de criar novos componentes ou alterar padrões de UI existentes.
+
 ## Regras Obrigatórias
 
 - **Componentes `ui/`**: São gerados pelo shadcn/ui. Nunca editar diretamente. Para customização, criar wrappers em `components/`.

@@ -6,7 +6,7 @@
  * o perfil e botão de logout.
  */
 
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -16,9 +16,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { getInitials } from "@/lib/utils";
+import { useColorTheme } from "@/hooks/use-color-theme";
+import { COLOR_THEMES } from "@/contexts/ThemeColorContext";
 
 /**
  * Componente de menu do usuário com avatar e dropdown.
@@ -32,6 +39,7 @@ import { getInitials } from "@/lib/utils";
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { colorTheme, setColorTheme } = useColorTheme();
 
   if (!user) return null;
 
@@ -75,6 +83,33 @@ export function UserMenu() {
           <User className="mr-2 h-4 w-4" />
           Meu Perfil
         </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="cursor-pointer">
+            <Palette className="mr-2 h-4 w-4" />
+            Temas
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={colorTheme}
+              onValueChange={setColorTheme}
+            >
+              {COLOR_THEMES.map((theme) => (
+                <DropdownMenuRadioItem
+                  key={theme.id}
+                  value={theme.id}
+                  className="cursor-pointer"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm">{theme.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {theme.description}
+                    </span>
+                  </div>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleSignOut}
