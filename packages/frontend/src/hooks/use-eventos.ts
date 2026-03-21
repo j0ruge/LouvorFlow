@@ -166,7 +166,7 @@ export function useRemoveMusicaFromEvento(eventoId: string) {
 }
 
 /**
- * Hook para associar um integrante a um evento.
+ * Hook para associar um integrante a um evento, com funções opcionais.
  *
  * @param eventoId - UUID do evento para invalidação de cache.
  * @returns Resultado do useMutation para associação de integrante.
@@ -175,8 +175,13 @@ export function useAddIntegranteToEvento(eventoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (integranteId: string) =>
-      addIntegranteToEvento(eventoId, integranteId),
+    mutationFn: ({
+      integranteId,
+      funcaoIds,
+    }: {
+      integranteId: string;
+      funcaoIds?: string[];
+    }) => addIntegranteToEvento(eventoId, integranteId, funcaoIds),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });

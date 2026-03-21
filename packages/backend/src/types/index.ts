@@ -233,16 +233,14 @@ export interface EventoShowMusica {
 }
 
 /**
- * Representação de um user vinculado a um evento (show), com funções musicais.
+ * Representação de um user vinculado a um evento (show), com funções selecionadas para o evento.
  *
- * @property id - Identificador único do user
- * @property name - Nome do user
- * @property Users_Funcoes - Funções musicais vinculadas
+ * @property eventos_users_fk_user_id_fkey - Dados do user (id e nome)
+ * @property Eventos_Users_Funcoes - Funções selecionadas para este evento específico
  */
-export interface EventoShowIntegrante {
-    id: string;
-    name: string;
-    Users_Funcoes: { users_funcoes_funcao_id_fkey: IdNome }[];
+export interface EventoShowIntegranteRaw {
+    eventos_users_fk_user_id_fkey: { id: string; name: string };
+    Eventos_Users_Funcoes: { eventos_users_funcoes_funcao_fkey: IdNome }[];
 }
 
 /**
@@ -253,7 +251,7 @@ export interface EventoShowIntegrante {
  * @property descricao - Descrição do evento
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id, nome e tonalidade)
- * @property Eventos_Users - Users vinculados (cada item contém id, nome e funções)
+ * @property Eventos_Users - Users vinculados com funções selecionadas para o evento
  */
 export interface EventoShowRaw {
     id: string;
@@ -261,7 +259,7 @@ export interface EventoShowRaw {
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
-    Eventos_Users: { eventos_users_fk_user_id_fkey: EventoShowIntegrante }[];
+    Eventos_Users: EventoShowIntegranteRaw[];
 }
 
 /**
@@ -359,12 +357,12 @@ export const EVENTO_SHOW_SELECT = {
                 select: {
                     id: true,
                     name: true,
-                    Users_Funcoes: {
-                        select: {
-                            users_funcoes_funcao_id_fkey: {
-                                select: { id: true, nome: true }
-                            }
-                        }
+                }
+            },
+            Eventos_Users_Funcoes: {
+                select: {
+                    eventos_users_funcoes_funcao_fkey: {
+                        select: { id: true, nome: true }
                     }
                 }
             }

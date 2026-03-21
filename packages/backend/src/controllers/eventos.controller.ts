@@ -109,7 +109,7 @@ class EventosController {
      */
     async addIntegrante(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         try {
-            await eventosService.addIntegrante(req.params.eventoId, req.body.fk_integrante_id);
+            await eventosService.addIntegrante(req.params.eventoId, req.body.fk_integrante_id, req.body.funcao_ids);
             res.status(201).json({ msg: "Integrante adicionado ao evento com sucesso" });
         } catch (error) {
             if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }

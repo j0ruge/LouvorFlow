@@ -2017,7 +2017,7 @@
     "/eventos/{id}": {
       "get": {
         "summary": "Buscar evento por ID",
-        "description": "Retorna os dados completos de um evento, incluindo músicas com tonalidade e integrantes com funções.",
+        "description": "Retorna os dados completos de um evento, incluindo músicas com tonalidade e integrantes com as funções selecionadas para o evento (via eventos_users_funcoes).",
         "tags": [
           "Eventos"
         ],
@@ -2398,7 +2398,7 @@
     "/eventos/{eventoId}/integrantes": {
       "get": {
         "summary": "Listar integrantes de um evento",
-        "description": "Retorna os integrantes (usuários) escalados para um evento com suas funções. Consulta a tabela eventos_users.",
+        "description": "Retorna os integrantes (usuários) escalados para um evento com as funções selecionadas para o evento. Funções vêm de eventos_users_funcoes (não das funções globais do integrante).",
         "tags": [
           "Eventos - Integrantes"
         ],
@@ -2465,7 +2465,7 @@
       },
       "post": {
         "summary": "Escalar integrante em um evento",
-        "description": "Adiciona um integrante (usuário) à escala de um evento. Insere na tabela eventos_users.",
+        "description": "Adiciona um integrante (usuário) à escala de um evento. Insere na tabela eventos_users e, opcionalmente, seleciona funções específicas via eventos_users_funcoes. Se funcao_ids não for fornecido, todas as funções globais do integrante são usadas.",
         "tags": [
           "Eventos - Integrantes"
         ],
@@ -2483,7 +2483,16 @@
                 "properties": {
                   "fk_integrante_id": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "description": "UUID do integrante a escalar"
+                  },
+                  "funcao_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "UUIDs das funções selecionadas. Se omitido, usa todas as funções globais do integrante."
                   }
                 },
                 "required": [
@@ -2491,7 +2500,8 @@
                 ]
               },
               "example": {
-                "fk_integrante_id": "11111111-aaaa-4000-8000-000000000003"
+                "fk_integrante_id": "11111111-aaaa-4000-8000-000000000003",
+                "funcao_ids": ["f6a7b8c9-6666-4000-f000-000000000001"]
               }
             }
           }

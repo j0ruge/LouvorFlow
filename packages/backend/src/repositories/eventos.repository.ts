@@ -103,12 +103,12 @@ class EventosRepository {
     // --- Integrantes (eventos_users) ---
 
     /**
-     * Retorna os users vinculados a um evento, incluindo suas funções musicais.
+     * Retorna os users vinculados a um evento com as funções selecionadas para o evento.
      *
-     * Opera sobre `Eventos_Users` → `Users` → `Users_Funcoes`.
+     * Opera sobre `Eventos_Users` → `Eventos_Users_Funcoes` → `Funcoes`.
      *
      * @param eventoId - ID do evento
-     * @returns Lista de registros de `Eventos_Users` com relações aninhadas de user e funções
+     * @returns Lista de registros com user e funções selecionadas para o evento
      */
     async findIntegrantes(eventoId: string) {
         return prisma.eventos_Users.findMany({
@@ -118,12 +118,12 @@ class EventosRepository {
                     select: {
                         id: true,
                         name: true,
-                        Users_Funcoes: {
-                            select: {
-                                users_funcoes_funcao_id_fkey: {
-                                    select: { id: true, nome: true }
-                                }
-                            }
+                    }
+                },
+                Eventos_Users_Funcoes: {
+                    select: {
+                        eventos_users_funcoes_funcao_fkey: {
+                            select: { id: true, nome: true }
                         }
                     }
                 }
@@ -132,15 +132,45 @@ class EventosRepository {
     }
 
     /**
-     * Cria a associação entre um evento e um user.
+     * Cria a associação entre um evento e um user, incluindo as funções selecionadas.
+     *
+     * Usa transação para criar o registro em `Eventos_Users` e os registros
+     * correspondentes em `Eventos_Users_Funcoes`.
      *
      * @param eventoId - ID do evento
      * @param userId - ID do user a ser vinculado
+     * @param funcaoIds - IDs das funções selecionadas para o evento
      * @returns Registro criado na tabela Eventos_Users
      */
-    async createIntegrante(eventoId: string, userId: string) {
-        return prisma.eventos_Users.create({
-            data: { evento_id: eventoId, fk_user_id: userId }
+    async createIntegrante(eventoId: string, userId: string, funcaoIds: string[]) {
+        return prisma.$transaction(async (tx) => {
+            const eventoUser = await tx.eventos_Users.create({
+                data: { evento_id: eventoId, fk_user_id: userId }
+            });
+
+            if (funcaoIds.length > 0) {
+                await tx.eventos_Users_Funcoes.createMany({
+                    data: funcaoIds.map(funcaoId => ({
+                        evento_user_id: eventoUser.id,
+                        funcao_id: funcaoId,
+                    }))
+                });
+            }
+
+            return eventoUser;
+        });
+    }
+
+    /**
+     * Busca as funções globais (Users_Funcoes) de um user.
+     *
+     * @param userId - ID do user
+     * @returns Lista de IDs de funções do user
+     */
+    async findUserFuncoes(userId: string) {
+        return prisma.users_Funcoes.findMany({
+            where: { fk_user_id: userId },
+            select: { funcao_id: true }
         });
     }
 

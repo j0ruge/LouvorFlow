@@ -11,11 +11,38 @@ import {
   MOCK_FUNCOES,
 } from './mock-data.js';
 
+/** Representa um registro na tabela eventos_users_funcoes (funções selecionadas por evento). */
+interface EventoUserFuncao {
+  id: string;
+  evento_user_id: string;
+  funcao_id: string;
+}
+
 /** Cria fake repository para Eventos com dados em memória (inclui sub-recursos músicas e integrantes). */
 export function createFakeEventosRepository() {
   let eventosData = MOCK_EVENTOS.map(e => ({ ...e }));
   let eventosMusicas = MOCK_EVENTOS_MUSICAS.map(em => ({ ...em }));
   let eventosIntegrantes = MOCK_EVENTOS_INTEGRANTES.map(ei => ({ ...ei }));
+  let eventosUsersFuncoes: EventoUserFuncao[] = buildInitialEventoUserFuncoes();
+
+  /**
+   * Constrói os registros iniciais de eventos_users_funcoes com base nos vínculos existentes.
+   * Usa todas as funções globais do integrante como funções do evento.
+   */
+  function buildInitialEventoUserFuncoes(): EventoUserFuncao[] {
+    const result: EventoUserFuncao[] = [];
+    for (const ei of MOCK_EVENTOS_INTEGRANTES) {
+      const userFuncoes = MOCK_INTEGRANTES_FUNCOES.filter(iif => iif.fk_user_id === ei.fk_user_id);
+      for (const uf of userFuncoes) {
+        result.push({
+          id: randomUUID(),
+          evento_user_id: ei.id,
+          funcao_id: uf.funcao_id,
+        });
+      }
+    }
+    return result;
+  }
 
   const getTipoEvento = (fk_tipo_evento: string) => {
     const t = MOCK_TIPOS_EVENTOS.find(te => te.id === fk_tipo_evento);
@@ -55,7 +82,7 @@ export function createFakeEventosRepository() {
    * Constrói a representação detalhada (show) de um evento a partir dos dados em memória.
    *
    * @param evento - Registro do evento no array local
-   * @returns Objeto no formato `EventoShowRaw` com músicas (incluindo tonalidade) e users (incluindo funções)
+   * @returns Objeto no formato `EventoShowRaw` com músicas (incluindo tonalidade) e users (com funções do evento)
    */
   const buildEventoShow = (evento: typeof eventosData[0]) => ({
     id: evento.id,
@@ -83,12 +110,12 @@ export function createFakeEventosRepository() {
           eventos_users_fk_user_id_fkey: {
             id: user.id,
             name: user.name,
-            Users_Funcoes: MOCK_INTEGRANTES_FUNCOES
-              .filter(iif => iif.fk_user_id === user.id)
-              .map(iif => ({
-                users_funcoes_funcao_id_fkey: MOCK_FUNCOES.find(f => f.id === iif.funcao_id)!,
-              })),
           },
+          Eventos_Users_Funcoes: eventosUsersFuncoes
+            .filter(euf => euf.evento_user_id === ei.id)
+            .map(euf => ({
+              eventos_users_funcoes_funcao_fkey: MOCK_FUNCOES.find(f => f.id === euf.funcao_id)!,
+            })),
         };
       }),
   });
@@ -177,10 +204,10 @@ export function createFakeEventosRepository() {
     // --- Integrantes (eventos_users) ---
 
     /**
-     * Retorna os users vinculados a um evento com suas funções musicais.
+     * Retorna os users vinculados a um evento com as funções selecionadas para o evento.
      *
      * @param eventoId - ID do evento
-     * @returns Array de users no formato esperado pelo service
+     * @returns Array de users com funções do evento
      */
     findIntegrantes: async (eventoId: string) =>
       eventosIntegrantes
@@ -191,27 +218,46 @@ export function createFakeEventosRepository() {
             eventos_users_fk_user_id_fkey: {
               id: user.id,
               name: user.name,
-              Users_Funcoes: MOCK_INTEGRANTES_FUNCOES
-                .filter(iif => iif.fk_user_id === user.id)
-                .map(iif => ({
-                  users_funcoes_funcao_id_fkey: MOCK_FUNCOES.find(f => f.id === iif.funcao_id)!,
-                })),
             },
+            Eventos_Users_Funcoes: eventosUsersFuncoes
+              .filter(euf => euf.evento_user_id === ei.id)
+              .map(euf => ({
+                eventos_users_funcoes_funcao_fkey: MOCK_FUNCOES.find(f => f.id === euf.funcao_id)!,
+              })),
           };
         }),
 
     /**
-     * Cria um vínculo entre evento e user no array em memória.
+     * Cria um vínculo entre evento e user no array em memória, incluindo funções selecionadas.
      *
      * @param eventoId - ID do evento
      * @param userId - ID do user
+     * @param funcaoIds - IDs das funções selecionadas para o evento
      * @returns Registro criado com id gerado automaticamente
      */
-    createIntegrante: async (eventoId: string, userId: string) => {
+    createIntegrante: async (eventoId: string, userId: string, funcaoIds: string[]) => {
       const record = { id: randomUUID(), evento_id: eventoId, fk_user_id: userId };
       eventosIntegrantes.push(record);
+      for (const funcaoId of funcaoIds) {
+        eventosUsersFuncoes.push({
+          id: randomUUID(),
+          evento_user_id: record.id,
+          funcao_id: funcaoId,
+        });
+      }
       return record;
     },
+
+    /**
+     * Busca as funções globais (Users_Funcoes) de um user nos dados mock.
+     *
+     * @param userId - ID do user
+     * @returns Lista de objetos com funcao_id
+     */
+    findUserFuncoes: async (userId: string) =>
+      MOCK_INTEGRANTES_FUNCOES
+        .filter(iif => iif.fk_user_id === userId)
+        .map(iif => ({ funcao_id: iif.funcao_id })),
 
     deleteIntegrante: async (id: string) => {
       const idx = eventosIntegrantes.findIndex(ei => ei.id === id);
@@ -242,6 +288,7 @@ export function createFakeEventosRepository() {
       eventosData = MOCK_EVENTOS.map(e => ({ ...e }));
       eventosMusicas = MOCK_EVENTOS_MUSICAS.map(em => ({ ...em }));
       eventosIntegrantes = MOCK_EVENTOS_INTEGRANTES.map(ei => ({ ...ei }));
+      eventosUsersFuncoes = buildInitialEventoUserFuncoes();
     },
   };
 }

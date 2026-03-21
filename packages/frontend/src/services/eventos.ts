@@ -135,19 +135,23 @@ export async function removeMusicaFromEvento(
 }
 
 /**
- * Associa um integrante a um evento.
+ * Associa um integrante a um evento, opcionalmente selecionando funções específicas.
  *
  * @param eventoId - UUID do evento.
  * @param integranteId - UUID do integrante a associar.
+ * @param funcaoIds - UUIDs das funções selecionadas (opcional — usa todas se omitido).
  * @returns Resposta da API com mensagem de confirmação.
  */
 export async function addIntegranteToEvento(
   eventoId: string,
   integranteId: string,
+  funcaoIds?: string[],
 ): Promise<AssociationResponse> {
+  const body: Record<string, unknown> = { fk_integrante_id: integranteId };
+  if (funcaoIds) body.funcao_ids = funcaoIds;
   const data = await apiFetch<unknown>(`/eventos/${eventoId}/integrantes`, {
     method: "POST",
-    body: JSON.stringify({ fk_integrante_id: integranteId }),
+    body: JSON.stringify(body),
   });
   return AssociationResponseSchema.parse(data);
 }
