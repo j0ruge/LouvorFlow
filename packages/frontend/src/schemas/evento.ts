@@ -82,7 +82,13 @@ export type EventoUpdateResponse = z.infer<typeof EventoUpdateResponseSchema>;
 
 /** Schema de validação do formulário de criação de evento. */
 export const CreateEventoFormSchema = z.object({
-  data: z.string().min(1, "Data é obrigatória"),
+  data: z.string().min(1, "Data é obrigatória").refine(
+    (val) => {
+      const d = new Date(val);
+      return !isNaN(d.getTime()) && d.getFullYear() >= 1900 && d.getFullYear() <= 9999;
+    },
+    "Data inválida ou ano fora do intervalo permitido",
+  ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento"),
   descricao: z.string().min(1, "Descrição é obrigatória"),
 });
@@ -92,7 +98,14 @@ export type CreateEventoForm = z.infer<typeof CreateEventoFormSchema>;
 
 /** Schema de validação do formulário de edição de evento. */
 export const UpdateEventoFormSchema = z.object({
-  data: z.string().optional(),
+  data: z.string().optional().refine(
+    (val) => {
+      if (val === undefined || val === "") return true;
+      const d = new Date(val);
+      return !isNaN(d.getTime()) && d.getFullYear() >= 1900 && d.getFullYear() <= 9999;
+    },
+    "Data inválida ou ano fora do intervalo permitido",
+  ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento").optional(),
   descricao: z.string().optional(),
 });

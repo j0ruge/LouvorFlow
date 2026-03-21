@@ -65,6 +65,20 @@ export function isSafeRedirect(url: string): boolean {
  * @param url - String da URL a ser validada.
  * @returns `true` se a URL usar http ou https, `false` caso contrário.
  */
+/**
+ * Converte valor do input datetime-local para string ISO 8601 UTC.
+ *
+ * O input `datetime-local` produz strings no formato `YYYY-MM-DDThh:mm`,
+ * que são interpretadas como horário local pelo construtor `Date`.
+ * Esta função converte para ISO UTC (`...Z`) para envio ao backend.
+ *
+ * @param datetimeLocal - Valor do input datetime-local.
+ * @returns String ISO 8601 em UTC.
+ */
+export function localDatetimeToISO(datetimeLocal: string): string {
+  return new Date(datetimeLocal).toISOString();
+}
+
 export function isSafeUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
