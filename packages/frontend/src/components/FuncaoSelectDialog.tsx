@@ -6,7 +6,7 @@
  * ao evento e confirmar. Pelo menos 1 função deve estar selecionada.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -51,12 +51,14 @@ export function FuncaoSelectDialog({
   isLoading = false,
 }: FuncaoSelectDialogProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const prevOpen = useRef(false);
 
-  /** Pré-seleciona todas as funções quando o dialog abre. */
+  /** Pré-seleciona todas as funções apenas na transição de abertura do dialog. */
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpen.current) {
       setSelectedIds(new Set(funcoes.map((f) => f.id)));
     }
+    prevOpen.current = open;
   }, [open, funcoes]);
 
   /**

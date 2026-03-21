@@ -65,6 +65,15 @@ export function isSafeRedirect(url: string): boolean {
  * @param url - String da URL a ser validada.
  * @returns `true` se a URL usar http ou https, `false` caso contrário.
  */
+export function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Converte valor do input datetime-local para string ISO 8601 UTC.
  *
@@ -76,14 +85,8 @@ export function isSafeRedirect(url: string): boolean {
  * @returns String ISO 8601 em UTC.
  */
 export function localDatetimeToISO(datetimeLocal: string): string {
-  return new Date(datetimeLocal).toISOString();
-}
+  const date = new Date(datetimeLocal);
+  if (isNaN(date.getTime())) return "";
 
-export function isSafeUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return date.toISOString();
 }

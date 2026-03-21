@@ -148,8 +148,7 @@ export async function addIntegranteToEvento(
   funcaoIds?: string[],
 ): Promise<AssociationResponse> {
   const body: Record<string, unknown> = { fk_integrante_id: integranteId };
-  if (funcaoIds) body.funcao_ids = funcaoIds;
-  const data = await apiFetch<unknown>(`/eventos/${eventoId}/integrantes`, {
+  if (funcaoIds?.length) body.funcao_ids = funcaoIds;  const data = await apiFetch<unknown>(`/eventos/${eventoId}/integrantes`, {
     method: "POST",
     body: JSON.stringify(body),
   });
