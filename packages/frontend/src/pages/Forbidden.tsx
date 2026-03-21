@@ -23,7 +23,7 @@ const Forbidden = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
       <ShieldX className="h-16 w-16 text-destructive" />
-      <h1 className="text-3xl font-bold text-foreground">Acesso Negado</h1>
+      <h1 className="text-2xl font-bold text-foreground">Acesso Negado</h1>
       <p className="text-muted-foreground max-w-md">
         Você não tem permissão para acessar esta página.
         Entre em contato com o administrador se acredita que isso é um erro.

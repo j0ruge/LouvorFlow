@@ -99,7 +99,7 @@ const Scales = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Escalas
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -217,11 +217,7 @@ const Scales = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-4 border-t border-border">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Music className="h-4 w-4 shrink-0" />
-                    {scale.musicas.length} músicas selecionadas
-                  </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 mt-4 pt-4 border-t border-border">
                   <div className="flex flex-wrap gap-2">
                     {canWrite && (
                       <>
@@ -243,12 +239,11 @@ const Scales = () => {
                       </>
                     )}
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
-                      className="bg-gradient-primary"
                       onClick={() => navigate(`/escalas/${scale.id}`)}
                     >
-                      Ver Detalhes
+                      Detalhes
                     </Button>
                   </div>
                 </div>

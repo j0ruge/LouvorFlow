@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeColorProvider } from "./contexts/ThemeColorContext";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
@@ -83,41 +84,43 @@ function AdminPage({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <Toaster />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              {/* Rotas públicas (sem autenticação) */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/esqueci-senha" element={<ForgotPassword />} />
-              <Route path="/redefinir-senha" element={<ResetPassword />} />
+      <ThemeColorProvider>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                {/* Rotas públicas (sem autenticação) */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/esqueci-senha" element={<ForgotPassword />} />
+                <Route path="/redefinir-senha" element={<ResetPassword />} />
 
-              {/* Rotas protegidas (autenticação obrigatória) */}
-              <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
-              <Route path="/musicas" element={<ProtectedPage><Songs /></ProtectedPage>} />
-              <Route path="/musicas/:id" element={<ProtectedPage><SongDetail /></ProtectedPage>} />
-              <Route path="/escalas" element={<ProtectedPage><Scales /></ProtectedPage>} />
-              <Route path="/escalas/:id" element={<ProtectedPage><EventoDetail /></ProtectedPage>} />
-              <Route path="/integrantes" element={<ProtectedPage><Members /></ProtectedPage>} />
-              <Route path="/configuracoes" element={<ProtectedPage><Settings /></ProtectedPage>} />
-              <Route path="/relatorios" element={<ProtectedPage><Reports /></ProtectedPage>} />
-              <Route path="/historico" element={<ProtectedPage><History /></ProtectedPage>} />
-              <Route path="/perfil" element={<ProtectedPage><Profile /></ProtectedPage>} />
+                {/* Rotas protegidas (autenticação obrigatória) */}
+                <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
+                <Route path="/musicas" element={<ProtectedPage><Songs /></ProtectedPage>} />
+                <Route path="/musicas/:id" element={<ProtectedPage><SongDetail /></ProtectedPage>} />
+                <Route path="/escalas" element={<ProtectedPage><Scales /></ProtectedPage>} />
+                <Route path="/escalas/:id" element={<ProtectedPage><EventoDetail /></ProtectedPage>} />
+                <Route path="/integrantes" element={<ProtectedPage><Members /></ProtectedPage>} />
+                <Route path="/configuracoes" element={<ProtectedPage><Settings /></ProtectedPage>} />
+                <Route path="/relatorios" element={<ProtectedPage><Reports /></ProtectedPage>} />
+                <Route path="/historico" element={<ProtectedPage><History /></ProtectedPage>} />
+                <Route path="/perfil" element={<ProtectedPage><Profile /></ProtectedPage>} />
 
-              {/* Rotas administrativas (autenticação + role admin) */}
-              <Route path="/admin/usuarios" element={<AdminPage><AdminUsers /></AdminPage>} />
-              <Route path="/admin/usuarios/:userId/acl" element={<AdminPage><AdminUserAcl /></AdminPage>} />
-              <Route path="/admin/roles" element={<AdminPage><AdminRoles /></AdminPage>} />
-              <Route path="/admin/roles/:roleId/permissoes" element={<AdminPage><AdminRolePermissions /></AdminPage>} />
-              <Route path="/admin/permissoes" element={<AdminPage><AdminPermissions /></AdminPage>} />
+                {/* Rotas administrativas (autenticação + role admin) */}
+                <Route path="/admin/usuarios" element={<AdminPage><AdminUsers /></AdminPage>} />
+                <Route path="/admin/usuarios/:userId/acl" element={<AdminPage><AdminUserAcl /></AdminPage>} />
+                <Route path="/admin/roles" element={<AdminPage><AdminRoles /></AdminPage>} />
+                <Route path="/admin/roles/:roleId/permissoes" element={<AdminPage><AdminRolePermissions /></AdminPage>} />
+                <Route path="/admin/permissoes" element={<AdminPage><AdminPermissions /></AdminPage>} />
 
-              {/* Catch-all */}
-              <Route path="*" element={<ProtectedPage><NotFound /></ProtectedPage>} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+                {/* Catch-all */}
+                <Route path="*" element={<ProtectedPage><NotFound /></ProtectedPage>} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeColorProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

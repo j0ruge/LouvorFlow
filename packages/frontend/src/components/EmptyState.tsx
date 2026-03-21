@@ -33,7 +33,7 @@ export function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="flex flex-col items-center justify-center py-8 text-center">
       <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       <p className="text-sm text-muted-foreground mt-1 max-w-sm">
