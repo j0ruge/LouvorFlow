@@ -27,8 +27,8 @@ const Dashboard = () => {
   /** Total de músicas extraído dos metadados de paginação. */
   const totalMusicas = musicasData?.meta.total ?? 0;
 
-  /** Total de integrantes com pelo menos uma função musical vinculada. */
-  const totalIntegrantes = integrantes?.filter((i) => i.funcoes.length > 0).length ?? 0;
+  /** Total de integrantes (membros) vinculados ao tenant ativo. */
+  const totalIntegrantes = integrantes?.length ?? 0;
 
   /** Total de escalas. */
   const totalEscalas = eventos?.length ?? 0;
@@ -178,9 +178,9 @@ const Dashboard = () => {
                   <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
-            ) : !integrantes || integrantes.filter(i => i.funcoes.length > 0).length === 0 ? (
+            ) : !integrantes || integrantes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum integrante com funções atribuídas.
+                Nenhum integrante vinculado a esta igreja.
               </p>
             ) : (
               <div className="space-y-3">
