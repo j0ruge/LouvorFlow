@@ -190,7 +190,8 @@ class UsersRepository {
                     await tx.usersRoles.deleteMany({ where: { user_id: id } });
                     if (roles.length > 0) {
                         await tx.usersRoles.createMany({
-                            data: roles.map((role_id) => ({ user_id: id, role_id })),
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                            data: roles.map((role_id) => ({ user_id: id, role_id, tenant_id: '' as any })),
                         });
                     }
                 }
@@ -199,7 +200,8 @@ class UsersRepository {
                     await tx.usersPermissions.deleteMany({ where: { user_id: id } });
                     if (permissions.length > 0) {
                         await tx.usersPermissions.createMany({
-                            data: permissions.map((permission_id) => ({ user_id: id, permission_id })),
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                            data: permissions.map((permission_id) => ({ user_id: id, permission_id, tenant_id: '' as any })),
                         });
                     }
                 }

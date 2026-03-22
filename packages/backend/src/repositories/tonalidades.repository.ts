@@ -15,7 +15,7 @@ class TonalidadesRepository {
     }
 
     async findByTom(tom: string) {
-        return prisma.tonalidades.findUnique({ where: { tom } });
+        return prisma.tonalidades.findFirst({ where: { tom } });
     }
 
     async findByTomExcludingId(tom: string, excludeId: string) {
@@ -24,7 +24,8 @@ class TonalidadesRepository {
 
     async create(tom: string) {
         return prisma.tonalidades.create({
-            data: { tom },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { tom, tenant_id: '' as any },
             select: { id: true, tom: true }
         });
     }

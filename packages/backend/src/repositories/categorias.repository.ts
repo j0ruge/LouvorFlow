@@ -35,7 +35,7 @@ class CategoriasRepository {
      * @returns Categoria encontrada ou null.
      */
     async findByNome(nome: string): Promise<Categorias | null> {
-        return prisma.categorias.findUnique({ where: { nome } });
+        return prisma.categorias.findFirst({ where: { nome } });
     }
 
     /**
@@ -55,7 +55,8 @@ class CategoriasRepository {
      */
     async create(nome: string): Promise<CategoriaSummary> {
         return prisma.categorias.create({
-            data: { nome },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { nome, tenant_id: '' as any },
             select: { id: true, nome: true }
         });
     }

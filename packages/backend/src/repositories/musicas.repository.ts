@@ -56,7 +56,8 @@ class MusicasRepository {
 
     async create(data: { nome: string; fk_tonalidade: string }) {
         return prisma.musicas.create({
-            data,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { ...data, tenant_id: '' as any },
             select: {
                 id: true,
                 nome: true,
@@ -98,6 +99,8 @@ class MusicasRepository {
                 data: {
                     nome: data.nome!,
                     fk_tonalidade: data.fk_tonalidade ?? null,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                    tenant_id: '' as any,
                 },
             });
 
@@ -110,6 +113,8 @@ class MusicasRepository {
                         cifras: data.cifras ?? null,
                         lyrics: data.lyrics ?? null,
                         link_versao: data.link_versao ?? null,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                        tenant_id: '' as any,
                     },
                 });
             }
@@ -117,14 +122,16 @@ class MusicasRepository {
             const categoriaIds = [...new Set(data.categoria_ids ?? [])];
             if (categoriaIds.length > 0) {
                 await tx.musicas_Categorias.createMany({
-                    data: categoriaIds.map(id => ({ musica_id: musica.id, categoria_id: id })),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                    data: categoriaIds.map(id => ({ musica_id: musica.id, categoria_id: id, tenant_id: '' as any })),
                 });
             }
 
             const funcaoIds = [...new Set(data.funcao_ids ?? [])];
             if (funcaoIds.length > 0) {
                 await tx.musicas_Funcoes.createMany({
-                    data: funcaoIds.map(id => ({ musica_id: musica.id, funcao_id: id })),
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                    data: funcaoIds.map(id => ({ musica_id: musica.id, funcao_id: id, tenant_id: '' as any })),
                 });
             }
 
@@ -216,7 +223,8 @@ class MusicasRepository {
 
     async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }) {
         return prisma.artistas_Musicas.create({
-            data,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { ...data, tenant_id: '' as any },
             select: {
                 id: true,
                 bpm: true,
@@ -252,8 +260,8 @@ class MusicasRepository {
     }
 
     async findVersaoDuplicate(musicaId: string, artistaId: string) {
-        return prisma.artistas_Musicas.findUnique({
-            where: { artista_id_musica_id: { artista_id: artistaId, musica_id: musicaId } }
+        return prisma.artistas_Musicas.findFirst({
+            where: { artista_id: artistaId, musica_id: musicaId }
         });
     }
 
@@ -289,7 +297,8 @@ class MusicasRepository {
      */
     async createCategoria(musicaId: string, categoriaId: string) {
         return prisma.musicas_Categorias.create({
-            data: { musica_id: musicaId, categoria_id: categoriaId }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { musica_id: musicaId, categoria_id: categoriaId, tenant_id: '' as any }
         });
     }
 
@@ -311,8 +320,8 @@ class MusicasRepository {
      * @returns Registro existente ou `null` se não houver duplicata
      */
     async findCategoriaDuplicate(musicaId: string, categoriaId: string) {
-        return prisma.musicas_Categorias.findUnique({
-            where: { musica_id_categoria_id: { musica_id: musicaId, categoria_id: categoriaId } }
+        return prisma.musicas_Categorias.findFirst({
+            where: { musica_id: musicaId, categoria_id: categoriaId }
         });
     }
 
@@ -341,7 +350,8 @@ class MusicasRepository {
 
     async createFuncao(musicaId: string, funcaoId: string) {
         return prisma.musicas_Funcoes.create({
-            data: { musica_id: musicaId, funcao_id: funcaoId }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { musica_id: musicaId, funcao_id: funcaoId, tenant_id: '' as any }
         });
     }
 
@@ -350,8 +360,8 @@ class MusicasRepository {
     }
 
     async findFuncaoDuplicate(musicaId: string, funcaoId: string) {
-        return prisma.musicas_Funcoes.findUnique({
-            where: { musica_id_funcao_id: { musica_id: musicaId, funcao_id: funcaoId } }
+        return prisma.musicas_Funcoes.findFirst({
+            where: { musica_id: musicaId, funcao_id: funcaoId }
         });
     }
 

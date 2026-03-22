@@ -159,8 +159,8 @@ class IntegrantesRepository {
      * @returns Registro encontrado ou `null` se não existir
      */
     async findIntegranteFuncao(fk_user_id: string, funcao_id: string) {
-        return prisma.users_Funcoes.findUnique({
-            where: { fk_user_id_funcao_id: { fk_user_id, funcao_id } }
+        return prisma.users_Funcoes.findFirst({
+            where: { fk_user_id, funcao_id }
         });
     }
 
@@ -173,7 +173,8 @@ class IntegrantesRepository {
      */
     async createIntegranteFuncao(fk_user_id: string, funcao_id: string) {
         return prisma.users_Funcoes.create({
-            data: { fk_user_id, funcao_id }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { fk_user_id, funcao_id, tenant_id: '' as any }
         });
     }
 

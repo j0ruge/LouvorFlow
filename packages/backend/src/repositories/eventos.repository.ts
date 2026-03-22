@@ -23,7 +23,8 @@ class EventosRepository {
 
     async create(data: { data: Date; fk_tipo_evento: string; descricao: string }) {
         return prisma.eventos.create({
-            data,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { ...data, tenant_id: '' as any },
             select: {
                 id: true,
                 data: true,
@@ -82,7 +83,8 @@ class EventosRepository {
 
     async createMusica(eventoId: string, musicasId: string) {
         return prisma.eventos_Musicas.create({
-            data: { evento_id: eventoId, musicas_id: musicasId }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: '' as any }
         });
     }
 
@@ -91,8 +93,8 @@ class EventosRepository {
     }
 
     async findMusicaDuplicate(eventoId: string, musicasId: string) {
-        return prisma.eventos_Musicas.findUnique({
-            where: { evento_id_musicas_id: { evento_id: eventoId, musicas_id: musicasId } }
+        return prisma.eventos_Musicas.findFirst({
+            where: { evento_id: eventoId, musicas_id: musicasId }
         });
     }
 
@@ -145,7 +147,8 @@ class EventosRepository {
     async createIntegrante(eventoId: string, userId: string, funcaoIds: string[]) {
         return prisma.$transaction(async (tx) => {
             const eventoUser = await tx.eventos_Users.create({
-                data: { evento_id: eventoId, fk_user_id: userId }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                data: { evento_id: eventoId, fk_user_id: userId, tenant_id: '' as any }
             });
 
             if (funcaoIds.length > 0) {
@@ -155,6 +158,8 @@ class EventosRepository {
                             data: {
                                 evento_user_id: eventoUser.id,
                                 funcao_id: funcaoId,
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                                tenant_id: '' as any,
                             }
                         })
                     )
@@ -196,8 +201,8 @@ class EventosRepository {
      * @returns Registro existente ou `null` se não houver duplicata
      */
     async findIntegranteDuplicate(eventoId: string, userId: string) {
-        return prisma.eventos_Users.findUnique({
-            where: { evento_id_fk_user_id: { evento_id: eventoId, fk_user_id: userId } }
+        return prisma.eventos_Users.findFirst({
+            where: { evento_id: eventoId, fk_user_id: userId }
         });
     }
 

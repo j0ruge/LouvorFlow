@@ -214,9 +214,12 @@ declare global {
         interface Request {
             user?: {
                 id: string;
+                tenantId?: string;
                 roles?: IRoleRef[];
                 permissions?: IPermissionRef[];
             };
+            /** Instância do Prisma Client com filtro automático de tenant. */
+            prisma?: import('@prisma/client').PrismaClient;
         }
     }
 }

@@ -31,7 +31,7 @@ class ArtistasRepository {
     }
 
     async findByNome(nome: string) {
-        return prisma.artistas.findUnique({ where: { nome } });
+        return prisma.artistas.findFirst({ where: { nome } });
     }
 
     async findByNomeExcludingId(nome: string, excludeId: string) {
@@ -39,7 +39,8 @@ class ArtistasRepository {
     }
 
     async create(nome: string) {
-        return prisma.artistas.create({ data: { nome } });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+        return prisma.artistas.create({ data: { nome, tenant_id: '' as any } });
     }
 
     async update(id: string, nome: string) {

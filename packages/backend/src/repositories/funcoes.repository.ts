@@ -15,7 +15,7 @@ class FuncoesRepository {
     }
 
     async findByNome(nome: string) {
-        return prisma.funcoes.findUnique({ where: { nome } });
+        return prisma.funcoes.findFirst({ where: { nome } });
     }
 
     async findByNomeExcludingId(nome: string, excludeId: string) {
@@ -24,7 +24,8 @@ class FuncoesRepository {
 
     async create(nome: string) {
         return prisma.funcoes.create({
-            data: { nome },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { nome, tenant_id: '' as any },
             select: { id: true, nome: true }
         });
     }
