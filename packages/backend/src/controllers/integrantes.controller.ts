@@ -25,10 +25,11 @@ class IntegrantesController {
     }
 
     /**
-     * Cria um novo integrante (user com capacidade de login).
+     * Cria um novo integrante (user com capacidade de login)
+     * e o vincula ao tenant ativo do usuário autenticado.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const integrante = await integrantesService.create(req.body);
+        const integrante = await integrantesService.create(req.body, req.user?.tenantId);
         res.status(201).json({ msg: "Integrante criado com sucesso", integrante });
     }
 
