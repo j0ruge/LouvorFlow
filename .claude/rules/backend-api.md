@@ -103,6 +103,15 @@ Todos os endpoints de domínio (artistas, categorias, eventos, funções, integr
 
 - `/api/igrejas/*`: protegidas por `ensureAuthenticated + ensureSuperAdmin`
 - Usam `basePrisma` (sem filtro de tenant) para operações cross-tenant
+- Endpoints:
+  - `GET /api/igrejas` — listar tenants
+  - `POST /api/igrejas` — criar tenant
+  - `GET /api/igrejas/:id` — detalhar tenant
+  - `PUT /api/igrejas/:id` — atualizar tenant
+  - `DELETE /api/igrejas/:id` — remover tenant
+  - `GET /api/igrejas/:id/users` — listar usuários vinculados ao tenant
+  - `POST /api/igrejas/:id/users` — vincular usuário ao tenant
+  - `DELETE /api/igrejas/:id/users/:userId` — desvincular usuário do tenant
 
 ### Providers
 
@@ -117,7 +126,11 @@ Singletons em `src/providers/` com interfaces definidas em `src/types/auth/`:
 
 ### Config
 
-`src/config/auth.ts` — Configurações de JWT (secret, expiração). Usa `requireSecret()` que lança erro em produção se `APP_SECRET` não estiver definido.
+`src/config/auth.ts` — Configurações de JWT (secret, expiração). Usa `requireSecret()` que lança erro em produção se a variável não estiver definida. Secrets configurados:
+
+- `APP_SECRET` — access token
+- `APP_SECRET_REFRESH_TOKEN` — refresh token
+- `APP_SECRET_SELECTION_TOKEN` — selection token para fluxo multi-tenant de seleção de igreja (expiração: 5min)
 
 ### Seeds
 

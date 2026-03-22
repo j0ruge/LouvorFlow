@@ -26,7 +26,7 @@ class ArtistasController {
      * Cria um novo artista no tenant ativo.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const artista = await artistasService.create(req.body.nome, req.user.tenantId!);
+        const artista = await artistasService.create(req.body.nome, req.user!.tenantId!);
         res.status(201).json({ msg: "Artista criado com sucesso", artista });
     }
 

@@ -26,7 +26,7 @@ class TonalidadesController {
      * Cria uma nova tonalidade no tenant ativo.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const tonalidade = await tonalidadesService.create(req.body.tom, req.user.tenantId!);
+        const tonalidade = await tonalidadesService.create(req.body.tom, req.user!.tenantId!);
         res.status(201).json({ msg: "Tonalidade criada com sucesso", tonalidade });
     }
 

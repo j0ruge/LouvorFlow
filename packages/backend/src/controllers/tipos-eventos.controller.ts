@@ -26,7 +26,7 @@ class TiposEventosController {
      * Cria um novo tipo de evento no tenant ativo.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const tipoEvento = await tiposEventosService.create(req.body.nome, req.user.tenantId!);
+        const tipoEvento = await tiposEventosService.create(req.body.nome, req.user!.tenantId!);
         res.status(201).json({ msg: "Tipo de evento criado com sucesso", tipoEvento });
     }
 
