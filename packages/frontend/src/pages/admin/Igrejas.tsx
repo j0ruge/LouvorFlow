@@ -45,7 +45,6 @@ import {
   useIgrejas,
   useCreateIgreja,
   useUpdateIgreja,
-  useDeactivateIgreja,
 } from "@/hooks/use-igrejas";
 import { CreateIgrejaFormSchema, type Igreja, type CreateIgrejaForm } from "@/schemas/auth";
 
@@ -65,7 +64,7 @@ const AdminIgrejas = () => {
   const { data: igrejas, isLoading } = useIgrejas();
   const createMutation = useCreateIgreja();
   const updateMutation = useUpdateIgreja();
-  const deactivateMutation = useDeactivateIgreja();
+  const toggleStatusMutation = useUpdateIgreja();
 
   const createForm = useForm<CreateIgrejaForm>({
     resolver: zodResolver(CreateIgrejaFormSchema),
@@ -83,7 +82,7 @@ const AdminIgrejas = () => {
    * @param dados - Dados validados do formulário (nome da igreja).
    */
   function onCreateSubmit(dados: CreateIgrejaForm) {
-    createMutation.mutate(dados, {
+    createMutation.mutate({ name: dados.name! }, {
       onSuccess: () => {
         createForm.reset();
         setCreateDialogOpen(false);
@@ -103,7 +102,7 @@ const AdminIgrejas = () => {
   function onEditSubmit(dados: CreateIgrejaForm) {
     if (!editingIgreja) return;
     updateMutation.mutate(
-      { id: editingIgreja.id, dados },
+      { id: editingIgreja.id!, data: dados },
       {
         onSuccess: () => {
           editForm.reset();
@@ -135,12 +134,14 @@ const AdminIgrejas = () => {
    * @param igreja - Igreja a ter o status alternado.
    */
   function handleToggleStatus(igreja: Igreja) {
-    deactivateMutation.mutate(
-      { id: igreja.id, active: !igreja.active },
+    const isActive = igreja.status === "active";
+    const newStatus = isActive ? "inactive" : "active";
+    toggleStatusMutation.mutate(
+      { id: igreja.id!, data: { status: newStatus } },
       {
         onSuccess: () => {
           toast.success(
-            igreja.active
+            isActive
               ? "Igreja desativada com sucesso."
               : "Igreja reativada com sucesso.",
           );
@@ -222,7 +223,7 @@ const AdminIgrejas = () => {
                     <TableRow key={igreja.id}>
                       <TableCell className="font-medium">{igreja.name}</TableCell>
                       <TableCell>
-                        {igreja.active ? (
+                        {igreja.status === "active" ? (
                           <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
                             Ativa
                           </Badge>
@@ -253,9 +254,9 @@ const AdminIgrejas = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleToggleStatus(igreja)}
-                            disabled={deactivateMutation.isPending}
+                            disabled={toggleStatusMutation.isPending}
                           >
-                            {igreja.active ? (
+                            {igreja.status === "active" ? (
                               <>
                                 <PowerOff className="mr-1 h-3 w-3" />
                                 Desativar

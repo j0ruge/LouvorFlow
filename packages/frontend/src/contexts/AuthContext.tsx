@@ -232,13 +232,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return false;
     }
 
-    setAccessToken(response.token);
-    setRefreshToken(response.refresh_token);
-    setUser(response.user);
-    setCurrentTenant(response.user.tenant ?? null);
-    if (response.user.tenant) {
-      persistAvailableTenants([response.user.tenant]);
-      toast.success(`Bem-vindo à ${response.user.tenant.name}`);
+    /** Após excluir o fluxo de seleção de tenant, o response é do tipo single-tenant. */
+    const loginResult = response as { user: AuthUser; token: string; refresh_token: string };
+    setAccessToken(loginResult.token);
+    setRefreshToken(loginResult.refresh_token);
+    setUser(loginResult.user);
+    setCurrentTenant(loginResult.user.tenant ?? null);
+    if (loginResult.user.tenant) {
+      persistAvailableTenants([loginResult.user.tenant]);
+      toast.success(`Bem-vindo à ${loginResult.user.tenant.name}`);
     }
     return true;
   }, [navigate, persistAvailableTenants]);
@@ -282,12 +284,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
    * @param tenantId - UUID do tenant para o qual alternar.
    */
   const switchTenant = useCallback(async (tenantId: string) => {
-    const response = await switchTenantService(tenantId);
-    setAccessToken(response.token);
-    setRefreshToken(response.refresh_token);
-    setUser(response.user);
-    setCurrentTenant(response.user.tenant ?? null);
-    queryClient.invalidateQueries();
+    try {
+      const response = await switchTenantService(tenantId);
+      setAccessToken(response.token);
+      setRefreshToken(response.refresh_token);
+      setUser(response.user);
+      setCurrentTenant(response.user.tenant ?? null);
+      queryClient.invalidateQueries();
+    } catch (err) {
+      /** Exibe toast de erro ao falhar na troca de tenant. */
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao trocar de organização.",
+      );
+      throw err;
+    }
   }, [queryClient]);
 
   /**
@@ -303,7 +313,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo<AuthContextData>(() => {
     const isAuthenticated = !!user;
     const isAdmin = user?.roles?.some((r) => r.name === "admin") ?? false;
-    const isSuperAdmin = user?.roles?.some((r: any) => r.name === "super-admin") ?? false;
+    const isSuperAdmin = user?.roles?.some((r) => r.name === "super-admin") ?? false;
 
     return {
       user,

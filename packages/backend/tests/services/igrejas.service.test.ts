@@ -48,6 +48,8 @@ const fakeIgrejasRepo = {
   },
   /** Lista usuários de um tenant (retorna lista vazia para simplificação). */
   findUsers: async (_tenantId: string) => [],
+  /** Simula invalidação de refresh tokens (no-op no fake). */
+  invalidateRefreshTokens: async (_tenantId: string) => {},
 };
 
 vi.mock('../../src/repositories/igrejas.repository.js', () => ({

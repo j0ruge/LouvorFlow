@@ -64,7 +64,9 @@ class IgrejasRepository {
    * @returns Tenant encontrado ou `null`
    */
   async findByName(name: string) {
-    return prisma.tenant.findFirst({ where: { name } });
+    return prisma.tenant.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' } },
+    });
   }
 
   /**
@@ -173,6 +175,27 @@ class IgrejasRepository {
     return prisma.tenantUsers.findUnique({
       where: { tenant_id_user_id: { tenant_id: tenantId, user_id: userId } },
     });
+  }
+
+  /**
+   * Invalida todos os refresh tokens dos usuários vinculados a um tenant.
+   *
+   * Usado na desativação de tenants para forçar re-autenticação de todos os
+   * usuários do tenant desativado.
+   *
+   * @param tenantId - UUID do tenant cujos tokens devem ser invalidados
+   */
+  async invalidateRefreshTokens(tenantId: string) {
+    const tenantUsers = await prisma.tenantUsers.findMany({
+      where: { tenant_id: tenantId },
+      select: { user_id: true },
+    });
+    const userIds = tenantUsers.map(tu => tu.user_id);
+    if (userIds.length > 0) {
+      await prisma.usersRefreshTokens.deleteMany({
+        where: { user_id: { in: userIds } },
+      });
+    }
   }
 }
 

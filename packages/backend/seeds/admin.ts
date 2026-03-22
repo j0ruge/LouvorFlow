@@ -205,20 +205,17 @@ async function main(): Promise<void> {
     // ─── User-Tenant bindings ────────────────────────────────────
 
     /** Vincula admin ao tenant padrão. */
-    const existingTenantUser = await prisma.tenantUsers.findUnique({
+    await prisma.tenantUsers.upsert({
       where: { tenant_id_user_id: { tenant_id: DEFAULT_TENANT_ID, user_id: adminUser.id } },
+      update: {},
+      create: { tenant_id: DEFAULT_TENANT_ID, user_id: adminUser.id },
     });
-    if (!existingTenantUser) {
-      await prisma.tenantUsers.create({
-        data: { tenant_id: DEFAULT_TENANT_ID, user_id: adminUser.id },
-      });
-    }
     console.log('✓ Admin user bound to default tenant');
 
     // ─── User-Role assignments (per-tenant) ──────────────────────
 
     /** Associa role "admin" ao admin user no tenant padrão. */
-    const existingAdminRole = await prisma.usersRoles.findUnique({
+    await prisma.usersRoles.upsert({
       where: {
         user_id_role_id_tenant_id: {
           user_id: adminUser.id,
@@ -226,20 +223,17 @@ async function main(): Promise<void> {
           tenant_id: DEFAULT_TENANT_ID,
         },
       },
+      update: {},
+      create: {
+        user_id: adminUser.id,
+        role_id: adminRole.id,
+        tenant_id: DEFAULT_TENANT_ID,
+      },
     });
-    if (!existingAdminRole) {
-      await prisma.usersRoles.create({
-        data: {
-          user_id: adminUser.id,
-          role_id: adminRole.id,
-          tenant_id: DEFAULT_TENANT_ID,
-        },
-      });
-    }
     console.log('✓ Role "admin" assigned to admin user in default tenant');
 
     /** Associa role "super-admin" ao admin user via tenant sentinela. */
-    const existingSuperAdminRole = await prisma.usersRoles.findUnique({
+    await prisma.usersRoles.upsert({
       where: {
         user_id_role_id_tenant_id: {
           user_id: adminUser.id,
@@ -247,16 +241,13 @@ async function main(): Promise<void> {
           tenant_id: SYSTEM_TENANT_ID,
         },
       },
+      update: {},
+      create: {
+        user_id: adminUser.id,
+        role_id: superAdminRole.id,
+        tenant_id: SYSTEM_TENANT_ID,
+      },
     });
-    if (!existingSuperAdminRole) {
-      await prisma.usersRoles.create({
-        data: {
-          user_id: adminUser.id,
-          role_id: superAdminRole.id,
-          tenant_id: SYSTEM_TENANT_ID,
-        },
-      });
-    }
     console.log('✓ Role "super-admin" assigned to admin user via system tenant');
 
     console.log('✓ Admin bootstrap complete');

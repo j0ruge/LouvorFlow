@@ -200,43 +200,29 @@ class UsersRepository {
         const { roles, permissions, tenantId, ...scalarData } = data;
 
         if (roles !== undefined || permissions !== undefined) {
+            if (!tenantId) {
+                throw new Error('tenant_id é obrigatório para modificar roles ou permissões de usuário.');
+            }
+
             return prisma.$transaction(async (tx) => {
                 if (roles !== undefined) {
                     await tx.usersRoles.deleteMany({
-                        where: {
-                            user_id: id,
-                            ...(tenantId ? { tenant_id: tenantId } : {}),
-                        },
+                        where: { user_id: id, tenant_id: tenantId },
                     });
                     if (roles.length > 0) {
                         await tx.usersRoles.createMany({
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id fornecido explicitamente ou injetado pelo interceptor forTenant em runtime
-                            data: roles.map((role_id) => {
-                                if (!tenantId) {
-                                    throw new Error(`tenant_id é obrigatório para atribuir roles. Recebido: ${tenantId}`);
-                                }
-                                return { user_id: id, role_id, tenant_id: tenantId };
-                            }),
+                            data: roles.map((role_id) => ({ user_id: id, role_id, tenant_id: tenantId })),
                         });
                     }
                 }
 
                 if (permissions !== undefined) {
                     await tx.usersPermissions.deleteMany({
-                        where: {
-                            user_id: id,
-                            ...(tenantId ? { tenant_id: tenantId } : {}),
-                        },
+                        where: { user_id: id, tenant_id: tenantId },
                     });
                     if (permissions.length > 0) {
                         await tx.usersPermissions.createMany({
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id fornecido explicitamente ou injetado pelo interceptor forTenant em runtime
-                            data: permissions.map((permission_id) => {
-                                if (!tenantId) {
-                                    throw new Error(`tenant_id é obrigatório para atribuir permissões. Recebido: ${tenantId}`);
-                                }
-                                return { user_id: id, permission_id, tenant_id: tenantId };
-                            }),
+                            data: permissions.map((permission_id) => ({ user_id: id, permission_id, tenant_id: tenantId })),
                         });
                     }
                 }

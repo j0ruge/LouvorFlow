@@ -111,7 +111,7 @@ export async function getFuncoesIntegrante(integranteId: string): Promise<IdNome
 export async function addFuncaoIntegrante(
   integranteId: string,
   funcaoId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(`/integrantes/${integranteId}/funcoes`, {
     method: "POST",
     body: JSON.stringify({ funcao_id: funcaoId }),
@@ -129,7 +129,7 @@ export async function addFuncaoIntegrante(
 export async function removeFuncaoIntegrante(
   integranteId: string,
   funcaoId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(
     `/integrantes/${integranteId}/funcoes/${funcaoId}`,
     { method: "DELETE" },

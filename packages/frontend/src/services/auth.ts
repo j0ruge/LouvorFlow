@@ -30,7 +30,7 @@ import type {
  * @param dados - Credenciais do formulário de login (email e senha).
  * @returns Resposta contendo token de acesso, refresh token e dados do usuário.
  */
-export async function login(dados: LoginForm): Promise<LoginResponse> {
+export async function login(dados: LoginForm) {
   const data = await apiFetch<unknown>("/sessions", {
     method: "POST",
     body: JSON.stringify(dados),
@@ -85,7 +85,7 @@ export async function refreshToken(
 export async function selectTenant(
   selectionToken: string,
   tenantId: string,
-): Promise<SingleTenantLoginResponse> {
+) {
   const data = await apiFetch<unknown>("/sessions/select-tenant", {
     method: "POST",
     body: JSON.stringify({ selection_token: selectionToken, tenant_id: tenantId }),
@@ -102,7 +102,7 @@ export async function selectTenant(
  * @param tenantId - UUID do tenant para o qual deseja alternar.
  * @returns Resposta de login completa com novos tokens e dados do usuário.
  */
-export async function switchTenant(tenantId: string): Promise<SingleTenantLoginResponse> {
+export async function switchTenant(tenantId: string) {
   const data = await apiFetch<unknown>("/sessions/switch-tenant", {
     method: "POST",
     body: JSON.stringify({ tenant_id: tenantId }),

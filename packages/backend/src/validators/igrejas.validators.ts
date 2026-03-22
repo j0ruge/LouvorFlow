@@ -16,6 +16,7 @@ const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
  */
 export const createTenantBodySchema = z.object({
   name: z.string({ required_error: 'Nome é obrigatório' })
+    .trim()
     .min(1, 'Nome é obrigatório')
     .max(255, 'Nome deve ter no máximo 255 caracteres'),
 });
@@ -25,7 +26,7 @@ export const createTenantBodySchema = z.object({
  * Nome e status são opcionais.
  */
 export const updateTenantBodySchema = z.object({
-  name: z.string().min(1, 'Nome não pode ser vazio').max(255, 'Nome deve ter no máximo 255 caracteres').optional(),
+  name: z.string().trim().min(1, 'Nome não pode ser vazio').max(255, 'Nome deve ter no máximo 255 caracteres').optional(),
   status: z.enum(['active', 'inactive'], { message: 'Status deve ser "active" ou "inactive"' }).optional(),
 });
 

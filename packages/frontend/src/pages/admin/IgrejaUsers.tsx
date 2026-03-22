@@ -43,6 +43,7 @@ import {
   useRemoveUserFromIgreja,
 } from "@/hooks/use-igrejas";
 import { useUsers } from "@/hooks/use-admin";
+import { ErrorState } from "@/components/ErrorState";
 
 /**
  * Componente da página de usuários de uma igreja.
@@ -58,13 +59,26 @@ const IgrejaUsers = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
 
-  const { data: igreja, isLoading: isLoadingIgreja } = useIgreja(id ?? null);
-  const { data: igrejaUsers, isLoading: isLoadingUsers } = useIgrejaUsers(id ?? null);
+  const {
+    data: igreja,
+    isLoading: isLoadingIgreja,
+    isError: isErrorIgreja,
+    error: errorIgreja,
+    refetch: refetchIgreja,
+  } = useIgreja(id ?? null);
+  const {
+    data: igrejaUsers,
+    isLoading: isLoadingUsers,
+    isError: isErrorUsers,
+    error: errorUsers,
+    refetch: refetchUsers,
+  } = useIgrejaUsers(id ?? null);
   const { data: allUsers, isLoading: isLoadingAllUsers } = useUsers();
   const addMutation = useAddUserToIgreja();
   const removeMutation = useRemoveUserFromIgreja();
 
   const isLoading = isLoadingIgreja || isLoadingUsers;
+  const isError = isErrorIgreja || isErrorUsers;
 
   /**
    * Calcula os usuários disponíveis para vinculação (não vinculados ainda).
@@ -140,6 +154,32 @@ const IgrejaUsers = () => {
             ))}
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  /** Exibe estado de erro quando as queries de igreja ou usuários falham. */
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/admin/igrejas">
+            <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+        <ErrorState
+          message={
+            errorIgreja?.message
+            ?? errorUsers?.message
+            ?? "Erro ao carregar dados da igreja."
+          }
+          onRetry={() => {
+            refetchIgreja();
+            refetchUsers();
+          }}
+        />
       </div>
     );
   }

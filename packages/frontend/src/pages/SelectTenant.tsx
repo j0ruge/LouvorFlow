@@ -44,7 +44,17 @@ const SelectTenant = () => {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const state = location.state as SelectTenantLocationState | null;
+  /**
+   * Valida em runtime o state recebido via navegação.
+   * Garante que a estrutura esperada existe antes de fazer type assertion.
+   */
+  const rawState = location.state as Record<string, unknown> | null;
+  const state: SelectTenantLocationState | null =
+    rawState != null
+    && Array.isArray(rawState.tenants)
+    && typeof rawState.selection_token === "string"
+      ? (rawState as unknown as SelectTenantLocationState)
+      : null;
 
   // Redireciona ao login se não houver state válido (acesso direto à URL)
   if (!state?.tenants || !state?.selection_token) {

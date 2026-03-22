@@ -58,6 +58,8 @@ const TENANT_MODELS = [
   'musicas_Funcoes',
   'musicas_Categorias',
   'users_Funcoes',
+  'usersRoles',
+  'usersPermissions',
 ] as const;
 
 /**

@@ -226,7 +226,7 @@ export type RolePermissionsForm = z.infer<typeof RolePermissionsFormSchema>;
 export const IgrejaSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  status: z.string(),
+  status: z.enum(["active", "inactive", "system"]),
   created_at: z.string(),
   updated_at: z.string(),
   _count: z.object({ tenant_users: z.number() }).optional(),

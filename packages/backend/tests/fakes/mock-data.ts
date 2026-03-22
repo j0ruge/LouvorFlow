@@ -11,9 +11,9 @@ export const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 /** Tenant padrão para migração de dados existentes. */
 export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 /** Tenant A para testes de isolamento multi-tenant. */
-export const TENANT_A_ID = 'ttt00001-0000-0000-0000-000000000001';
+export const TENANT_A_ID = 'aaa00002-0000-0000-0000-000000000001';
 /** Tenant B para testes de isolamento multi-tenant. */
-export const TENANT_B_ID = 'ttt00001-0000-0000-0000-000000000002';
+export const TENANT_B_ID = 'bbb00002-0000-0000-0000-000000000002';
 
 export const MOCK_TENANTS = [
   { id: SYSTEM_TENANT_ID, name: 'Sistema', status: 'system' },

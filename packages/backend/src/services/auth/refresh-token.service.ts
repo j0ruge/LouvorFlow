@@ -68,6 +68,19 @@ class UserRefreshTokenService {
             if (!tenant || tenant.status !== 'active') {
                 throw new AppError('Tenant inativo ou não encontrado', 401);
             }
+
+            /**
+             * Verifica se o usuário ainda possui vínculo com o tenant.
+             * Impede renovação de tokens para usuários desvinculados do tenant
+             * enquanto o refresh token anterior ainda é válido.
+             */
+            const userTenantLink = await prisma.tenantUsers.findFirst({
+                where: { user_id: sub, tenant_id: tenantId },
+                select: { tenant_id: true },
+            });
+            if (!userTenantLink) {
+                throw new AppError('Usuário não pertence a este tenant', 401);
+            }
         }
 
         const existingToken =

@@ -95,7 +95,16 @@ class IgrejasService {
     if (!existente) {
       throw new AppError('Igreja não encontrada', 404);
     }
-    return igrejasRepository.update(id, { status: 'inactive' });
+    const resultado = await igrejasRepository.update(id, { status: 'inactive' });
+
+    /**
+     * Invalida todos os refresh tokens dos usuários vinculados ao tenant desativado.
+     * Isso força re-autenticação e impede que usuários continuem renovando sessões
+     * em um tenant que foi desativado pelo super-admin.
+     */
+    await igrejasRepository.invalidateRefreshTokens(id);
+
+    return resultado;
   }
 
   /**

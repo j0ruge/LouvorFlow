@@ -134,6 +134,20 @@ export async function ensureAuthenticated(
                 throw new AppError('Tenant inativo ou não encontrado', 401);
             }
 
+            /**
+             * Verifica se o usuário possui vínculo ativo com o tenant.
+             * Essa checagem ocorre a cada requisição (lookup indexado em TenantUsers)
+             * para garantir que um usuário desvinculado não continue acessando o tenant
+             * enquanto o access token ainda for válido.
+             */
+            const userTenantLink = await prisma.tenantUsers.findFirst({
+                where: { user_id: sub, tenant_id: tenantId },
+                select: { tenant_id: true },
+            });
+            if (!userTenantLink) {
+                throw new AppError('Usuário não pertence a este tenant', 401);
+            }
+
             req.user.tenantId = tenantId;
             const scopedPrisma = forTenant(tenantId);
             req.prisma = scopedPrisma as any;
