@@ -18,8 +18,14 @@ class IntegrantesRepository {
      *
      * @returns Lista de users com seleção pública e funções aninhadas
      */
-    async findAll() {
+    async findAll(tenantId?: string) {
+        /** Filtra por tenant quando tenantId é fornecido. */
+        const where = tenantId
+            ? { tenant_users: { some: { tenant_id: tenantId } } }
+            : {};
+
         return prisma.users.findMany({
+            where,
             select: {
                 ...INTEGRANTE_PUBLIC_SELECT,
                 Users_Funcoes: {

@@ -48,8 +48,8 @@ class IntegrantesService {
      *
      * @returns Lista de integrantes com campo `funcoes` achatado e `nome` mapeado
      */
-    async listAll() {
-        const users = await integrantesRepository.findAll();
+    async listAll(tenantId?: string) {
+        const users = await integrantesRepository.findAll(tenantId);
         return users.map((u: IntegranteWithFuncoes) => mapUserToIntegrante(u));
     }
 

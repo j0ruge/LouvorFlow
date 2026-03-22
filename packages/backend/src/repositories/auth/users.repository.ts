@@ -16,18 +16,24 @@ class UsersRepository {
      * @param options - Opções de paginação (page e limit). Se omitidos, retorna todos.
      * @returns Objeto com `data` (array de usuários), `total`, `page` e `limit`
      */
-    async findAll(options?: { page?: number; limit?: number }) {
+    async findAll(options?: { page?: number; limit?: number; tenantId?: string }) {
         const page = options?.page;
         const limit = options?.limit;
         const isPaginated = page !== undefined && limit !== undefined;
 
+        /** Filtra por tenant quando tenantId é fornecido (admin regular vê apenas users do seu tenant). */
+        const where = options?.tenantId
+            ? { tenant_users: { some: { tenant_id: options.tenantId } } }
+            : {};
+
         const [data, total] = await Promise.all([
             prisma.users.findMany({
+                where,
                 select: USER_PUBLIC_SELECT,
                 orderBy: { name: 'asc' },
                 ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
             }),
-            prisma.users.count(),
+            prisma.users.count({ where }),
         ]);
 
         return { data, total, page: page ?? 1, limit: limit ?? total };
