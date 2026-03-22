@@ -44,22 +44,22 @@ export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
  * Usada pelo `forTenant()` para saber quais modelos interceptar.
  */
 const TENANT_MODELS = [
-  'artistas',
-  'artistas_Musicas',
-  'musicas',
-  'tonalidades',
-  'funcoes',
-  'categorias',
-  'tipos_Eventos',
-  'eventos',
-  'eventos_Musicas',
-  'eventos_Users',
-  'eventos_Users_Funcoes',
-  'musicas_Funcoes',
-  'musicas_Categorias',
-  'users_Funcoes',
-  'usersRoles',
-  'usersPermissions',
+  'Artistas',
+  'Artistas_Musicas',
+  'Musicas',
+  'Tonalidades',
+  'Funcoes',
+  'Categorias',
+  'Tipos_Eventos',
+  'Eventos',
+  'Eventos_Musicas',
+  'Eventos_Users',
+  'Eventos_Users_Funcoes',
+  'Musicas_Funcoes',
+  'Musicas_Categorias',
+  'Users_Funcoes',
+  'UsersRoles',
+  'UsersPermissions',
 ] as const;
 
 /**
