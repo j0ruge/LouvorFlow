@@ -24,7 +24,8 @@ packages/backend/
 │   │   └── auth/        # Services de auth
 │   ├── repositories/    # Acesso a dados (Prisma ORM)
 │   │   └── auth/        # Repositories de auth
-│   ├── middlewares/      # Middlewares Express (ensureAuthenticated, is, can, validateRequest)
+│   ├── context/          # AsyncLocalStorage para tenant context por request
+│   ├── middlewares/      # Middlewares Express (ensureAuthenticated, ensureTenantContext, ensureSuperAdmin, is, can, validateRequest)
 │   ├── providers/        # Singletons com interface (HashProvider, TokenProvider, DateProvider, MailProvider)
 │   ├── config/           # Configurações (auth.ts com requireSecret())
 │   ├── validators/       # Schemas Zod (auth.validators.ts)
@@ -32,11 +33,11 @@ packages/backend/
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (21 modelos: 13 domínio + 8 auth)
-│   ├── cliente.ts       # Singleton do Prisma Client
+│   ├── schema.prisma    # Schema do banco (23 modelos: 15 domínio + 8 auth)
+│   ├── cliente.ts       # Prisma Client: singleton base + forTenant() + getPrisma()
 │   └── migrations/      # Migrações do banco
 ├── seeds/
-│   └── admin.ts         # Bootstrap idempotente do admin
+│   └── admin.ts         # Bootstrap idempotente: tenants, admin, super-admin
 ├── tests/
 │   ├── services/        # Testes unitários dos services
 │   └── fakes/           # Repositórios falsos para testes
@@ -79,23 +80,29 @@ Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`
 ### Middleware chain para rotas protegidas
 
 ```text
-ensureAuthenticated → ensureHasRole / is(roles) / can(permissions) → validateRequest({ body, params }) → controller
+ensureAuthenticated → ensureTenantContext → can(permissions) → validateRequest({ body, params }) → controller
 ```
 
 ### Middlewares disponíveis
 
-- **`ensureAuthenticated`**: Verifica JWT no header `Authorization: Bearer <token>`, injeta `req.user.id`. Retorna `401` se token inválido/ausente.
-- **`ensureHasRole`**: Verifica se o usuário possui **pelo menos uma role** atribuída (qualquer role serve). Retorna `403` se não possuir nenhuma. Usado em endpoints de escrita (POST/PUT/DELETE) de domínio.
-- **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (cacheadas em `req.user.roles`). Retorna `403` se não autorizado.
-- **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (cacheadas em `req.user`). Retorna `403` se não autorizado.
+- **`ensureAuthenticated`**: Verifica JWT no header `Authorization: Bearer <token>`, injeta `req.user.id` e `req.user.tenantId`. Se o token contém `tenantId`, valida que o tenant está ativo, cria Prisma scoped via `forTenant()` em `req.prisma`, e configura AsyncLocalStorage para `getPrisma()`. Retorna `401` se token inválido/ausente ou tenant inativo.
+- **`ensureTenantContext`**: Verifica que `req.user.tenantId` está presente. Retorna `403` se ausente. **Obrigatório em todas as rotas de domínio.**
+- **`ensureSuperAdmin`**: Verifica role `super-admin` via tenant sentinela (SYSTEM_TENANT_ID). Anexa `basePrisma` ao request. Usado em rotas `/api/igrejas`.
+- **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (filtradas por tenant ativo). Retorna `403` se não autorizado.
+- **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (filtradas por tenant ativo). Retorna `403` se não autorizado.
 - **`validateRequest({ body?, params? })`**: Factory de middleware que valida request body/params contra schemas Zod. Retorna `400` com detalhes de validação.
 
 ### Proteção de rotas de domínio
 
 Todos os endpoints de domínio (artistas, categorias, eventos, funções, integrantes, músicas, tipos-eventos, tonalidades, relatórios) são protegidos:
 
-- **GET**: `ensureAuthenticated` — qualquer usuário logado pode ler
-- **POST / PUT / DELETE**: `ensureAuthenticated, ensureHasRole` — exige pelo menos uma role atribuída
+- **GET**: `ensureAuthenticated, ensureTenantContext` — qualquer usuário logado com tenant ativo
+- **POST / PUT / DELETE**: `ensureAuthenticated, ensureTenantContext, can(['recurso.write'])` — exige permissão de escrita no tenant ativo
+
+### Rotas de gestão de tenants
+
+- `/api/igrejas/*`: protegidas por `ensureAuthenticated + ensureSuperAdmin`
+- Usam `basePrisma` (sem filtro de tenant) para operações cross-tenant
 
 ### Providers
 
@@ -114,7 +121,7 @@ Singletons em `src/providers/` com interfaces definidas em `src/types/auth/`:
 
 ### Seeds
 
-`seeds/admin.ts` — Bootstrap idempotente do usuário admin com role `admin`. Usa variáveis de ambiente `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`.
+`seeds/admin.ts` — Bootstrap idempotente: cria tenant sentinela "Sistema" (`SYSTEM_TENANT_ID`), tenant padrão (`DEFAULT_TENANT_ID`), roles `admin` e `super-admin`, permissões de domínio, e usuário admin com dual assignment. Usa variáveis de ambiente `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`.
 
 ## Validação de entrada
 
@@ -152,8 +159,13 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `packages/backend/prisma/schema.prisma` (21 modelos: 13 domínio + 8 auth).
-- Singleton do client: `packages/backend/prisma/cliente.ts` (sem `$extends` ou middleware automático). **Proteção do campo `password`**: não há mascaramento automático — toda query que retorna dados de usuário ao frontend **DEVE** usar `USER_PUBLIC_SELECT` (auth) ou `INTEGRANTE_PUBLIC_SELECT` (domínio), ambos excluem `password` via Prisma `select`. Queries sem esses selects podem expor o hash da senha.
+- Schema: `packages/backend/prisma/schema.prisma` (23 modelos: 15 domínio + 8 auth).
+- Client: `packages/backend/prisma/cliente.ts`:
+  - `prisma` (default export) — singleton base, sem filtro de tenant. Usar para operações globais (auth, seeds, super-admin).
+  - `forTenant(tenantId)` — retorna client com `$extends` que injeta `tenant_id` em todas as operações de domínio.
+  - `getPrisma()` — retorna o client do contexto atual via AsyncLocalStorage (tenant-scoped se em request com tenant, base caso contrário). **Repositories de domínio DEVEM usar `getPrisma()`.**
+  - `SYSTEM_TENANT_ID`, `DEFAULT_TENANT_ID` — constantes dos tenants fixos.
+- **Proteção do campo `password`**: toda query que retorna dados de usuário ao frontend **DEVE** usar `USER_PUBLIC_SELECT` (auth) ou `INTEGRANTE_PUBLIC_SELECT` (domínio).
 - **Unificação users/integrantes (spec 018)**: A tabela `integrantes` foi removida. Os endpoints `/api/integrantes/*` operam sobre a tabela `Users`. Junction tables: `eventos_users` (antes `eventos_integrantes`), `users_funcoes` (antes `integrantes_funcoes`). O campo `name` do Users é mapeado para `nome` na resposta da API de integrantes.
 - Migrações via `npx prisma migrate dev`. Nunca usar SQL direto para alterar schema.
 - Convenção de FK: `fk_nome_entidade` para 1:N, `[entidade]_id` para N:N.

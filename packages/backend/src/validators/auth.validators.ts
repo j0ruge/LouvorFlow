@@ -151,3 +151,22 @@ export const updateProfileBodySchema = z.object({
     old_password: z.string().optional(),
     password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
 });
+
+// ─── Multi-Tenant ──────────────────────────────────────────────────────────
+
+/**
+ * Schema de validação para seleção de tenant (POST /api/sessions/select-tenant).
+ * Requer selection_token e tenant_id no formato UUID.
+ */
+export const selectTenantBodySchema = z.object({
+    selection_token: z.string({ required_error: 'Token de seleção é obrigatório' }).min(1, 'Token de seleção é obrigatório'),
+    tenant_id: z.string({ required_error: 'ID do tenant é obrigatório' }).uuid('tenant_id deve ser um UUID válido'),
+});
+
+/**
+ * Schema de validação para troca de tenant (POST /api/sessions/switch-tenant).
+ * Requer tenant_id no formato UUID.
+ */
+export const switchTenantBodySchema = z.object({
+    tenant_id: z.string({ required_error: 'ID do tenant é obrigatório' }).uuid('tenant_id deve ser um UUID válido'),
+});

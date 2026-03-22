@@ -9,7 +9,7 @@ import refreshTokenController from '../../controllers/auth/refresh-token.control
 import logoutController from '../../controllers/auth/logout.controller.js';
 import { ensureAuthenticated } from '../../middlewares/ensureAuthenticated.js';
 import { validateRequest } from '../../middlewares/validateRequest.js';
-import { loginBodySchema, refreshTokenBodySchema } from '../../validators/auth.validators.js';
+import { loginBodySchema, refreshTokenBodySchema, selectTenantBodySchema, switchTenantBodySchema } from '../../validators/auth.validators.js';
 
 const router: Router = Router();
 
@@ -18,6 +18,12 @@ router.post('/', validateRequest({ body: loginBodySchema }), sessionsController.
 
 /** Rota pública para renovação do token de acesso via refresh token. */
 router.post('/refresh-token', validateRequest({ body: refreshTokenBodySchema }), refreshTokenController.create);
+
+/** Rota pública para seleção de tenant no fluxo multi-tenant (POST /api/sessions/select-tenant). */
+router.post('/select-tenant', validateRequest({ body: selectTenantBodySchema }), sessionsController.selectTenant);
+
+/** Rota protegida para troca de tenant sem re-login (POST /api/sessions/switch-tenant). */
+router.post('/switch-tenant', ensureAuthenticated, validateRequest({ body: switchTenantBodySchema }), sessionsController.switchTenant);
 
 /** Rota protegida para encerramento de sessão (logout). */
 router.post('/logout', ensureAuthenticated, logoutController.create);

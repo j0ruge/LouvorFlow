@@ -10,8 +10,9 @@ class IntegrantesController {
     /**
      * Lista todos os integrantes (users com funções mapeadas).
      */
-    async index(_req: Request, res: Response): Promise<void> {
-        const integrantes = await integrantesService.listAll();
+    async index(req: Request, res: Response): Promise<void> {
+        /** Filtra integrantes pelo tenant ativo do usuário autenticado. */
+        const integrantes = await integrantesService.listAll(req.user?.tenantId);
         res.status(200).json(integrantes);
     }
 

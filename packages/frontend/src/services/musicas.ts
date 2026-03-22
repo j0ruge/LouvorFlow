@@ -99,7 +99,7 @@ export async function updateMusica(
  * @param id - UUID da música a ser removida.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteMusica(id: string): Promise<{ msg: string }> {
+export async function deleteMusica(id: string) {
   const data = await apiFetch<unknown>(`/musicas/${id}`, {
     method: "DELETE",
   });
@@ -183,7 +183,7 @@ export async function getVersoes(musicaId: string): Promise<Versao[]> {
 export async function addVersao(
   musicaId: string,
   dados: CreateVersaoForm,
-): Promise<{ msg: string; versao: Versao }> {
+) {
   const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>(`/musicas/${musicaId}/versoes`, {
     method: "POST",
@@ -204,7 +204,7 @@ export async function updateVersao(
   musicaId: string,
   versaoId: string,
   dados: UpdateVersaoForm,
-): Promise<{ msg: string; versao: Versao }> {
+) {
   const payload = cleanEmptyStrings(dados);
   const data = await apiFetch<unknown>(
     `/musicas/${musicaId}/versoes/${versaoId}`,
@@ -226,7 +226,7 @@ export async function updateVersao(
 export async function removeVersao(
   musicaId: string,
   versaoId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(
     `/musicas/${musicaId}/versoes/${versaoId}`,
     { method: "DELETE" },
@@ -257,7 +257,7 @@ export async function getCategoriasMusica(musicaId: string): Promise<IdNome[]> {
 export async function addCategoriaMusica(
   musicaId: string,
   categoriaId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(`/musicas/${musicaId}/categorias`, {
     method: "POST",
     body: JSON.stringify({ categoria_id: categoriaId }),
@@ -275,7 +275,7 @@ export async function addCategoriaMusica(
 export async function removeCategoriaMusica(
   musicaId: string,
   categoriaId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(`/musicas/${musicaId}/categorias/${categoriaId}`, {
     method: "DELETE",
   });
@@ -305,7 +305,7 @@ export async function getFuncoesMusica(musicaId: string): Promise<IdNome[]> {
 export async function addFuncaoMusica(
   musicaId: string,
   funcaoId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(`/musicas/${musicaId}/funcoes`, {
     method: "POST",
     body: JSON.stringify({ funcao_id: funcaoId }),
@@ -323,7 +323,7 @@ export async function addFuncaoMusica(
 export async function removeFuncaoMusica(
   musicaId: string,
   funcaoId: string,
-): Promise<{ msg: string }> {
+) {
   const data = await apiFetch<unknown>(
     `/musicas/${musicaId}/funcoes/${funcaoId}`,
     { method: "DELETE" },

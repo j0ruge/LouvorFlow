@@ -52,4 +52,12 @@ export const authConfig = {
             return Number.isFinite(parsed) ? parsed : 30;
         })(),
     },
+    /**
+     * Configuração do selection token (curta duração, usado no fluxo de seleção de tenant).
+     * Emitido quando o usuário multi-tenant faz login — expira em 5 minutos.
+     */
+    selectionToken: {
+        secret: requireSecret('APP_SECRET_SELECTION_TOKEN', 'default-dev-selection-secret'),
+        expiresIn: process.env.SELECTION_TOKEN_EXPIRES_IN ?? '5m',
+    },
 };

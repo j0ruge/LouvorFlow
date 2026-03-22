@@ -19,7 +19,9 @@ class UsersController {
     async list(req: Request, res: Response): Promise<void> {
         const page = req.query.page ? Number(req.query.page) : undefined;
         const limit = req.query.limit ? Number(req.query.limit) : undefined;
-        const result = await usersRepository.findAll({ page, limit });
+        /** Filtra por tenant do caller. Super-admin sem tenantId vê todos. */
+        const tenantId = req.user?.tenantId;
+        const result = await usersRepository.findAll({ page, limit, tenantId });
         const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
         res.json({
             ...result,

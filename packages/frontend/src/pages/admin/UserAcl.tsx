@@ -42,6 +42,9 @@ const UserAcl = () => {
 
   const isLoading = isLoadingAcl || isLoadingRoles || isLoadingPermissions;
   const isOwnProfile = currentUser?.id === userId;
+  const callerIsSuperAdmin = currentUser?.roles?.some((r) => r.name === 'super-admin') ?? false;
+  /** Admins regulares não podem editar suas próprias permissões (prevenção de auto-elevação). */
+  const isSelfEditBlocked = isOwnProfile && !callerIsSuperAdmin;
 
   /**
    * Inicializa os checkboxes com as roles e permissões atuais do usuário.
@@ -152,6 +155,12 @@ const UserAcl = () => {
         </div>
       </div>
 
+      {isSelfEditBlocked && (
+        <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+          Não é permitido editar suas próprias permissões. Solicite a um super-administrador.
+        </div>
+      )}
+
       <Card className="shadow-soft border-0">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -240,7 +249,7 @@ const UserAcl = () => {
         <Button
           className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
           onClick={handleSave}
-          disabled={setAclMutation.isPending}
+          disabled={setAclMutation.isPending || isSelfEditBlocked}
         >
           {setAclMutation.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

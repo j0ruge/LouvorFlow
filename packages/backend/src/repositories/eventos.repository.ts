@@ -1,29 +1,30 @@
 import { Prisma } from '@prisma/client';
-import prisma from '../../prisma/cliente.js';
+import prisma, { getPrisma } from '../../prisma/cliente.js';
 import { EVENTO_INDEX_SELECT, EVENTO_SHOW_SELECT } from '../types/index.js';
 
 class EventosRepository {
     async findAll() {
-        return prisma.eventos.findMany({
+        return getPrisma().eventos.findMany({
             select: EVENTO_INDEX_SELECT,
             orderBy: { data: 'desc' }
         });
     }
 
     async findById(id: string) {
-        return prisma.eventos.findUnique({
+        return getPrisma().eventos.findUnique({
             where: { id },
             select: EVENTO_SHOW_SELECT
         });
     }
 
     async findByIdSimple(id: string) {
-        return prisma.eventos.findUnique({ where: { id } });
+        return getPrisma().eventos.findUnique({ where: { id } });
     }
 
     async create(data: { data: Date; fk_tipo_evento: string; descricao: string }) {
-        return prisma.eventos.create({
-            data,
+        return getPrisma().eventos.create({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { ...data, tenant_id: '' as any },
             select: {
                 id: true,
                 data: true,
@@ -36,7 +37,7 @@ class EventosRepository {
     }
 
     async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
-        return prisma.eventos.update({
+        return getPrisma().eventos.update({
             where: { id },
             data,
             select: {
@@ -51,11 +52,11 @@ class EventosRepository {
     }
 
     async delete(id: string) {
-        return prisma.eventos.delete({ where: { id } });
+        return getPrisma().eventos.delete({ where: { id } });
     }
 
     async findByIdForDelete(id: string) {
-        return prisma.eventos.findUnique({
+        return getPrisma().eventos.findUnique({
             where: { id },
             select: { id: true, data: true, descricao: true }
         });
@@ -64,7 +65,7 @@ class EventosRepository {
     // --- Musicas (eventos_musicas) ---
 
     async findMusicas(eventoId: string) {
-        return prisma.eventos_Musicas.findMany({
+        return getPrisma().eventos_Musicas.findMany({
             where: { evento_id: eventoId },
             select: {
                 eventos_musicas_musicas_id_fkey: {
@@ -81,23 +82,24 @@ class EventosRepository {
     }
 
     async createMusica(eventoId: string, musicasId: string) {
-        return prisma.eventos_Musicas.create({
-            data: { evento_id: eventoId, musicas_id: musicasId }
+        return getPrisma().eventos_Musicas.create({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: '' as any }
         });
     }
 
     async deleteMusica(id: string) {
-        return prisma.eventos_Musicas.delete({ where: { id } });
+        return getPrisma().eventos_Musicas.delete({ where: { id } });
     }
 
     async findMusicaDuplicate(eventoId: string, musicasId: string) {
-        return prisma.eventos_Musicas.findUnique({
-            where: { evento_id_musicas_id: { evento_id: eventoId, musicas_id: musicasId } }
+        return getPrisma().eventos_Musicas.findFirst({
+            where: { evento_id: eventoId, musicas_id: musicasId }
         });
     }
 
     async findMusicaById(musicasId: string) {
-        return prisma.musicas.findUnique({ where: { id: musicasId } });
+        return getPrisma().musicas.findUnique({ where: { id: musicasId } });
     }
 
     // --- Integrantes (eventos_users) ---
@@ -111,7 +113,7 @@ class EventosRepository {
      * @returns Lista de registros com user e funções selecionadas para o evento
      */
     async findIntegrantes(eventoId: string) {
-        return prisma.eventos_Users.findMany({
+        return getPrisma().eventos_Users.findMany({
             where: { evento_id: eventoId },
             select: {
                 eventos_users_fk_user_id_fkey: {
@@ -143,9 +145,10 @@ class EventosRepository {
      * @returns Registro criado na tabela Eventos_Users
      */
     async createIntegrante(eventoId: string, userId: string, funcaoIds: string[]) {
-        return prisma.$transaction(async (tx) => {
+        return getPrisma().$transaction(async (tx) => {
             const eventoUser = await tx.eventos_Users.create({
-                data: { evento_id: eventoId, fk_user_id: userId }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                data: { evento_id: eventoId, fk_user_id: userId, tenant_id: '' as any }
             });
 
             if (funcaoIds.length > 0) {
@@ -155,6 +158,8 @@ class EventosRepository {
                             data: {
                                 evento_user_id: eventoUser.id,
                                 funcao_id: funcaoId,
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+                                tenant_id: '' as any,
                             }
                         })
                     )
@@ -172,7 +177,7 @@ class EventosRepository {
      * @returns Lista de IDs de funções do user
      */
     async findUserFuncoes(userId: string) {
-        return prisma.users_Funcoes.findMany({
+        return getPrisma().users_Funcoes.findMany({
             where: { fk_user_id: userId },
             select: { funcao_id: true }
         });
@@ -185,7 +190,7 @@ class EventosRepository {
      * @returns Registro removido
      */
     async deleteIntegrante(id: string) {
-        return prisma.eventos_Users.delete({ where: { id } });
+        return getPrisma().eventos_Users.delete({ where: { id } });
     }
 
     /**
@@ -196,13 +201,14 @@ class EventosRepository {
      * @returns Registro existente ou `null` se não houver duplicata
      */
     async findIntegranteDuplicate(eventoId: string, userId: string) {
-        return prisma.eventos_Users.findUnique({
-            where: { evento_id_fk_user_id: { evento_id: eventoId, fk_user_id: userId } }
+        return getPrisma().eventos_Users.findFirst({
+            where: { evento_id: eventoId, fk_user_id: userId }
         });
     }
 
     /**
      * Busca um user pelo ID (valida existência antes de vincular a evento).
+     * Usa o client base pois `users` é um modelo global (não filtrado por tenant).
      *
      * @param userId - ID do user
      * @returns User encontrado ou `null` se não existir

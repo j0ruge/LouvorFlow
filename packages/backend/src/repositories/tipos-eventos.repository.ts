@@ -1,36 +1,37 @@
-import prisma from '../../prisma/cliente.js';
+import { getPrisma } from '../../prisma/cliente.js';
 
 class TiposEventosRepository {
     async findAll() {
-        return prisma.tipos_Eventos.findMany({
+        return getPrisma().tipos_Eventos.findMany({
             select: { id: true, nome: true }
         });
     }
 
     async findById(id: string) {
-        return prisma.tipos_Eventos.findUnique({
+        return getPrisma().tipos_Eventos.findUnique({
             where: { id },
             select: { id: true, nome: true }
         });
     }
 
     async findByNome(nome: string) {
-        return prisma.tipos_Eventos.findUnique({ where: { nome } });
+        return getPrisma().tipos_Eventos.findFirst({ where: { nome } });
     }
 
     async findByNomeExcludingId(nome: string, excludeId: string) {
-        return prisma.tipos_Eventos.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().tipos_Eventos.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
     async create(nome: string) {
-        return prisma.tipos_Eventos.create({
-            data: { nome },
+        return getPrisma().tipos_Eventos.create({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
+            data: { nome, tenant_id: '' as any },
             select: { id: true, nome: true }
         });
     }
 
     async update(id: string, nome: string) {
-        return prisma.tipos_Eventos.update({
+        return getPrisma().tipos_Eventos.update({
             where: { id },
             data: { nome },
             select: { id: true, nome: true }
@@ -38,7 +39,7 @@ class TiposEventosRepository {
     }
 
     async delete(id: string) {
-        return prisma.tipos_Eventos.delete({ where: { id } });
+        return getPrisma().tipos_Eventos.delete({ where: { id } });
     }
 }
 

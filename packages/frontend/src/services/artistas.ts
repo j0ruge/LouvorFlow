@@ -76,7 +76,7 @@ export async function updateArtista(
  * @param id - UUID do artista a ser removido.
  * @returns Resposta da API com mensagem de confirmação.
  */
-export async function deleteArtista(id: string): Promise<{ msg: string }> {
+export async function deleteArtista(id: string) {
   const data = await apiFetch<unknown>(`/artistas/${id}`, {
     method: "DELETE",
   });

@@ -80,7 +80,6 @@ class EventosService {
 
         if (!data) errors.push("Data do evento é obrigatória");
         if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
-        if (!descricao) errors.push("Descrição do evento é obrigatória");
 
         if (data && isNaN(Date.parse(String(data)))) {
             errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
@@ -100,7 +99,7 @@ class EventosService {
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
-            descricao: descricao!
+            descricao: descricao ?? ""
         });
 
         return {
