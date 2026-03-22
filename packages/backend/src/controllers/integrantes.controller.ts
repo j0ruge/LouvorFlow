@@ -61,7 +61,7 @@ class IntegrantesController {
      * Vincula uma função musical a um integrante (user).
      */
     async addFuncao(req: Request<{ integranteId: string }>, res: Response): Promise<void> {
-        await integrantesService.addFuncao(req.params.integranteId, req.body.funcao_id, req.user.tenantId!);
+        await integrantesService.addFuncao(req.params.integranteId, req.body.funcao_id, req.user!.tenantId!);
         res.status(201).json({ msg: "Função adicionada ao integrante com sucesso" });
     }
 

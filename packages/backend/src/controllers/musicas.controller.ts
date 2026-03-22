@@ -23,7 +23,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const musica = await musicasService.create(req.body, req.user.tenantId!);
+        const musica = await musicasService.create(req.body, req.user!.tenantId!);
         res.status(201).json({ msg: "Música criada com sucesso", musica });
     }
 
@@ -46,7 +46,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async createComplete(req: Request, res: Response): Promise<void> {
-        const musica = await musicasService.createComplete(req.body, req.user.tenantId!);
+        const musica = await musicasService.createComplete(req.body, req.user!.tenantId!);
         res.status(201).json({ msg: "Música criada com sucesso", musica });
     }
 
@@ -55,7 +55,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async updateComplete(req: Request<{ id: string }>, res: Response): Promise<void> {
-        const musica = await musicasService.updateComplete(req.params.id, req.body, req.user.tenantId!);
+        const musica = await musicasService.updateComplete(req.params.id, req.body, req.user!.tenantId!);
         res.status(200).json({ msg: "Música editada com sucesso", musica });
     }
 
@@ -72,7 +72,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async addVersao(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        const versao = await musicasService.addVersao(req.params.musicaId, req.body, req.user.tenantId!);
+        const versao = await musicasService.addVersao(req.params.musicaId, req.body, req.user!.tenantId!);
         res.status(201).json({ msg: "Versão adicionada com sucesso", versao });
     }
 
@@ -101,7 +101,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async addCategoria(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id, req.user.tenantId!);
+        await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id, req.user!.tenantId!);
         res.status(201).json({ msg: "Categoria adicionada com sucesso" });
     }
 
@@ -124,7 +124,7 @@ class MusicasController {
      * Recebe `tenantId` do usuário autenticado.
      */
     async addFuncao(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        await musicasService.addFuncao(req.params.musicaId, req.body.funcao_id, req.user.tenantId!);
+        await musicasService.addFuncao(req.params.musicaId, req.body.funcao_id, req.user!.tenantId!);
         res.status(201).json({ msg: "Função adicionada com sucesso" });
     }
 

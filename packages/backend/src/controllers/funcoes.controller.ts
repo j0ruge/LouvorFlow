@@ -26,7 +26,7 @@ class FuncoesController {
      * Cria uma nova função no tenant ativo.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const funcao = await funcoesService.create(req.body.nome, req.user.tenantId!);
+        const funcao = await funcoesService.create(req.body.nome, req.user!.tenantId!);
         res.status(201).json({ msg: "Função criada com sucesso", funcao });
     }
 

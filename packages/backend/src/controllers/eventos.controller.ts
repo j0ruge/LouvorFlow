@@ -22,7 +22,7 @@ class EventosController {
 
     /** Cria um novo evento vinculado ao tenant do usuário autenticado. */
     async create(req: Request, res: Response): Promise<void> {
-        const evento = await eventosService.create(req.body, req.user.tenantId!);
+        const evento = await eventosService.create(req.body, req.user!.tenantId!);
         res.status(201).json({ msg: "Evento criado com sucesso", evento });
     }
 
@@ -48,7 +48,7 @@ class EventosController {
 
     /** Vincula uma música a um evento no tenant do usuário autenticado. */
     async addMusica(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
-        await eventosService.addMusica(req.params.eventoId, req.body.musicas_id, req.user.tenantId!);
+        await eventosService.addMusica(req.params.eventoId, req.body.musicas_id, req.user!.tenantId!);
         res.status(201).json({ msg: "Música adicionada ao evento com sucesso" });
     }
 
@@ -68,7 +68,7 @@ class EventosController {
 
     /** Adiciona um integrante a um evento no tenant do usuário autenticado. */
     async addIntegrante(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
-        await eventosService.addIntegrante(req.params.eventoId, req.body.fk_integrante_id, req.body.funcao_ids, req.user.tenantId!);
+        await eventosService.addIntegrante(req.params.eventoId, req.body.fk_integrante_id, req.body.funcao_ids, req.user!.tenantId!);
         res.status(201).json({ msg: "Integrante adicionado ao evento com sucesso" });
     }
 

@@ -3,10 +3,10 @@
  *
  * Recebe requisições REST, delega ao service de relatórios
  * e retorna respostas JSON padronizadas.
+ * Express 5 async error handling — sem try-catch.
  */
 
 import { Request, Response } from 'express';
-import { AppError } from '../errors/AppError.js';
 import relatoriosService from '../services/relatorios.service.js';
 
 class RelatoriosController {
@@ -17,19 +17,8 @@ class RelatoriosController {
      * @param res - Resposta HTTP com status 200 e objeto RelatorioResumo.
      */
     async resumo(_req: Request, res: Response): Promise<void> {
-        try {
-            const resumo = await relatoriosService.getResumo();
-            res.status(200).json(resumo);
-        } catch (error) {
-            if (error instanceof AppError) {
-                res.status(error.statusCode).json({
-                    erro: error.errors ? error.errors.join('; ') : error.message,
-                    codigo: error.statusCode,
-                });
-                return;
-            }
-            res.status(500).json({ erro: 'Erro ao buscar relatórios', codigo: 500 });
-        }
+        const resumo = await relatoriosService.getResumo();
+        res.status(200).json(resumo);
     }
 }
 

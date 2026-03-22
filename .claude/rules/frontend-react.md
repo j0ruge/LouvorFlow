@@ -30,6 +30,8 @@ packages/frontend/src/
 │   ├── AppSidebar.tsx   # Sidebar com menu domínio + seção admin condicional
 │   ├── ProtectedRoute.tsx # Wrapper: redireciona ao login se não autenticado
 │   ├── AdminRoute.tsx   # Wrapper: exibe 403 se não admin
+│   ├── SuperAdminRoute.tsx # Wrapper: exibe 403 se não super-admin
+│   ├── TenantSwitcher.tsx  # Dropdown para alternar entre igrejas
 │   ├── UserMenu.tsx     # Avatar dropdown no header (perfil + logout)
 │   └── ...              # Componentes de aplicação
 ├── contexts/
@@ -38,19 +40,23 @@ packages/frontend/src/
 │   ├── Login.tsx        # Tela de login
 │   ├── ForgotPassword.tsx # Recuperação de senha
 │   ├── ResetPassword.tsx  # Redefinição de senha via token
+│   ├── SelectTenant.tsx   # Seleção de igreja (multi-tenant)
 │   ├── Profile.tsx      # Perfil do usuário
 │   ├── Forbidden.tsx    # Página 403 (Acesso Negado)
 │   ├── admin/           # Páginas administrativas (requer role admin)
 │   │   ├── Users.tsx, UserAcl.tsx, Roles.tsx, RolePermissions.tsx, Permissions.tsx
+│   │   ├── Igrejas.tsx, IgrejaUsers.tsx
 │   └── ...              # Páginas de domínio
 ├── hooks/               # Custom hooks
 │   ├── use-auth.ts      # Re-export do useAuth do AuthContext
 │   ├── use-profile.ts   # React Query hooks para perfil
 │   ├── use-admin.ts     # React Query hooks para CRUD admin
+│   ├── use-igrejas.ts   # React Query hooks para igrejas
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
 │   ├── admin.ts         # Chamadas API: users, roles, permissions (CRUD admin)
+│   ├── igrejas.ts       # Chamadas API: CRUD igrejas (super-admin)
 │   └── ...
 ├── schemas/
 │   ├── auth.ts          # Zod schemas: auth entities + form validation
@@ -66,8 +72,12 @@ packages/frontend/src/
 - **Token storage**: Access token em memória (variável JS). Refresh token em `localStorage`. Nunca armazenar access token em localStorage.
 - **Auto-refresh**: `apiFetch` intercepta 401, tenta refresh via singleton promise (evita race conditions com token rotation). Se refresh falha, limpa tokens e redireciona ao login.
 - **Rotas protegidas**: Usar `<ProtectedRoute>` para rotas que exigem autenticação. Usar `<AdminRoute>` dentro de `ProtectedRoute` para rotas que exigem role "admin".
-- **Rotas públicas**: `/login`, `/esqueci-senha`, `/redefinir-senha` não usam `ProtectedRoute`.
+- **Rotas públicas**: `/login`, `/esqueci-senha`, `/redefinir-senha`, `/selecionar-igreja` não usam `ProtectedRoute`.
 - **Sidebar RBAC**: Todos os itens de domínio visíveis para qualquer autenticado. Seção "Administração" visível apenas para `isAdmin`.
+- **Multi-tenant**: `currentTenant: { id, name } | null` disponível no AuthContext. Definido no login, seleção de tenant e troca de tenant.
+- **SelectTenantPage** (`/selecionar-igreja`): Exibida quando o login retorna `requires_tenant_selection` (usuário pertence a múltiplas igrejas).
+- **TenantSwitcher**: Dropdown na sidebar para usuários multi-tenant alternarem entre igrejas. Chama `switchTenant()` na API.
+- **SuperAdminRoute**: Wrapper de rota que exibe página 403 se o usuário não possui role `super-admin`. Usado para rotas de gestão de igrejas.
 - **UserMenu**: Avatar no header → dropdown com nome, e-mail, "Meu Perfil" e "Sair".
 
 ## Design System

@@ -26,7 +26,7 @@ class CategoriasController {
      * Cria uma nova categoria no tenant ativo.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const categoria = await categoriasService.create(req.body.nome, req.user.tenantId!);
+        const categoria = await categoriasService.create(req.body.nome, req.user!.tenantId!);
         res.status(201).json({ msg: "Categoria criada com sucesso", categoria });
     }
 
