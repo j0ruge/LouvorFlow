@@ -10,15 +10,29 @@ import { flattenUserRelations } from '../../types/auth.types.js';
 class UserAclController {
     /**
      * Associa papéis e permissões a um usuário específico.
+     *
+     * Inclui validações de segurança: passa dados do caller ao service
+     * para prevenir escalação de privilégios (anti-self-elevation e
+     * proteção de roles reservadas ao super-admin).
+     *
      * @param req - Requisição contendo `userId` nos params e `roles` e `permissions` (arrays) no body.
      * @param res - Resposta com os dados do usuário atualizado com suas ACLs.
      */
     async create(req: Request<{ userId: string }>, res: Response): Promise<void> {
         const { userId } = req.params;
         const { roles, permissions } = req.body;
-        /** Passa tenantId do usuário autenticado para escopar roles/permissions ao tenant ativo. */
+        /** Passa tenantId e dados do caller para validação de privilégios no service. */
         const tenantId = req.user?.tenantId;
-        const user = await createUserAclService.execute({ userId, roles, permissions, tenantId });
+        const callerId = req.user?.id;
+        const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
+        const user = await createUserAclService.execute({
+            userId,
+            roles,
+            permissions,
+            tenantId,
+            callerId,
+            callerIsSuperAdmin,
+        });
         const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
         res.status(200).json({
             ...flattenUserRelations(user),

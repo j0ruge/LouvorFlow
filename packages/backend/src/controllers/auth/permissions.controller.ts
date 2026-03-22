@@ -2,31 +2,50 @@ import { Request, Response } from 'express';
 import createPermissionService from '../../services/auth/create-permission.service.js';
 import permissionsRepository from '../../repositories/auth/permissions.repository.js';
 
+/** Nomes de permissions protegidas — ocultas de admins regulares na listagem. */
+const PROTECTED_PERMISSION_NAMES = ['super_admin_access'];
+
 /**
  * Controller responsável pelo gerenciamento de permissões.
  * Permite a criação e listagem de permissões no sistema de controle de acesso.
+ *
+ * A listagem filtra permissions protegidas (super_admin_access) para admins regulares,
+ * impedindo que visualizem ou tentem atribuir permissões de nível superior.
  */
 class PermissionsController {
     /**
      * Lista as permissões do sistema.
      * Suporta paginação via query params `page` e `limit`.
      *
+     * Admins regulares não veem permissions protegidas (super_admin_access).
+     * Super-admins veem todas as permissions.
+     *
      * @param req - Requisição com query params opcionais `page` e `limit`.
      * @param res - Resposta com a lista paginada de permissões (status 200).
-     * @returns Promise<void> — envia HTTP 200 com objeto `{ data, total, page, limit }`.
      */
     async list(req: Request, res: Response): Promise<void> {
         const page = req.query.page ? Number(req.query.page) : undefined;
         const limit = req.query.limit ? Number(req.query.limit) : undefined;
         const result = await permissionsRepository.findAll({ page, limit });
-        res.json(result);
+
+        const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
+
+        /** Filtra permissions protegidas para admins regulares. */
+        const filteredData = callerIsSuperAdmin
+            ? result.data
+            : result.data.filter((perm) => !PROTECTED_PERMISSION_NAMES.includes(perm.name));
+
+        res.json({
+            ...result,
+            data: filteredData,
+            total: filteredData.length,
+        });
     }
 
     /**
      * Cria uma nova permissão no sistema.
      * @param req - Requisição contendo `name` e `description` no body.
      * @param res - Resposta com os dados da permissão criada (status 201).
-     * @returns Promise<void> — envia HTTP 201 com o objeto da permissão criada no body.
      */
     async create(req: Request, res: Response): Promise<void> {
         const { name, description } = req.body;
