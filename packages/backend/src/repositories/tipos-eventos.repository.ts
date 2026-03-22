@@ -22,10 +22,16 @@ class TiposEventosRepository {
         return getPrisma().tipos_Eventos.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
-    async create(nome: string) {
+    /**
+     * Cria um novo tipo de evento vinculado ao tenant.
+     *
+     * @param nome - Nome do tipo de evento.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Tipo de evento criado com id e nome.
+     */
+    async create(nome: string, tenantId: string) {
         return getPrisma().tipos_Eventos.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { nome, tenant_id: '' as any },
+            data: { nome, tenant_id: tenantId },
             select: { id: true, nome: true }
         });
     }

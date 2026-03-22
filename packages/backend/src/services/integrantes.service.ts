@@ -184,11 +184,12 @@ class IntegrantesService {
      *
      * @param integranteId - UUID do user
      * @param funcao_id - UUID da função a vincular
+     * @param tenantId - ID do tenant ao qual o vínculo pertence
      * @throws AppError 400 se o ID da função não for informado
      * @throws AppError 404 se integrante ou função não existirem
      * @throws AppError 409 se o vínculo já existir
      */
-    async addFuncao(integranteId: string, funcao_id?: string) {
+    async addFuncao(integranteId: string, funcao_id: string | undefined, tenantId: string) {
         if (!funcao_id) throw new AppError("ID da função é obrigatório", 400);
 
         const integranteExiste = await integrantesRepository.findByIdSimple(integranteId);
@@ -200,7 +201,7 @@ class IntegrantesService {
         const existente = await integrantesRepository.findIntegranteFuncao(integranteId, funcao_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await integrantesRepository.createIntegranteFuncao(integranteId, funcao_id);
+        await integrantesRepository.createIntegranteFuncao(integranteId, funcao_id, tenantId);
     }
 
     /**

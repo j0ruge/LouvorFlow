@@ -3,6 +3,7 @@ import prisma, { getPrisma } from '../../prisma/cliente.js';
 import { EVENTO_INDEX_SELECT, EVENTO_SHOW_SELECT } from '../types/index.js';
 
 class EventosRepository {
+    /** Retorna todos os eventos ordenados por data decrescente. */
     async findAll() {
         return getPrisma().eventos.findMany({
             select: EVENTO_INDEX_SELECT,
@@ -10,6 +11,7 @@ class EventosRepository {
         });
     }
 
+    /** Busca um evento pelo ID com todas as relações (músicas, integrantes, funções). */
     async findById(id: string) {
         return getPrisma().eventos.findUnique({
             where: { id },
@@ -17,14 +19,21 @@ class EventosRepository {
         });
     }
 
+    /** Busca um evento pelo ID sem incluir relações (validação de existência). */
     async findByIdSimple(id: string) {
         return getPrisma().eventos.findUnique({ where: { id } });
     }
 
-    async create(data: { data: Date; fk_tipo_evento: string; descricao: string }) {
+    /**
+     * Cria um novo evento vinculado ao tenant informado.
+     *
+     * @param data - Dados do evento (data, tipo, descrição)
+     * @param tenantId - ID do tenant ao qual o evento pertence
+     * @returns Evento criado com tipo de evento populado
+     */
+    async create(data: { data: Date; fk_tipo_evento: string; descricao: string }, tenantId: string) {
         return getPrisma().eventos.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { ...data, tenant_id: '' as any },
+            data: { ...data, tenant_id: tenantId },
             select: {
                 id: true,
                 data: true,
@@ -36,6 +45,7 @@ class EventosRepository {
         });
     }
 
+    /** Atualiza um evento existente pelo ID. */
     async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
         return getPrisma().eventos.update({
             where: { id },
@@ -51,10 +61,12 @@ class EventosRepository {
         });
     }
 
+    /** Remove um evento pelo ID. */
     async delete(id: string) {
         return getPrisma().eventos.delete({ where: { id } });
     }
 
+    /** Busca um evento pelo ID retornando apenas campos básicos (para resposta de deleção). */
     async findByIdForDelete(id: string) {
         return getPrisma().eventos.findUnique({
             where: { id },
@@ -64,6 +76,7 @@ class EventosRepository {
 
     // --- Musicas (eventos_musicas) ---
 
+    /** Retorna as músicas vinculadas a um evento com tonalidade. */
     async findMusicas(eventoId: string) {
         return getPrisma().eventos_Musicas.findMany({
             where: { evento_id: eventoId },
@@ -81,23 +94,33 @@ class EventosRepository {
         });
     }
 
-    async createMusica(eventoId: string, musicasId: string) {
+    /**
+     * Vincula uma música a um evento no tenant informado.
+     *
+     * @param eventoId - ID do evento
+     * @param musicasId - ID da música a vincular
+     * @param tenantId - ID do tenant ao qual o vínculo pertence
+     * @returns Registro criado na tabela Eventos_Musicas
+     */
+    async createMusica(eventoId: string, musicasId: string, tenantId: string) {
         return getPrisma().eventos_Musicas.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: '' as any }
+            data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: tenantId }
         });
     }
 
+    /** Remove o vínculo entre evento e música pelo ID do registro. */
     async deleteMusica(id: string) {
         return getPrisma().eventos_Musicas.delete({ where: { id } });
     }
 
+    /** Verifica se já existe vínculo entre o evento e a música informados. */
     async findMusicaDuplicate(eventoId: string, musicasId: string) {
         return getPrisma().eventos_Musicas.findFirst({
             where: { evento_id: eventoId, musicas_id: musicasId }
         });
     }
 
+    /** Busca uma música pelo ID (valida existência antes de vincular). */
     async findMusicaById(musicasId: string) {
         return getPrisma().musicas.findUnique({ where: { id: musicasId } });
     }
@@ -142,13 +165,13 @@ class EventosRepository {
      * @param eventoId - ID do evento
      * @param userId - ID do user a ser vinculado
      * @param funcaoIds - IDs das funções selecionadas para o evento
+     * @param tenantId - ID do tenant ao qual os registros pertencem
      * @returns Registro criado na tabela Eventos_Users
      */
-    async createIntegrante(eventoId: string, userId: string, funcaoIds: string[]) {
+    async createIntegrante(eventoId: string, userId: string, funcaoIds: string[], tenantId: string) {
         return getPrisma().$transaction(async (tx) => {
             const eventoUser = await tx.eventos_Users.create({
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                data: { evento_id: eventoId, fk_user_id: userId, tenant_id: '' as any }
+                data: { evento_id: eventoId, fk_user_id: userId, tenant_id: tenantId }
             });
 
             if (funcaoIds.length > 0) {
@@ -158,8 +181,7 @@ class EventosRepository {
                             data: {
                                 evento_user_id: eventoUser.id,
                                 funcao_id: funcaoId,
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                                tenant_id: '' as any,
+                                tenant_id: tenantId,
                             }
                         })
                     )

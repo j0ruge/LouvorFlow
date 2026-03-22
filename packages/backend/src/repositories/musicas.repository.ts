@@ -54,10 +54,16 @@ class MusicasRepository {
         });
     }
 
-    async create(data: { nome: string; fk_tonalidade: string }) {
+    /**
+     * Cria uma nova música no banco de dados.
+     *
+     * @param data - Dados da música (nome e tonalidade)
+     * @param tenantId - ID do tenant proprietário
+     * @returns Música criada com id, nome e tonalidade
+     */
+    async create(data: { nome: string; fk_tonalidade: string }, tenantId: string) {
         return getPrisma().musicas.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { ...data, tenant_id: '' as any },
+            data: { ...data, tenant_id: tenantId },
             select: {
                 id: true,
                 nome: true,
@@ -91,16 +97,16 @@ class MusicasRepository {
      * Também cria junções de categorias e funções requeridas se fornecidas.
      *
      * @param data - Dados de criação completa (música + versão opcional + categorias/funções)
+     * @param tenantId - ID do tenant proprietário
      * @returns Música criada com todos os relacionamentos (MUSICA_SELECT)
      */
-    async createWithVersao(data: CreateMusicaCompleteInput): Promise<MusicaRaw> {
+    async createWithVersao(data: CreateMusicaCompleteInput, tenantId: string): Promise<MusicaRaw> {
         return getPrisma().$transaction(async (tx) => {
             const musica = await tx.musicas.create({
                 data: {
                     nome: data.nome!,
                     fk_tonalidade: data.fk_tonalidade ?? null,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                    tenant_id: '' as any,
+                    tenant_id: tenantId,
                 },
             });
 
@@ -113,8 +119,7 @@ class MusicasRepository {
                         cifras: data.cifras ?? null,
                         lyrics: data.lyrics ?? null,
                         link_versao: data.link_versao ?? null,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                        tenant_id: '' as any,
+                        tenant_id: tenantId,
                     },
                 });
             }
@@ -122,16 +127,14 @@ class MusicasRepository {
             const categoriaIds = [...new Set(data.categoria_ids ?? [])];
             if (categoriaIds.length > 0) {
                 await tx.musicas_Categorias.createMany({
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                    data: categoriaIds.map(id => ({ musica_id: musica.id, categoria_id: id, tenant_id: '' as any })),
+                    data: categoriaIds.map(id => ({ musica_id: musica.id, categoria_id: id, tenant_id: tenantId })),
                 });
             }
 
             const funcaoIds = [...new Set(data.funcao_ids ?? [])];
             if (funcaoIds.length > 0) {
                 await tx.musicas_Funcoes.createMany({
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                    data: funcaoIds.map(id => ({ musica_id: musica.id, funcao_id: id, tenant_id: '' as any })),
+                    data: funcaoIds.map(id => ({ musica_id: musica.id, funcao_id: id, tenant_id: tenantId })),
                 });
             }
 
@@ -148,9 +151,10 @@ class MusicasRepository {
      *
      * @param id - UUID da música a atualizar
      * @param data - Dados de atualização completa (música + versão + categorias/funções)
+     * @param tenantId - ID do tenant proprietário
      * @returns Música atualizada com todos os relacionamentos (MUSICA_SELECT)
      */
-    async updateWithVersao(id: string, data: UpdateMusicaCompleteInput): Promise<MusicaRaw> {
+    async updateWithVersao(id: string, data: UpdateMusicaCompleteInput, tenantId: string): Promise<MusicaRaw> {
         return getPrisma().$transaction(async (tx) => {
             const updateData: Record<string, unknown> = {};
             if (data.nome !== undefined) updateData.nome = data.nome;
@@ -181,7 +185,7 @@ class MusicasRepository {
                     model: asJunction(tx.musicas_Categorias),
                     parentKey: 'musica_id',
                     childKey: 'categoria_id',
-                });
+                }, tenantId);
             }
 
             if (data.funcao_ids !== undefined) {
@@ -189,7 +193,7 @@ class MusicasRepository {
                     model: asJunction(tx.musicas_Funcoes),
                     parentKey: 'musica_id',
                     childKey: 'funcao_id',
-                });
+                }, tenantId);
             }
 
             return tx.musicas.findUniqueOrThrow({
@@ -221,10 +225,16 @@ class MusicasRepository {
         return getPrisma().artistas_Musicas.findUnique({ where: { id: versaoId } });
     }
 
-    async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }) {
+    /**
+     * Cria uma nova versão (artista_musicas) para uma música.
+     *
+     * @param data - Dados da versão (artista, música, bpm, cifras, lyrics, link)
+     * @param tenantId - ID do tenant proprietário
+     * @returns Versão criada com dados do artista
+     */
+    async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }, tenantId: string) {
         return getPrisma().artistas_Musicas.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { ...data, tenant_id: '' as any },
+            data: { ...data, tenant_id: tenantId },
             select: {
                 id: true,
                 bpm: true,
@@ -293,12 +303,12 @@ class MusicasRepository {
      *
      * @param musicaId - ID da música
      * @param categoriaId - ID da categoria a vincular
+     * @param tenantId - ID do tenant proprietário
      * @returns Registro criado na tabela intermediária
      */
-    async createCategoria(musicaId: string, categoriaId: string) {
+    async createCategoria(musicaId: string, categoriaId: string, tenantId: string) {
         return getPrisma().musicas_Categorias.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { musica_id: musicaId, categoria_id: categoriaId, tenant_id: '' as any }
+            data: { musica_id: musicaId, categoria_id: categoriaId, tenant_id: tenantId }
         });
     }
 
@@ -348,10 +358,17 @@ class MusicasRepository {
         });
     }
 
-    async createFuncao(musicaId: string, funcaoId: string) {
+    /**
+     * Cria um vínculo entre uma música e uma função.
+     *
+     * @param musicaId - ID da música
+     * @param funcaoId - ID da função a vincular
+     * @param tenantId - ID do tenant proprietário
+     * @returns Registro criado na tabela intermediária
+     */
+    async createFuncao(musicaId: string, funcaoId: string, tenantId: string) {
         return getPrisma().musicas_Funcoes.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { musica_id: musicaId, funcao_id: funcaoId, tenant_id: '' as any }
+            data: { musica_id: musicaId, funcao_id: funcaoId, tenant_id: tenantId }
         });
     }
 
@@ -399,12 +416,14 @@ class MusicasRepository {
      * @param parentId - ID do registro pai (música)
      * @param desejadosRaw - Array de IDs desejados
      * @param config - Configuração do modelo de junção (model, parentKey, childKey)
+     * @param tenantId - ID do tenant proprietário
      */
     private async syncJunction(
         tx: Parameters<Parameters<ReturnType<typeof getPrisma>['$transaction']>[0]>[0],
         parentId: string,
         desejadosRaw: string[],
         config: { model: JunctionDelegate; parentKey: string; childKey: string },
+        tenantId: string,
     ) {
         const desejados = [...new Set(desejadosRaw)];
         const existentes = await config.model.findMany({
@@ -423,7 +442,7 @@ class MusicasRepository {
         }
         if (adicionar.length > 0) {
             await config.model.createMany({
-                data: adicionar.map((id: string) => ({ [config.parentKey]: parentId, [config.childKey]: id })),
+                data: adicionar.map((id: string) => ({ [config.parentKey]: parentId, [config.childKey]: id, tenant_id: tenantId })),
             });
         }
     }

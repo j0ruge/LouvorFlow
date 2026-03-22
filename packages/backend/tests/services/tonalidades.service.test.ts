@@ -49,20 +49,20 @@ describe('TonalidadesService', () => {
   // ─── create ──────────────────────────────────────────
   describe('create', () => {
     it('deve criar uma tonalidade com tom válido', async () => {
-      const result = await tonalidadesService.create('F#');
+      const result = await tonalidadesService.create('F#', 'tenant-fake-id');
       expect(result).toHaveProperty('id');
       expect(result.tom).toBe('F#');
     });
 
     it('deve lançar AppError 400 quando tom não é enviado', async () => {
-      await expect(tonalidadesService.create(undefined)).rejects.toMatchObject({
+      await expect(tonalidadesService.create(undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Tom da tonalidade é obrigatório',
       });
     });
 
     it('deve lançar AppError 409 quando tom é duplicado', async () => {
-      await expect(tonalidadesService.create(MOCK_TONALIDADES[0].tom)).rejects.toMatchObject({
+      await expect(tonalidadesService.create(MOCK_TONALIDADES[0].tom, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe uma tonalidade com esse tom',
       });

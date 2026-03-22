@@ -49,20 +49,20 @@ describe('TiposEventosService', () => {
   // ─── create ──────────────────────────────────────────
   describe('create', () => {
     it('deve criar um tipo de evento com nome válido', async () => {
-      const result = await tiposEventosService.create('Retiro');
+      const result = await tiposEventosService.create('Retiro', 'tenant-fake-id');
       expect(result).toHaveProperty('id');
       expect(result.nome).toBe('Retiro');
     });
 
     it('deve lançar AppError 400 quando nome não é enviado', async () => {
-      await expect(tiposEventosService.create(undefined)).rejects.toMatchObject({
+      await expect(tiposEventosService.create(undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Nome do tipo de evento é obrigatório',
       });
     });
 
     it('deve lançar AppError 409 quando nome é duplicado', async () => {
-      await expect(tiposEventosService.create(MOCK_TIPOS_EVENTOS[0].nome)).rejects.toMatchObject({
+      await expect(tiposEventosService.create(MOCK_TIPOS_EVENTOS[0].nome, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe um tipo de evento com esse nome',
       });

@@ -1,56 +1,49 @@
 import { Request, Response } from 'express';
 import artistasService from '../services/artistas.service.js';
-import { AppError } from '../errors/AppError.js';
 
+/**
+ * Controller de artistas.
+ * Express 5 async error handling — sem try-catch.
+ */
 class ArtistasController {
+    /**
+     * Lista todos os artistas cadastrados.
+     */
     async index(_req: Request, res: Response): Promise<void> {
-        try {
-            const artistas = await artistasService.listAll();
-            res.status(200).json(artistas);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar artistas", codigo: 500 });
-        }
+        const artistas = await artistasService.listAll();
+        res.status(200).json(artistas);
     }
 
+    /**
+     * Retorna um artista pelo ID com suas versões de músicas.
+     */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const artista = await artistasService.getById(req.params.id);
-            res.status(200).json(artista);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar artista", codigo: 500 });
-        }
+        const artista = await artistasService.getById(req.params.id);
+        res.status(200).json(artista);
     }
 
+    /**
+     * Cria um novo artista no tenant ativo.
+     */
     async create(req: Request, res: Response): Promise<void> {
-        try {
-            const artista = await artistasService.create(req.body.nome);
-            res.status(201).json({ msg: "Artista criado com sucesso", artista });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao criar artista", codigo: 500 });
-        }
+        const artista = await artistasService.create(req.body.nome, req.user.tenantId!);
+        res.status(201).json({ msg: "Artista criado com sucesso", artista });
     }
 
+    /**
+     * Atualiza o nome de um artista existente.
+     */
     async update(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const artista = await artistasService.update(req.params.id, req.body.nome);
-            res.status(200).json({ msg: "Artista editado com sucesso", artista });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao editar artista", codigo: 500 });
-        }
+        const artista = await artistasService.update(req.params.id, req.body.nome);
+        res.status(200).json({ msg: "Artista editado com sucesso", artista });
     }
 
+    /**
+     * Remove um artista pelo ID.
+     */
     async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const artista = await artistasService.delete(req.params.id);
-            res.status(200).json({ msg: "Artista deletado com sucesso", artista });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao deletar artista", codigo: 500 });
-        }
+        const artista = await artistasService.delete(req.params.id);
+        res.status(200).json({ msg: "Artista deletado com sucesso", artista });
     }
 }
 

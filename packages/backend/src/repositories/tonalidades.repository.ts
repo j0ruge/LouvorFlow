@@ -22,10 +22,16 @@ class TonalidadesRepository {
         return getPrisma().tonalidades.findFirst({ where: { tom, NOT: { id: excludeId } } });
     }
 
-    async create(tom: string) {
+    /**
+     * Cria uma nova tonalidade vinculada ao tenant.
+     *
+     * @param tom - Tom da tonalidade.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Tonalidade criada com id e tom.
+     */
+    async create(tom: string, tenantId: string) {
         return getPrisma().tonalidades.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { tom, tenant_id: '' as any },
+            data: { tom, tenant_id: tenantId },
             select: { id: true, tom: true }
         });
     }

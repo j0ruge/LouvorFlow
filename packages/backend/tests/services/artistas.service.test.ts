@@ -51,21 +51,21 @@ describe('ArtistasService', () => {
   // ─── create ──────────────────────────────────────────
   describe('create', () => {
     it('deve criar um artista com nome válido retornando {id, nome}', async () => {
-      const result = await artistasService.create('Diante do Trono');
+      const result = await artistasService.create('Diante do Trono', 'tenant-fake-id');
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('nome', 'Diante do Trono');
       expect(Object.keys(result)).toEqual(['id', 'nome']);
     });
 
     it('deve lançar AppError 400 quando nome não é enviado', async () => {
-      await expect(artistasService.create(undefined)).rejects.toMatchObject({
+      await expect(artistasService.create(undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Nome do artista é obrigatório',
       });
     });
 
     it('deve lançar AppError 409 quando nome é duplicado', async () => {
-      await expect(artistasService.create('Aline Barros')).rejects.toMatchObject({
+      await expect(artistasService.create('Aline Barros', 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe um artista com esse nome',
       });

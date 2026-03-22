@@ -26,10 +26,19 @@ class UsersRepository {
             ? { tenant_users: { some: { tenant_id: options.tenantId } } }
             : {};
 
+        /** Quando há tenant ativo, filtra roles e permissions pelo mesmo tenant para evitar duplicatas cross-tenant. */
+        const select = options?.tenantId
+            ? {
+                ...USER_PUBLIC_SELECT,
+                roles: { where: { tenant_id: options.tenantId }, ...USER_PUBLIC_SELECT.roles },
+                permissions: { where: { tenant_id: options.tenantId }, ...USER_PUBLIC_SELECT.permissions },
+            }
+            : USER_PUBLIC_SELECT;
+
         const [data, total] = await Promise.all([
             prisma.users.findMany({
                 where,
-                select: USER_PUBLIC_SELECT,
+                select,
                 orderBy: { name: 'asc' },
                 ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
             }),

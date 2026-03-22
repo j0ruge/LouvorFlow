@@ -22,10 +22,16 @@ class FuncoesRepository {
         return getPrisma().funcoes.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
-    async create(nome: string) {
+    /**
+     * Cria uma nova função vinculada ao tenant.
+     *
+     * @param nome - Nome da função.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Função criada com id e nome.
+     */
+    async create(nome: string, tenantId: string) {
         return getPrisma().funcoes.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { nome, tenant_id: '' as any },
+            data: { nome, tenant_id: tenantId },
             select: { id: true, nome: true }
         });
     }
