@@ -18,14 +18,26 @@ import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
 /** Tenants ativos retornados pelo mock do Prisma por padrão (tenant único). */
 let mockActiveTenants: Array<{ tenant: { id: string; name: string; status: string } }> = [];
 
+/** Email do usuário criado no teste — usado pelo mock de prisma.users.findUnique. */
+let lastCreatedEmail: string | null = null;
+
 /**
- * Mock do módulo Prisma para simular a consulta `tenantUsers.findMany`.
- * O array `mockActiveTenants` é configurado por cada teste para controlar o cenário.
+ * Mock do módulo Prisma para simular as consultas de autenticação multi-tenant.
+ * `mockActiveTenants` controla o cenário de tenants por teste.
+ * `users.findUnique` busca via fakeUsersRepo.findByEmail para retornar usuário completo.
  */
 vi.mock('../../../prisma/cliente.js', () => ({
     default: {
         tenantUsers: {
             findMany: vi.fn().mockImplementation(() => Promise.resolve(mockActiveTenants)),
+        },
+        users: {
+            findUnique: vi.fn().mockImplementation(async () => {
+                if (!lastCreatedEmail) return null;
+                const user = await fakeUsersRepo.findByEmail(lastCreatedEmail);
+                if (!user) return null;
+                return { ...user, roles: [], permissions: [] };
+            }),
         },
     },
 }));
@@ -67,6 +79,7 @@ describe('AuthenticateUserService', () => {
         fakeRefreshTokensRepo.reset();
         fakeTokenProvider.reset();
         mockActiveTenants = [];
+        lastCreatedEmail = null;
     });
 
     /** Deve autenticar com credenciais válidas e tenant único retornando usuário, token e refresh token. */
@@ -80,6 +93,7 @@ describe('AuthenticateUserService', () => {
             email: 'test@test.com',
             password: 'password123',
         });
+        lastCreatedEmail = 'test@test.com';
 
         const result = await authenticateUserService.execute({
             email: 'test@test.com',

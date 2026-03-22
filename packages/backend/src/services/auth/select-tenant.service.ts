@@ -48,11 +48,12 @@ class SelectTenantService {
 
         const userId = decoded.sub;
 
-        // Busca o usuário completo (com senha) via Prisma para geração de sessão
+        // Busca o usuário completo (com senha) via Prisma, filtrando roles e permissões pelo tenant selecionado
         const user = await prisma.users.findUnique({
             where: { id: userId },
             include: {
                 roles: {
+                    where: { tenant_id },
                     select: {
                         role: {
                             select: {
@@ -79,6 +80,7 @@ class SelectTenantService {
                     },
                 },
                 permissions: {
+                    where: { tenant_id },
                     select: {
                         permission: {
                             select: {

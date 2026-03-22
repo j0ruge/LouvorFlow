@@ -90,7 +90,55 @@ class AuthenticateUserService {
         // Fluxo de tenant único: emite tokens com tenantId no payload
         const tenant = activeTenants[0];
 
-        return this._generateSession(user, tenant);
+        // Recarrega o usuário com roles e permissões filtradas pelo tenant selecionado
+        const userWithTenantRoles = await prisma.users.findUnique({
+            where: { id: user.id },
+            include: {
+                roles: {
+                    where: { tenant_id: tenant.id },
+                    select: {
+                        role: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true,
+                                created_at: true,
+                                updated_at: true,
+                                permissions: {
+                                    select: {
+                                        permission: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                description: true,
+                                                created_at: true,
+                                                updated_at: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                permissions: {
+                    where: { tenant_id: tenant.id },
+                    select: {
+                        permission: {
+                            select: {
+                                id: true,
+                                name: true,
+                                description: true,
+                                created_at: true,
+                                updated_at: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        return this._generateSession(userWithTenantRoles!, tenant);
     }
 
     /**

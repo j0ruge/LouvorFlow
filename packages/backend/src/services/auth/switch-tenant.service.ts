@@ -65,11 +65,12 @@ class SwitchTenantService {
             throw new AppError('Igreja não está ativa', 400);
         }
 
-        // Carrega o usuário completo (incluindo senha, roles e permissões) para geração de sessão
+        // Carrega o usuário completo (incluindo senha, roles e permissões filtradas pelo tenant de destino)
         const user = await prisma.users.findUnique({
             where: { id: userId },
             include: {
                 roles: {
+                    where: { tenant_id },
                     select: {
                         role: {
                             select: {
@@ -96,6 +97,7 @@ class SwitchTenantService {
                     },
                 },
                 permissions: {
+                    where: { tenant_id },
                     select: {
                         permission: {
                             select: {

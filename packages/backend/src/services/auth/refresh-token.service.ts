@@ -12,6 +12,7 @@ import refreshTokensRepository from '../../repositories/auth/refresh-tokens.repo
 import tokenProvider from '../../providers/token.provider.js';
 import dateProvider from '../../providers/date.provider.js';
 import { authConfig } from '../../config/auth.js';
+import prisma from '../../../prisma/cliente.js';
 
 class UserRefreshTokenService {
     /**
@@ -20,10 +21,13 @@ class UserRefreshTokenService {
      * Decodifica o refresh token para extrair o subject (userId), email e tenantId.
      * O tenantId é preservado no novo access token e refresh token para manter
      * o contexto de tenant entre renovações de sessão.
+     * Valida que o tenant associado ao token ainda existe e está ativo antes
+     * de emitir novos tokens.
      *
      * @param token - Refresh token JWT enviado pelo cliente.
      * @returns Novo par de access token e refresh token.
      * @throws AppError 400 se o refresh token for inválido ou não existir no banco.
+     * @throws AppError 401 se o tenant associado estiver inativo ou não existir.
      */
     async execute(
         token: string,
@@ -52,6 +56,18 @@ class UserRefreshTokenService {
         } catch (error) {
             if (error instanceof AppError) throw error;
             throw new AppError('Refresh token inválido', 400);
+        }
+
+        // Valida o status do tenant associado ao token, se presente
+        if (tenantId) {
+            const tenant = await prisma.tenant.findUnique({
+                where: { id: tenantId },
+                select: { status: true },
+            });
+
+            if (!tenant || tenant.status !== 'active') {
+                throw new AppError('Tenant inativo ou não encontrado', 401);
+            }
         }
 
         const existingToken =

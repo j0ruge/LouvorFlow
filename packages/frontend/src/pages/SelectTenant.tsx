@@ -71,7 +71,7 @@ const SelectTenant = () => {
 
     try {
       const response = await selectTenant(selection_token, tenantId);
-      completeTenantLogin(response.user, response.token, response.refresh_token);
+      completeTenantLogin(response.user, response.token, response.refresh_token, tenants);
       navigate("/", { replace: true });
     } catch (err) {
       setError(

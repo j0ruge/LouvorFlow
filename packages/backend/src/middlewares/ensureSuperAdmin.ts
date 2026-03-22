@@ -9,6 +9,7 @@ import type { Request, Response, NextFunction } from 'express';
 
 import { AppError } from '../errors/AppError.js';
 import prisma, { SYSTEM_TENANT_ID } from '../../prisma/cliente.js';
+import { tenantContext } from '../context/tenant-context.js';
 
 /**
  * Garante que o usuário autenticado possui a role `super-admin`.
@@ -47,5 +48,6 @@ export async function ensureSuperAdmin(
   /** Anexa basePrisma para operações cross-tenant nas rotas de gestão. */
   req.prisma = prisma as any;
 
-  next();
+  /** Configura AsyncLocalStorage com o prisma base para que getPrisma() funcione corretamente. */
+  tenantContext.run(prisma as any, () => next());
 }

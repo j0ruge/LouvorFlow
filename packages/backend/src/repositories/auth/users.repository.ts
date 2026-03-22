@@ -171,8 +171,12 @@ class UsersRepository {
      * fornecidos, utiliza uma transação para deletar os vínculos antigos
      * e criar os novos (padrão deleteMany + createMany).
      *
+     * Quando `tenantId` é informado, o deleteMany filtra apenas os vínculos
+     * daquele tenant e o createMany inclui `tenant_id` explicitamente,
+     * garantindo que ACLs de outros tenants não sejam afetadas.
+     *
      * @param id - UUID do usuário a atualizar
-     * @param data - Campos a atualizar (name, email, password, avatar, roles, permissions)
+     * @param data - Campos a atualizar (name, email, password, avatar, roles, permissions, tenantId)
      * @returns Usuário atualizado com seleção pública (sem senha)
      */
     async save(
@@ -184,28 +188,39 @@ class UsersRepository {
             avatar?: string;
             roles?: string[];
             permissions?: string[];
+            tenantId?: string;
         },
     ) {
-        const { roles, permissions, ...scalarData } = data;
+        const { roles, permissions, tenantId, ...scalarData } = data;
 
         if (roles !== undefined || permissions !== undefined) {
             return prisma.$transaction(async (tx) => {
                 if (roles !== undefined) {
-                    await tx.usersRoles.deleteMany({ where: { user_id: id } });
+                    await tx.usersRoles.deleteMany({
+                        where: {
+                            user_id: id,
+                            ...(tenantId ? { tenant_id: tenantId } : {}),
+                        },
+                    });
                     if (roles.length > 0) {
                         await tx.usersRoles.createMany({
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                            data: roles.map((role_id) => ({ user_id: id, role_id, tenant_id: '' as any })),
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id fornecido explicitamente ou injetado pelo interceptor forTenant em runtime
+                            data: roles.map((role_id) => ({ user_id: id, role_id, tenant_id: (tenantId ?? '') as any })),
                         });
                     }
                 }
 
                 if (permissions !== undefined) {
-                    await tx.usersPermissions.deleteMany({ where: { user_id: id } });
+                    await tx.usersPermissions.deleteMany({
+                        where: {
+                            user_id: id,
+                            ...(tenantId ? { tenant_id: tenantId } : {}),
+                        },
+                    });
                     if (permissions.length > 0) {
                         await tx.usersPermissions.createMany({
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-                            data: permissions.map((permission_id) => ({ user_id: id, permission_id, tenant_id: '' as any })),
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id fornecido explicitamente ou injetado pelo interceptor forTenant em runtime
+                            data: permissions.map((permission_id) => ({ user_id: id, permission_id, tenant_id: (tenantId ?? '') as any })),
                         });
                     }
                 }

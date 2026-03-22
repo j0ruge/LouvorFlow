@@ -19,6 +19,50 @@ import { forTenant } from '../../prisma/cliente.js';
 import { tenantContext } from '../context/tenant-context.js';
 
 /**
+ * Duração do cache de status de tenant em milissegundos (60 segundos).
+ * Evita uma query ao banco a cada requisição autenticada para verificar
+ * se o tenant ainda está ativo.
+ */
+const TENANT_CACHE_TTL = 60_000;
+
+/** Entrada do cache de status de tenant. */
+interface TenantStatusCacheEntry {
+    /** Status do tenant (ex: 'active', 'inactive'). */
+    status: string;
+    /** Timestamp de expiração em milissegundos (Date.now() + TTL). */
+    expiry: number;
+}
+
+/**
+ * Cache em memória do status de tenant indexado por tenantId.
+ * Entradas expiram após TENANT_CACHE_TTL milissegundos.
+ */
+const tenantStatusCache = new Map<string, TenantStatusCacheEntry>();
+
+/**
+ * Retorna o status do tenant a partir do cache, se a entrada ainda for válida.
+ *
+ * @param tenantId - UUID do tenant a consultar.
+ * @returns Status do tenant (string) ou `null` se não estiver em cache ou expirado.
+ */
+function getCachedTenantStatus(tenantId: string): string | null {
+    const cached = tenantStatusCache.get(tenantId);
+    if (cached && cached.expiry > Date.now()) return cached.status;
+    tenantStatusCache.delete(tenantId);
+    return null;
+}
+
+/**
+ * Armazena o status do tenant no cache com TTL de TENANT_CACHE_TTL ms.
+ *
+ * @param tenantId - UUID do tenant.
+ * @param status - Status a armazenar.
+ */
+function cacheTenantStatus(tenantId: string, status: string): void {
+    tenantStatusCache.set(tenantId, { status, expiry: Date.now() + TENANT_CACHE_TTL });
+}
+
+/**
  * Garante que a requisição possui um token JWT válido no header Authorization.
  *
  * Fluxo:
@@ -26,7 +70,8 @@ import { tenantContext } from '../context/tenant-context.js';
  * 2. Valida que o esquema é "Bearer"
  * 3. Verifica o token com a chave secreta do access token
  * 4. Injeta `req.user.id` e `req.user.tenantId` com dados do payload
- * 5. Se `tenantId` presente, valida que o tenant existe e está ativo,
+ * 5. Se `tenantId` presente, valida que o tenant existe e está ativo
+ *    (usando cache em memória com TTL de 60 s para evitar query por request),
  *    cria instância tenant-scoped do Prisma em `req.prisma`,
  *    e configura AsyncLocalStorage para acesso transparente via `getPrisma()`
  *
@@ -68,12 +113,24 @@ export async function ensureAuthenticated(
 
         /** Se o token contém tenantId, valida e cria prisma scoped. */
         if (typeof tenantId === 'string') {
-            const tenant = await prisma.tenant.findUnique({
-                where: { id: tenantId },
-                select: { id: true, status: true },
-            });
+            /** Verifica o status do tenant via cache para evitar query por requisição. */
+            let tenantStatus = getCachedTenantStatus(tenantId);
 
-            if (!tenant || tenant.status !== 'active') {
+            if (!tenantStatus) {
+                const tenant = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                    select: { status: true },
+                });
+
+                if (!tenant) {
+                    throw new AppError('Tenant inativo ou não encontrado', 401);
+                }
+
+                tenantStatus = tenant.status;
+                cacheTenantStatus(tenantId, tenantStatus);
+            }
+
+            if (tenantStatus !== 'active') {
                 throw new AppError('Tenant inativo ou não encontrado', 401);
             }
 

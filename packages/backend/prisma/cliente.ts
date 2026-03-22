@@ -61,7 +61,16 @@ const TENANT_MODELS = [
 ] as const;
 
 /**
- * Cria uma instância do Prisma Client com filtro automático de tenant.
+ * Cache de instâncias tenant-scoped do Prisma Client.
+ *
+ * Evita a criação de um novo objeto `$extends` por requisição, reutilizando
+ * a instância já criada para cada `tenantId`. O número de tenants é pequeno
+ * e finito, portanto um Map simples é suficiente (sem necessidade de TTL/eviction).
+ */
+const tenantClientCache = new Map<string, ReturnType<typeof prisma.$extends>>();
+
+/**
+ * Cria ou retorna do cache uma instância do Prisma Client com filtro automático de tenant.
  *
  * Intercepta todas as operações nos modelos de domínio para:
  * - Injetar `where.tenant_id` em queries de leitura (findMany, findFirst, findUnique, count, aggregate, groupBy)
@@ -69,10 +78,13 @@ const TENANT_MODELS = [
  * - Injetar `where.tenant_id` em operações de exclusão (delete, deleteMany)
  *
  * @param tenantId - UUID do tenant ativo na sessão do usuário
- * @returns Instância do PrismaClient com $extends para isolamento de tenant
+ * @returns Instância do PrismaClient com $extends para isolamento de tenant (reutilizada do cache quando disponível)
  */
 export function forTenant(tenantId: string) {
-  return prisma.$extends({
+  const cached = tenantClientCache.get(tenantId);
+  if (cached) return cached;
+
+  const client = prisma.$extends({
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }: any) {
@@ -123,4 +135,7 @@ export function forTenant(tenantId: string) {
       },
     },
   });
+
+  tenantClientCache.set(tenantId, client);
+  return client;
 }
