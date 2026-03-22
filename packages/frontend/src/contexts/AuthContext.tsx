@@ -33,6 +33,8 @@ import {
 import { login as loginService, refreshToken as refreshTokenService, logout as logoutService, getProfile, switchTenant as switchTenantService } from "@/services/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser, LoginForm, Tenant } from "@/schemas/auth";
+import { TenantSchema } from "@/schemas/auth";
+import { z } from "zod";
 
 /** Chave utilizada para persistir a lista de tenants do usuário no localStorage. */
 const TENANTS_STORAGE_KEY = "louvorflow_user_tenants";
@@ -109,7 +111,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [availableTenants, setAvailableTenants] = useState<Tenant[]>(() => {
     try {
       const stored = localStorage.getItem(TENANTS_STORAGE_KEY);
-      return stored ? (JSON.parse(stored) as Tenant[]) : [];
+      if (!stored) return [];
+      const parsed = z.array(TenantSchema).safeParse(JSON.parse(stored));
+      return parsed.success ? parsed.data : [];
     } catch {
       return [];
     }

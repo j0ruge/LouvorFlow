@@ -152,7 +152,7 @@ class AuthenticateUserService {
      * @returns Resposta de sessão com usuário sanitizado, tokens e dados do tenant.
      */
     async _generateSession(
-        user: { id: string; email: string; password: string; avatar: string | null; name: string; roles: any[]; permissions: any[]; created_at: Date; updated_at: Date },
+        user: { id: string; email: string; password: string; avatar: string | null; name: string; roles: Array<{ role: { id: string; name: string; description: string; created_at: Date; updated_at: Date; permissions: Array<{ permission: { id: string; name: string; description: string; created_at: Date; updated_at: Date } }> } }>; permissions: Array<{ permission: { id: string; name: string; description: string; created_at: Date; updated_at: Date } }>; created_at: Date; updated_at: Date },
         tenant: { id: string; name: string },
     ): Promise<IResponseDTO> {
         const token = tokenProvider.sign(
@@ -177,6 +177,11 @@ class AuthenticateUserService {
             authConfig.refreshToken.expiresDays,
         );
 
+        /**
+         * Invalida TODOS os refresh tokens do usuário (todos os dispositivos/sessões).
+         * Comportamento intencional: ao logar, selecionar tenant ou trocar tenant,
+         * todas as sessões anteriores são encerradas por segurança.
+         */
         await refreshTokensRepository.deleteAllByUserId(user.id);
 
         await refreshTokensRepository.create({

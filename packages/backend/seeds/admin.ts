@@ -188,11 +188,12 @@ async function main(): Promise<void> {
 
     // ─── Admin User ──────────────────────────────────────────────
 
-    /** Cria o usuário admin com senha hasheada, caso não exista. */
+    /** Cria o usuário admin com senha hasheada, caso não exista. Só atualiza senha se o usuário for novo. */
     const hashedPassword = await bcrypt.hash(adminPassword, 12);
+    const existingAdmin = await prisma.users.findUnique({ where: { email: adminEmail } });
     const adminUser = await prisma.users.upsert({
       where: { email: adminEmail },
-      update: { name: adminName, password: hashedPassword },
+      update: { name: adminName, ...(existingAdmin ? {} : { password: hashedPassword }) },
       create: {
         name: adminName,
         email: adminEmail,
