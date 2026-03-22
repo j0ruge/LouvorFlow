@@ -42,6 +42,12 @@ const DEFAULT_TIPOS_EVENTOS = [
   'Evento Especial',
 ];
 
+/** Tonalidades padrão — escala cromática completa (maiores + menores). */
+const DEFAULT_TONALIDADES = [
+  'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+  'Cm', 'C#m', 'Dm', 'D#m', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'A#m', 'Bm',
+];
+
 /** Categorias padrão para classificar músicas por momento litúrgico. */
 const DEFAULT_CATEGORIAS = [
   'Adoração',
@@ -56,10 +62,10 @@ const DEFAULT_CATEGORIAS = [
 ];
 
 /**
- * Semeia dados padrão de domínio (funções, tipos de evento, categorias) para um tenant.
+ * Semeia dados padrão de domínio (funções, tipos de evento, categorias, tonalidades) para um tenant.
  *
  * Idempotente — registros existentes são ignorados via `skipDuplicates`
- * (unique constraint `[tenant_id, nome]`).
+ * (unique constraints `[tenant_id, nome]` e `[tenant_id, tom]`).
  *
  * @param prisma - Instância do Prisma Client (base, sem filtro de tenant)
  * @param tenantId - UUID do tenant para o qual os dados serão criados
@@ -82,4 +88,10 @@ export async function seedTenantDefaults(prisma: PrismaClient, tenantId: string)
     skipDuplicates: true,
   });
   console.log(`  ✓ ${categorias.count} categorias seeded for tenant ${tenantId}`);
+
+  const tonalidades = await prisma.tonalidades.createMany({
+    data: DEFAULT_TONALIDADES.map(tom => ({ tom, tenant_id: tenantId })),
+    skipDuplicates: true,
+  });
+  console.log(`  ✓ ${tonalidades.count} tonalidades seeded for tenant ${tenantId}`);
 }
