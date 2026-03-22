@@ -46,7 +46,12 @@ class App {
      * Configura CORS, parsing de URL-encoded e parsing de JSON.
      */
     middlewares(): void {
-        this.app.use(cors());
+        const allowedOrigin = process.env.APP_WEB_URL ?? '*';
+        this.app.use(cors({
+            origin: allowedOrigin,
+            methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+        }));
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.json());
     }
