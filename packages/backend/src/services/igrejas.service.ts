@@ -108,10 +108,12 @@ class IgrejasService {
   }
 
   /**
-   * Vincula um usuário a um tenant.
+   * Vincula um usuário a um tenant e atribui a role `admin` naquele tenant.
    *
-   * Valida que o tenant existe, que o usuário existe no sistema e que
-   * ainda não há vínculo entre os dois.
+   * Este método é exclusivo do super-admin e pressupõe que o usuário
+   * vinculado será o administrador da igreja. A role `admin` é atribuída
+   * automaticamente para que o usuário tenha permissões de escrita
+   * (integrantes.write, configuracoes.write, etc.) no novo tenant.
    *
    * @param tenantId - UUID do tenant
    * @param userId - UUID do usuário a vincular
@@ -136,7 +138,29 @@ class IgrejasService {
       throw new AppError('Usuário já vinculado a essa igreja', 409);
     }
 
-    return igrejasRepository.addUser(tenantId, userId);
+    const vinculo = await igrejasRepository.addUser(tenantId, userId);
+
+    /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
+    const adminRole = await prisma.roles.findUnique({ where: { name: 'admin' } });
+    if (adminRole) {
+      await prisma.usersRoles.upsert({
+        where: {
+          user_id_role_id_tenant_id: {
+            user_id: userId,
+            role_id: adminRole.id,
+            tenant_id: tenantId,
+          },
+        },
+        update: {},
+        create: {
+          user_id: userId,
+          role_id: adminRole.id,
+          tenant_id: tenantId,
+        },
+      });
+    }
+
+    return vinculo;
   }
 
   /**
