@@ -90,7 +90,7 @@ export const CreateEventoFormSchema = z.object({
     "Data inválida ou ano fora do intervalo permitido",
   ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento"),
-  descricao: z.string().min(1, "Descrição é obrigatória"),
+  descricao: z.string().optional().default(""),
 });
 
 /** Tipo inferido dos dados do formulário de criação de evento. */

@@ -94,14 +94,15 @@ describe('EventosService', () => {
       });
     });
 
-    it('deve lançar AppError 400 quando descricao não é enviada', async () => {
-      await expect(eventosService.create({
+    /** Verifica que descrição é opcional e assume valor vazio como padrão. */
+    it('deve criar evento sem descricao (campo opcional)', async () => {
+      const resultado = await eventosService.create({
         data: '2026-05-01T10:00:00Z',
         fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
-      })).rejects.toMatchObject({
-        statusCode: 400,
-        message: 'Descrição do evento é obrigatória',
       });
+
+      expect(resultado).toHaveProperty('id');
+      expect(resultado.descricao).toBe('');
     });
 
     it('deve lançar AppError 400 quando data é inválida', async () => {
