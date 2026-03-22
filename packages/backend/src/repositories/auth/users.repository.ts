@@ -4,7 +4,7 @@
  * Encapsula todas as queries relacionadas ao model `Users`,
  * incluindo carregamento de roles e permissões associadas.
  */
-import prisma from '../../../prisma/cliente.js';
+import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 import { USER_PUBLIC_SELECT } from '../../types/auth.types.js';
 
 class UsersRepository {
@@ -100,7 +100,7 @@ class UsersRepository {
      */
     async getUserPermissions(id: string, tenantId?: string) {
         const userPermissions = await prisma.usersPermissions.findMany({
-            where: { user_id: id, ...(tenantId ? { tenant_id: tenantId } : {}) },
+            where: { user_id: id, ...(tenantId ? { tenant_id: { in: [tenantId, SYSTEM_TENANT_ID] } } : {}) },
             select: {
                 permission: {
                     select: { id: true, name: true, description: true, created_at: true, updated_at: true },
@@ -122,7 +122,7 @@ class UsersRepository {
      */
     async getUserRoles(id: string, tenantId?: string) {
         const userRoles = await prisma.usersRoles.findMany({
-            where: { user_id: id, ...(tenantId ? { tenant_id: tenantId } : {}) },
+            where: { user_id: id, ...(tenantId ? { tenant_id: { in: [tenantId, SYSTEM_TENANT_ID] } } : {}) },
             select: {
                 role: {
                     select: {
