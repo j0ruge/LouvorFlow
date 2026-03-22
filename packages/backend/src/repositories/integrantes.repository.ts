@@ -1,4 +1,4 @@
-import prisma from '../../prisma/cliente.js';
+import prisma, { getPrisma } from '../../prisma/cliente.js';
 import { INTEGRANTE_PUBLIC_SELECT } from '../types/index.js';
 
 /**
@@ -7,6 +7,10 @@ import { INTEGRANTE_PUBLIC_SELECT } from '../types/index.js';
  * Consultas utilizam `prisma.users` com `INTEGRANTE_PUBLIC_SELECT` para excluir
  * campos sensíveis (`password`, `avatar`). Funções musicais são carregadas via
  * junction table `Users_Funcoes`.
+ *
+ * Operações sobre `users` usam o client base (global), pois `users` não é
+ * filtrada por tenant. Operações sobre `users_Funcoes` e `funcoes` usam
+ * `getPrisma()` para filtro automático de tenant.
  */
 class IntegrantesRepository {
     /**
@@ -136,12 +140,13 @@ class IntegrantesRepository {
 
     /**
      * Retorna as funções musicais associadas a um user.
+     * Usa `getPrisma()` pois `users_Funcoes` é uma tabela de domínio filtrada por tenant.
      *
      * @param userId - ID do user
      * @returns Array de registros de `Users_Funcoes` com a relação aninhada da função
      */
     async findFuncoesByIntegranteId(userId: string) {
-        return prisma.users_Funcoes.findMany({
+        return getPrisma().users_Funcoes.findMany({
             where: { fk_user_id: userId },
             select: {
                 users_funcoes_funcao_id_fkey: {
@@ -153,26 +158,28 @@ class IntegrantesRepository {
 
     /**
      * Busca um vínculo específico entre user e função musical.
+     * Usa `getPrisma()` pois `users_Funcoes` é uma tabela de domínio filtrada por tenant.
      *
      * @param fk_user_id - ID do user
      * @param funcao_id - ID da função
      * @returns Registro encontrado ou `null` se não existir
      */
     async findIntegranteFuncao(fk_user_id: string, funcao_id: string) {
-        return prisma.users_Funcoes.findFirst({
+        return getPrisma().users_Funcoes.findFirst({
             where: { fk_user_id, funcao_id }
         });
     }
 
     /**
      * Cria a associação entre um user e uma função musical.
+     * Usa `getPrisma()` pois `users_Funcoes` é uma tabela de domínio filtrada por tenant.
      *
      * @param fk_user_id - ID do user
      * @param funcao_id - ID da função a ser vinculada
      * @returns Registro criado na tabela Users_Funcoes
      */
     async createIntegranteFuncao(fk_user_id: string, funcao_id: string) {
-        return prisma.users_Funcoes.create({
+        return getPrisma().users_Funcoes.create({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
             data: { fk_user_id, funcao_id, tenant_id: '' as any }
         });
@@ -180,22 +187,24 @@ class IntegrantesRepository {
 
     /**
      * Remove a associação entre user e função musical pelo ID do registro.
+     * Usa `getPrisma()` pois `users_Funcoes` é uma tabela de domínio filtrada por tenant.
      *
      * @param id - UUID do registro de associação
      * @returns Registro removido
      */
     async deleteIntegranteFuncao(id: string) {
-        return prisma.users_Funcoes.delete({ where: { id } });
+        return getPrisma().users_Funcoes.delete({ where: { id } });
     }
 
     /**
      * Busca uma função pelo ID.
+     * Usa `getPrisma()` pois `funcoes` é uma tabela de domínio filtrada por tenant.
      *
      * @param funcao_id - UUID da função
      * @returns Função encontrada ou `null`
      */
     async findFuncaoById(funcao_id: string) {
-        return prisma.funcoes.findUnique({ where: { id: funcao_id } });
+        return getPrisma().funcoes.findUnique({ where: { id: funcao_id } });
     }
 }
 

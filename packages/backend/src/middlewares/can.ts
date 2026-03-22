@@ -50,13 +50,15 @@ export function can(permissions: string[]) {
         }
 
         if (!req.user.permissions || !req.user.roles) {
+            /** Passa tenantId para filtrar roles/permissions pelo tenant ativo. */
+            const tenantId = req.user.tenantId;
             const [directPermissions, userRoles] = await Promise.all([
                 req.user.permissions
                     ? Promise.resolve(req.user.permissions)
-                    : usersRepository.getUserPermissions(req.user.id),
+                    : usersRepository.getUserPermissions(req.user.id, tenantId),
                 req.user.roles
                     ? Promise.resolve(req.user.roles)
-                    : usersRepository.getUserRoles(req.user.id),
+                    : usersRepository.getUserRoles(req.user.id, tenantId),
             ]);
 
             req.user.permissions = directPermissions;

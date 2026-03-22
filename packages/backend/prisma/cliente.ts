@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { tenantContext } from '../src/context/tenant-context.js';
 
 /**
  * Instância singleton do Prisma Client (base, sem filtro de tenant).
@@ -7,11 +8,28 @@ import { PrismaClient } from "@prisma/client";
  * - Operações globais (auth, login, gestão de tenants pelo super-admin)
  * - Migrations e seeds
  *
- * Para operações de domínio, usar `forTenant(tenantId)`.
+ * Para operações de domínio, usar `getPrisma()` (que retorna o client
+ * tenant-scoped via AsyncLocalStorage) ou `forTenant(tenantId)`.
  */
 const prisma = new PrismaClient();
 
 export default prisma;
+
+/**
+ * Retorna o Prisma Client adequado ao contexto da requisição.
+ *
+ * Se chamado dentro de uma requisição com tenant context (configurado
+ * pelo middleware `ensureAuthenticated`), retorna o client tenant-scoped.
+ * Caso contrário, retorna o client base (global).
+ *
+ * Uso: repositories de domínio devem usar `getPrisma()` ao invés de
+ * importar `prisma` diretamente.
+ *
+ * @returns PrismaClient — tenant-scoped se em contexto de request, base caso contrário
+ */
+export function getPrisma(): PrismaClient {
+  return (tenantContext.getStore() as PrismaClient) ?? prisma;
+}
 
 /**
  * IDs fixos dos tenants de sistema.

@@ -24,6 +24,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/use-auth";
 import { useCan } from "@/hooks/use-can";
+import { TenantSwitcher } from "@/components/TenantSwitcher";
 
 import {
   Sidebar,
@@ -106,6 +107,12 @@ export function AppSidebar() {
           <Music className="h-6 w-6 text-sidebar-foreground mx-auto" />
         )}
       </SidebarHeader>
+
+      {!collapsed && (
+        <div className="px-3 py-2 border-b border-sidebar-border">
+          <TenantSwitcher />
+        </div>
+      )}
 
       <SidebarContent>
         <SidebarGroup>

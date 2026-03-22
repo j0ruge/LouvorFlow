@@ -34,6 +34,15 @@ export const RoleSchema = z.object({
 /** Tipo inferido de um papel. */
 export type Role = z.infer<typeof RoleSchema>;
 
+/** Schema de um tenant (igreja) retornado pela API. */
+export const TenantSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
+/** Tipo inferido de um tenant. */
+export type Tenant = z.infer<typeof TenantSchema>;
+
 /** Schema do usuário autenticado retornado pelo login. */
 export const AuthUserSchema = z.object({
   id: z.string().uuid(),
@@ -43,6 +52,7 @@ export const AuthUserSchema = z.object({
   avatar_url: z.string().nullable(),
   roles: z.array(RoleSchema),
   permissions: z.array(PermissionSchema),
+  tenant: TenantSchema.optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -50,14 +60,40 @@ export const AuthUserSchema = z.object({
 /** Tipo inferido do usuário autenticado. */
 export type AuthUser = z.infer<typeof AuthUserSchema>;
 
-/** Schema da resposta de login (POST /api/sessions). */
-export const LoginResponseSchema = z.object({
+/** Schema da resposta de login para fluxo single-tenant (POST /api/sessions). */
+export const SingleTenantLoginResponseSchema = z.object({
   user: AuthUserSchema,
   token: z.string(),
   refresh_token: z.string(),
 });
 
-/** Tipo inferido da resposta de login. */
+/** Tipo inferido da resposta de login single-tenant. */
+export type SingleTenantLoginResponse = z.infer<typeof SingleTenantLoginResponseSchema>;
+
+/**
+ * Schema da resposta de login para fluxo multi-tenant.
+ * Retornado quando o usuário pertence a mais de uma organização.
+ */
+export const TenantSelectionResponseSchema = z.object({
+  requires_tenant_selection: z.literal(true),
+  tenants: z.array(TenantSchema),
+  selection_token: z.string(),
+});
+
+/** Tipo inferido da resposta de seleção de tenant. */
+export type TenantSelectionResponse = z.infer<typeof TenantSelectionResponseSchema>;
+
+/**
+ * Schema union da resposta de login — suporta tanto o fluxo single-tenant
+ * (retorna tokens e dados do usuário) quanto o fluxo multi-tenant
+ * (requer seleção de organização antes de completar a autenticação).
+ */
+export const LoginResponseSchema = z.union([
+  SingleTenantLoginResponseSchema,
+  TenantSelectionResponseSchema,
+]);
+
+/** Tipo inferido da resposta de login (union single-tenant | multi-tenant). */
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
 /** Schema da resposta de refresh token (POST /api/sessions/refresh-token). */

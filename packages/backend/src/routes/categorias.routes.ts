@@ -7,14 +7,15 @@
 import { Router } from 'express';
 import categoriasController from '../controllers/categorias.controller.js';
 import { ensureAuthenticated } from '../middlewares/ensureAuthenticated.js';
+import { ensureTenantContext } from '../middlewares/ensureTenantContext.js';
 import { can } from '../middlewares/can.js';
 
 const router: Router = Router();
 
-router.get('/', ensureAuthenticated, categoriasController.index);
-router.get('/:id', ensureAuthenticated, categoriasController.show);
-router.post('/', ensureAuthenticated, can(['configuracoes.write']), categoriasController.create);
-router.put('/:id', ensureAuthenticated, can(['configuracoes.write']), categoriasController.update);
-router.delete('/:id', ensureAuthenticated, can(['configuracoes.write']), categoriasController.delete);
+router.get('/', ensureAuthenticated, ensureTenantContext, categoriasController.index);
+router.get('/:id', ensureAuthenticated, ensureTenantContext, categoriasController.show);
+router.post('/', ensureAuthenticated, ensureTenantContext, can(['configuracoes.write']), categoriasController.create);
+router.put('/:id', ensureAuthenticated, ensureTenantContext, can(['configuracoes.write']), categoriasController.update);
+router.delete('/:id', ensureAuthenticated, ensureTenantContext, can(['configuracoes.write']), categoriasController.delete);
 
 export default router;

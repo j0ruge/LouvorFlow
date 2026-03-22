@@ -11,6 +11,7 @@ import {
   LoginResponseSchema,
   RefreshTokenResponseSchema,
   AuthUserSchema,
+  SingleTenantLoginResponseSchema,
 } from "@/schemas/auth";
 import type {
   LoginForm,
@@ -20,6 +21,7 @@ import type {
   UpdateProfileForm,
   ForgotPasswordForm,
   ResetPasswordForm,
+  SingleTenantLoginResponse,
 } from "@/schemas/auth";
 
 /**
@@ -67,6 +69,45 @@ export async function refreshToken(
 
   const data = await response.json();
   return RefreshTokenResponseSchema.parse(data);
+}
+
+/**
+ * Seleciona um tenant (organização) após o login multi-tenant.
+ *
+ * Chamado quando a resposta de login retorna `requires_tenant_selection: true`.
+ * Envia o token de seleção temporário e o tenant escolhido para completar
+ * a autenticação, retornando os tokens de acesso e dados do usuário.
+ *
+ * @param selectionToken - Token temporário recebido na resposta de login multi-tenant.
+ * @param tenantId - UUID do tenant selecionado pelo usuário.
+ * @returns Resposta de login completa com token de acesso e dados do usuário.
+ */
+export async function selectTenant(
+  selectionToken: string,
+  tenantId: string,
+): Promise<SingleTenantLoginResponse> {
+  const data = await apiFetch<unknown>("/sessions/select-tenant", {
+    method: "POST",
+    body: JSON.stringify({ selection_token: selectionToken, tenant_id: tenantId }),
+  });
+  return SingleTenantLoginResponseSchema.parse(data);
+}
+
+/**
+ * Troca o tenant ativo do usuário autenticado (Phase 7 — switch de organização).
+ *
+ * Permite que um usuário membro de múltiplas igrejas alterne entre elas
+ * sem precisar fazer logout. Retorna novos tokens para o tenant selecionado.
+ *
+ * @param tenantId - UUID do tenant para o qual deseja alternar.
+ * @returns Resposta de login completa com novos tokens e dados do usuário.
+ */
+export async function switchTenant(tenantId: string): Promise<SingleTenantLoginResponse> {
+  const data = await apiFetch<unknown>("/sessions/switch-tenant", {
+    method: "POST",
+    body: JSON.stringify({ tenant_id: tenantId }),
+  });
+  return SingleTenantLoginResponseSchema.parse(data);
 }
 
 /**

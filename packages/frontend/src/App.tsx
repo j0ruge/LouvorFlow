@@ -41,6 +41,7 @@ import AdminUserAcl from "./pages/admin/UserAcl";
 import AdminRoles from "./pages/admin/Roles";
 import AdminRolePermissions from "./pages/admin/RolePermissions";
 import AdminPermissions from "./pages/admin/Permissions";
+import SelectTenant from "./pages/SelectTenant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,8 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/esqueci-senha" element={<ForgotPassword />} />
                 <Route path="/redefinir-senha" element={<ResetPassword />} />
+                {/* Rota de seleção de organização (mid-login, sem ProtectedRoute) */}
+                <Route path="/selecionar-igreja" element={<SelectTenant />} />
 
                 {/* Rotas protegidas (autenticação obrigatória) */}
                 <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />

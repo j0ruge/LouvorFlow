@@ -92,13 +92,15 @@ class UsersRepository {
     /**
      * Retorna as permissões diretas atribuídas ao usuário,
      * mapeadas para um array plano de objetos `{ id, name, description }`.
+     * Quando `tenantId` é fornecido, filtra apenas os registros daquele tenant.
      *
      * @param id - UUID do usuário
+     * @param tenantId - UUID do tenant para filtro opcional
      * @returns Array de permissões diretas do usuário
      */
-    async getUserPermissions(id: string) {
+    async getUserPermissions(id: string, tenantId?: string) {
         const userPermissions = await prisma.usersPermissions.findMany({
-            where: { user_id: id },
+            where: { user_id: id, ...(tenantId ? { tenant_id: tenantId } : {}) },
             select: {
                 permission: {
                     select: { id: true, name: true, description: true, created_at: true, updated_at: true },
@@ -112,13 +114,15 @@ class UsersRepository {
     /**
      * Retorna as roles atribuídas ao usuário, cada uma com suas
      * permissões carregadas e achatadas em um array plano.
+     * Quando `tenantId` é fornecido, filtra apenas os registros daquele tenant.
      *
      * @param id - UUID do usuário
+     * @param tenantId - UUID do tenant para filtro opcional
      * @returns Array de roles com permissões achatadas
      */
-    async getUserRoles(id: string) {
+    async getUserRoles(id: string, tenantId?: string) {
         const userRoles = await prisma.usersRoles.findMany({
-            where: { user_id: id },
+            where: { user_id: id, ...(tenantId ? { tenant_id: tenantId } : {}) },
             select: {
                 role: {
                     select: {

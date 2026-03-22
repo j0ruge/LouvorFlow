@@ -3697,7 +3697,7 @@
     "/sessions": {
       "post": {
         "summary": "Login — criar sessão",
-        "description": "Autentica o usuário com email e senha, retornando access token, refresh token e dados do usuário.",
+        "description": "Autentica o usuário com email e senha. Suporta fluxo multi-tenant: se o usuário possui um único tenant ativo, retorna sessão completa (SessionResponse). Se possui múltiplos tenants ativos, retorna TenantSelectionResponse com selection_token para uso em POST /sessions/select-tenant.",
         "tags": [
           "Sessions"
         ],
@@ -3713,11 +3713,14 @@
         },
         "responses": {
           "200": {
-            "description": "Sessão criada com sucesso",
+            "description": "Sessão criada (tenant único) ou seleção de tenant necessária (múltiplos tenants)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/SessionResponse" },
+                    { "$ref": "#/components/schemas/TenantSelectionResponse" }
+                  ]
                 }
               }
             }
@@ -3789,6 +3792,52 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/sessions/select-tenant": {
+      "post": {
+        "summary": "Selecionar tenant (multi-tenant login)",
+        "description": "Finaliza o fluxo de login multi-tenant. Recebe o selection_token emitido durante o login (quando o usuário possui múltiplos tenants ativos) e o tenant_id escolhido pelo usuário. Valida o vínculo e emite os tokens de sessão definitivos com tenantId no payload.",
+        "tags": [
+          "Sessions"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectTenantInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tenant selecionado — sessão completa emitida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -5386,11 +5435,73 @@
           "updated_at"
         ]
       },
+      "TenantRef": {
+        "type": "object",
+        "description": "Referência resumida de um tenant (igreja/comunidade).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name"]
+      },
+      "SelectTenantInput": {
+        "type": "object",
+        "description": "Dados para seleção de tenant no fluxo de login multi-tenant.",
+        "properties": {
+          "selection_token": {
+            "type": "string",
+            "description": "Token de seleção emitido durante o login quando o usuário possui múltiplos tenants ativos."
+          },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID do tenant selecionado pelo usuário."
+          }
+        },
+        "required": ["selection_token", "tenant_id"]
+      },
+      "TenantSelectionResponse": {
+        "type": "object",
+        "description": "Resposta do login quando o usuário possui múltiplos tenants ativos. O frontend deve exibir a seleção de tenant e chamar POST /sessions/select-tenant.",
+        "properties": {
+          "requires_tenant_selection": {
+            "type": "boolean",
+            "enum": [true]
+          },
+          "tenants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantRef"
+            }
+          },
+          "selection_token": {
+            "type": "string",
+            "description": "Token de curta duração (5 min) para uso em POST /sessions/select-tenant."
+          }
+        },
+        "required": ["requires_tenant_selection", "tenants", "selection_token"]
+      },
       "SessionResponse": {
         "type": "object",
+        "description": "Resposta de sessão completa (tenant único ou após seleção de tenant). O campo tenant é incluído quando o usuário possui contexto de tenant.",
         "properties": {
           "user": {
-            "$ref": "#/components/schemas/UserPublic"
+            "allOf": [
+              { "$ref": "#/components/schemas/UserPublic" },
+              {
+                "type": "object",
+                "properties": {
+                  "tenant": {
+                    "$ref": "#/components/schemas/TenantRef"
+                  }
+                }
+              }
+            ]
           },
           "token": {
             "type": "string"

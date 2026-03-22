@@ -1,18 +1,34 @@
 /**
- * Testes unitários do serviço de autenticação de usuários.
+ * Testes unitários do serviço de autenticação de usuários com suporte multi-tenant.
  *
- * Valida os cenários de login com credenciais válidas, email inexistente
- * e senha incorreta, garantindo que tokens são gerados corretamente
- * e que erros adequados são lançados.
+ * Valida os cenários de login com credenciais válidas para tenant único,
+ * fluxo de seleção para múltiplos tenants, email inexistente, senha incorreta
+ * e usuário sem tenant ativo vinculado.
  */
 
 import { AppError } from '../../../src/errors/AppError.js';
+import { TENANT_A_ID, TENANT_B_ID } from '../../fakes/mock-data.js';
 
 import fakeUsersRepo from '../../fakes/auth/fake-users.repository.js';
 import fakeHashProvider from '../../fakes/auth/fake-hash.provider.js';
 import fakeTokenProvider from '../../fakes/auth/fake-token.provider.js';
 import fakeRefreshTokensRepo from '../../fakes/auth/fake-refresh-tokens.repository.js';
 import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
+
+/** Tenants ativos retornados pelo mock do Prisma por padrão (tenant único). */
+let mockActiveTenants: Array<{ tenant: { id: string; name: string; status: string } }> = [];
+
+/**
+ * Mock do módulo Prisma para simular a consulta `tenantUsers.findMany`.
+ * O array `mockActiveTenants` é configurado por cada teste para controlar o cenário.
+ */
+vi.mock('../../../prisma/cliente.js', () => ({
+    default: {
+        tenantUsers: {
+            findMany: vi.fn().mockImplementation(() => Promise.resolve(mockActiveTenants)),
+        },
+    },
+}));
 
 vi.mock('../../../src/repositories/auth/users.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-users.repository.js');
@@ -45,14 +61,20 @@ const { default: authenticateUserService } = await import(
 
 /** @group AuthenticateUserService */
 describe('AuthenticateUserService', () => {
-    /** Reinicia os repositórios fake antes de cada teste para isolamento. */
+    /** Reinicia os repositórios fake e o mock de tenants antes de cada teste para isolamento. */
     beforeEach(() => {
         fakeUsersRepo.reset();
         fakeRefreshTokensRepo.reset();
+        fakeTokenProvider.reset();
+        mockActiveTenants = [];
     });
 
-    /** Deve autenticar com credenciais válidas e retornar usuário, token e refresh token. */
-    it('deve autenticar com credenciais válidas', async () => {
+    /** Deve autenticar com credenciais válidas e tenant único retornando usuário, token e refresh token. */
+    it('deve autenticar com credenciais válidas (tenant único)', async () => {
+        mockActiveTenants = [
+            { tenant: { id: TENANT_A_ID, name: 'Igreja Central', status: 'active' } },
+        ];
+
         await fakeUsersRepo.create({
             name: 'Test',
             email: 'test@test.com',
@@ -67,9 +89,58 @@ describe('AuthenticateUserService', () => {
         expect(result).toHaveProperty('user');
         expect(result).toHaveProperty('token');
         expect(result).toHaveProperty('refresh_token');
-        expect(result.user.email).toBe('test@test.com');
-        expect(result.token).toEqual(expect.any(String));
-        expect(result.refresh_token).toEqual(expect.any(String));
+        expect((result as any).user.email).toBe('test@test.com');
+        expect((result as any).user.tenant).toMatchObject({ id: TENANT_A_ID, name: 'Igreja Central' });
+    });
+
+    /** Deve retornar dados de seleção de tenant quando o usuário pertence a múltiplos tenants. */
+    it('deve retornar requires_tenant_selection para múltiplos tenants', async () => {
+        mockActiveTenants = [
+            { tenant: { id: TENANT_A_ID, name: 'Igreja Central', status: 'active' } },
+            { tenant: { id: TENANT_B_ID, name: 'Igreja Norte', status: 'active' } },
+        ];
+
+        await fakeUsersRepo.create({
+            name: 'Multi',
+            email: 'multi@test.com',
+            password: 'password123',
+        });
+
+        const result = await authenticateUserService.execute({
+            email: 'multi@test.com',
+            password: 'password123',
+        });
+
+        expect(result).toMatchObject({
+            requires_tenant_selection: true,
+            tenants: expect.arrayContaining([
+                { id: TENANT_A_ID, name: 'Igreja Central' },
+                { id: TENANT_B_ID, name: 'Igreja Norte' },
+            ]),
+            selection_token: expect.any(String),
+        });
+        expect((result as any).token).toBeUndefined();
+    });
+
+    /** Deve lançar AppError 401 quando o usuário não possui nenhum tenant ativo vinculado. */
+    it('deve lançar erro 401 quando usuário não tem tenants ativos', async () => {
+        mockActiveTenants = [];
+
+        await fakeUsersRepo.create({
+            name: 'Sem Tenant',
+            email: 'semtenant@test.com',
+            password: 'password123',
+        });
+
+        await expect(
+            authenticateUserService.execute({
+                email: 'semtenant@test.com',
+                password: 'password123',
+            }),
+        ).rejects.toMatchObject({
+            message: 'Usuário não vinculado a nenhuma igreja ativa',
+            statusCode: 401,
+        });
     });
 
     /** Deve lançar AppError 401 quando o email fornecido não existe no repositório. */

@@ -5,6 +5,12 @@
  * e flags derivadas (isAuthenticated, isAdmin). Gerencia o ciclo de vida
  * dos tokens (access em memória, refresh em localStorage) e a inicialização
  * automática da sessão via refresh token ao carregar a aplicação.
+ *
+ * Suporta o fluxo multi-tenant: quando o login retorna
+ * `requires_tenant_selection: true`, o `signIn` navega para a página de
+ * seleção de organização em vez de completar o login imediatamente.
+ * A lista de tenants disponíveis é persistida em localStorage para permitir
+ * o TenantSwitcher mesmo após reload da página.
  */
 
 import {
@@ -16,6 +22,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   setAccessToken,
   setRefreshToken,
@@ -23,9 +30,12 @@ import {
   clearTokens,
   setOnAuthFailure,
 } from "@/lib/api";
-import { login as loginService, refreshToken as refreshTokenService, logout as logoutService, getProfile } from "@/services/auth";
+import { login as loginService, refreshToken as refreshTokenService, logout as logoutService, getProfile, switchTenant as switchTenantService } from "@/services/auth";
 import { useQueryClient } from "@tanstack/react-query";
-import type { AuthUser, LoginForm } from "@/schemas/auth";
+import type { AuthUser, LoginForm, Tenant } from "@/schemas/auth";
+
+/** Chave utilizada para persistir a lista de tenants do usuário no localStorage. */
+const TENANTS_STORAGE_KEY = "louvorflow_user_tenants";
 
 /** Estado de autenticação exposto pelo contexto. */
 interface AuthContextData {
@@ -37,18 +47,46 @@ interface AuthContextData {
   isAuthenticated: boolean;
   /** `true` se o usuário possui a role "admin". */
   isAdmin: boolean;
-  /** Realiza login com e-mail e senha. */
+  /** Tenant (organização) ativo do usuário ou `null` se não definido. */
+  currentTenant: Tenant | null;
+  /** Lista de todos os tenants disponíveis para o usuário (multi-tenant). */
+  availableTenants: Tenant[];
+  /**
+   * Realiza login com e-mail e senha.
+   * No fluxo multi-tenant, navega para `/selecionar-igreja` em vez de
+   * completar o login diretamente.
+   */
   signIn: (dados: LoginForm) => Promise<void>;
   /** Encerra a sessão e limpa todos os dados locais. */
   signOut: () => Promise<void>;
   /** Atualiza os dados do usuário no contexto (ex: após edição de perfil). */
   updateUser: (user: AuthUser) => void;
+  /**
+   * Completa o login após seleção de tenant (chamado pela SelectTenantPage).
+   *
+   * @param user - Dados do usuário retornados após seleção do tenant.
+   * @param token - Novo access token.
+   * @param refreshTokenValue - Novo refresh token.
+   * @param tenants - Lista completa de tenants disponíveis para persistência.
+   */
+  completeTenantLogin: (user: AuthUser, token: string, refreshTokenValue: string, tenants?: Tenant[]) => void;
+  /**
+   * Troca o tenant ativo sem necessidade de re-login.
+   *
+   * Chama `POST /api/sessions/switch-tenant`, atualiza tokens e estado do
+   * usuário, e invalida o cache do React Query para forçar novo fetch
+   * de dados do tenant selecionado.
+   *
+   * @param tenantId - UUID do tenant para o qual alternar.
+   */
+  switchTenant: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 /** Props do AuthProvider. */
 interface AuthProviderProps {
+  /** Componentes filhos a serem envolvidos. */
   children: ReactNode;
 }
 
@@ -64,8 +102,32 @@ interface AuthProviderProps {
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+  const [availableTenants, setAvailableTenants] = useState<Tenant[]>(() => {
+    try {
+      const stored = localStorage.getItem(TENANTS_STORAGE_KEY);
+      return stored ? (JSON.parse(stored) as Tenant[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  /**
+   * Persiste a lista de tenants disponíveis no localStorage e no estado.
+   *
+   * @param tenants - Lista de tenants a armazenar.
+   */
+  const persistAvailableTenants = useCallback((tenants: Tenant[]) => {
+    setAvailableTenants(tenants);
+    try {
+      localStorage.setItem(TENANTS_STORAGE_KEY, JSON.stringify(tenants));
+    } catch {
+      // Ignora falha de localStorage (ex: modo privado com storage cheio)
+    }
+  }, []);
 
   /**
    * Encerra a sessão: revoga tokens no backend, limpa estado local
@@ -78,7 +140,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Ignora erro de logout — limpa localmente de qualquer forma
     }
     clearTokens();
+    localStorage.removeItem(TENANTS_STORAGE_KEY);
     setUser(null);
+    setCurrentTenant(null);
+    setAvailableTenants([]);
     queryClient.clear();
   }, [queryClient]);
 
@@ -90,7 +155,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     setOnAuthFailure(() => {
       clearTokens();
+      localStorage.removeItem(TENANTS_STORAGE_KEY);
       setUser(null);
+      setCurrentTenant(null);
+      setAvailableTenants([]);
       queryClient.clear();
     });
 
@@ -120,6 +188,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const profile = await getProfile();
         setUser(profile);
+        setCurrentTenant(profile.tenant ?? null);
       } catch {
         clearTokens();
       } finally {
@@ -133,14 +202,79 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Realiza login com e-mail e senha.
    *
+   * Se o backend retornar `requires_tenant_selection: true`, navega para
+   * `/selecionar-igreja` passando os tenants disponíveis e o token de seleção
+   * via `location.state`. Caso contrário, completa o login normalmente
+   * armazenando tokens e dados do usuário.
+   *
    * @param dados - Credenciais de login (email, password).
    */
   const signIn = useCallback(async (dados: LoginForm) => {
     const response = await loginService(dados);
+
+    if ('requires_tenant_selection' in response && response.requires_tenant_selection) {
+      persistAvailableTenants(response.tenants);
+      navigate("/selecionar-igreja", {
+        state: {
+          tenants: response.tenants,
+          selection_token: response.selection_token,
+        },
+      });
+      return;
+    }
+
     setAccessToken(response.token);
     setRefreshToken(response.refresh_token);
     setUser(response.user);
-  }, []);
+    setCurrentTenant(response.user.tenant ?? null);
+    if (response.user.tenant) {
+      persistAvailableTenants([response.user.tenant]);
+    }
+  }, [navigate, persistAvailableTenants]);
+
+  /**
+   * Completa o login após o usuário selecionar seu tenant na página de seleção.
+   *
+   * Chamado pela `SelectTenantPage` após receber a resposta bem-sucedida de
+   * `POST /api/sessions/select-tenant`. A lista de tenants passada aqui
+   * é persistida para uso futuro pelo TenantSwitcher.
+   *
+   * @param selectedUser - Dados do usuário autenticado com o tenant selecionado.
+   * @param token - Access token para o tenant selecionado.
+   * @param refreshTokenValue - Refresh token para o tenant selecionado.
+   * @param tenants - Lista completa de tenants disponíveis (opcional).
+   */
+  const completeTenantLogin = useCallback(
+    (selectedUser: AuthUser, token: string, refreshTokenValue: string, tenants?: Tenant[]) => {
+      setAccessToken(token);
+      setRefreshToken(refreshTokenValue);
+      setUser(selectedUser);
+      setCurrentTenant(selectedUser.tenant ?? null);
+      if (tenants && tenants.length > 0) {
+        persistAvailableTenants(tenants);
+      }
+    },
+    [persistAvailableTenants],
+  );
+
+  /**
+   * Troca o tenant ativo da sessão sem necessidade de re-login.
+   *
+   * Chama `POST /api/sessions/switch-tenant`, atualiza os tokens de acesso
+   * em memória e refresh no localStorage, atualiza o estado do usuário e
+   * invalida o cache do React Query para que as queries sejam refeitas
+   * com o contexto do novo tenant.
+   *
+   * @param tenantId - UUID do tenant para o qual alternar.
+   */
+  const switchTenant = useCallback(async (tenantId: string) => {
+    const response = await switchTenantService(tenantId);
+    setAccessToken(response.token);
+    setRefreshToken(response.refresh_token);
+    setUser(response.user);
+    setCurrentTenant(response.user.tenant ?? null);
+    queryClient.invalidateQueries();
+  }, [queryClient]);
 
   /**
    * Atualiza os dados do usuário no contexto.
@@ -149,6 +283,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const updateUser = useCallback((updatedUser: AuthUser) => {
     setUser(updatedUser);
+    setCurrentTenant(updatedUser.tenant ?? null);
   }, []);
 
   const value = useMemo<AuthContextData>(() => {
@@ -160,11 +295,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       isLoading,
       isAuthenticated,
       isAdmin,
+      currentTenant,
+      availableTenants,
       signIn,
       signOut,
       updateUser,
+      completeTenantLogin,
+      switchTenant,
     };
-  }, [user, isLoading, signIn, signOut, updateUser]);
+  }, [user, isLoading, currentTenant, availableTenants, signIn, signOut, updateUser, completeTenantLogin, switchTenant]);
 
   return (
     <AuthContext.Provider value={value}>

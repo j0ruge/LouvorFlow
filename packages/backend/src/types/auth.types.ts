@@ -82,11 +82,30 @@ export interface SanitizedUser {
     updated_at: Date;
 }
 
+/** Tenant resumido retornado no fluxo de seleção multi-tenant. */
+export interface ITenantRef {
+    id: string;
+    name: string;
+}
+
 /** Dados de resposta do login (usuário + tokens). */
 export interface IResponseDTO {
-    user: SanitizedUser;
+    user: SanitizedUser & { tenant?: ITenantRef };
     token: string;
     refresh_token: string;
+}
+
+/** Dados de resposta quando o usuário possui múltiplos tenants ativos e precisa selecionar um. */
+export interface ITenantSelectionDTO {
+    requires_tenant_selection: true;
+    tenants: ITenantRef[];
+    selection_token: string;
+}
+
+/** Dados de entrada para seleção de tenant no fluxo multi-tenant. */
+export interface ISelectTenantDTO {
+    selection_token: string;
+    tenant_id: string;
 }
 
 /** Dados de entrada para logout. */

@@ -1,8 +1,10 @@
 /**
- * Serviço de renovação de tokens de sessão.
+ * Serviço de renovação de tokens de sessão com suporte a multi-tenant.
  *
  * Verifica o refresh token atual, invalida-o no banco e emite
  * um novo par de access token + refresh token (rotação de tokens).
+ * O tenantId presente no payload do refresh token é preservado no novo access token,
+ * garantindo que o contexto de tenant do usuário seja mantido entre renovações.
  */
 
 import { AppError } from '../../errors/AppError.js';
@@ -15,6 +17,10 @@ class UserRefreshTokenService {
     /**
      * Renova a sessão do usuário a partir de um refresh token válido.
      *
+     * Decodifica o refresh token para extrair o subject (userId), email e tenantId.
+     * O tenantId é preservado no novo access token e refresh token para manter
+     * o contexto de tenant entre renovações de sessão.
+     *
      * @param token - Refresh token JWT enviado pelo cliente.
      * @returns Novo par de access token e refresh token.
      * @throws AppError 400 se o refresh token for inválido ou não existir no banco.
@@ -24,6 +30,7 @@ class UserRefreshTokenService {
     ): Promise<{ token: string; refresh_token: string }> {
         let sub: string;
         let email: string;
+        let tenantId: string | undefined;
 
         try {
             const decoded = tokenProvider.verify(
@@ -37,6 +44,11 @@ class UserRefreshTokenService {
 
             sub = decoded.sub;
             email = decoded.email;
+
+            // Preserva o tenantId do payload do refresh token, se presente
+            if (typeof decoded.tenantId === 'string') {
+                tenantId = decoded.tenantId;
+            }
         } catch (error) {
             if (error instanceof AppError) throw error;
             throw new AppError('Refresh token inválido', 400);
@@ -54,8 +66,12 @@ class UserRefreshTokenService {
 
         await refreshTokensRepository.deleteById(existingToken.id);
 
+        // Preserva tenantId no payload do novo access token
+        const accessTokenPayload: Record<string, unknown> = {};
+        if (tenantId) accessTokenPayload.tenantId = tenantId;
+
         const newAccessToken = tokenProvider.sign(
-            {},
+            accessTokenPayload,
             authConfig.accessToken.secret,
             {
                 subject: sub,
@@ -63,8 +79,12 @@ class UserRefreshTokenService {
             },
         );
 
+        // Preserva tenantId no payload do novo refresh token
+        const refreshTokenPayload: Record<string, unknown> = { email };
+        if (tenantId) refreshTokenPayload.tenantId = tenantId;
+
         const newRefreshToken = tokenProvider.sign(
-            { email },
+            refreshTokenPayload,
             authConfig.refreshToken.secret,
             {
                 subject: sub,

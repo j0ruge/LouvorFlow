@@ -42,7 +42,8 @@ export function is(roles: string[]) {
         }
 
         if (!req.user.roles) {
-            req.user.roles = await usersRepository.getUserRoles(req.user.id);
+            /** Passa tenantId para filtrar roles pelo tenant ativo. */
+            req.user.roles = await usersRepository.getUserRoles(req.user.id, req.user.tenantId);
         }
 
         const hasRole = req.user.roles.some((userRole) =>
