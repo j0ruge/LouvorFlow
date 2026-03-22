@@ -105,6 +105,10 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - O que acontece quando um admin tenta editar suas próprias permissões? O sistema DEVE rejeitar com 403 (anti-self-elevation). O frontend deve desabilitar o formulário e exibir mensagem informativa.
 - O que acontece quando super-admin está logado em tenant onde não tem role admin? DEVE funcionar normalmente — `is(['admin', 'super-admin'])` garante acesso. `getUserRoles/getUserPermissions` incluem SYSTEM_TENANT_ID.
 - O que acontece quando controller chama save() de ACL sem tenantId? DEVE lançar erro explícito ("tenant_id é obrigatório") — nunca inserir string vazia no banco.
+- O que acontece quando um repository de domínio faz `create` sem tenant_id explícito? DEVE falhar em compile-time (parâmetro obrigatório `tenantId: string`). Nunca usar placeholder `'' as any`.
+- O que acontece quando uma nova variável de ambiente obrigatória é adicionada ao código? DEVE ser adicionada simultaneamente aos workflows de CD, `.env.example` (dev e deploy), e como GitHub Secret nos environments. Caso contrário, o container crasha no startup em produção.
+- O que acontece quando admin de um tenant lista usuários? DEVE ver apenas as roles atribuídas naquele tenant, não roles de outros tenants. Roles do SYSTEM_TENANT_ID (super-admin) NÃO devem aparecer para admins regulares.
+- O que acontece quando controller usa `req.user.tenantId!` sem `!` em `user`? TypeScript falha com TS18048 porque `req.user` é `optional`. DEVE usar `req.user!.tenantId!`.
 
 ## Clarifications
 
@@ -222,8 +226,67 @@ Bugs encontrados e regras derivadas para prevenir regressões:
 
 ### Controller DEVE passar tenantId ao Service/Repository
 
-- **Regra**: Todo controller que chama `usersRepository.save()` com roles ou permissions DEVE passar `tenantId` explicitamente via `req.user.tenantId`. O repository NÃO deve aceitar `tenantId` vazio/undefined para operações de escrita em `usersRoles`/`usersPermissions` — DEVE lançar erro claro.
+- **Regra**: Todo controller que chama `usersRepository.save()` com roles ou permissions DEVE passar `tenantId` explicitamente via `req.user!.tenantId!`. O repository NÃO deve aceitar `tenantId` vazio/undefined para operações de escrita em `usersRoles`/`usersPermissions` — DEVE lançar erro claro.
 - **Motivo**: Bug #8 — controller de ACL não passava `tenantId`, causando `tenant_id: ''` (UUID inválido) no `createMany`.
+
+### PROIBIDO: Placeholder `tenant_id: '' as any` em operações de criação
+
+- **Regra**: Repositories de domínio NUNCA devem usar `tenant_id: '' as any` como placeholder em `create`/`createMany`. O `tenantId` DEVE ser passado explicitamente pelo controller → service → repository como parâmetro `tenantId: string`.
+- **Motivo**: Bug #13 (CRÍTICO, afetou TODAS as rotas de criação de domínio) — Todos os repos de configuração (artistas, categorias, funções, tonalidades, tipos-eventos), eventos e músicas usavam `tenant_id: '' as any` esperando que o interceptor `$extends` substituísse por um UUID válido. A string vazia falhava na validação UUID do Prisma ANTES do interceptor atuar. O erro era engolido pelo try-catch dos controllers, retornando apenas "Erro ao criar X" sem diagnóstico.
+- **Escopo do impacto**: 13 ocorrências em 3 repos (eventos: 4, músicas: 8, integrantes: 1) + 5 repos de configuração. Nenhum registro de domínio podia ser criado em qualquer tenant.
+- **Padrão correto**: `async create(nome: string, tenantId: string) { return getPrisma().model.create({ data: { nome, tenant_id: tenantId } }) }`
+- **Regra derivada**: O interceptor `$extends` é confiável para operações de LEITURA (where clauses). Para operações de ESCRITA (create/createMany), sempre passar `tenant_id` explícito.
+
+### PROIBIDO: try-catch em controllers de domínio
+
+- **Regra**: Controllers de domínio NÃO devem usar try-catch. Express 5 propaga automaticamente erros de funções async para o error handler centralizado em `app.ts`. Try-catch em controllers engole erros reais (ex: Prisma validation) e retorna mensagens genéricas que impossibilitam diagnóstico.
+- **Motivo**: Bug #14 — Todos os controllers de configuração e eventos usavam try-catch que capturava exceções Prisma (causadas pelo bug #13) e retornava `{ erro: "Erro ao criar tipo de evento", codigo: 500 }` sem logar o erro real. O diagnóstico da causa raiz foi impossível sem ver a mensagem do Prisma.
+- **Padrão correto**: Controller delega ao service sem try-catch. AppError propagado pelo Express 5 é tratado pelo error handler centralizado. Erros não-AppError aparecem no log do servidor.
+
+### Roles duplicadas cross-tenant em listagem de usuários
+
+- **Regra**: `GET /api/users` (admin view) DEVE filtrar `roles` e `permissions` pelo tenant ativo do caller. Sem filtro, um usuário com role "admin" em 2 tenants aparece com "admin admin" na UI.
+- **Motivo**: Bug #15 — `USER_PUBLIC_SELECT` carrega roles sem `where` de tenant. Quando admin de "IAP - Piedade" listava usuários, as roles do "Igreja Padrão" também apareciam.
+- **Padrão correto**: Em `findAll()`, quando `tenantId` é fornecido, adicionar `where: { tenant_id: tenantId }` nas relações `roles` e `permissions` do select. Super-admin (sem tenantId) continua vendo todas.
+
+### Variáveis de ambiente obrigatórias no pipeline CD
+
+- **Regra**: Toda nova variável de ambiente obrigatória adicionada ao código (via `requireSecret()` em `config/auth.ts`) DEVE ser adicionada simultaneamente ao step "Generate .env" dos workflows de CD (`cd-staging-backend.yml` e `cd-production-backend.yml`). Caso contrário, o container crasha no startup em produção.
+- **Regra**: DEVE ser adicionada também aos `.env.example` (dev e deploy) para que novos desenvolvedores saibam configurá-la.
+- **Motivo**: Bug #16 — `APP_SECRET_SELECTION_TOKEN` foi adicionada ao código mas não ao workflow de CD. O container crashava imediatamente com "APP_SECRET_SELECTION_TOKEN é obrigatória em ambiente de produção", gerando 57+ restarts em loop e 502 Bad Gateway em staging.
+- **Checklist pré-merge para novas env vars**:
+  1. `src/config/auth.ts` — `requireSecret('VAR_NAME', 'dev-fallback')`
+  2. `packages/backend/.env.example` — valor de desenvolvimento
+  3. `infra/backend/.env.example` — placeholder de produção
+  4. `.github/workflows/cd-staging-backend.yml` — `VAR_NAME=${{ secrets.VAR_NAME }}`
+  5. `.github/workflows/cd-production-backend.yml` — idem
+  6. GitHub Settings → Secrets → Environment `staging` → criar o secret
+  7. GitHub Settings → Secrets → Environment `production` → criar o secret
+
+### TypeScript: `req.user` é optional na declaração Express
+
+- **Regra**: Ao acessar `req.user.tenantId` em controllers de domínio, SEMPRE usar `req.user!.tenantId!` (double non-null assertion). O `req.user` é declarado como `user?: { ... }` no tipo global do Express, então `req.user.tenantId` causa TS18048 no typecheck.
+- **Motivo**: Bug #17 — O CI falhou no typecheck após o fix do bug #13. Todos os 8 controllers de domínio usavam `req.user.tenantId!` (sem `!` em `user`), causando 15 erros TS18048. O deploy não ocorreu e o staging continuou com 502.
+- **Nota**: A segurança é garantida pelo middleware `ensureTenantContext` que rejeita requests sem `tenantId` antes do controller executar.
+
+### Interceptor `$extends` e operações unique do Prisma (ATENÇÃO)
+
+- **Regra**: O interceptor `forTenant()` injeta `tenant_id` em `args.where` para operações de leitura (`findMany`, `findFirst`, etc.) e em `args.data` para operações de escrita. Para operações que exigem `where` unique (`findUnique`, `update`, `delete`), o Prisma NÃO aceita campos arbitrários no `where` — apenas campos que fazem parte de uma constraint unique.
+- **Situação atual**: Os repositórios usam `findUnique({ where: { id } })` para busca por PK, e o interceptor adiciona `tenant_id` ao `where`. Isso funciona porque o `$allOperations` intercepta ANTES da validação do Prisma e o spread `{ ...args.where, tenant_id }` é aceito pelo runtime (embora não pela tipagem strict).
+- **Risco**: Se o Prisma mudar a validação de `where` unique em versões futuras, queries `findUnique`/`update`/`delete` com `tenant_id` injetado podem quebrar.
+- **Mitigação**: Monitorar changelogs do Prisma em major updates. Alternativa: usar `findFirst` ao invés de `findUnique` em repos de domínio tenant-scoped.
+- **Motivo**: Code review PR #49 — comentário identificando risco de runtime em `findUnique` com where não-unique.
+
+### Paginação inconsistente ao filtrar roles/permissions protegidas (PENDENTE)
+
+- **Problema**: Os controllers de `GET /api/roles` e `GET /api/permissions` filtram roles/permissions protegidas APÓS a paginação do repositório. O `total` retornado é sobrescrito com `filteredData.length` (tamanho do slice filtrado), resultando em `total` menor que o real quando há mais de uma página.
+- **Solução correta**: Aplicar o filtro de roles/permissions protegidas NO REPOSITÓRIO (antes de `skip/take` e `count()`), para que paginação e contagem reflitam apenas os registros visíveis ao caller.
+- **Status**: Conhecido (code review PR #49), fix pendente para futura iteração. Impacto baixo enquanto o número de roles/permissions for pequeno (cabe em uma página).
+
+### OpenAPI incompleto — `/sessions/switch-tenant` não documentado (PENDENTE)
+
+- **Problema**: O endpoint `POST /api/sessions/switch-tenant` existe no backend mas não está documentado no `openapi.json`. O `select-tenant` está documentado.
+- **Status**: Pendente. Sugestão de schema no code review PR #49.
 
 ### Prevenção de Escalação de Privilégios (OBRIGATÓRIO)
 

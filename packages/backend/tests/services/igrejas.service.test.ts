@@ -67,6 +67,11 @@ const fakeUsersRoles: Array<{ user_id: string; role_id: string; tenant_id: strin
  * — simula verificação de existência do usuário, busca da role admin e atribuição
  * de role ao vincular usuário ao tenant.
  */
+/** Mock do seedTenantDefaults — no-op nos testes unitários. */
+vi.mock('../../seeds/domain-defaults.js', () => ({
+  seedTenantDefaults: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../prisma/cliente.js', () => ({
   default: {
     users: {

@@ -22,6 +22,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { seedTenantDefaults } from './domain-defaults.js';
 
 /** UUID fixo do tenant sentinela para atribuições de nível plataforma. */
 const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
@@ -250,7 +251,20 @@ async function main(): Promise<void> {
     });
     console.log('✓ Role "super-admin" assigned to admin user via system tenant');
 
-    console.log('✓ Admin bootstrap complete');
+    // ─── Domain defaults (per-tenant) ─────────────────────────
+
+    /** Semeia dados padrão de domínio para todos os tenants ativos. */
+    const activeTenants = await prisma.tenant.findMany({
+      where: { status: { in: ['active'] } },
+      select: { id: true, name: true },
+    });
+
+    for (const tenant of activeTenants) {
+      console.log(`\n→ Seeding domain defaults for "${tenant.name}"...`);
+      await seedTenantDefaults(prisma, tenant.id);
+    }
+
+    console.log('\n✓ Admin bootstrap complete');
   } finally {
     await prisma.$disconnect();
   }

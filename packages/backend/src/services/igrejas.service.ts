@@ -8,6 +8,7 @@
 import { AppError } from '../errors/AppError.js';
 import igrejasRepository from '../repositories/igrejas.repository.js';
 import prisma from '../../prisma/cliente.js';
+import { seedTenantDefaults } from '../../seeds/domain-defaults.js';
 
 /**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
@@ -53,7 +54,12 @@ class IgrejasService {
     if (existente) {
       throw new AppError('Já existe uma igreja com esse nome', 409);
     }
-    return igrejasRepository.create({ name });
+    const tenant = await igrejasRepository.create({ name });
+
+    /** Semeia dados padrão de domínio (funções, tipos de evento, categorias) na nova igreja. */
+    await seedTenantDefaults(prisma, tenant.id);
+
+    return tenant;
   }
 
   /**
