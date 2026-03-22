@@ -14,9 +14,9 @@ import { createPermissionBodySchema, paginationQuerySchema } from '../../validat
 const router: Router = Router();
 
 /** Listagem de todas as permissões do sistema. */
-router.get('/', ensureAuthenticated, is(['admin']), validateRequest({ query: paginationQuerySchema }), permissionsController.list);
+router.get('/', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ query: paginationQuerySchema }), permissionsController.list);
 
 /** Criação de uma nova permissão no sistema. */
-router.post('/', ensureAuthenticated, is(['admin']), validateRequest({ body: createPermissionBodySchema }), permissionsController.create);
+router.post('/', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ body: createPermissionBodySchema }), permissionsController.create);
 
 export default router;
