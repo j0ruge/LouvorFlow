@@ -227,9 +227,9 @@ export const IgrejaSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   status: z.string(),
-  user_count: z.number().optional(),
   created_at: z.string(),
   updated_at: z.string(),
+  _count: z.object({ tenant_users: z.number() }).optional(),
 });
 
 /** Tipo inferido de uma igreja (tenant). */

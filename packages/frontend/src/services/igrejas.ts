@@ -16,8 +16,8 @@ import type { Igreja, IgrejaTenantUser } from "@/schemas/auth";
  * @returns Lista de igrejas parseadas pelo schema Zod.
  */
 export async function listIgrejas(): Promise<Igreja[]> {
-  const response = await apiFetch<{ data: unknown[] }>("/igrejas");
-  return z.array(IgrejaSchema).parse(response.data);
+  const response = await apiFetch<unknown[]>("/igrejas");
+  return z.array(IgrejaSchema).parse(response);
 }
 
 /**
@@ -34,19 +34,23 @@ export async function getIgreja(id: string): Promise<Igreja> {
 /**
  * Cria uma nova igreja (tenant).
  *
+ * O backend retorna `{ msg, igreja }` — extrai o campo `igreja` antes de parsear.
+ *
  * @param data - Objeto contendo o nome da nova igreja.
  * @returns Igreja criada, parseada pelo schema Zod.
  */
 export async function createIgreja(data: { name: string }): Promise<Igreja> {
-  const response = await apiFetch<unknown>("/igrejas", {
+  const response = await apiFetch<{ msg: string; igreja: unknown }>("/igrejas", {
     method: "POST",
     body: JSON.stringify(data),
   });
-  return IgrejaSchema.parse(response);
+  return IgrejaSchema.parse(response.igreja);
 }
 
 /**
  * Atualiza os dados de uma igreja existente.
+ *
+ * O backend retorna `{ msg, igreja }` — extrai o campo `igreja` antes de parsear.
  *
  * @param id - UUID da igreja a ser atualizada.
  * @param data - Campos a atualizar (nome e/ou status).
@@ -56,11 +60,11 @@ export async function updateIgreja(
   id: string,
   data: { name?: string; status?: string },
 ): Promise<Igreja> {
-  const response = await apiFetch<unknown>(`/igrejas/${id}`, {
+  const response = await apiFetch<{ msg: string; igreja: unknown }>(`/igrejas/${id}`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
-  return IgrejaSchema.parse(response);
+  return IgrejaSchema.parse(response.igreja);
 }
 
 /**
@@ -80,26 +84,28 @@ export async function deactivateIgreja(id: string): Promise<void> {
  * @returns Lista de usuários da igreja, parseados pelo schema Zod.
  */
 export async function listIgrejaUsers(id: string): Promise<IgrejaTenantUser[]> {
-  const response = await apiFetch<{ data: unknown[] }>(`/igrejas/${id}/users`);
-  return z.array(IgrejaTenantUserSchema).parse(response.data);
+  const response = await apiFetch<unknown[]>(`/igrejas/${id}/users`);
+  return z.array(IgrejaTenantUserSchema).parse(response);
 }
 
 /**
  * Vincula um usuário existente a uma igreja.
  *
+ * O backend retorna `{ msg, vinculo }` — extrai o campo `vinculo`.
+ *
  * @param igrejaId - UUID da igreja.
  * @param userId - UUID do usuário a vincular.
- * @returns Dados do usuário vinculado, parseados pelo schema Zod.
+ * @returns Dados do vínculo criado.
  */
 export async function addUserToIgreja(
   igrejaId: string,
   userId: string,
-): Promise<IgrejaTenantUser> {
-  const response = await apiFetch<unknown>(`/igrejas/${igrejaId}/users`, {
+): Promise<unknown> {
+  const response = await apiFetch<{ msg: string; vinculo: unknown }>(`/igrejas/${igrejaId}/users`, {
     method: "POST",
     body: JSON.stringify({ user_id: userId }),
   });
-  return IgrejaTenantUserSchema.parse(response);
+  return response.vinculo;
 }
 
 /**

@@ -232,7 +232,7 @@ const AdminIgrejas = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>{igreja.user_count ?? 0}</TableCell>
+                      <TableCell>{igreja._count?.tenant_users ?? 0}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2 flex-wrap">
                           <Link to={`/admin/igrejas/${igreja.id}/usuarios`}>
