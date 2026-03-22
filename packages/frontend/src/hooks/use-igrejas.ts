@@ -148,6 +148,8 @@ export function useAddUserToIgreja() {
       addUserToIgreja(igrejaId, userId),
     onSuccess: (_result, { igrejaId }) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "igrejas", igrejaId, "users"] });
+      /** Invalida também a lista de igrejas para atualizar a contagem de membros. */
+      queryClient.invalidateQueries({ queryKey: ["admin", "igrejas"], exact: true });
       toast.success("Usuário vinculado");
     },
     onError: (error: Error) => {
@@ -171,6 +173,8 @@ export function useRemoveUserFromIgreja() {
       removeUserFromIgreja(igrejaId, userId),
     onSuccess: (_result, { igrejaId }) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "igrejas", igrejaId, "users"] });
+      /** Invalida também a lista de igrejas para atualizar a contagem de membros. */
+      queryClient.invalidateQueries({ queryKey: ["admin", "igrejas"], exact: true });
       toast.success("Usuário desvinculado");
     },
     onError: (error: Error) => {
