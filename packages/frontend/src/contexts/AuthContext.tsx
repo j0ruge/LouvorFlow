@@ -60,8 +60,9 @@ interface AuthContextData {
    * Realiza login com e-mail e senha.
    * No fluxo multi-tenant, navega para `/selecionar-igreja` em vez de
    * completar o login diretamente.
+   * @returns `true` se o login completou (single-tenant), `false` se precisa de seleção de tenant.
    */
-  signIn: (dados: LoginForm) => Promise<void>;
+  signIn: (dados: LoginForm) => Promise<boolean>;
   /** Encerra a sessão e limpa todos os dados locais. */
   signOut: () => Promise<void>;
   /** Atualiza os dados do usuário no contexto (ex: após edição de perfil). */
@@ -216,7 +217,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
    *
    * @param dados - Credenciais de login (email, password).
    */
-  const signIn = useCallback(async (dados: LoginForm) => {
+  const signIn = useCallback(async (dados: LoginForm): Promise<boolean> => {
     const response = await loginService(dados);
 
     if ('requires_tenant_selection' in response && response.requires_tenant_selection) {
@@ -227,7 +228,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           selection_token: response.selection_token,
         },
       });
-      return;
+      /** Retorna false para sinalizar que o login ainda não completou (precisa selecionar tenant). */
+      return false;
     }
 
     setAccessToken(response.token);
@@ -238,6 +240,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       persistAvailableTenants([response.user.tenant]);
       toast.success(`Bem-vindo à ${response.user.tenant.name}`);
     }
+    return true;
   }, [navigate, persistAvailableTenants]);
 
   /**
