@@ -235,4 +235,10 @@ Bugs encontrados e regras derivadas para prevenir regressões:
   - O endpoint de listagem de roles não filtrava por nível de privilégio
   - O endpoint de ACL não validava se o caller tinha privilégio para atribuir a role solicitada
   - Nenhuma camada impedia auto-elevação de privilégios
-- **Definição de roles/permissions protegidas**: `PROTECTED_ROLE_NAMES = ['super-admin']`, `PROTECTED_PERMISSION_NAMES = ['super_admin_access']`. Essas listas devem ser centralizadas e usadas consistentemente em services e controllers.
+- **Definição de roles/permissions protegidas**: `PROTECTED_ROLE_NAMES = ['super-admin']`, `PROTECTED_PERMISSION_NAMES = ['super_admin_access']`. Centralizadas em `src/config/rbac.ts` e importadas em services e controllers.
+
+### Invalidação de Cache React Query em Operações com Efeito Colateral
+
+- **Regra**: Toda mutation que altera contagem ou dados derivados em outra query DEVE invalidar TODAS as queries afetadas, não apenas a query direta. Exemplo: vincular/desvincular usuário de uma igreja invalida `["admin", "igrejas", igrejaId, "users"]` (lista de users) E `["admin", "igrejas"]` (lista de igrejas com `_count.tenant_users`).
+- **Motivo**: Bug #12 — após desvincular um membro, a contagem de membros na lista de igrejas permanecia stale porque o `onSuccess` da mutation invalidava apenas a lista de users, não a lista de igrejas.
+- **Padrão**: Ao implementar `useMutation` com `onSuccess`, listar explicitamente TODAS as queryKeys que podem ter dados derivados afetados. Em caso de dúvida, invalidar a queryKey pai (ex: `["admin", "igrejas"]` invalida todas as sub-queries de igrejas).
