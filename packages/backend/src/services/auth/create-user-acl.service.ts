@@ -14,12 +14,7 @@ import usersRepository from '../../repositories/auth/users.repository.js';
 import rolesRepository from '../../repositories/auth/roles.repository.js';
 import permissionsRepository from '../../repositories/auth/permissions.repository.js';
 import type { ICreateUserAccessControlListDTO } from '../../types/auth.types.js';
-
-/** Nomes de roles protegidas — apenas super-admin pode ver e atribuir. */
-const PROTECTED_ROLE_NAMES = ['super-admin'];
-
-/** Nomes de permissions protegidas — apenas super-admin pode ver e atribuir. */
-const PROTECTED_PERMISSION_NAMES = ['super_admin_access'];
+import { PROTECTED_ROLE_NAMES, PROTECTED_PERMISSION_NAMES } from '../../config/rbac.js';
 
 class CreateUserAccessControlListService {
     /**

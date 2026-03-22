@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import createPermissionService from '../../services/auth/create-permission.service.js';
 import permissionsRepository from '../../repositories/auth/permissions.repository.js';
-
-/** Nomes de permissions protegidas — ocultas de admins regulares na listagem. */
-const PROTECTED_PERMISSION_NAMES = ['super_admin_access'];
+import { PROTECTED_PERMISSION_NAMES } from '../../config/rbac.js';
 
 /**
  * Controller responsável pelo gerenciamento de permissões.

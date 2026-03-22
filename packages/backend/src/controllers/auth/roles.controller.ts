@@ -2,9 +2,7 @@ import { Request, Response } from 'express';
 import createRoleService from '../../services/auth/create-role.service.js';
 import rolesRepository from '../../repositories/auth/roles.repository.js';
 import { flattenRolePermissions } from '../../types/auth.types.js';
-
-/** Nomes de roles protegidas — ocultas de admins regulares na listagem. */
-const PROTECTED_ROLE_NAMES = ['super-admin'];
+import { PROTECTED_ROLE_NAMES } from '../../config/rbac.js';
 
 /**
  * Controller responsável pelo gerenciamento de papéis (roles).
