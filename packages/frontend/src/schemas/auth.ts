@@ -235,17 +235,29 @@ export const IgrejaSchema = z.object({
 /** Tipo inferido de uma igreja (tenant). */
 export type Igreja = z.infer<typeof IgrejaSchema>;
 
-/** Schema de um usuário pertencente a um tenant de uma igreja. */
-export const IgrejaTenantUserSchema = z.object({
+/** Schema raw retornado pelo backend (wrapper com user nested). */
+const IgrejaTenantUserRawSchema = z.object({
   id: z.string().uuid(),
-  name: z.string(),
-  email: z.string(),
-  telefone: z.string().nullable(),
-  roles: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
   created_at: z.string().optional(),
+  user: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    email: z.string(),
+    telefone: z.string().nullable(),
+  }),
 });
 
-/** Tipo inferido de um usuário de tenant de igreja. */
+/** Schema transformado de um usuário de tenant — achata o wrapper `user`. */
+export const IgrejaTenantUserSchema = IgrejaTenantUserRawSchema.transform((raw) => ({
+  id: raw.user.id,
+  name: raw.user.name,
+  email: raw.user.email,
+  telefone: raw.user.telefone,
+  bindingId: raw.id,
+  created_at: raw.created_at,
+}));
+
+/** Tipo inferido de um usuário de tenant de igreja (achatado). */
 export type IgrejaTenantUser = z.infer<typeof IgrejaTenantUserSchema>;
 
 /** Schema de validação do formulário de criação de igreja. */
