@@ -56,9 +56,16 @@ vi.mock('../../src/repositories/igrejas.repository.js', () => ({
   default: fakeIgrejasRepo,
 }));
 
+/** ID fixo da role admin usada nos testes de atribuição automática. */
+const ADMIN_ROLE_ID = 'role-admin-id';
+
+/** Armazena os registros de UsersRoles criados durante os testes. */
+const fakeUsersRoles: Array<{ user_id: string; role_id: string; tenant_id: string }> = [];
+
 /**
- * Mock do Prisma para `users.findUnique` — simula verificação de existência
- * do usuário no banco de dados antes de vincular ao tenant.
+ * Mock do Prisma para `users.findUnique`, `roles.findUnique` e `usersRoles.upsert`
+ * — simula verificação de existência do usuário, busca da role admin e atribuição
+ * de role ao vincular usuário ao tenant.
  */
 vi.mock('../../prisma/cliente.js', () => ({
   default: {
@@ -66,6 +73,20 @@ vi.mock('../../prisma/cliente.js', () => ({
       findUnique: vi.fn().mockImplementation(({ where }: { where: { id: string } }) => {
         const found = MOCK_INTEGRANTES.find(u => u.id === where.id);
         return Promise.resolve(found ? { id: found.id } : null);
+      }),
+    },
+    roles: {
+      findUnique: vi.fn().mockImplementation(({ where }: { where: { name: string } }) => {
+        if (where.name === 'admin') {
+          return Promise.resolve({ id: ADMIN_ROLE_ID, name: 'admin' });
+        }
+        return Promise.resolve(null);
+      }),
+    },
+    usersRoles: {
+      upsert: vi.fn().mockImplementation(({ create }: { create: { user_id: string; role_id: string; tenant_id: string } }) => {
+        fakeUsersRoles.push(create);
+        return Promise.resolve(create);
       }),
     },
   },
@@ -79,6 +100,7 @@ describe('IgrejasService', () => {
   beforeEach(() => {
     fakeTenantRepo.reset();
     fakeTenantUserBindings.length = 0;
+    fakeUsersRoles.length = 0;
   });
 
   // ─── create ──────────────────────────────────────────────────────────────
@@ -153,6 +175,20 @@ describe('IgrejasService', () => {
       await expect(igrejasService.addUser(TENANT_A_ID, NON_EXISTENT_ID)).rejects.toMatchObject({
         message: 'Usuário não encontrado',
         statusCode: 404,
+      });
+    });
+
+    /**
+     * Deve atribuir automaticamente a role admin ao usuário no novo tenant.
+     */
+    it('deve atribuir role admin ao usuário no tenant ao vincular', async () => {
+      await igrejasService.addUser(TENANT_A_ID, USER_ID);
+
+      expect(fakeUsersRoles).toHaveLength(1);
+      expect(fakeUsersRoles[0]).toMatchObject({
+        user_id: USER_ID,
+        role_id: ADMIN_ROLE_ID,
+        tenant_id: TENANT_A_ID,
       });
     });
 
