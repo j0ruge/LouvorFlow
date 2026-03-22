@@ -16,7 +16,9 @@ class UserAclController {
     async create(req: Request<{ userId: string }>, res: Response): Promise<void> {
         const { userId } = req.params;
         const { roles, permissions } = req.body;
-        const user = await createUserAclService.execute({ userId, roles, permissions });
+        /** Passa tenantId do usuário autenticado para escopar roles/permissions ao tenant ativo. */
+        const tenantId = req.user?.tenantId;
+        const user = await createUserAclService.execute({ userId, roles, permissions, tenantId });
         const appApiUrl = process.env.APP_API_URL ?? 'http://localhost:3000';
         res.status(200).json({
             ...flattenUserRelations(user),

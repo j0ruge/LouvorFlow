@@ -23,7 +23,7 @@ class CreateUserAccessControlListService {
      * @throws AppError 404 se o usuário não for encontrado.
      * @throws AppError 400 se alguma role ou permissão informada não existir.
      */
-    async execute({ userId, roles, permissions }: ICreateUserAccessControlListDTO) {
+    async execute({ userId, roles, permissions, tenantId }: ICreateUserAccessControlListDTO & { tenantId?: string }) {
         const user = await usersRepository.findById(userId);
 
         if (!user) {
@@ -55,6 +55,7 @@ class CreateUserAccessControlListService {
         const updatedUser = await usersRepository.save(userId, {
             roles: foundRoleIds,
             permissions: foundPermissionIds,
+            tenantId,
         });
 
         return updatedUser;
