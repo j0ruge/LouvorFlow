@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { AppError } from '../errors/AppError.js';
 import integrantesRepository from '../repositories/integrantes.repository.js';
+import prisma from '../../prisma/cliente.js';
 import type { CreateIntegranteInput, UpdateIntegranteInput, IntegranteWithFuncoes } from '../types/index.js';
 
 const SALT_ROUNDS = 12;
@@ -71,15 +72,19 @@ class IntegrantesService {
     }
 
     /**
-     * Cria um novo integrante (user) com senha hasheada.
-     * O user criado pode fazer login via `/api/sessions`.
+     * Cria um novo integrante (user) com senha hasheada e o vincula ao tenant.
+     *
+     * O user criado pode fazer login via `/api/sessions`. Após a criação,
+     * um registro `TenantUsers` é criado para que o integrante apareça
+     * na listagem filtrada por tenant.
      *
      * @param body - Dados de criação (nome, email, senha, telefone)
+     * @param tenantId - UUID do tenant ativo (opcional, mas obrigatório em contexto multi-tenant)
      * @returns Integrante criado (sem campo senha)
      * @throws AppError 400 se dados obrigatórios estiverem ausentes
      * @throws AppError 409 se já existir user com o mesmo email
      */
-    async create(body: CreateIntegranteInput) {
+    async create(body: CreateIntegranteInput, tenantId?: string) {
         const { nome, email, senha, telefone } = body;
 
         if (!nome || !email || !senha) {
@@ -94,6 +99,13 @@ class IntegrantesService {
         const user = await integrantesRepository.create({
             name: nome, email, password: passwordHash, telefone: telefone || null
         });
+
+        /** Vincula o integrante ao tenant ativo para que apareça na listagem. */
+        if (tenantId) {
+            await prisma.tenantUsers.create({
+                data: { tenant_id: tenantId, user_id: user.id },
+            });
+        }
 
         return mapPublicUserToIntegrante(user);
     }
