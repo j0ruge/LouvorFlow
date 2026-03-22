@@ -17,7 +17,7 @@ import dateProvider from '../../providers/date.provider.js';
 import { authConfig } from '../../config/auth.js';
 import { flattenUserRelations } from '../../types/auth.types.js';
 import type { ILoginDTO, IResponseDTO, ITenantSelectionDTO } from '../../types/auth.types.js';
-import prisma from '../../../prisma/cliente.js';
+import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 
 class AuthenticateUserService {
     /**
@@ -95,7 +95,7 @@ class AuthenticateUserService {
             where: { id: user.id },
             include: {
                 roles: {
-                    where: { tenant_id: tenant.id },
+                    where: { tenant_id: { in: [tenant.id, SYSTEM_TENANT_ID] } },
                     select: {
                         role: {
                             select: {
@@ -122,7 +122,7 @@ class AuthenticateUserService {
                     },
                 },
                 permissions: {
-                    where: { tenant_id: tenant.id },
+                    where: { tenant_id: { in: [tenant.id, SYSTEM_TENANT_ID] } },
                     select: {
                         permission: {
                             select: {

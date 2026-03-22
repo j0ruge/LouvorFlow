@@ -8,7 +8,7 @@
  */
 
 import { AppError } from '../../errors/AppError.js';
-import prisma from '../../../prisma/cliente.js';
+import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 import authenticateUserService from './authenticate-user.service.js';
 import type { IResponseDTO } from '../../types/auth.types.js';
 
@@ -70,7 +70,7 @@ class SwitchTenantService {
             where: { id: userId },
             include: {
                 roles: {
-                    where: { tenant_id },
+                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
                     select: {
                         role: {
                             select: {
@@ -97,7 +97,7 @@ class SwitchTenantService {
                     },
                 },
                 permissions: {
-                    where: { tenant_id },
+                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
                     select: {
                         permission: {
                             select: {

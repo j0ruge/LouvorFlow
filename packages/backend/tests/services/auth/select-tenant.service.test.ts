@@ -31,6 +31,7 @@ vi.mock('../../../prisma/cliente.js', async () => {
     };
 
     return {
+        SYSTEM_TENANT_ID: '00000000-0000-0000-0000-000000000000',
         default: {
             users: {
                 findUnique: vi.fn().mockResolvedValue(mockUser),

@@ -27,6 +27,7 @@ let lastCreatedEmail: string | null = null;
  * `users.findUnique` busca via fakeUsersRepo.findByEmail para retornar usuário completo.
  */
 vi.mock('../../../prisma/cliente.js', () => ({
+    SYSTEM_TENANT_ID: '00000000-0000-0000-0000-000000000000',
     default: {
         tenantUsers: {
             findMany: vi.fn().mockImplementation(() => Promise.resolve(mockActiveTenants)),

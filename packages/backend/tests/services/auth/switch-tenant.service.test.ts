@@ -27,6 +27,7 @@ vi.mock('../../../prisma/cliente.js', async () => {
     };
 
     return {
+        SYSTEM_TENANT_ID: '00000000-0000-0000-0000-000000000000',
         default: {
             tenantUsers: {
                 findFirst: vi.fn().mockImplementation(({ where }: { where: { user_id: string; tenant_id: string } }) => {
