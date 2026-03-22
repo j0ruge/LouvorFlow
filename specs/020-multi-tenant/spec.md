@@ -97,6 +97,10 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - O que acontece com tabelas de referência (Roles, Permissions)? Permanecem globais — não são dados de domínio específicos de uma igreja.
 - O que acontece com o refresh token quando o usuário troca de tenant? O token anterior deve ser invalidado e um novo par (access + refresh) emitido para o novo contexto.
 - O que acontece com o admin existente (seed) durante a migração? Deve ser elevado a `super-admin` (nível sistema, atribuído via tenant sentinela "Sistema") e também atribuído como `admin` no tenant padrão.
+- O que acontece com o refresh token quando o tenant é desativado? O `RefreshTokenService` DEVE verificar `tenant.status === 'active'` antes de emitir novos tokens — rejeitar com 401 se inativo.
+- O que acontece quando `signIn()` retorna `requires_tenant_selection`? A função DEVE retornar `false` para sinalizar ao caller que o login não completou. O componente de login NÃO deve navegar para o dashboard — a navegação para `/selecionar-igreja` é responsabilidade do `signIn`.
+- O que acontece com `forTenant()` sob carga? A factory DEVE usar cache (`Map<tenantId, ExtendedClient>`) para evitar criação de nova instância `$extends` a cada request (memory leak).
+- O que acontece com o seed executado múltiplas vezes? DEVE ser idempotente: não re-hashear senha do admin existente. Verificar se o usuário já existe antes de atualizar o campo `password`.
 
 ## Clarifications
 
@@ -116,7 +120,7 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - **FR-004**: O sistema DEVE apresentar seleção de igreja no fluxo de login quando o usuário pertence a mais de um tenant.
 - **FR-005**: O sistema DEVE fazer login direto (sem seleção) quando o usuário pertence a apenas um tenant.
 - **FR-006**: O sistema DEVE incluir o identificador do tenant no token de sessão para que todas as requisições subsequentes operem no contexto correto.
-- **FR-007**: O sistema DEVE permitir que um usuário tenha roles/permissões diferentes em cada tenant (ex: admin em uma igreja, músico em outra). As definições de Roles e Permissions são globais; as atribuições (UsersRoles, UsersPermissions) são escopadas por tenant.
+- **FR-007**: O sistema DEVE permitir que um usuário tenha roles/permissões diferentes em cada tenant (ex: admin em uma igreja, músico em outra). As definições de Roles e Permissions são globais; as atribuições (UsersRoles, UsersPermissions) são escopadas por tenant. **Regra crítica**: ao carregar roles/permissions durante autenticação, o filtro DEVE incluir `tenant_id IN (selectedTenantId, SYSTEM_TENANT_ID)` para garantir que roles de nível plataforma (ex: `super-admin`) sejam sempre visíveis independente do tenant selecionado.
 - **FR-008**: O sistema DEVE migrar todos os dados existentes para um tenant padrão, preservando 100% dos registros.
 - **FR-009**: O sistema DEVE converter unique constraints globais de entidades de domínio para unique constraints por tenant (ex: nome de artista único por igreja, não globalmente).
 - **FR-010**: O sistema DEVE manter tabelas de definição de autenticação globais (Users, Roles, Permissions). As tabelas de atribuição (UsersRoles, UsersPermissions) são escopadas por tenant via coluna tenantId. Atribuições de nível plataforma (ex: `super-admin`) usam o tenant sentinela "Sistema" (`SYSTEM_TENANT_ID`).
@@ -149,8 +153,8 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - O tenant padrão criado na migração será a igreja que atualmente usa o sistema.
 - A interceptação automática de queries é a camada primária de isolamento — não se depende de código manual nos endpoints.
 - A gestão de tenants (CRUD de igrejas) na primeira versão pode ser restrita a super-admins, sem interface pública de auto-cadastro.
-- Performance: o filtro adicional por tenantId terá impacto negligível desde que as colunas tenham índice adequado.
-- A gestão de tenants na v1 é exclusivamente via API (curl/Postman). Interface administrativa frontend para igrejas será implementada em feature futura.
+- Performance: o filtro adicional por tenantId terá impacto negligível desde que as colunas tenham índice adequado. O middleware `ensureAuthenticated` DEVE usar cache em memória (TTL 60s) para evitar query de status de tenant a cada request. A factory `forTenant()` DEVE cachear instâncias `$extends` por tenantId (Map simples, sem TTL — número de tenants é finito e pequeno).
+- A gestão de tenants é feita via interface admin em `/admin/igrejas` (super-admin only). Frontend implementado com React Query + shadcn/ui.
 
 ## Research Notes: Best Practices (Prisma Multi-Tenant)
 
@@ -159,4 +163,36 @@ A pesquisa no Context7 (documentação oficial Prisma) revelou duas abordagens p
 1. **Application-level filtering via `$extends`**: Intercepta queries com `$allModels` + `$allOperations` para injetar `where.tenantId` automaticamente. Mais simples, isolamento na camada da aplicação.
 2. **PostgreSQL Row-Level Security (RLS) via `$extends`**: Usa `set_config('app.current_tenant_id', tenantId)` por transação + policies RLS no PostgreSQL. Isolamento na camada do banco — mais robusto contra bugs na aplicação, pois mesmo queries raw ou diretas são filtradas.
 
-Ambas usam `$extends` do Prisma Client. A documentação oficial recomenda RLS como a abordagem mais segura para produção. A decisão entre as duas será tomada na fase de planejamento técnico (`/speckit.plan`).
+Ambas usam `$extends` do Prisma Client. A documentação oficial recomenda RLS como a abordagem mais segura para produção. Decisão: app-level filtering via `$extends` (KISS).
+
+## Lessons Learned (Post-Implementação)
+
+Bugs encontrados e regras derivadas para prevenir regressões:
+
+### RBAC e Tenant Sentinela
+
+- **Regra**: Toda query de roles/permissions no fluxo de autenticação DEVE usar `WHERE tenant_id IN (selectedTenantId, SYSTEM_TENANT_ID)`, nunca filtrar apenas pelo tenant selecionado. Caso contrário, roles de nível plataforma (super-admin) ficam invisíveis.
+- **Motivo**: Bug #1 — super-admin não aparecia no frontend após login porque roles do tenant sentinela eram excluídas.
+
+### Contratos de API (Backend ↔ Frontend)
+
+- **Regra**: Todo endpoint DEVE ter o formato de resposta documentado com exemplo JSON completo, incluindo wrappers (`{ msg, entity }` vs. entidade direta) e campos computados (`_count.tenant_users` vs. `user_count`).
+- **Regra**: Endpoints de listagem retornam array direto `[...]`. Endpoints de criação/atualização retornam `{ msg, entity }`. Endpoints de exclusão retornam 204 sem body.
+- **Regra**: Respostas com relações nested (ex: `{ user: { id, name } }`) DEVEM ser documentadas explicitamente. O frontend DEVE usar `z.transform()` para achatar quando necessário.
+- **Motivo**: Bugs #3 e #4 — CRUD de igrejas e listagem de usuários falhavam por desalinhamento de formato.
+
+### Fluxo de Login Multi-Tenant
+
+- **Regra**: O `signIn()` do AuthContext DEVE retornar `boolean` — `true` se login completou (single-tenant), `false` se requer seleção de tenant. O componente Login NÃO deve navegar após `signIn()` retornar `false`.
+- **Motivo**: Bug #2 — navegação do Login.tsx sobrescrevia a navegação para `/selecionar-igreja`.
+
+### Performance e Caching
+
+- **Regra**: `forTenant(tenantId)` DEVE cachear instâncias `$extends` por tenantId. Criar nova instância a cada request causa memory leak.
+- **Regra**: Validação de status de tenant no middleware DEVE usar cache em memória com TTL (60s). Desativação de tenant é operação rara.
+- **Motivo**: Bugs #5 e #8 — performance degradada e memory leak sob carga.
+
+### Idempotência de Seeds
+
+- **Regra**: Seeds DEVEM ser idempotentes. Campos sensíveis (password) NÃO devem ser re-processados em upserts subsequentes. Verificar existência antes de alterar.
+- **Motivo**: Bug #6 — seed re-hasheava senha a cada execução.

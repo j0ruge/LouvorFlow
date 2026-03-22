@@ -173,8 +173,12 @@ ALTER TABLE artistas ALTER COLUMN tenant_id SET NOT NULL;
 
 | Regra | Aplicação |
 | ----- | --------- |
-| `tenant_id` obrigatório em toda escrita de domínio | Prisma $extends interceptor |
-| Tenant must exist and be active | Validar no middleware ou service |
-| User must belong to tenant | Verificar `TenantUsers` no login e no select-tenant |
+| `tenant_id` obrigatório em toda escrita de domínio | Prisma $extends interceptor via `forTenant()` (cacheado por tenantId) |
+| Tenant must exist and be active | Cache em memória no middleware (TTL 60s) + validação no RefreshTokenService |
+| User must belong to tenant | Verificar `TenantUsers` no login, select-tenant e switch-tenant |
 | Unique por tenant | Compound unique constraints no banco |
 | Rotas super-admin usam `basePrisma` | JWT pode conter tenantId, mas rotas de gestão ignoram-no e operam cross-tenant |
+| Roles do auth incluem SYSTEM_TENANT_ID | Toda query de roles/permissions no login DEVE usar `WHERE tenant_id IN (selected, SYSTEM_TENANT_ID)` |
+| `forTenant()` usa cache | `Map<tenantId, ExtendedClient>` — nunca criar nova instância por request |
+| Seed idempotente | Não re-hashear senha de admin existente. Verificar existência antes de alterar |
+| Contratos de API | Listagens retornam array direto. Criação/atualização retornam `{ msg, entity }`. DELETE retorna 204 |

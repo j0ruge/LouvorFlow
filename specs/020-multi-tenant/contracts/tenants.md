@@ -12,13 +12,15 @@ Todos os endpoints abaixo são protegidos por `ensureAuthenticated + ensureSuper
 
 #### Response (HTTP 200)
 
+**Formato**: Array direto (sem wrapper). Campo `_count.tenant_users` contém contagem de membros.
+
 ```json
 [
   {
     "id": "uuid",
     "name": "Igreja Central",
     "status": "active",
-    "user_count": 15,
+    "_count": { "tenant_users": 15 },
     "created_at": "2026-01-01T00:00:00.000Z",
     "updated_at": "2026-01-01T00:00:00.000Z"
   }
@@ -66,13 +68,19 @@ Todos os endpoints abaixo são protegidos por `ensureAuthenticated + ensureSuper
 
 #### Response (HTTP 201)
 
+**Formato**: Entidade wrapped em `{ msg, igreja }`.
+
 ```json
 {
-  "id": "uuid",
-  "name": "Igreja Norte",
-  "status": "active",
-  "created_at": "2026-01-01T00:00:00.000Z",
-  "updated_at": "2026-01-01T00:00:00.000Z"
+  "msg": "Igreja criada com sucesso",
+  "igreja": {
+    "id": "uuid",
+    "name": "Igreja Norte",
+    "status": "active",
+    "_count": { "tenant_users": 0 },
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  }
 }
 ```
 
@@ -195,18 +203,24 @@ Sem body.
 
 #### Response (HTTP 200)
 
+**Formato**: Array de objetos com user nested (junction table format).
+
 ```json
 [
   {
-    "id": "uuid",
-    "name": "João Silva",
-    "email": "joao@example.com",
-    "telefone": "11999999999",
-    "roles": [{ "id": "uuid", "name": "admin" }],
-    "created_at": "..."
+    "id": "uuid-do-vinculo",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "user": {
+      "id": "uuid-do-usuario",
+      "name": "João Silva",
+      "email": "joao@example.com",
+      "telefone": "11999999999"
+    }
   }
 ]
 ```
+
+**Nota**: O frontend DEVE achatar o wrapper `user` para uso em componentes (ex: via `z.transform()`).
 
 ---
 
