@@ -101,6 +101,10 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - O que acontece quando `signIn()` retorna `requires_tenant_selection`? A função DEVE retornar `false` para sinalizar ao caller que o login não completou. O componente de login NÃO deve navegar para o dashboard — a navegação para `/selecionar-igreja` é responsabilidade do `signIn`.
 - O que acontece com `forTenant()` sob carga? A factory DEVE usar cache (`Map<tenantId, ExtendedClient>`) para evitar criação de nova instância `$extends` a cada request (memory leak).
 - O que acontece com o seed executado múltiplas vezes? DEVE ser idempotente: não re-hashear senha do admin existente. Verificar se o usuário já existe antes de atualizar o campo `password`.
+- O que acontece quando um admin tenta atribuir role super-admin via ACL? O sistema DEVE rejeitar com 403. O endpoint GET /api/roles NÃO deve listar roles protegidas para admins regulares.
+- O que acontece quando um admin tenta editar suas próprias permissões? O sistema DEVE rejeitar com 403 (anti-self-elevation). O frontend deve desabilitar o formulário e exibir mensagem informativa.
+- O que acontece quando super-admin está logado em tenant onde não tem role admin? DEVE funcionar normalmente — `is(['admin', 'super-admin'])` garante acesso. `getUserRoles/getUserPermissions` incluem SYSTEM_TENANT_ID.
+- O que acontece quando controller chama save() de ACL sem tenantId? DEVE lançar erro explícito ("tenant_id é obrigatório") — nunca inserir string vazia no banco.
 
 ## Clarifications
 
@@ -127,6 +131,9 @@ Um usuário que pertence a múltiplas igrejas pode trocar de igreja durante a se
 - **FR-011**: O sistema DEVE fornecer endpoints de gestão de igrejas (criar, listar, vincular/desvincular usuários) via `/api/igrejas`, restritos à role `super-admin` (nível sistema, sem contexto de tenant). A role `admin` existente opera dentro de um tenant específico.
 - **FR-012**: O sistema DEVE rejeitar qualquer operação de escrita que não possua contexto de tenant válido, retornando erro claro.
 - **FR-013**: O sistema DEVE permitir troca de tenant sem novo login completo — o usuário seleciona outra igreja e recebe novo token.
+- **FR-014**: O sistema DEVE prevenir escalação de privilégios — admins regulares NÃO podem ver, atribuir ou auto-atribuir roles/permissions protegidas (super-admin, super_admin_access). Apenas super-admins podem gerenciar essas atribuições.
+- **FR-015**: O sistema DEVE impedir que admins regulares editem suas próprias ACLs (anti-self-elevation). Super-admins podem editar suas próprias ACLs.
+- **FR-016**: Toda rota protegida por `is(['admin'])` DEVE aceitar também `super-admin` para garantir que super-admins tenham acesso administrativo em qualquer tenant.
 
 ### Key Entities
 
@@ -196,3 +203,36 @@ Bugs encontrados e regras derivadas para prevenir regressões:
 
 - **Regra**: Seeds DEVEM ser idempotentes. Campos sensíveis (password) NÃO devem ser re-processados em upserts subsequentes. Verificar existência antes de alterar.
 - **Motivo**: Bug #6 — seed re-hasheava senha a cada execução.
+
+### SYSTEM_TENANT_ID em TODA query de roles/permissions (Princípio Universal)
+
+- **Regra**: TODA query que busca roles ou permissions de um usuário — em qualquer camada (auth services, middlewares `is()`/`can()`, repositories `getUserRoles`/`getUserPermissions`) — DEVE incluir `SYSTEM_TENANT_ID` no filtro: `WHERE tenant_id IN (selectedTenantId, SYSTEM_TENANT_ID)`. Isso se aplica a:
+  1. `authenticate-user.service.ts` (login single-tenant)
+  2. `select-tenant.service.ts` (seleção de tenant)
+  3. `switch-tenant.service.ts` (troca de tenant)
+  4. `users.repository.ts → getUserRoles()` (chamado por `is()` e `can()`)
+  5. `users.repository.ts → getUserPermissions()` (chamado por `can()`)
+- **Motivo**: Bugs #1, #9 e #10 — o mesmo padrão ocorreu 3 vezes em camadas diferentes. A role `super-admin` (atribuída via SYSTEM_TENANT_ID) ficava invisível, bloqueando acesso a rotas admin e impedindo funcionalidades de super-admin.
+- **Regra derivada**: Quando um bug de "role não encontrada" aparecer, o PRIMEIRO diagnóstico deve ser verificar se o filtro de `tenant_id` inclui `SYSTEM_TENANT_ID`.
+
+### Rotas Admin devem aceitar super-admin
+
+- **Regra**: Toda rota protegida por `is(['admin'])` DEVE aceitar também `super-admin`: `is(['admin', 'super-admin'])`. Super-admin é um nível acima de admin e DEVE ter acesso a todas as funcionalidades administrativas em qualquer tenant.
+- **Motivo**: Bug #9 — super-admin logado em tenant onde não tinha role `admin` recebia 403 em rotas de users/roles/permissions.
+
+### Controller DEVE passar tenantId ao Service/Repository
+
+- **Regra**: Todo controller que chama `usersRepository.save()` com roles ou permissions DEVE passar `tenantId` explicitamente via `req.user.tenantId`. O repository NÃO deve aceitar `tenantId` vazio/undefined para operações de escrita em `usersRoles`/`usersPermissions` — DEVE lançar erro claro.
+- **Motivo**: Bug #8 — controller de ACL não passava `tenantId`, causando `tenant_id: ''` (UUID inválido) no `createMany`.
+
+### Prevenção de Escalação de Privilégios (OBRIGATÓRIO)
+
+- **Regra**: O sistema DEVE implementar 3 camadas de proteção contra escalação de privilégios:
+  1. **Backend — Service**: Rejeitar atribuição de roles/permissions protegidas (`super-admin`, `super_admin_access`) por callers que não são super-admin. Rejeitar auto-edição de ACL por admins regulares (anti-self-elevation).
+  2. **Backend — Controllers de listagem**: Filtrar roles/permissions protegidas da listagem para admins regulares. `GET /api/roles` NÃO deve retornar `super-admin` para não-super-admins. `GET /api/permissions` NÃO deve retornar `super_admin_access`.
+  3. **Frontend**: Desabilitar formulário de ACL quando admin tenta editar próprio perfil. Exibir banner informativo.
+- **Motivo**: Bug #11 (CRÍTICO) — admin de tenant conseguia ver e auto-atribuir role `super-admin`, ganhando controle total da plataforma. A falha ocorria porque:
+  - O endpoint de listagem de roles não filtrava por nível de privilégio
+  - O endpoint de ACL não validava se o caller tinha privilégio para atribuir a role solicitada
+  - Nenhuma camada impedia auto-elevação de privilégios
+- **Definição de roles/permissions protegidas**: `PROTECTED_ROLE_NAMES = ['super-admin']`, `PROTECTED_PERMISSION_NAMES = ['super_admin_access']`. Essas listas devem ser centralizadas e usadas consistentemente em services e controllers.

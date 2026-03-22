@@ -178,7 +178,11 @@ ALTER TABLE artistas ALTER COLUMN tenant_id SET NOT NULL;
 | User must belong to tenant | Verificar `TenantUsers` no login, select-tenant e switch-tenant |
 | Unique por tenant | Compound unique constraints no banco |
 | Rotas super-admin usam `basePrisma` | JWT pode conter tenantId, mas rotas de gestão ignoram-no e operam cross-tenant |
-| Roles do auth incluem SYSTEM_TENANT_ID | Toda query de roles/permissions no login DEVE usar `WHERE tenant_id IN (selected, SYSTEM_TENANT_ID)` |
+| Roles do auth incluem SYSTEM_TENANT_ID | TODA query de roles/permissions (auth services, `getUserRoles`, `getUserPermissions`, middlewares `is()`/`can()`) DEVE usar `WHERE tenant_id IN (selected, SYSTEM_TENANT_ID)` |
+| Rotas admin aceitam super-admin | `is(['admin', 'super-admin'])` em rotas de users, roles, permissions — super-admin opera em qualquer tenant |
+| Controller passa tenantId | Todo controller que chama `save()` com roles/permissions DEVE passar `req.user.tenantId`. Repository lança erro se `tenantId` undefined |
 | `forTenant()` usa cache | `Map<tenantId, ExtendedClient>` — nunca criar nova instância por request |
 | Seed idempotente | Não re-hashear senha de admin existente. Verificar existência antes de alterar |
 | Contratos de API | Listagens retornam array direto. Criação/atualização retornam `{ msg, entity }`. DELETE retorna 204 |
+| Anti-escalação de privilégios | Roles protegidas (`super-admin`) e permissions protegidas (`super_admin_access`) são filtradas de `GET /roles` e `GET /permissions` para admins regulares. Service rejeita atribuição por não-super-admins (403) |
+| Anti-self-elevation | Admin regular NÃO pode editar próprias ACLs. Service rejeita `callerId === userId` se `callerIsSuperAdmin === false` (403) |
