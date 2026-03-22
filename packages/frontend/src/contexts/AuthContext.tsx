@@ -23,6 +23,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   setAccessToken,
   setRefreshToken,
@@ -49,6 +50,8 @@ interface AuthContextData {
   isAuthenticated: boolean;
   /** `true` se o usuário possui a role "admin". */
   isAdmin: boolean;
+  /** `true` se o usuário possui a role "super-admin". */
+  isSuperAdmin: boolean;
   /** Tenant (organização) ativo do usuário ou `null` se não definido. */
   currentTenant: Tenant | null;
   /** Lista de todos os tenants disponíveis para o usuário (multi-tenant). */
@@ -233,6 +236,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setCurrentTenant(response.user.tenant ?? null);
     if (response.user.tenant) {
       persistAvailableTenants([response.user.tenant]);
+      toast.success(`Bem-vindo à ${response.user.tenant.name}`);
     }
   }, [navigate, persistAvailableTenants]);
 
@@ -254,6 +258,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setRefreshToken(refreshTokenValue);
       setUser(selectedUser);
       setCurrentTenant(selectedUser.tenant ?? null);
+      if (selectedUser.tenant) {
+        toast.success(`Bem-vindo à ${selectedUser.tenant.name}`);
+      }
       if (tenants && tenants.length > 0) {
         persistAvailableTenants(tenants);
       }
@@ -293,12 +300,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo<AuthContextData>(() => {
     const isAuthenticated = !!user;
     const isAdmin = user?.roles?.some((r) => r.name === "admin") ?? false;
+    const isSuperAdmin = user?.roles?.some((r: any) => r.name === "super-admin") ?? false;
 
     return {
       user,
       isLoading,
       isAuthenticated,
       isAdmin,
+      isSuperAdmin,
       currentTenant,
       availableTenants,
       signIn,

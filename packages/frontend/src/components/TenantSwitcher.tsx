@@ -5,7 +5,8 @@
  * tenants disponíveis para o usuário. Clicar em um tenant diferente do ativo
  * chama `switchTenant()` do AuthContext, que troca a sessão sem re-login.
  *
- * Só é renderizado quando o usuário possui mais de um tenant disponível.
+ * Para usuários com apenas um tenant, exibe o nome como texto estático (sem
+ * interação). Retorna `null` se o usuário não possui nenhum tenant definido.
  * Design mobile-first usando shadcn/ui DropdownMenu.
  */
 
@@ -28,16 +29,25 @@ import { toast } from "sonner";
  *
  * Renderiza um botão que exibe o tenant ativo e um dropdown com todos os
  * tenants do usuário. Ao selecionar outro tenant, realiza a troca via API.
- * Retorna `null` se o usuário possui apenas um tenant ou nenhum.
+ * Para usuários com apenas um tenant, exibe o nome do tenant como texto
+ * estático sem interação. Retorna `null` se não há tenant definido.
  *
- * @returns Elemento JSX com o seletor de tenant ou `null`.
+ * @returns Elemento JSX com o seletor de tenant, exibição estática ou `null`.
  */
 export function TenantSwitcher() {
   const { currentTenant, availableTenants, switchTenant } = useAuth();
   const [switchingTenantId, setSwitchingTenantId] = useState<string | null>(null);
 
   if (availableTenants.length <= 1) {
-    return null;
+    if (!currentTenant) return null;
+    return (
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Building2 className="h-4 w-4 shrink-0 text-sidebar-foreground/70" />
+        <span className="truncate text-sm font-medium text-sidebar-foreground">
+          {currentTenant.name}
+        </span>
+      </div>
+    );
   }
 
   /**

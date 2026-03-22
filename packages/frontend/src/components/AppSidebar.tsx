@@ -4,7 +4,8 @@
  * Renderiza o menu de navegação com itens de domínio (acessíveis a todos
  * os usuários autenticados), filtrando "Configurações" para usuários com
  * permissão `configuracoes.write`, e uma seção "Administração" condicional
- * (visível apenas para usuários com role "admin").
+ * (visível apenas para usuários com role "admin"). O item "Igrejas" é exibido
+ * adicionalmente na seção admin, mas apenas para usuários com role "super-admin".
  */
 
 import { useEffect } from "react";
@@ -19,6 +20,7 @@ import {
   Shield,
   UserCog,
   Key,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -62,8 +64,9 @@ const adminItems = [
  *
  * Renderiza menu de domínio para todos os autenticados, ocultando
  * "Configurações" para quem não tem `configuracoes.write`, e seção
- * "Administração" apenas para admins. Suporta colapso e fecha
- * automaticamente em mobile ao mudar de rota.
+ * "Administração" apenas para admins. O item "Igrejas" é exibido somente
+ * para super-admins. Suporta colapso e fecha automaticamente em mobile
+ * ao mudar de rota.
  *
  * @returns Elemento React com a sidebar de navegação.
  */
@@ -72,7 +75,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const { can: canConfig } = useCan("configuracoes.write");
 
   /**
@@ -161,6 +164,20 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+                {isSuperAdmin && (
+                  <SidebarMenuItem key="Igrejas">
+                    <SidebarMenuButton asChild isActive={isActive("/admin/igrejas")}>
+                      <NavLink
+                        to="/admin/igrejas"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
+                        activeClassName="bg-sidebar-accent font-medium"
+                      >
+                        <Building2 className="h-5 w-5" />
+                        {!collapsed && <span>Igrejas</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

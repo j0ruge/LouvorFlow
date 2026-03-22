@@ -8,6 +8,7 @@
  * Rotas públicas (login, esqueci-senha, redefinir-senha) são acessíveis
  * sem autenticação. Todas as demais rotas são protegidas via ProtectedRoute.
  * Rotas administrativas exigem role "admin" via AdminRoute.
+ * Rotas de super-admin exigem role "super-admin" via SuperAdminRoute.
  *
  * @component
  */
@@ -22,6 +23,7 @@ import { ThemeColorProvider } from "./contexts/ThemeColorContext";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
+import { SuperAdminRoute } from "./components/SuperAdminRoute";
 import Dashboard from "./pages/Dashboard";
 import Songs from "./pages/Songs";
 import Scales from "./pages/Scales";
@@ -41,6 +43,8 @@ import AdminUserAcl from "./pages/admin/UserAcl";
 import AdminRoles from "./pages/admin/Roles";
 import AdminRolePermissions from "./pages/admin/RolePermissions";
 import AdminPermissions from "./pages/admin/Permissions";
+import AdminIgrejas from "./pages/admin/Igrejas";
+import AdminIgrejaUsers from "./pages/admin/IgrejaUsers";
 import SelectTenant from "./pages/SelectTenant";
 
 const queryClient = new QueryClient({
@@ -82,6 +86,22 @@ function AdminPage({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Wrapper que aplica layout, proteção de rota autenticada e proteção super-admin.
+ *
+ * @param children - Componente da página super-admin a renderizar.
+ * @returns Página envolvida com layout, proteção e verificação super-admin.
+ */
+function SuperAdminPage({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <AppLayout>
+        <SuperAdminRoute>{children}</SuperAdminRoute>
+      </AppLayout>
+    </ProtectedRoute>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -116,6 +136,10 @@ const App = () => (
                 <Route path="/admin/roles" element={<AdminPage><AdminRoles /></AdminPage>} />
                 <Route path="/admin/roles/:roleId/permissoes" element={<AdminPage><AdminRolePermissions /></AdminPage>} />
                 <Route path="/admin/permissoes" element={<AdminPage><AdminPermissions /></AdminPage>} />
+
+                {/* Rotas super-admin (autenticação + role super-admin) */}
+                <Route path="/admin/igrejas" element={<SuperAdminPage><AdminIgrejas /></SuperAdminPage>} />
+                <Route path="/admin/igrejas/:id/usuarios" element={<SuperAdminPage><AdminIgrejaUsers /></SuperAdminPage>} />
 
                 {/* Catch-all */}
                 <Route path="*" element={<ProtectedPage><NotFound /></ProtectedPage>} />

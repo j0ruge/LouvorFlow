@@ -219,3 +219,48 @@ export const RolePermissionsFormSchema = z.object({
 
 /** Tipo inferido dos dados do formulário de permissões de papel. */
 export type RolePermissionsForm = z.infer<typeof RolePermissionsFormSchema>;
+
+// ─── Igrejas (Tenants) ──────────────────────────────────────────
+
+/** Schema de uma igreja (tenant) retornada pela API. */
+export const IgrejaSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  status: z.string(),
+  user_count: z.number().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+/** Tipo inferido de uma igreja (tenant). */
+export type Igreja = z.infer<typeof IgrejaSchema>;
+
+/** Schema de um usuário pertencente a um tenant de uma igreja. */
+export const IgrejaTenantUserSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  telefone: z.string().nullable(),
+  roles: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  created_at: z.string().optional(),
+});
+
+/** Tipo inferido de um usuário de tenant de igreja. */
+export type IgrejaTenantUser = z.infer<typeof IgrejaTenantUserSchema>;
+
+/** Schema de validação do formulário de criação de igreja. */
+export const CreateIgrejaFormSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório").max(255, "Nome deve ter no máximo 255 caracteres"),
+});
+
+/** Tipo inferido dos dados do formulário de criação de igreja. */
+export type CreateIgrejaForm = z.infer<typeof CreateIgrejaFormSchema>;
+
+/** Schema de validação do formulário de atualização de igreja. */
+export const UpdateIgrejaFormSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório").max(255).optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+});
+
+/** Tipo inferido dos dados do formulário de atualização de igreja. */
+export type UpdateIgrejaForm = z.infer<typeof UpdateIgrejaFormSchema>;
