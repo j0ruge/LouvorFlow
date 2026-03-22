@@ -15,13 +15,21 @@ class FuncoesService {
         return funcao;
     }
 
-    async create(nome?: string) {
+    /**
+     * Cria uma nova função no tenant ativo.
+     *
+     * @param nome - Nome da função.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Função criada.
+     * @throws AppError 400 se nome ausente; 409 se nome duplicado no tenant.
+     */
+    async create(nome: string | undefined, tenantId: string) {
         if (!nome) throw new AppError("Nome da função é obrigatório", 400);
 
         const existente = await funcoesRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe uma função com esse nome", 409);
 
-        return funcoesRepository.create(nome);
+        return funcoesRepository.create(nome, tenantId);
     }
 
     async update(id: string, nome?: string) {

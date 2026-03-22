@@ -38,9 +38,15 @@ class ArtistasRepository {
         return getPrisma().artistas.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
-    async create(nome: string) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-        return getPrisma().artistas.create({ data: { nome, tenant_id: '' as any } });
+    /**
+     * Cria um novo artista vinculado ao tenant.
+     *
+     * @param nome - Nome do artista.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Artista criado.
+     */
+    async create(nome: string, tenantId: string) {
+        return getPrisma().artistas.create({ data: { nome, tenant_id: tenantId } });
     }
 
     async update(id: string, nome: string) {

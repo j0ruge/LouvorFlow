@@ -1,217 +1,137 @@
 import { Request, Response } from 'express';
 import musicasService from '../services/musicas.service.js';
-import { AppError } from '../errors/AppError.js';
 
 class MusicasController {
     // --- Base CRUD ---
 
+    /** Lista músicas paginadas. */
     async index(req: Request, res: Response): Promise<void> {
-        try {
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 20;
-            const result = await musicasService.listAll(page, limit);
-            res.status(200).json(result);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar músicas", codigo: 500 });
-        }
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const result = await musicasService.listAll(page, limit);
+        res.status(200).json(result);
     }
 
+    /** Retorna uma música pelo ID. */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.getById(req.params.id);
-            res.status(200).json(musica);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar música", codigo: 500 });
-        }
+        const musica = await musicasService.getById(req.params.id);
+        res.status(200).json(musica);
     }
 
+    /**
+     * Cria uma música simples com nome e tonalidade.
+     * Recebe `tenantId` do usuário autenticado.
+     */
     async create(req: Request, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.create(req.body);
-            res.status(201).json({ msg: "Música criada com sucesso", musica });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao criar música", codigo: 500 });
-        }
+        const musica = await musicasService.create(req.body, req.user.tenantId!);
+        res.status(201).json({ msg: "Música criada com sucesso", musica });
     }
 
+    /** Atualiza uma música existente pelo ID. */
     async update(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.update(req.params.id, req.body);
-            res.status(200).json({ msg: "Música editada com sucesso", musica });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao editar música", codigo: 500 });
-        }
+        const musica = await musicasService.update(req.params.id, req.body);
+        res.status(200).json({ msg: "Música editada com sucesso", musica });
     }
 
+    /** Remove uma música pelo ID. */
     async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.delete(req.params.id);
-            res.status(200).json({ msg: "Música deletada com sucesso", musica });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao deletar música", codigo: 500 });
-        }
+        const musica = await musicasService.delete(req.params.id);
+        res.status(200).json({ msg: "Música deletada com sucesso", musica });
     }
 
     // --- Complete (música + versão atômica) ---
 
     /**
      * Cria uma música com versão opcional de forma atômica.
-     *
-     * @param req - Requisição com corpo contendo dados da música e versão opcional.
-     * @param res - Resposta HTTP com status 201 e a música criada completa.
+     * Recebe `tenantId` do usuário autenticado.
      */
     async createComplete(req: Request, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.createComplete(req.body);
-            res.status(201).json({ msg: "Música criada com sucesso", musica });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao criar música", codigo: 500 });
-        }
+        const musica = await musicasService.createComplete(req.body, req.user.tenantId!);
+        res.status(201).json({ msg: "Música criada com sucesso", musica });
     }
 
     /**
      * Atualiza uma música e opcionalmente sua versão de forma atômica.
-     *
-     * @param req - Requisição com `req.params.id` e corpo com dados de atualização.
-     * @param res - Resposta HTTP com status 200 e a música atualizada completa.
+     * Recebe `tenantId` do usuário autenticado.
      */
     async updateComplete(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const musica = await musicasService.updateComplete(req.params.id, req.body);
-            res.status(200).json({ msg: "Música editada com sucesso", musica });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao editar música", codigo: 500 });
-        }
+        const musica = await musicasService.updateComplete(req.params.id, req.body, req.user.tenantId!);
+        res.status(200).json({ msg: "Música editada com sucesso", musica });
     }
 
     // --- Junction: Versoes ---
 
+    /** Lista as versões de uma música. */
     async listVersoes(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            const versoes = await musicasService.listVersoes(req.params.musicaId);
-            res.status(200).json(versoes);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar versões", codigo: 500 });
-        }
+        const versoes = await musicasService.listVersoes(req.params.musicaId);
+        res.status(200).json(versoes);
     }
 
+    /**
+     * Vincula uma versão (artista) a uma música.
+     * Recebe `tenantId` do usuário autenticado.
+     */
     async addVersao(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            const versao = await musicasService.addVersao(req.params.musicaId, req.body);
-            res.status(201).json({ msg: "Versão adicionada com sucesso", versao });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao adicionar versão", codigo: 500 });
-        }
+        const versao = await musicasService.addVersao(req.params.musicaId, req.body, req.user.tenantId!);
+        res.status(201).json({ msg: "Versão adicionada com sucesso", versao });
     }
 
+    /** Atualiza uma versão existente. */
     async updateVersao(req: Request<{ versaoId: string }>, res: Response): Promise<void> {
-        try {
-            const versao = await musicasService.updateVersao(req.params.versaoId, req.body);
-            res.status(200).json({ msg: "Versão editada com sucesso", versao });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao editar versão", codigo: 500 });
-        }
+        const versao = await musicasService.updateVersao(req.params.versaoId, req.body);
+        res.status(200).json({ msg: "Versão editada com sucesso", versao });
     }
 
+    /** Remove uma versão existente. */
     async removeVersao(req: Request<{ versaoId: string }>, res: Response): Promise<void> {
-        try {
-            await musicasService.removeVersao(req.params.versaoId);
-            res.status(200).json({ msg: "Versão removida com sucesso" });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao remover versão", codigo: 500 });
-        }
+        await musicasService.removeVersao(req.params.versaoId);
+        res.status(200).json({ msg: "Versão removida com sucesso" });
     }
 
     // --- Junction: Categorias ---
 
-    /**
-     * Lista as categorias associadas a uma música.
-     * @param req - Requisição com `req.params.musicaId` identificando a música.
-     * @param res - Resposta HTTP com status 200 e array de categorias.
-     */
+    /** Lista as categorias associadas a uma música. */
     async listCategorias(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            const categorias = await musicasService.listCategorias(req.params.musicaId);
-            res.status(200).json(categorias);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar categorias", codigo: 500 });
-        }
+        const categorias = await musicasService.listCategorias(req.params.musicaId);
+        res.status(200).json(categorias);
     }
 
     /**
      * Associa uma categoria a uma música.
-     * @param req - Requisição com `req.params.musicaId` e `req.body.categoria_id`.
-     * @param res - Resposta HTTP com status 201 confirmando a associação.
-     * @throws AppError 404 se música ou categoria não existir; 409 se já associada.
+     * Recebe `tenantId` do usuário autenticado.
      */
     async addCategoria(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id);
-            res.status(201).json({ msg: "Categoria adicionada com sucesso" });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao adicionar categoria", codigo: 500 });
-        }
+        await musicasService.addCategoria(req.params.musicaId, req.body.categoria_id, req.user.tenantId!);
+        res.status(201).json({ msg: "Categoria adicionada com sucesso" });
     }
 
-    /**
-     * Remove a associação de uma categoria com uma música.
-     * @param req - Requisição com `req.params.musicaId` e `req.params.categoriaId`.
-     * @param res - Resposta HTTP com status 200 confirmando a remoção.
-     * @throws AppError 404 se a associação não existir.
-     */
+    /** Remove a associação de uma categoria com uma música. */
     async removeCategoria(req: Request<{ musicaId: string; categoriaId: string }>, res: Response): Promise<void> {
-        try {
-            await musicasService.removeCategoria(req.params.musicaId, req.params.categoriaId);
-            res.status(200).json({ msg: "Categoria removida com sucesso" });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao remover categoria", codigo: 500 });
-        }
+        await musicasService.removeCategoria(req.params.musicaId, req.params.categoriaId);
+        res.status(200).json({ msg: "Categoria removida com sucesso" });
     }
 
     // --- Junction: Funcoes ---
 
+    /** Lista as funções associadas a uma música. */
     async listFuncoes(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            const funcoes = await musicasService.listFuncoes(req.params.musicaId);
-            res.status(200).json(funcoes);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar funções", codigo: 500 });
-        }
+        const funcoes = await musicasService.listFuncoes(req.params.musicaId);
+        res.status(200).json(funcoes);
     }
 
+    /**
+     * Associa uma função a uma música.
+     * Recebe `tenantId` do usuário autenticado.
+     */
     async addFuncao(req: Request<{ musicaId: string }>, res: Response): Promise<void> {
-        try {
-            await musicasService.addFuncao(req.params.musicaId, req.body.funcao_id);
-            res.status(201).json({ msg: "Função adicionada com sucesso" });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao adicionar função", codigo: 500 });
-        }
+        await musicasService.addFuncao(req.params.musicaId, req.body.funcao_id, req.user.tenantId!);
+        res.status(201).json({ msg: "Função adicionada com sucesso" });
     }
 
+    /** Remove a associação de uma função com uma música. */
     async removeFuncao(req: Request<{ musicaId: string; funcaoId: string }>, res: Response): Promise<void> {
-        try {
-            await musicasService.removeFuncao(req.params.musicaId, req.params.funcaoId);
-            res.status(200).json({ msg: "Função removida com sucesso" });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao remover função", codigo: 500 });
-        }
+        await musicasService.removeFuncao(req.params.musicaId, req.params.funcaoId);
+        res.status(200).json({ msg: "Função removida com sucesso" });
     }
 }
 

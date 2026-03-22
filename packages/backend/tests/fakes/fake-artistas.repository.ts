@@ -40,7 +40,7 @@ export function createFakeArtistasRepository() {
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
       data.find(a => a.nome === nome && a.id !== excludeId) ?? null,
 
-    create: async (nome: string) => {
+    create: async (nome: string, _tenantId?: string) => {
       const artista = { id: randomUUID(), nome };
       data.push(artista);
       return artista;

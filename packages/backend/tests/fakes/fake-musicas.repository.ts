@@ -78,7 +78,7 @@ export function createFakeMusicasRepository() {
       return musica ? { id: musica.id, nome: musica.nome } : null;
     },
 
-    create: async (data: { nome: string; fk_tonalidade: string }) => {
+    create: async (data: { nome: string; fk_tonalidade: string }, _tenantId?: string) => {
       const musica = { id: randomUUID(), nome: data.nome, fk_tonalidade: data.fk_tonalidade };
       musicasData.push(musica);
       return buildCreateReturn(musica);
@@ -106,7 +106,7 @@ export function createFakeMusicasRepository() {
      * @param data - Dados de criação completa (música + versão opcional + categorias/funções).
      * @returns Música criada com todos os relacionamentos (formato MUSICA_SELECT).
      */
-    createWithVersao: async (data: CreateMusicaCompleteInput) => {
+    createWithVersao: async (data: CreateMusicaCompleteInput, _tenantId?: string) => {
       const musica = { id: randomUUID(), nome: data.nome!, fk_tonalidade: data.fk_tonalidade ?? '' };
       musicasData.push(musica);
 
@@ -141,7 +141,7 @@ export function createFakeMusicasRepository() {
      * @param data - Dados de atualização completa (música + versão + categorias/funções).
      * @returns Música atualizada com todos os relacionamentos (formato MUSICA_SELECT).
      */
-    updateWithVersao: async (id: string, data: UpdateMusicaCompleteInput) => {
+    updateWithVersao: async (id: string, data: UpdateMusicaCompleteInput, _tenantId?: string) => {
       const musica = musicasData.find(m => m.id === id);
       if (!musica) throw new Error('Música não encontrada no fake');
       if (data.nome !== undefined) musica.nome = data.nome;
@@ -197,7 +197,7 @@ export function createFakeMusicasRepository() {
       cifras?: string;
       lyrics?: string;
       link_versao?: string;
-    }) => {
+    }, _tenantId?: string) => {
       const versao = {
         id: randomUUID(),
         artista_id: data.artista_id,
@@ -261,7 +261,7 @@ export function createFakeMusicasRepository() {
      * @param musicaId - ID da música.
      * @param categoriaId - ID da categoria.
      */
-    createCategoria: async (musicaId: string, categoriaId: string) => {
+    createCategoria: async (musicaId: string, categoriaId: string, _tenantId?: string) => {
       const record = { id: randomUUID(), musica_id: musicaId, categoria_id: categoriaId };
       categoriasData.push(record);
       return record;
@@ -295,7 +295,7 @@ export function createFakeMusicasRepository() {
           musicas_funcoes_funcao_id_fkey: MOCK_FUNCOES.find(fn => fn.id === f.funcao_id)!,
         })),
 
-    createFuncao: async (musicaId: string, funcaoId: string) => {
+    createFuncao: async (musicaId: string, funcaoId: string, _tenantId?: string) => {
       const record = { id: randomUUID(), musica_id: musicaId, funcao_id: funcaoId };
       funcoesData.push(record);
       return record;

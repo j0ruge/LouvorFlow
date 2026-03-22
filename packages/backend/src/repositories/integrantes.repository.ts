@@ -182,12 +182,12 @@ class IntegrantesRepository {
      *
      * @param fk_user_id - ID do user
      * @param funcao_id - ID da função a ser vinculada
+     * @param tenantId - ID do tenant ao qual o vínculo pertence
      * @returns Registro criado na tabela Users_Funcoes
      */
-    async createIntegranteFuncao(fk_user_id: string, funcao_id: string) {
+    async createIntegranteFuncao(fk_user_id: string, funcao_id: string, tenantId: string) {
         return getPrisma().users_Funcoes.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { fk_user_id, funcao_id, tenant_id: '' as any }
+            data: { fk_user_id, funcao_id, tenant_id: tenantId }
         });
     }
 

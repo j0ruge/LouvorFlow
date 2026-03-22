@@ -132,7 +132,8 @@ export function createFakeEventosRepository() {
 
     findByIdSimple: async (id: string) => eventosData.find(e => e.id === id) ?? null,
 
-    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }) => {
+    /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
+    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
       const evento = { id: randomUUID(), ...data };
       eventosData.push(evento);
       return {
@@ -183,7 +184,8 @@ export function createFakeEventosRepository() {
           };
         }),
 
-    createMusica: async (eventoId: string, musicasId: string) => {
+    /** Vincula uma música a um evento em memória (parâmetro _tenantId ignorado no fake). */
+    createMusica: async (eventoId: string, musicasId: string, _tenantId?: string) => {
       const record = { id: randomUUID(), evento_id: eventoId, musicas_id: musicasId };
       eventosMusicas.push(record);
       return record;
@@ -235,7 +237,8 @@ export function createFakeEventosRepository() {
      * @param funcaoIds - IDs das funções selecionadas para o evento
      * @returns Registro criado com id gerado automaticamente
      */
-    createIntegrante: async (eventoId: string, userId: string, funcaoIds: string[]) => {
+    /** Cria vínculo entre evento e user em memória (parâmetro _tenantId ignorado no fake). */
+    createIntegrante: async (eventoId: string, userId: string, funcaoIds: string[], _tenantId?: string) => {
       const record = { id: randomUUID(), evento_id: eventoId, fk_user_id: userId };
       eventosIntegrantes.push(record);
       for (const funcaoId of funcaoIds) {

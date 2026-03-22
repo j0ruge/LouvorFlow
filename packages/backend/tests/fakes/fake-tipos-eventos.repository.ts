@@ -11,7 +11,7 @@ export function createFakeTiposEventosRepository() {
     findByNome: async (nome: string) => data.find(t => t.nome === nome) ?? null,
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
       data.find(t => t.nome === nome && t.id !== excludeId) ?? null,
-    create: async (nome: string) => {
+    create: async (nome: string, _tenantId?: string) => {
       const tipo = { id: randomUUID(), nome };
       data.push(tipo);
       return { id: tipo.id, nome: tipo.nome };

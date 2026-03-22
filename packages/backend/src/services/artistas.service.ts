@@ -15,13 +15,21 @@ class ArtistasService {
         return artista;
     }
 
-    async create(nome?: string) {
+    /**
+     * Cria um novo artista no tenant ativo.
+     *
+     * @param nome - Nome do artista.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Artista criado com id e nome.
+     * @throws AppError 400 se nome ausente; 409 se nome duplicado no tenant.
+     */
+    async create(nome: string | undefined, tenantId: string) {
         if (!nome) throw new AppError("Nome do artista é obrigatório", 400);
 
         const artistaExistente = await artistasRepository.findByNome(nome);
         if (artistaExistente) throw new AppError("Já existe um artista com esse nome", 409);
 
-        const novoArtista = await artistasRepository.create(nome);
+        const novoArtista = await artistasRepository.create(nome, tenantId);
         return { id: novoArtista.id, nome: novoArtista.nome };
     }
 

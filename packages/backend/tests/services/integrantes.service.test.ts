@@ -201,12 +201,12 @@ describe('IntegrantesService', () => {
     it('deve vincular uma função ao integrante', async () => {
       const integranteId = MOCK_INTEGRANTES[2].id;
       const funcaoId = MOCK_FUNCOES[0].id;
-      await expect(integrantesService.addFuncao(integranteId, funcaoId)).resolves.toBeUndefined();
+      await expect(integrantesService.addFuncao(integranteId, funcaoId, 'tenant-fake-id')).resolves.toBeUndefined();
     });
 
     /** Verifica que funcao_id ausente lança AppError 400. */
     it('deve lançar AppError 400 quando funcao_id não é enviado', async () => {
-      await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, undefined)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'ID da função é obrigatório',
       });
@@ -214,7 +214,7 @@ describe('IntegrantesService', () => {
 
     /** Verifica que integrante inexistente no addFuncao lança AppError 404. */
     it('deve lançar AppError 404 quando integrante não existe', async () => {
-      await expect(integrantesService.addFuncao(NON_EXISTENT_ID, MOCK_FUNCOES[0].id)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(NON_EXISTENT_ID, MOCK_FUNCOES[0].id, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 404,
         message: 'Integrante não encontrado',
       });
@@ -222,7 +222,7 @@ describe('IntegrantesService', () => {
 
     /** Verifica que função inexistente no addFuncao lança AppError 404. */
     it('deve lançar AppError 404 quando função não existe', async () => {
-      await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(MOCK_INTEGRANTES[0].id, NON_EXISTENT_ID, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 404,
         message: 'Função não encontrada',
       });
@@ -231,7 +231,7 @@ describe('IntegrantesService', () => {
     /** Verifica que vínculo duplicado lança AppError 409. */
     it('deve lançar AppError 409 quando relação já existe', async () => {
       const existing = MOCK_INTEGRANTES_FUNCOES[0];
-      await expect(integrantesService.addFuncao(existing.fk_user_id, existing.funcao_id)).rejects.toMatchObject({
+      await expect(integrantesService.addFuncao(existing.fk_user_id, existing.funcao_id, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });

@@ -15,13 +15,21 @@ class TonalidadesService {
         return tonalidade;
     }
 
-    async create(tom?: string) {
+    /**
+     * Cria uma nova tonalidade no tenant ativo.
+     *
+     * @param tom - Tom da tonalidade.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Tonalidade criada.
+     * @throws AppError 400 se tom ausente; 409 se tom duplicado no tenant.
+     */
+    async create(tom: string | undefined, tenantId: string) {
         if (!tom) throw new AppError("Tom da tonalidade é obrigatório", 400);
 
         const existente = await tonalidadesRepository.findByTom(tom);
         if (existente) throw new AppError("Já existe uma tonalidade com esse tom", 409);
 
-        return tonalidadesRepository.create(tom);
+        return tonalidadesRepository.create(tom, tenantId);
     }
 
     async update(id: string, tom?: string) {

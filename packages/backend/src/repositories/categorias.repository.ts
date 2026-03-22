@@ -49,14 +49,15 @@ class CategoriasRepository {
     }
 
     /**
-     * Cria uma nova categoria.
+     * Cria uma nova categoria vinculada ao tenant.
+     *
      * @param nome - Nome da categoria.
+     * @param tenantId - UUID do tenant ativo.
      * @returns Categoria criada com id e nome.
      */
-    async create(nome: string): Promise<CategoriaSummary> {
+    async create(nome: string, tenantId: string): Promise<CategoriaSummary> {
         return getPrisma().categorias.create({
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tenant_id é injetado pelo interceptor forTenant em runtime
-            data: { nome, tenant_id: '' as any },
+            data: { nome, tenant_id: tenantId },
             select: { id: true, nome: true }
         });
     }

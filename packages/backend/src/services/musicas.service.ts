@@ -60,7 +60,15 @@ class MusicasService {
         return formatMusica(musica);
     }
 
-    async create(body: { nome?: string; fk_tonalidade?: string }) {
+    /**
+     * Cria uma nova música com nome e tonalidade.
+     *
+     * @param body - Dados da música (nome e tonalidade)
+     * @param tenantId - ID do tenant proprietário
+     * @returns Música criada com id, nome e tonalidade
+     * @throws {AppError} 400 se nome ou tonalidade ausentes; 404 se tonalidade não existir
+     */
+    async create(body: { nome?: string; fk_tonalidade?: string }, tenantId: string) {
         const { nome, fk_tonalidade } = body;
         const errors: string[] = [];
 
@@ -72,7 +80,7 @@ class MusicasService {
         const tonalidade = await tonalidadesRepository.findById(fk_tonalidade!);
         if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
 
-        const musica = await musicasRepository.create({ nome: nome!, fk_tonalidade: fk_tonalidade! });
+        const musica = await musicasRepository.create({ nome: nome!, fk_tonalidade: fk_tonalidade! }, tenantId);
 
         return {
             id: musica.id,
@@ -123,10 +131,11 @@ class MusicasService {
      * Valida existência de categorias e funções quando fornecidas.
      *
      * @param body - Dados de criação completa
+     * @param tenantId - ID do tenant proprietário
      * @returns Música criada formatada com todos os relacionamentos
      * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista/categoria/função não existir
      */
-    async createComplete(body: CreateMusicaCompleteInput): Promise<Musica> {
+    async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
         const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
@@ -150,7 +159,7 @@ class MusicasService {
         await this.validarCategoriaIds(categoria_ids);
         await this.validarFuncaoIds(funcao_ids);
 
-        const result = await musicasRepository.createWithVersao(body);
+        const result = await musicasRepository.createWithVersao(body, tenantId);
         return formatMusica(result);
     }
 
@@ -160,10 +169,11 @@ class MusicasService {
      *
      * @param id - UUID da música
      * @param body - Dados de atualização completa
+     * @param tenantId - ID do tenant proprietário
      * @returns Música atualizada formatada com todos os relacionamentos
      * @throws {AppError} 400 se nome ausente; 404 se música/tonalidade/versão/categoria/função não existir
      */
-    async updateComplete(id: string, body: UpdateMusicaCompleteInput): Promise<Musica> {
+    async updateComplete(id: string, body: UpdateMusicaCompleteInput, tenantId: string): Promise<Musica> {
         if (!id) throw new AppError("ID de música não enviado", 400);
 
         const { nome, fk_tonalidade, versao_id, categoria_ids, funcao_ids } = body;
@@ -186,7 +196,7 @@ class MusicasService {
         await this.validarCategoriaIds(categoria_ids);
         await this.validarFuncaoIds(funcao_ids);
 
-        const result = await musicasRepository.updateWithVersao(id, body);
+        const result = await musicasRepository.updateWithVersao(id, body, tenantId);
         return formatMusica(result);
     }
 
@@ -204,7 +214,16 @@ class MusicasService {
         }));
     }
 
-    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }) {
+    /**
+     * Vincula uma versão (artista_musicas) a uma música existente.
+     *
+     * @param musicaId - ID da música
+     * @param body - Dados da versão (artista_id, bpm, cifras, lyrics, link_versao)
+     * @param tenantId - ID do tenant proprietário
+     * @returns Versão criada com dados do artista
+     * @throws {AppError} 400 se artista_id ausente; 404 se música ou artista não existir; 409 se duplicado
+     */
+    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }, tenantId: string) {
         const { artista_id, bpm, cifras, lyrics, link_versao } = body;
 
         if (!artista_id) throw new AppError("ID do artista é obrigatório", 400);
@@ -220,7 +239,7 @@ class MusicasService {
 
         const versao = await musicasRepository.createVersao({
             artista_id, musica_id: musicaId, bpm, cifras, lyrics, link_versao
-        });
+        }, tenantId);
 
         return {
             id: versao.id,
@@ -284,9 +303,10 @@ class MusicasService {
      *
      * @param musicaId - ID da música
      * @param categoria_id - ID da categoria a vincular
+     * @param tenantId - ID do tenant proprietário
      * @throws {AppError} 400 se `categoria_id` não informado, 404 se música ou categoria não existir, 409 se duplicado
      */
-    async addCategoria(musicaId: string, categoria_id?: string) {
+    async addCategoria(musicaId: string, categoria_id: string | undefined, tenantId: string) {
         if (!categoria_id) throw new AppError("ID da categoria é obrigatório", 400);
 
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
@@ -298,7 +318,7 @@ class MusicasService {
         const existente = await musicasRepository.findCategoriaDuplicate(musicaId, categoria_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await musicasRepository.createCategoria(musicaId, categoria_id);
+        await musicasRepository.createCategoria(musicaId, categoria_id, tenantId);
     }
 
     /**
@@ -322,7 +342,15 @@ class MusicasService {
         return funcoes.map(f => f.musicas_funcoes_funcao_id_fkey);
     }
 
-    async addFuncao(musicaId: string, funcao_id?: string) {
+    /**
+     * Vincula uma função a uma música, validando existência e duplicidade.
+     *
+     * @param musicaId - ID da música
+     * @param funcao_id - ID da função a vincular
+     * @param tenantId - ID do tenant proprietário
+     * @throws {AppError} 400 se `funcao_id` não informado, 404 se música ou função não existir, 409 se duplicado
+     */
+    async addFuncao(musicaId: string, funcao_id: string | undefined, tenantId: string) {
         if (!funcao_id) throw new AppError("ID da função é obrigatório", 400);
 
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
@@ -334,7 +362,7 @@ class MusicasService {
         const existente = await musicasRepository.findFuncaoDuplicate(musicaId, funcao_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await musicasRepository.createFuncao(musicaId, funcao_id);
+        await musicasRepository.createFuncao(musicaId, funcao_id, tenantId);
     }
 
     async removeFuncao(musicaId: string, funcaoId: string) {

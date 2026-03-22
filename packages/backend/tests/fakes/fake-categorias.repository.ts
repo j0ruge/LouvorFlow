@@ -11,7 +11,7 @@ export function createFakeCategoriasRepository() {
     findByNome: async (nome: string) => data.find(t => t.nome === nome) ?? null,
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
       data.find(t => t.nome === nome && t.id !== excludeId) ?? null,
-    create: async (nome: string) => {
+    create: async (nome: string, _tenantId?: string) => {
       const categoria = { id: randomUUID(), nome };
       data.push(categoria);
       return { id: categoria.id, nome: categoria.nome };

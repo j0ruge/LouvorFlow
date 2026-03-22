@@ -60,14 +60,14 @@ describe('CategoriasService', () => {
   describe('create', () => {
     /** Deve criar e retornar uma categoria quando o nome é válido e único. */
     it('deve criar uma categoria com nome válido', async () => {
-      const result = await categoriasService.create('Louvor');
+      const result = await categoriasService.create('Louvor', 'tenant-fake-id');
       expect(result).toHaveProperty('id');
       expect(result.nome).toBe('Louvor');
     });
 
     /** Deve lançar erro 400 quando o nome é undefined. */
     it('deve lançar AppError 400 quando nome não é enviado', async () => {
-      await expect(categoriasService.create(undefined)).rejects.toMatchObject({
+      await expect(categoriasService.create(undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Nome da categoria é obrigatório',
       });
@@ -75,7 +75,7 @@ describe('CategoriasService', () => {
 
     /** Deve lançar erro 400 quando o nome é uma string vazia. */
     it('deve lançar AppError 400 quando nome é string vazia', async () => {
-      await expect(categoriasService.create('')).rejects.toMatchObject({
+      await expect(categoriasService.create('', 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Nome da categoria é obrigatório',
       });
@@ -83,7 +83,7 @@ describe('CategoriasService', () => {
 
     /** Deve lançar erro 409 quando já existe categoria com o mesmo nome. */
     it('deve lançar AppError 409 quando nome é duplicado', async () => {
-      await expect(categoriasService.create(MOCK_CATEGORIAS[0].nome)).rejects.toMatchObject({
+      await expect(categoriasService.create(MOCK_CATEGORIAS[0].nome, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe uma categoria com esse nome',
       });
