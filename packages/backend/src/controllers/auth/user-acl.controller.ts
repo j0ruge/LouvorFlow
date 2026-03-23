@@ -22,8 +22,8 @@ class UserAclController {
         const { userId } = req.params;
         const { roles, permissions } = req.body;
         /** Passa tenantId e dados do caller para validação de privilégios no service. */
-        const tenantId = req.user?.tenantId;
-        const callerId = req.user?.id;
+        const tenantId = req.user!.tenantId!;
+        const callerId = req.user!.id;
         const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
         const user = await createUserAclService.execute({
             userId,
@@ -47,7 +47,7 @@ class UserAclController {
      */
     async show(req: Request<{ userId: string }>, res: Response): Promise<void> {
         const { userId } = req.params;
-        const acl = await listUserAclService.execute(userId);
+        const acl = await listUserAclService.execute(userId, req.user?.tenantId);
         res.status(200).json(acl);
     }
 }

@@ -3845,6 +3845,57 @@
         }
       }
     },
+    "/sessions/switch-tenant": {
+      "post": {
+        "summary": "Trocar tenant (usuário já autenticado)",
+        "description": "Permite que um usuário já autenticado troque o tenant ativo da sessão sem re-login. Invalida os refresh tokens anteriores e emite um novo par de tokens (access + refresh) com o tenantId do tenant de destino no payload JWT.",
+        "tags": [
+          "Sessions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchTenantInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tenant trocado — nova sessão completa emitida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "summary": "Listar todos os usuários",
@@ -5464,6 +5515,18 @@
           }
         },
         "required": ["selection_token", "tenant_id"]
+      },
+      "SwitchTenantInput": {
+        "type": "object",
+        "description": "Dados para troca de tenant por um usuário já autenticado. Requer Bearer token válido.",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID do tenant de destino escolhido pelo usuário."
+          }
+        },
+        "required": ["tenant_id"]
       },
       "TenantSelectionResponse": {
         "type": "object",

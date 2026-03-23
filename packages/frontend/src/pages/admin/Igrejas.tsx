@@ -47,6 +47,7 @@ import {
   useUpdateIgreja,
 } from "@/hooks/use-igrejas";
 import { CreateIgrejaFormSchema, type Igreja, type CreateIgrejaForm } from "@/schemas/auth";
+import { ErrorState } from "@/components/ErrorState";
 
 /**
  * Componente da página de administração de igrejas.
@@ -61,7 +62,13 @@ const AdminIgrejas = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingIgreja, setEditingIgreja] = useState<Igreja | null>(null);
 
-  const { data: igrejas, isLoading } = useIgrejas();
+  const {
+    data: igrejas,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useIgrejas();
   const createMutation = useCreateIgreja();
   const updateMutation = useUpdateIgreja();
   const toggleStatusMutation = useUpdateIgreja();
@@ -201,13 +208,20 @@ const AdminIgrejas = () => {
             </div>
           )}
 
-          {!isLoading && igrejas && igrejas.length === 0 && (
+          {!isLoading && isError && (
+            <ErrorState
+              message={error?.message ?? "Erro ao carregar igrejas."}
+              onRetry={() => refetch()}
+            />
+          )}
+
+          {!isLoading && !isError && igrejas && igrejas.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               Nenhuma igreja cadastrada.
             </div>
           )}
 
-          {!isLoading && igrejas && igrejas.length > 0 && (
+          {!isLoading && !isError && igrejas && igrejas.length > 0 && (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

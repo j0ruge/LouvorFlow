@@ -73,21 +73,27 @@ const IgrejaUsers = () => {
     error: errorUsers,
     refetch: refetchUsers,
   } = useIgrejaUsers(id ?? null);
-  const { data: allUsers, isLoading: isLoadingAllUsers } = useUsers();
+  const {
+    data: allUsers,
+    isLoading: isLoadingAllUsers,
+    isError: isErrorAllUsers,
+    error: errorAllUsers,
+    refetch: refetchAllUsers,
+  } = useUsers();
   const addMutation = useAddUserToIgreja();
   const removeMutation = useRemoveUserFromIgreja();
 
   const isLoading = isLoadingIgreja || isLoadingUsers;
-  const isError = isErrorIgreja || isErrorUsers;
+  const isError = isErrorIgreja || isErrorUsers || isErrorAllUsers;
 
   /**
    * Calcula os usuários disponíveis para vinculação (não vinculados ainda).
    *
    * @returns Lista de usuários que ainda não pertencem à igreja.
    */
-  const availableUsers = allUsers?.filter(
-    (user) => !igrejaUsers?.some((iu) => iu.id === user.id),
-  ) ?? [];
+  const availableUsers = allUsers
+    ? allUsers.filter((user) => !igrejaUsers?.some((iu) => iu.id === user.id))
+    : [];
 
   /**
    * Processa a vinculação de um usuário à igreja.
@@ -173,11 +179,13 @@ const IgrejaUsers = () => {
           message={
             errorIgreja?.message
             ?? errorUsers?.message
+            ?? errorAllUsers?.message
             ?? "Erro ao carregar dados da igreja."
           }
           onRetry={() => {
             refetchIgreja();
             refetchUsers();
+            refetchAllUsers();
           }}
         />
       </div>

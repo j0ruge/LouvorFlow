@@ -11,16 +11,17 @@ import type { IUserACLsDTO } from '../../types/auth.types.js';
 
 class ListUserAccessControlListService {
     /**
-     * Consulta a ACL completa de um usuário.
+     * Consulta a ACL completa de um usuário no contexto de um tenant.
      *
-     * Busca o usuário pelo ID, carrega suas roles e permissões diretas,
-     * e retorna um DTO consolidado com todas as informações de acesso.
+     * Busca o usuário pelo ID, carrega suas roles e permissões diretas
+     * filtradas pelo tenant ativo, e retorna um DTO consolidado.
      *
      * @param userId - UUID do usuário cuja ACL será consultada.
+     * @param tenantId - UUID do tenant ativo para filtrar roles e permissões.
      * @returns DTO com userId, name, roles e permissões do usuário.
      * @throws AppError 404 se o usuário não for encontrado.
      */
-    async execute(userId: string): Promise<IUserACLsDTO> {
+    async execute(userId: string, tenantId?: string): Promise<IUserACLsDTO> {
         const user = await usersRepository.findById(userId);
 
         if (!user) {
@@ -28,8 +29,8 @@ class ListUserAccessControlListService {
         }
 
         const [roles, permissions] = await Promise.all([
-            usersRepository.getUserRoles(userId),
-            usersRepository.getUserPermissions(userId),
+            usersRepository.getUserRoles(userId, tenantId),
+            usersRepository.getUserPermissions(userId, tenantId),
         ]);
 
         return {
