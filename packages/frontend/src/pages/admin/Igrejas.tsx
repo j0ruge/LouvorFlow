@@ -71,7 +71,6 @@ const AdminIgrejas = () => {
   } = useIgrejas();
   const createMutation = useCreateIgreja();
   const updateMutation = useUpdateIgreja();
-  const toggleStatusMutation = useUpdateIgreja();
 
   const createForm = useForm<CreateIgrejaForm>({
     resolver: zodResolver(CreateIgrejaFormSchema),
@@ -143,7 +142,7 @@ const AdminIgrejas = () => {
   function handleToggleStatus(igreja: Igreja) {
     const isActive = igreja.status === "active";
     const newStatus = isActive ? "inactive" : "active";
-    toggleStatusMutation.mutate(
+    updateMutation.mutate(
       { id: igreja.id!, data: { status: newStatus } },
       {
         onSuccess: () => {
@@ -268,7 +267,7 @@ const AdminIgrejas = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleToggleStatus(igreja)}
-                            disabled={toggleStatusMutation.isPending}
+                            disabled={updateMutation.isPending}
                           >
                             {igreja.status === "active" ? (
                               <>

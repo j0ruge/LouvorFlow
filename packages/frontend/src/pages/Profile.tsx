@@ -14,6 +14,7 @@ import { Loader2, User } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -194,9 +195,8 @@ const Profile = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="old_password">Senha Atual</Label>
-                <Input
+                <PasswordInput
                   id="old_password"
-                  type="password"
                   placeholder="Digite sua senha atual"
                   autoComplete="current-password"
                   {...register("old_password")}
@@ -208,9 +208,8 @@ const Profile = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Nova Senha</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   placeholder="Digite a nova senha"
                   autoComplete="new-password"
                   {...register("password")}

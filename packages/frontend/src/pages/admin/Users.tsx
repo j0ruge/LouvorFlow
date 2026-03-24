@@ -14,6 +14,7 @@ import { Loader2, Plus, Shield, Users as UsersIcon } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -121,9 +122,8 @@ const AdminUsers = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="user-password">Senha</Label>
-                <Input
+                <PasswordInput
                   id="user-password"
-                  type="password"
                   placeholder="Mínimo 6 caracteres"
                   {...register("password")}
                 />

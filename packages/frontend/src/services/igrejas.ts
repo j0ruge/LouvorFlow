@@ -88,24 +88,35 @@ export async function listIgrejaUsers(id: string): Promise<IgrejaTenantUser[]> {
   return z.array(IgrejaTenantUserSchema).parse(response);
 }
 
+/** Schema do vínculo retornado pelo backend ao vincular usuário a uma igreja. */
+const TenantUserVinculoSchema = z.object({
+  id: z.string().uuid(),
+  tenant_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  created_at: z.string(),
+});
+
+/** Tipo inferido do vínculo tenant-user. */
+export type TenantUserVinculo = z.infer<typeof TenantUserVinculoSchema>;
+
 /**
  * Vincula um usuário existente a uma igreja.
  *
- * O backend retorna `{ msg, vinculo }` — extrai o campo `vinculo`.
+ * O backend retorna `{ msg, vinculo }` — extrai e valida o campo `vinculo`.
  *
  * @param igrejaId - UUID da igreja.
  * @param userId - UUID do usuário a vincular.
- * @returns Dados do vínculo criado.
+ * @returns Dados do vínculo criado, validados pelo schema Zod.
  */
 export async function addUserToIgreja(
   igrejaId: string,
   userId: string,
-): Promise<unknown> {
+): Promise<TenantUserVinculo> {
   const response = await apiFetch<{ msg: string; vinculo: unknown }>(`/igrejas/${igrejaId}/users`, {
     method: "POST",
     body: JSON.stringify({ user_id: userId }),
   });
-  return response.vinculo;
+  return TenantUserVinculoSchema.parse(response.vinculo);
 }
 
 /**

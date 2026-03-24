@@ -46,20 +46,18 @@ const SelectTenant = () => {
 
   /**
    * Valida em runtime o state recebido via navegação.
-   * Usa sessionStorage como fallback para sobreviver a recarregamentos (F5).
+   * Usa sessionStorage como fallback para o selection_token,
+   * permitindo sobreviver a recarregamentos (F5).
    */
   const rawState = location.state as Record<string, unknown> | null;
-  const storedToken = sessionStorage.getItem('selection_token');
+  const hasTenants = rawState != null && Array.isArray(rawState.tenants);
+  const selectionToken =
+    (typeof rawState?.selection_token === "string" ? rawState.selection_token : null)
+    ?? sessionStorage.getItem('selection_token');
   const state: SelectTenantLocationState | null =
-    rawState != null
-    && Array.isArray(rawState.tenants)
-    && typeof rawState.selection_token === "string"
-      ? (rawState as unknown as SelectTenantLocationState)
-      : rawState != null
-        && Array.isArray(rawState.tenants)
-        && typeof storedToken === "string"
-        ? { tenants: rawState.tenants as Tenant[], selection_token: storedToken }
-        : null;
+    hasTenants && selectionToken
+      ? { tenants: rawState.tenants as Tenant[], selection_token: selectionToken }
+      : null;
 
   // Redireciona ao login se não houver state válido (acesso direto à URL)
   if (!state?.tenants || !state?.selection_token) {
