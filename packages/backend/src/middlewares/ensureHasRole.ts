@@ -33,7 +33,7 @@ export async function ensureHasRole(
     }
 
     if (!req.user.roles) {
-        req.user.roles = await usersRepository.getUserRoles(req.user.id);
+        req.user.roles = await usersRepository.getUserRoles(req.user.id, req.user.tenantId);
     }
 
     if (req.user.roles.length === 0) {

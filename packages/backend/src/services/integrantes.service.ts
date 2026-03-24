@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { AppError } from '../errors/AppError.js';
 import integrantesRepository from '../repositories/integrantes.repository.js';
+import prisma from '../../prisma/cliente.js';
 import type { CreateIntegranteInput, UpdateIntegranteInput, IntegranteWithFuncoes } from '../types/index.js';
 
 const SALT_ROUNDS = 12;
@@ -48,8 +49,8 @@ class IntegrantesService {
      *
      * @returns Lista de integrantes com campo `funcoes` achatado e `nome` mapeado
      */
-    async listAll() {
-        const users = await integrantesRepository.findAll();
+    async listAll(tenantId?: string) {
+        const users = await integrantesRepository.findAll(tenantId);
         return users.map((u: IntegranteWithFuncoes) => mapUserToIntegrante(u));
     }
 
@@ -71,15 +72,19 @@ class IntegrantesService {
     }
 
     /**
-     * Cria um novo integrante (user) com senha hasheada.
-     * O user criado pode fazer login via `/api/sessions`.
+     * Cria um novo integrante (user) com senha hasheada e o vincula ao tenant.
+     *
+     * O user criado pode fazer login via `/api/sessions`. Após a criação,
+     * um registro `TenantUsers` é criado para que o integrante apareça
+     * na listagem filtrada por tenant.
      *
      * @param body - Dados de criação (nome, email, senha, telefone)
+     * @param tenantId - UUID do tenant ativo (opcional, mas obrigatório em contexto multi-tenant)
      * @returns Integrante criado (sem campo senha)
      * @throws AppError 400 se dados obrigatórios estiverem ausentes
      * @throws AppError 409 se já existir user com o mesmo email
      */
-    async create(body: CreateIntegranteInput) {
+    async create(body: CreateIntegranteInput, tenantId?: string) {
         const { nome, email, senha, telefone } = body;
 
         if (!nome || !email || !senha) {
@@ -94,6 +99,13 @@ class IntegrantesService {
         const user = await integrantesRepository.create({
             name: nome, email, password: passwordHash, telefone: telefone || null
         });
+
+        /** Vincula o integrante ao tenant ativo para que apareça na listagem. */
+        if (tenantId) {
+            await prisma.tenantUsers.create({
+                data: { tenant_id: tenantId, user_id: user.id },
+            });
+        }
 
         return mapPublicUserToIntegrante(user);
     }
@@ -172,11 +184,12 @@ class IntegrantesService {
      *
      * @param integranteId - UUID do user
      * @param funcao_id - UUID da função a vincular
+     * @param tenantId - ID do tenant ao qual o vínculo pertence
      * @throws AppError 400 se o ID da função não for informado
      * @throws AppError 404 se integrante ou função não existirem
      * @throws AppError 409 se o vínculo já existir
      */
-    async addFuncao(integranteId: string, funcao_id?: string) {
+    async addFuncao(integranteId: string, funcao_id: string | undefined, tenantId: string) {
         if (!funcao_id) throw new AppError("ID da função é obrigatório", 400);
 
         const integranteExiste = await integrantesRepository.findByIdSimple(integranteId);
@@ -188,7 +201,7 @@ class IntegrantesService {
         const existente = await integrantesRepository.findIntegranteFuncao(integranteId, funcao_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await integrantesRepository.createIntegranteFuncao(integranteId, funcao_id);
+        await integrantesRepository.createIntegranteFuncao(integranteId, funcao_id, tenantId);
     }
 
     /**

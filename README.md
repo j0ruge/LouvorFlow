@@ -49,6 +49,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Histórico de escalas** — Consulta de escalas anteriores.
 - **Autenticação e RBAC** — Login com JWT (access + refresh token), recuperação de senha por e-mail, gestão de usuários, papéis (roles) e permissões. Painel administrativo com controle de acesso baseado em roles.
 - **Perfil do usuário** — Edição de nome, e-mail e senha pelo próprio usuário.
+- **Multi-tenant (Igrejas)** — Suporte a múltiplas igrejas/organizações na mesma plataforma. Cada igreja tem seus dados isolados. Super-admin gerencia igrejas e vincula usuários. Usuários multi-tenant podem alternar entre igrejas.
 
 ## Tecnologias
 
@@ -108,7 +109,7 @@ npm install
 cp .env.example .env
 # Edite o .env — a DATABASE_URL deve corresponder ao banco
 # Configure também as variáveis de autenticação:
-#   APP_SECRET, APP_SECRET_REFRESH_TOKEN — segredos JWT
+#   APP_SECRET, APP_SECRET_REFRESH_TOKEN, APP_SECRET_SELECTION_TOKEN — segredos JWT
 #   ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME — credenciais do admin inicial
 #   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS — servidor de e-mail (recuperação de senha)
 npx prisma migrate dev
@@ -266,7 +267,8 @@ Base URL: `http://localhost:3000/api`
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
 | Funções          | `/funcoes`          | Sim  | —                                      |
 | Tipos de Eventos | `/tipos-eventos`    | Sim  | —                                      |
-| Sessions         | `/sessions`         | —    | Login, refresh token, logout           |
+| Igrejas          | `/igrejas`          | Sim  | `/users`. Requer role `super-admin`    |
+| Sessions         | `/sessions`         | —    | Login, refresh token, logout, `select-tenant`, `switch-tenant` |
 | Users            | `/users`            | Sim  | Requer role `admin`                    |
 | Roles            | `/roles`            | Sim  | `/permissions`. Requer role `admin`    |
 | Permissions      | `/permissions`      | Sim  | Requer role `admin`                    |
@@ -316,6 +318,11 @@ DELETE /api/eventos/:eventoId/musicas/:musicaId
 GET    /api/eventos/:eventoId/integrantes
 POST   /api/eventos/:eventoId/integrantes
 DELETE /api/eventos/:eventoId/integrantes/:integranteId
+
+# Usuários de uma igreja (super-admin)
+GET    /api/igrejas/:igrejaId/users
+POST   /api/igrejas/:igrejaId/users
+DELETE /api/igrejas/:igrejaId/users/:userId
 ```
 
 ### Formato de erros
@@ -362,6 +369,7 @@ LouvorFlow/
 │   │   │   ├── middlewares/      # Auth (JWT), autorização (roles/permissions), validação (Zod)
 │   │   │   ├── providers/        # Hash, Token, Date, Mail providers
 │   │   │   ├── config/           # Configurações (auth, etc.)
+│   │   │   ├── context/           # Tenant context (AsyncLocalStorage)
 │   │   │   ├── validators/       # Schemas Zod de validação
 │   │   │   ├── errors/           # AppError
 │   │   │   └── types/            # Interfaces TypeScript
@@ -395,6 +403,7 @@ LouvorFlow/
 - [x] Integração frontend-backend — Fase 1 (listagem e criação de músicas, escalas, integrantes)
 - [x] Integração frontend-backend — Fase 2 (CRUD completo, configurações, dashboard real, busca, testes E2E)
 - [x] Autenticação com JWT e RBAC (backend + frontend)
+- [x] Multi-tenant — suporte a múltiplas igrejas com isolamento de dados
 - [ ] Seleção de versão ao associar música a escala (débito técnico)
 - [ ] Compartilhamento de escalas via WhatsApp
 - [ ] Relatórios de frequência de execução

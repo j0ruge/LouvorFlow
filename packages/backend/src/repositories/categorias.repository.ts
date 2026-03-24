@@ -1,5 +1,5 @@
 import type { Categorias } from '@prisma/client';
-import prisma from '../../prisma/cliente.js';
+import { getPrisma } from '../../prisma/cliente.js';
 
 type CategoriaSummary = Pick<Categorias, 'id' | 'nome'>;
 
@@ -12,7 +12,7 @@ class CategoriasRepository {
      * @returns Lista de categorias resumidas.
      */
     async findAll(): Promise<CategoriaSummary[]> {
-        return prisma.categorias.findMany({
+        return getPrisma().categorias.findMany({
             select: { id: true, nome: true }
         });
     }
@@ -23,7 +23,7 @@ class CategoriasRepository {
      * @returns Categoria encontrada ou null se inexistente.
      */
     async findById(id: string): Promise<CategoriaSummary | null> {
-        return prisma.categorias.findUnique({
+        return getPrisma().categorias.findUnique({
             where: { id },
             select: { id: true, nome: true }
         });
@@ -35,7 +35,7 @@ class CategoriasRepository {
      * @returns Categoria encontrada ou null.
      */
     async findByNome(nome: string): Promise<Categorias | null> {
-        return prisma.categorias.findUnique({ where: { nome } });
+        return getPrisma().categorias.findFirst({ where: { nome } });
     }
 
     /**
@@ -45,17 +45,19 @@ class CategoriasRepository {
      * @returns Categoria encontrada ou null.
      */
     async findByNomeExcludingId(nome: string, excludeId: string): Promise<Categorias | null> {
-        return prisma.categorias.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().categorias.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
     /**
-     * Cria uma nova categoria.
+     * Cria uma nova categoria vinculada ao tenant.
+     *
      * @param nome - Nome da categoria.
+     * @param tenantId - UUID do tenant ativo.
      * @returns Categoria criada com id e nome.
      */
-    async create(nome: string): Promise<CategoriaSummary> {
-        return prisma.categorias.create({
-            data: { nome },
+    async create(nome: string, tenantId: string): Promise<CategoriaSummary> {
+        return getPrisma().categorias.create({
+            data: { nome, tenant_id: tenantId },
             select: { id: true, nome: true }
         });
     }
@@ -67,7 +69,7 @@ class CategoriasRepository {
      * @returns Categoria atualizada com id e nome.
      */
     async update(id: string, nome: string): Promise<CategoriaSummary> {
-        return prisma.categorias.update({
+        return getPrisma().categorias.update({
             where: { id },
             data: { nome },
             select: { id: true, nome: true }
@@ -80,7 +82,7 @@ class CategoriasRepository {
      * @returns Categoria removida (registro completo).
      */
     async delete(id: string): Promise<Categorias> {
-        return prisma.categorias.delete({ where: { id } });
+        return getPrisma().categorias.delete({ where: { id } });
     }
 }
 

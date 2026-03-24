@@ -15,13 +15,21 @@ class TiposEventosService {
         return tipoEvento;
     }
 
-    async create(nome?: string) {
+    /**
+     * Cria um novo tipo de evento no tenant ativo.
+     *
+     * @param nome - Nome do tipo de evento.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Tipo de evento criado.
+     * @throws AppError 400 se nome ausente; 409 se nome duplicado no tenant.
+     */
+    async create(nome: string | undefined, tenantId: string) {
         if (!nome) throw new AppError("Nome do tipo de evento é obrigatório", 400);
 
         const existente = await tiposEventosRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe um tipo de evento com esse nome", 409);
 
-        return tiposEventosRepository.create(nome);
+        return tiposEventosRepository.create(nome, tenantId);
     }
 
     async update(id: string, nome?: string) {

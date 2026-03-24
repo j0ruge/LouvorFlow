@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { useCreateEvento, useUpdateEvento } from "@/hooks/use-eventos";
 import { useTiposEventos } from "@/hooks/use-support";
 import {
@@ -171,9 +172,13 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
               name="data"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data</FormLabel>
+                  <FormLabel>Data *</FormLabel>
                   <FormControl>
-                    <Input type="datetime-local" max="9999-12-31T23:59" {...field} />
+                    <DateTimePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Selecione a data e hora"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,7 +189,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
               name="fk_tipo_evento"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Evento</FormLabel>
+                  <FormLabel>Tipo de Evento *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -222,7 +227,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
               name="descricao"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição</FormLabel>
+                  <FormLabel>Descrição (opcional)</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Descrição do evento"

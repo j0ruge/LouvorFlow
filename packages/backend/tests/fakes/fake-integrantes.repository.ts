@@ -138,7 +138,7 @@ export function createFakeIntegrantesRepository() {
      * @param funcao_id - UUID da função a associar.
      * @returns Registro criado com id gerado.
      */
-    createIntegranteFuncao: async (fk_user_id: string, funcao_id: string) => {
+    createIntegranteFuncao: async (fk_user_id: string, funcao_id: string, _tenantId?: string) => {
       const record = { id: randomUUID(), fk_user_id, funcao_id };
       funcoes.push(record);
       return record;

@@ -1,4 +1,4 @@
-﻿# LouvorFlow — Padrão de Arquitetura
+# LouvorFlow — Padrão de Arquitetura
 
 ## Visão Geral
 
@@ -60,7 +60,7 @@ Regras específicas de cada camada estão em `.claude/rules/`:
 
 - Docstrings em português em todo código novo ou modificado.
 - Ao final de cada tarefa: revisar se toda documentação está sincronizada.
-- Se mudar qualquer coisa nos dados de API o @packages\backend\docs\openapi.json deve ser atualizado. 
+- Se mudar qualquer coisa nos dados de API o `packages/backend/docs/openapi.json` deve ser atualizado.
 
 A task não pode ser considerada completa enquanto essa documentação e rules não estiverem atualizadas. 
 

@@ -20,7 +20,7 @@ export function createFakeFuncoesRepository() {
     findByNome: async (nome: string) => data.find(f => f.nome === nome) ?? null,
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
       data.find(f => f.nome === nome && f.id !== excludeId) ?? null,
-    create: async (nome: string) => {
+    create: async (nome: string, _tenantId?: string) => {
       const funcao = { id: randomUUID(), nome };
       data.push(funcao);
       return { id: funcao.id, nome: funcao.nome };

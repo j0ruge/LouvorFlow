@@ -56,8 +56,10 @@ const Login = () => {
   async function onSubmit(dados: LoginForm) {
     setError(null);
     try {
-      await signIn(dados);
-      navigate(redirectTo, { replace: true });
+      const loginCompleted = await signIn(dados);
+      if (loginCompleted) {
+        navigate(redirectTo, { replace: true });
+      }
     } catch (err) {
       setError(
         err instanceof Error

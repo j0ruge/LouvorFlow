@@ -5,7 +5,7 @@
  * do resumo de relatórios: contagens, ranking e atividade mensal.
  */
 
-import prisma from '../../prisma/cliente.js';
+import { getPrisma } from '../../prisma/cliente.js';
 import type { MusicaRanking, AtividadeMensal } from '../types/index.js';
 
 /**
@@ -23,7 +23,7 @@ class RelatoriosRepository {
      * @returns Total de músicas.
      */
     async countMusicas(): Promise<number> {
-        return prisma.musicas.count();
+        return getPrisma().musicas.count();
     }
 
     /**
@@ -32,7 +32,7 @@ class RelatoriosRepository {
      * @returns Total de eventos passados.
      */
     async countEventosRealizados(): Promise<number> {
-        return prisma.eventos.count({
+        return getPrisma().eventos.count({
             where: { data: { lte: new Date() } },
         });
     }
@@ -43,7 +43,7 @@ class RelatoriosRepository {
      * @returns Total de associações de eventos passados.
      */
     async countAssociacoesEventoMusica(): Promise<number> {
-        return prisma.eventos_Musicas.count({
+        return getPrisma().eventos_Musicas.count({
             where: {
                 eventos_musicas_evento_id_fkey: {
                     data: { lte: new Date() },
@@ -64,7 +64,7 @@ class RelatoriosRepository {
      * @returns Lista de músicas com id, nome e contagem de aparições.
      */
     async getTopMusicas(limit: number): Promise<MusicaRanking[]> {
-        const resultado = await prisma.eventos_Musicas.groupBy({
+        const resultado = await getPrisma().eventos_Musicas.groupBy({
             by: ['musicas_id'],
             where: {
                 eventos_musicas_evento_id_fkey: {
@@ -85,7 +85,7 @@ class RelatoriosRepository {
 
         const ids = comCutoff.map(r => r.musicas_id);
 
-        const musicas = await prisma.musicas.findMany({
+        const musicas = await getPrisma().musicas.findMany({
             where: { id: { in: ids } },
             select: { id: true, nome: true },
         });
@@ -119,7 +119,7 @@ class RelatoriosRepository {
         const hoje = new Date();
         const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1);
 
-        const eventos = await prisma.eventos.findMany({
+        const eventos = await getPrisma().eventos.findMany({
             where: {
                 data: {
                     gte: inicioMes,

@@ -4,8 +4,9 @@
  * Encapsula todas as queries relacionadas ao model `Users`,
  * incluindo carregamento de roles e permissões associadas.
  */
-import prisma from '../../../prisma/cliente.js';
+import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 import { USER_PUBLIC_SELECT } from '../../types/auth.types.js';
+import { AppError } from '../../errors/AppError.js';
 
 class UsersRepository {
     /**
@@ -16,18 +17,33 @@ class UsersRepository {
      * @param options - Opções de paginação (page e limit). Se omitidos, retorna todos.
      * @returns Objeto com `data` (array de usuários), `total`, `page` e `limit`
      */
-    async findAll(options?: { page?: number; limit?: number }) {
+    async findAll(options?: { page?: number; limit?: number; tenantId?: string }) {
         const page = options?.page;
         const limit = options?.limit;
         const isPaginated = page !== undefined && limit !== undefined;
 
+        /** Filtra por tenant quando tenantId é fornecido (admin regular vê apenas users do seu tenant). */
+        const where = options?.tenantId
+            ? { tenant_users: { some: { tenant_id: options.tenantId } } }
+            : {};
+
+        /** Quando há tenant ativo, filtra roles e permissions pelo mesmo tenant para evitar duplicatas cross-tenant. */
+        const select = options?.tenantId
+            ? {
+                ...USER_PUBLIC_SELECT,
+                roles: { where: { tenant_id: options.tenantId }, ...USER_PUBLIC_SELECT.roles },
+                permissions: { where: { tenant_id: options.tenantId }, ...USER_PUBLIC_SELECT.permissions },
+            }
+            : USER_PUBLIC_SELECT;
+
         const [data, total] = await Promise.all([
             prisma.users.findMany({
-                select: USER_PUBLIC_SELECT,
+                where,
+                select,
                 orderBy: { name: 'asc' },
                 ...(isPaginated ? { skip: (page - 1) * limit, take: limit } : {}),
             }),
-            prisma.users.count(),
+            prisma.users.count({ where }),
         ]);
 
         return { data, total, page: page ?? 1, limit: limit ?? total };
@@ -92,13 +108,15 @@ class UsersRepository {
     /**
      * Retorna as permissões diretas atribuídas ao usuário,
      * mapeadas para um array plano de objetos `{ id, name, description }`.
+     * Quando `tenantId` é fornecido, filtra apenas os registros daquele tenant.
      *
      * @param id - UUID do usuário
+     * @param tenantId - UUID do tenant para filtro opcional
      * @returns Array de permissões diretas do usuário
      */
-    async getUserPermissions(id: string) {
+    async getUserPermissions(id: string, tenantId?: string) {
         const userPermissions = await prisma.usersPermissions.findMany({
-            where: { user_id: id },
+            where: { user_id: id, ...(tenantId ? { tenant_id: { in: [tenantId, SYSTEM_TENANT_ID] } } : {}) },
             select: {
                 permission: {
                     select: { id: true, name: true, description: true, created_at: true, updated_at: true },
@@ -112,13 +130,15 @@ class UsersRepository {
     /**
      * Retorna as roles atribuídas ao usuário, cada uma com suas
      * permissões carregadas e achatadas em um array plano.
+     * Quando `tenantId` é fornecido, filtra apenas os registros daquele tenant.
      *
      * @param id - UUID do usuário
+     * @param tenantId - UUID do tenant para filtro opcional
      * @returns Array de roles com permissões achatadas
      */
-    async getUserRoles(id: string) {
+    async getUserRoles(id: string, tenantId?: string) {
         const userRoles = await prisma.usersRoles.findMany({
-            where: { user_id: id },
+            where: { user_id: id, ...(tenantId ? { tenant_id: { in: [tenantId, SYSTEM_TENANT_ID] } } : {}) },
             select: {
                 role: {
                     select: {
@@ -167,8 +187,12 @@ class UsersRepository {
      * fornecidos, utiliza uma transação para deletar os vínculos antigos
      * e criar os novos (padrão deleteMany + createMany).
      *
+     * Quando `tenantId` é informado, o deleteMany filtra apenas os vínculos
+     * daquele tenant e o createMany inclui `tenant_id` explicitamente,
+     * garantindo que ACLs de outros tenants não sejam afetadas.
+     *
      * @param id - UUID do usuário a atualizar
-     * @param data - Campos a atualizar (name, email, password, avatar, roles, permissions)
+     * @param data - Campos a atualizar (name, email, password, avatar, roles, permissions, tenantId)
      * @returns Usuário atualizado com seleção pública (sem senha)
      */
     async save(
@@ -180,26 +204,35 @@ class UsersRepository {
             avatar?: string;
             roles?: string[];
             permissions?: string[];
+            tenantId?: string;
         },
     ) {
-        const { roles, permissions, ...scalarData } = data;
+        const { roles, permissions, tenantId, ...scalarData } = data;
 
         if (roles !== undefined || permissions !== undefined) {
+            if (!tenantId) {
+                throw new AppError('tenant_id é obrigatório para modificar roles ou permissões de usuário.', 400);
+            }
+
             return prisma.$transaction(async (tx) => {
                 if (roles !== undefined) {
-                    await tx.usersRoles.deleteMany({ where: { user_id: id } });
+                    await tx.usersRoles.deleteMany({
+                        where: { user_id: id, tenant_id: tenantId },
+                    });
                     if (roles.length > 0) {
                         await tx.usersRoles.createMany({
-                            data: roles.map((role_id) => ({ user_id: id, role_id })),
+                            data: roles.map((role_id) => ({ user_id: id, role_id, tenant_id: tenantId })),
                         });
                     }
                 }
 
                 if (permissions !== undefined) {
-                    await tx.usersPermissions.deleteMany({ where: { user_id: id } });
+                    await tx.usersPermissions.deleteMany({
+                        where: { user_id: id, tenant_id: tenantId },
+                    });
                     if (permissions.length > 0) {
                         await tx.usersPermissions.createMany({
-                            data: permissions.map((permission_id) => ({ user_id: id, permission_id })),
+                            data: permissions.map((permission_id) => ({ user_id: id, permission_id, tenant_id: tenantId })),
                         });
                     }
                 }

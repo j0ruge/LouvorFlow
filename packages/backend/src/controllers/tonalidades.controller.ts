@@ -1,56 +1,49 @@
 import { Request, Response } from 'express';
 import tonalidadesService from '../services/tonalidades.service.js';
-import { AppError } from '../errors/AppError.js';
 
+/**
+ * Controller de tonalidades.
+ * Express 5 async error handling — sem try-catch.
+ */
 class TonalidadesController {
+    /**
+     * Lista todas as tonalidades cadastradas.
+     */
     async index(_req: Request, res: Response): Promise<void> {
-        try {
-            const tonalidades = await tonalidadesService.listAll();
-            res.status(200).json(tonalidades);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.errors ? error.errors.join('; ') : error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar tonalidades", codigo: 500 });
-        }
+        const tonalidades = await tonalidadesService.listAll();
+        res.status(200).json(tonalidades);
     }
 
+    /**
+     * Retorna uma tonalidade pelo ID.
+     */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const tonalidade = await tonalidadesService.getById(req.params.id);
-            res.status(200).json(tonalidade);
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao buscar tonalidade", codigo: 500 });
-        }
+        const tonalidade = await tonalidadesService.getById(req.params.id);
+        res.status(200).json(tonalidade);
     }
 
+    /**
+     * Cria uma nova tonalidade no tenant ativo.
+     */
     async create(req: Request, res: Response): Promise<void> {
-        try {
-            const tonalidade = await tonalidadesService.create(req.body.tom);
-            res.status(201).json({ msg: "Tonalidade criada com sucesso", tonalidade });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao criar tonalidade", codigo: 500 });
-        }
+        const tonalidade = await tonalidadesService.create(req.body.tom, req.user!.tenantId!);
+        res.status(201).json({ msg: "Tonalidade criada com sucesso", tonalidade });
     }
 
+    /**
+     * Atualiza o tom de uma tonalidade existente.
+     */
     async update(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const tonalidade = await tonalidadesService.update(req.params.id, req.body.tom);
-            res.status(200).json({ msg: "Tonalidade editada com sucesso", tonalidade });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao editar tonalidade", codigo: 500 });
-        }
+        const tonalidade = await tonalidadesService.update(req.params.id, req.body.tom);
+        res.status(200).json({ msg: "Tonalidade editada com sucesso", tonalidade });
     }
 
+    /**
+     * Remove uma tonalidade pelo ID.
+     */
     async delete(req: Request<{ id: string }>, res: Response): Promise<void> {
-        try {
-            const tonalidade = await tonalidadesService.delete(req.params.id);
-            res.status(200).json({ msg: "Tonalidade deletada com sucesso", tonalidade });
-        } catch (error) {
-            if (error instanceof AppError) { res.status(error.statusCode).json({ erro: error.message, codigo: error.statusCode }); return; }
-            res.status(500).json({ erro: "Erro ao deletar tonalidade", codigo: 500 });
-        }
+        const tonalidade = await tonalidadesService.delete(req.params.id);
+        res.status(200).json({ msg: "Tonalidade deletada com sucesso", tonalidade });
     }
 }
 

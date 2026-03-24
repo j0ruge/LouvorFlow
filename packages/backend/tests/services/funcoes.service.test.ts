@@ -49,20 +49,20 @@ describe('FuncoesService', () => {
   // ─── create ──────────────────────────────────────────
   describe('create', () => {
     it('deve criar uma função com nome válido', async () => {
-      const result = await funcoesService.create('Violão');
+      const result = await funcoesService.create('Violão', 'tenant-fake-id');
       expect(result).toHaveProperty('id');
       expect(result.nome).toBe('Violão');
     });
 
     it('deve lançar AppError 400 quando nome não é enviado', async () => {
-      await expect(funcoesService.create(undefined)).rejects.toMatchObject({
+      await expect(funcoesService.create(undefined, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 400,
         message: 'Nome da função é obrigatório',
       });
     });
 
     it('deve lançar AppError 409 quando nome é duplicado', async () => {
-      await expect(funcoesService.create(MOCK_FUNCOES[0].nome)).rejects.toMatchObject({
+      await expect(funcoesService.create(MOCK_FUNCOES[0].nome, 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe uma função com esse nome',
       });

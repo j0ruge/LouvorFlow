@@ -1,14 +1,14 @@
-import prisma from '../../prisma/cliente.js';
+import { getPrisma } from '../../prisma/cliente.js';
 
 class ArtistasRepository {
     async findAll() {
-        return prisma.artistas.findMany({
+        return getPrisma().artistas.findMany({
             select: { id: true, nome: true }
         });
     }
 
     async findById(id: string) {
-        return prisma.artistas.findUnique({
+        return getPrisma().artistas.findUnique({
             where: { id },
             select: {
                 id: true,
@@ -31,27 +31,34 @@ class ArtistasRepository {
     }
 
     async findByNome(nome: string) {
-        return prisma.artistas.findUnique({ where: { nome } });
+        return getPrisma().artistas.findFirst({ where: { nome } });
     }
 
     async findByNomeExcludingId(nome: string, excludeId: string) {
-        return prisma.artistas.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().artistas.findFirst({ where: { nome, NOT: { id: excludeId } } });
     }
 
-    async create(nome: string) {
-        return prisma.artistas.create({ data: { nome } });
+    /**
+     * Cria um novo artista vinculado ao tenant.
+     *
+     * @param nome - Nome do artista.
+     * @param tenantId - UUID do tenant ativo.
+     * @returns Artista criado.
+     */
+    async create(nome: string, tenantId: string) {
+        return getPrisma().artistas.create({ data: { nome, tenant_id: tenantId } });
     }
 
     async update(id: string, nome: string) {
-        return prisma.artistas.update({ where: { id }, data: { nome } });
+        return getPrisma().artistas.update({ where: { id }, data: { nome } });
     }
 
     async delete(id: string) {
-        return prisma.artistas.delete({ where: { id } });
+        return getPrisma().artistas.delete({ where: { id } });
     }
 
     async findByIdSimple(id: string) {
-        return prisma.artistas.findUnique({
+        return getPrisma().artistas.findUnique({
             where: { id },
             select: { id: true, nome: true }
         });

@@ -37,7 +37,7 @@ import { COLOR_THEMES } from "@/contexts/ThemeColorContext";
  * @returns Elemento JSX com o menu do usuário.
  */
 export function UserMenu() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, currentTenant } = useAuth();
   const navigate = useNavigate();
   const { colorTheme, setColorTheme } = useColorTheme();
 
@@ -73,6 +73,11 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
+            {currentTenant && (
+              <p className="text-xs leading-none text-muted-foreground/70 mt-0.5">
+                {currentTenant.name}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

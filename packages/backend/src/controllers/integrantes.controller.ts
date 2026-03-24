@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import integrantesService from '../services/integrantes.service.js';
+import { AppError } from '../errors/AppError.js';
 
 /**
  * Controller de integrantes — opera sobre o model Users unificado.
@@ -10,8 +11,12 @@ class IntegrantesController {
     /**
      * Lista todos os integrantes (users com funções mapeadas).
      */
-    async index(_req: Request, res: Response): Promise<void> {
-        const integrantes = await integrantesService.listAll();
+    async index(req: Request, res: Response): Promise<void> {
+        /** Garante que o tenant ativo está presente antes de listar. */
+        if (!req.user?.tenantId) {
+            throw new AppError('Contexto de tenant ausente', 403);
+        }
+        const integrantes = await integrantesService.listAll(req.user.tenantId);
         res.status(200).json(integrantes);
     }
 
@@ -24,10 +29,11 @@ class IntegrantesController {
     }
 
     /**
-     * Cria um novo integrante (user com capacidade de login).
+     * Cria um novo integrante (user com capacidade de login)
+     * e o vincula ao tenant ativo do usuário autenticado.
      */
     async create(req: Request, res: Response): Promise<void> {
-        const integrante = await integrantesService.create(req.body);
+        const integrante = await integrantesService.create(req.body, req.user?.tenantId);
         res.status(201).json({ msg: "Integrante criado com sucesso", integrante });
     }
 
@@ -59,7 +65,7 @@ class IntegrantesController {
      * Vincula uma função musical a um integrante (user).
      */
     async addFuncao(req: Request<{ integranteId: string }>, res: Response): Promise<void> {
-        await integrantesService.addFuncao(req.params.integranteId, req.body.funcao_id);
+        await integrantesService.addFuncao(req.params.integranteId, req.body.funcao_id, req.user!.tenantId!);
         res.status(201).json({ msg: "Função adicionada ao integrante com sucesso" });
     }
 

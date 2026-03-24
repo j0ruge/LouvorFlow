@@ -60,11 +60,13 @@ function formatEventoShow(e: EventoShowRaw) {
 class EventosService {
     // --- Base CRUD ---
 
+    /** Lista todos os eventos formatados para exibição em listagem. */
     async listAll() {
         const eventos = await eventosRepository.findAll();
         return eventos.map(formatEventoIndex);
     }
 
+    /** Retorna um evento detalhado pelo ID, incluindo músicas e integrantes com funções. */
     async getById(id: string) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -74,13 +76,19 @@ class EventosService {
         return formatEventoShow(evento);
     }
 
-    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
+    /**
+     * Cria um novo evento vinculado ao tenant informado.
+     *
+     * @param body - Dados do evento (data, fk_tipo_evento, descricao)
+     * @param tenantId - ID do tenant ao qual o evento pertence
+     * @returns Evento criado com tipo de evento populado
+     */
+    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
         const { data, fk_tipo_evento, descricao } = body;
         const errors: string[] = [];
 
         if (!data) errors.push("Data do evento é obrigatória");
         if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
-        if (!descricao) errors.push("Descrição do evento é obrigatória");
 
         if (data && isNaN(Date.parse(String(data)))) {
             errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
@@ -100,8 +108,8 @@ class EventosService {
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
-            descricao: descricao!
-        });
+            descricao: descricao ?? ""
+        }, tenantId);
 
         return {
             id: evento.id,
@@ -111,6 +119,7 @@ class EventosService {
         };
     }
 
+    /** Atualiza um evento existente pelo ID com os campos informados. */
     async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -149,6 +158,7 @@ class EventosService {
         };
     }
 
+    /** Remove um evento existente pelo ID. */
     async delete(id: string) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -161,6 +171,7 @@ class EventosService {
 
     // --- Musicas ---
 
+    /** Lista as músicas vinculadas a um evento com tonalidade. */
     async listMusicas(eventoId: string) {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
@@ -176,7 +187,14 @@ class EventosService {
         });
     }
 
-    async addMusica(eventoId: string, musicas_id?: string) {
+    /**
+     * Vincula uma música a um evento no tenant informado.
+     *
+     * @param eventoId - ID do evento
+     * @param musicas_id - ID da música a vincular
+     * @param tenantId - ID do tenant ao qual o vínculo pertence
+     */
+    async addMusica(eventoId: string, musicas_id: string | undefined, tenantId: string) {
         if (!musicas_id) throw new AppError("ID da música é obrigatório", 400);
 
         const evento = await eventosRepository.findByIdSimple(eventoId);
@@ -188,9 +206,10 @@ class EventosService {
         const existente = await eventosRepository.findMusicaDuplicate(eventoId, musicas_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await eventosRepository.createMusica(eventoId, musicas_id);
+        await eventosRepository.createMusica(eventoId, musicas_id, tenantId);
     }
 
+    /** Remove o vínculo entre um evento e uma música. */
     async removeMusica(eventoId: string, musicaId: string) {
         const registro = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);
@@ -232,13 +251,14 @@ class EventosService {
      * @param eventoId - ID do evento
      * @param fk_integrante_id - ID do integrante a ser adicionado
      * @param funcao_ids - IDs das funções selecionadas (opcional — usa todas se omitido/null e nenhuma se array vazio)
+     * @param tenantId - ID do tenant ao qual os registros pertencem
      * @throws {AppError} 400 — "ID do integrante é obrigatório" se `fk_integrante_id` não for informado
      * @throws {AppError} 400 — "Função inválida" se algum `funcao_id` não pertence ao integrante
      * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
      * @throws {AppError} 404 — "Integrante não encontrado" se o integrante não existir
      * @throws {AppError} 409 — "Registro duplicado" se o vínculo já existir
      */
-    async addIntegrante(eventoId: string, fk_integrante_id?: string, funcao_ids?: string[]) {
+    async addIntegrante(eventoId: string, fk_integrante_id: string | undefined, funcao_ids: string[] | undefined, tenantId: string) {
         if (!fk_integrante_id) throw new AppError("ID do integrante é obrigatório", 400);
 
         const evento = await eventosRepository.findByIdSimple(eventoId);
@@ -266,9 +286,10 @@ class EventosService {
             selectedFuncaoIds = funcao_ids;
         }
 
-        await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds);
+        await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds, tenantId);
     }
 
+    /** Remove o vínculo entre um evento e um integrante. */
     async removeIntegrante(eventoId: string, integranteId: string) {
         const registro = await eventosRepository.findIntegranteDuplicate(eventoId, integranteId);
         if (!registro) throw new AppError("Registro não encontrado", 404);

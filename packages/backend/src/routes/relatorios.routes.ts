@@ -9,10 +9,11 @@
 import { Router } from 'express';
 import relatoriosController from '../controllers/relatorios.controller.js';
 import { ensureAuthenticated } from '../middlewares/ensureAuthenticated.js';
+import { ensureTenantContext } from '../middlewares/ensureTenantContext.js';
 
 const router: Router = Router();
 
 /** GET /resumo — retorna o resumo completo de relatórios. */
-router.get('/resumo', ensureAuthenticated, relatoriosController.resumo);
+router.get('/resumo', ensureAuthenticated, ensureTenantContext, relatoriosController.resumo);
 
 export default router;

@@ -11,7 +11,7 @@ export function createFakeTonalidadesRepository() {
     findByTom: async (tom: string) => data.find(t => t.tom === tom) ?? null,
     findByTomExcludingId: async (tom: string, excludeId: string) =>
       data.find(t => t.tom === tom && t.id !== excludeId) ?? null,
-    create: async (tom: string) => {
+    create: async (tom: string, _tenantId?: string) => {
       const tonalidade = { id: randomUUID(), tom };
       data.push(tonalidade);
       return { id: tonalidade.id, tom: tonalidade.tom };

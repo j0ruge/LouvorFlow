@@ -18,6 +18,7 @@ import rolesRoutes from './routes/auth/roles.routes.js';
 import permissionsRoutes from './routes/auth/permissions.routes.js';
 import passwordRoutes from './routes/auth/password.routes.js';
 import profileRoutes from './routes/auth/profile.routes.js';
+import igrejasRoutes from './routes/igrejas.routes.js';
 
 /**
  * Classe principal da aplicação Express.
@@ -45,7 +46,12 @@ class App {
      * Configura CORS, parsing de URL-encoded e parsing de JSON.
      */
     middlewares(): void {
-        this.app.use(cors());
+        const webUrl = process.env.APP_WEB_URL?.replace(/\/+$/, '');
+        this.app.use(cors({
+            origin: webUrl || true,
+            methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+            allowedHeaders: ['Content-Type', 'Authorization'],
+        }));
         this.app.use(express.urlencoded({ extended: true }));
         this.app.use(express.json());
     }
@@ -53,8 +59,9 @@ class App {
     /**
      * Registra todas as rotas da aplicação na instância Express.
      *
-     * Inclui rotas de domínio (artistas, músicas, escalas, etc.)
-     * e rotas de autenticação/RBAC (sessions, users, roles, permissions, profile, password).
+     * Inclui rotas de domínio (artistas, músicas, escalas, etc.),
+     * rotas de autenticação/RBAC (sessions, users, roles, permissions, profile, password)
+     * e rotas de gestão de igrejas (tenants) restritas ao super-admin.
      */
     routes(): void {
         this.app.use('/', homeRoutes);
@@ -73,6 +80,7 @@ class App {
         this.app.use('/api/permissions', permissionsRoutes);
         this.app.use('/api/password', passwordRoutes);
         this.app.use('/api/profile', profileRoutes);
+        this.app.use('/api/igrejas', igrejasRoutes);
     }
     /**
      * Registra o handler centralizado de erros da aplicação.

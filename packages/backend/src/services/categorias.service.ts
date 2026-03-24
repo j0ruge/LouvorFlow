@@ -30,18 +30,20 @@ class CategoriasService {
     }
 
     /**
-     * Cria uma nova categoria.
+     * Cria uma nova categoria no tenant ativo.
+     *
      * @param nome - Nome da categoria.
+     * @param tenantId - UUID do tenant ativo.
      * @returns Categoria criada.
-     * @throws AppError 400 se nome ausente; 409 se nome duplicado.
+     * @throws AppError 400 se nome ausente; 409 se nome duplicado no tenant.
      */
-    async create(nome?: string) {
+    async create(nome: string | undefined, tenantId: string) {
         if (!nome) throw new AppError("Nome da categoria é obrigatório", 400);
 
         const existente = await categoriasRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe uma categoria com esse nome", 409);
 
-        return categoriasRepository.create(nome);
+        return categoriasRepository.create(nome, tenantId);
     }
 
     /**
