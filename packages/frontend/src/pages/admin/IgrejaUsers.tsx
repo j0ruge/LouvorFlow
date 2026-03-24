@@ -298,6 +298,13 @@ const IgrejaUsers = () => {
               <Label htmlFor="select-user">Selecionar Usuário</Label>
               {isLoadingAllUsers ? (
                 <Skeleton className="h-10 w-full" />
+              ) : isErrorAllUsers ? (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <span>{errorAllUsers?.message ?? 'Erro ao carregar usuários.'}</span>
+                  <Button variant="link" size="sm" onClick={() => refetchAllUsers()}>
+                    Tentar novamente
+                  </Button>
+                </div>
               ) : (
                 <Select
                   value={selectedUserId}

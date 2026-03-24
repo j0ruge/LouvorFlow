@@ -155,7 +155,7 @@ function imprimirResumo(resultados: ResultadoValidacao[]): void {
  * Executa todas as verificações em paralelo, imprime o resumo e encerra
  * com código `0` (sucesso) ou `1` (falha).
  */
-async function main(): Promise<void> {
+async function main(): Promise<number> {
   console.log('Conectando ao banco de dados...');
 
   const resultados = await Promise.all([
@@ -187,17 +187,22 @@ async function main(): Promise<void> {
 
   if (totalFalhas === 0) {
     console.log('\n✓ Todas as validações passaram. Migração concluída com sucesso.\n');
-    process.exit(0);
+    return 0;
   } else {
     console.log(`\n✗ ${totalFalhas} validação(ões) falharam. Verifique os itens marcados com ✗.\n`);
-    process.exit(1);
+    return 1;
   }
 }
 
-main().catch((err: unknown) => {
-  console.error('Erro fatal durante a validação:', err);
-  process.exit(1);
-}).finally(async () => {
-  /** Garante que a conexão com o banco seja encerrada ao terminar o script. */
-  await prisma.$disconnect();
-});
+main()
+  .then((code) => {
+    process.exitCode = code;
+  })
+  .catch((err: unknown) => {
+    console.error('Erro fatal durante a validação:', err);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    /** Garante que a conexão com o banco seja encerrada ao terminar o script. */
+    await prisma.$disconnect();
+  });
