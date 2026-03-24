@@ -46,8 +46,8 @@ export async function ensureSuperAdmin(
   }
 
   /** Anexa basePrisma para operações cross-tenant nas rotas de gestão. */
-  req.prisma = prisma as any;
+  req.prisma = prisma;
 
   /** Configura AsyncLocalStorage com o prisma base para que getPrisma() funcione corretamente. */
-  tenantContext.run(prisma as any, () => next());
+  tenantContext.run(prisma, () => next());
 }

@@ -16,6 +16,16 @@ import permissionsRepository from '../../repositories/auth/permissions.repositor
 import type { ICreateUserAccessControlListDTO } from '../../types/auth.types.js';
 import { PROTECTED_ROLE_NAMES, PROTECTED_PERMISSION_NAMES } from '../../config/rbac.js';
 
+/** DTO estendido com contexto do caller para validação de privilégios. */
+interface ICreateUserACLWithCallerDTO extends ICreateUserAccessControlListDTO {
+    /** UUID do tenant onde a ACL será aplicada. */
+    tenantId: string;
+    /** UUID do usuário que está realizando a operação (para anti-self-elevation). */
+    callerId: string;
+    /** Se o caller possui role super-admin (bypassa restrições de roles protegidas). */
+    callerIsSuperAdmin: boolean;
+}
+
 class CreateUserAccessControlListService {
     /**
      * Atribui roles e permissões a um usuário com validação de privilégios.
@@ -37,11 +47,7 @@ class CreateUserAccessControlListService {
         tenantId,
         callerId,
         callerIsSuperAdmin,
-    }: ICreateUserAccessControlListDTO & {
-        tenantId: string;
-        callerId: string;
-        callerIsSuperAdmin: boolean;
-    }) {
+    }: ICreateUserACLWithCallerDTO) {
         /** Regra anti-self-elevation: admin regular não pode editar próprias permissões. */
         if (userId === callerId && !callerIsSuperAdmin) {
             throw new AppError('Não é permitido editar suas próprias permissões', 403);

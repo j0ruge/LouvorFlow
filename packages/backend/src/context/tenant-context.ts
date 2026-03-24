@@ -6,10 +6,13 @@
  * `ensureAuthenticated` configura o contexto automaticamente.
  */
 import { AsyncLocalStorage } from 'async_hooks';
-import type { PrismaClient } from '@prisma/client';
 
 /**
  * AsyncLocalStorage que armazena o Prisma Client scoped ao tenant da requisição.
  * Cada request tem seu próprio contexto isolado.
+ *
+ * Tipado como `unknown` porque `forTenant()` retorna um tipo estendido via
+ * `$extends` incompatível com `PrismaClient` puro. O consumidor (`getPrisma()`)
+ * faz o cast para `PrismaClient` ao recuperar do store.
  */
-export const tenantContext = new AsyncLocalStorage<PrismaClient>();
+export const tenantContext = new AsyncLocalStorage<unknown>();

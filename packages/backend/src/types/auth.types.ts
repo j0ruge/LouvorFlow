@@ -237,8 +237,13 @@ declare global {
                 roles?: IRoleRef[];
                 permissions?: IPermissionRef[];
             };
-            /** Instância do Prisma Client com filtro automático de tenant. */
-            prisma?: import('@prisma/client').PrismaClient;
+            /**
+             * Instância do Prisma Client (base ou tenant-scoped via $extends).
+             * Tipado como `any` porque `forTenant()` retorna um tipo estendido
+             * via `$extends` que não é atribuível a `PrismaClient` puro.
+             */
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            prisma?: any;
         }
     }
 }
