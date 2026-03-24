@@ -14,6 +14,7 @@ import { Music, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -118,9 +119,8 @@ const ResetPassword = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password">Nova Senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="Digite a nova senha"
                 autoComplete="new-password"
                 {...register("password")}
@@ -132,9 +132,8 @@ const ResetPassword = () => {
 
             <div className="space-y-2">
               <Label htmlFor="password_confirmation">Confirmar Senha</Label>
-              <Input
+              <PasswordInput
                 id="password_confirmation"
-                type="password"
                 placeholder="Confirme a nova senha"
                 autoComplete="new-password"
                 {...register("password_confirmation")}

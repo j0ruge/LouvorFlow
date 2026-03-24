@@ -19,6 +19,44 @@ import { flattenUserRelations } from '../../types/auth.types.js';
 import type { ILoginDTO, IResponseDTO, ITenantSelectionDTO } from '../../types/auth.types.js';
 import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 
+/** Usuário com roles e permissões carregadas via Prisma include (com campo password). */
+interface IUserWithRelations {
+    id: string;
+    email: string;
+    password: string;
+    avatar: string | null;
+    name: string;
+    roles: Array<{
+        role: {
+            id: string;
+            name: string;
+            description: string;
+            created_at: Date;
+            updated_at: Date;
+            permissions: Array<{
+                permission: {
+                    id: string;
+                    name: string;
+                    description: string;
+                    created_at: Date;
+                    updated_at: Date;
+                };
+            }>;
+        };
+    }>;
+    permissions: Array<{
+        permission: {
+            id: string;
+            name: string;
+            description: string;
+            created_at: Date;
+            updated_at: Date;
+        };
+    }>;
+    created_at: Date;
+    updated_at: Date;
+}
+
 class AuthenticateUserService {
     /**
      * Autentica um usuário com email e senha aplicando lógica multi-tenant.
@@ -152,7 +190,7 @@ class AuthenticateUserService {
      * @returns Resposta de sessão com usuário sanitizado, tokens e dados do tenant.
      */
     async _generateSession(
-        user: { id: string; email: string; password: string; avatar: string | null; name: string; roles: Array<{ role: { id: string; name: string; description: string; created_at: Date; updated_at: Date; permissions: Array<{ permission: { id: string; name: string; description: string; created_at: Date; updated_at: Date } }> } }>; permissions: Array<{ permission: { id: string; name: string; description: string; created_at: Date; updated_at: Date } }>; created_at: Date; updated_at: Date },
+        user: IUserWithRelations,
         tenant: { id: string; name: string },
     ): Promise<IResponseDTO> {
         const token = tokenProvider.sign(

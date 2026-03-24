@@ -19,11 +19,12 @@ import { forTenant } from '../../prisma/cliente.js';
 import { tenantContext } from '../context/tenant-context.js';
 
 /**
- * Duração do cache de status de tenant em milissegundos (60 segundos).
+ * Duração do cache de status de tenant em milissegundos.
+ * Configurável via variável de ambiente `TENANT_CACHE_TTL_MS` (padrão: 60000ms).
  * Evita uma query ao banco a cada requisição autenticada para verificar
  * se o tenant ainda está ativo.
  */
-const TENANT_CACHE_TTL = 60_000;
+const TENANT_CACHE_TTL = Number(process.env.TENANT_CACHE_TTL_MS) || 60_000;
 
 /** Entrada do cache de status de tenant. */
 interface TenantStatusCacheEntry {
@@ -60,6 +61,18 @@ function getCachedTenantStatus(tenantId: string): string | null {
  */
 function cacheTenantStatus(tenantId: string, status: string): void {
     tenantStatusCache.set(tenantId, { status, expiry: Date.now() + TENANT_CACHE_TTL });
+}
+
+/**
+ * Invalida a entrada do cache de status de um tenant específico.
+ *
+ * Deve ser chamado quando o status de um tenant muda (ex.: desativação)
+ * para evitar que requisições subsequentes usem o status obsoleto em cache.
+ *
+ * @param tenantId - UUID do tenant a invalidar.
+ */
+export function invalidateTenantCache(tenantId: string): void {
+    tenantStatusCache.delete(tenantId);
 }
 
 /**
@@ -150,10 +163,10 @@ export async function ensureAuthenticated(
 
             req.user.tenantId = tenantId;
             const scopedPrisma = forTenant(tenantId);
-            req.prisma = scopedPrisma as any;
+            req.prisma = scopedPrisma;
 
             /** Configura AsyncLocalStorage para acesso transparente via getPrisma(). */
-            tenantContext.run(scopedPrisma as any, () => next());
+            tenantContext.run(scopedPrisma, () => next());
             return;
         }
 

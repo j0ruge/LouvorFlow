@@ -9,6 +9,7 @@ import { AppError } from '../errors/AppError.js';
 import igrejasRepository from '../repositories/igrejas.repository.js';
 import prisma from '../../prisma/cliente.js';
 import { seedTenantDefaults } from '../../seeds/domain-defaults.js';
+import { invalidateTenantCache } from '../middlewares/ensureAuthenticated.js';
 
 /**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
@@ -86,6 +87,11 @@ class IgrejasService {
       }
     }
 
+    /** Invalida cache se o status foi alterado para garantir efeito imediato. */
+    if (data.status !== undefined) {
+      invalidateTenantCache(id);
+    }
+
     return igrejasRepository.update(id, data);
   }
 
@@ -102,6 +108,9 @@ class IgrejasService {
       throw new AppError('Igreja não encontrada', 404);
     }
     const resultado = await igrejasRepository.update(id, { status: 'inactive' });
+
+    /** Invalida o cache de status do tenant para efeito imediato nas próximas requisições. */
+    invalidateTenantCache(id);
 
     /**
      * Invalida todos os refresh tokens dos usuários vinculados ao tenant desativado.
@@ -148,8 +157,11 @@ class IgrejasService {
 
     /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
     const adminRole = await prisma.roles.findUnique({ where: { name: 'admin' } });
-    if (adminRole) {
-      await prisma.usersRoles.upsert({
+    if (!adminRole) {
+      throw new AppError('Role "admin" não encontrada. Execute o seed de admin antes de vincular usuários.', 500);
+    }
+
+    await prisma.usersRoles.upsert({
         where: {
           user_id_role_id_tenant_id: {
             user_id: userId,
@@ -164,7 +176,6 @@ class IgrejasService {
           tenant_id: tenantId,
         },
       });
-    }
 
     return vinculo;
   }
