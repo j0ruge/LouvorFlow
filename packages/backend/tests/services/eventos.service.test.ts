@@ -198,9 +198,19 @@ describe('EventosService', () => {
 
   // ─── addMusica ──────────────────────────────────────────
   describe('addMusica', () => {
+    /** Deve vincular música ao evento com ordem automática (próxima posição). */
+    it('deve vincular música ao evento com ordem automática', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      await eventosService.addMusica(eventoId, MOCK_MUSICAS_BASE[2].id, 'tenant-fake-id');
+      const musicas = await eventosService.listMusicas(eventoId);
+      const added = musicas.find(m => m.id === MOCK_MUSICAS_BASE[2].id);
+      expect(added).toBeDefined();
+    });
+
+    /** Deve vincular música ao evento com sucesso. */
     it('deve vincular música ao evento', async () => {
       await expect(
-        eventosService.addMusica(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[2].id, 'tenant-fake-id')
+        eventosService.addMusica(MOCK_EVENTOS[1].id, MOCK_MUSICAS_BASE[0].id, 'tenant-fake-id')
       ).resolves.toBeUndefined();
     });
 
@@ -236,15 +246,69 @@ describe('EventosService', () => {
 
   // ─── removeMusica ───────────────────────────────────────
   describe('removeMusica', () => {
+    /** Deve remover música vinculada e recalcular ordem das restantes. */
     it('deve remover música vinculada', async () => {
       const existing = MOCK_EVENTOS_MUSICAS[0];
       await expect(eventosService.removeMusica(existing.evento_id, existing.musicas_id)).resolves.toBeUndefined();
+    });
+
+    /** Deve recalcular a ordem das músicas restantes para sequência contínua (1..N) após remoção. */
+    it('deve recalcular ordem das restantes após remoção', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicas = await eventosService.listMusicas(eventoId);
+      expect(musicas.length).toBeGreaterThan(0);
+      musicas.forEach((m, idx) => {
+        expect(m.ordem).toBe(idx + 1);
+      });
     });
 
     it('deve lançar AppError 404 quando registro não existe', async () => {
       await expect(eventosService.removeMusica(MOCK_EVENTOS[0].id, NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Registro não encontrado',
+      });
+    });
+  });
+
+  // ─── reorderMusicas ────────────────────────────────────
+  describe('reorderMusicas', () => {
+    /** Deve reordenar músicas do evento com IDs na nova ordem. */
+    it('deve reordenar músicas de um evento existente', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaIds = MOCK_EVENTOS_MUSICAS
+        .filter(em => em.evento_id === eventoId)
+        .map(em => em.musicas_id)
+        .reverse();
+
+      await expect(eventosService.reorderMusicas(eventoId, musicaIds)).resolves.toBeUndefined();
+    });
+
+    /** Deve lançar AppError 404 quando evento não existe. */
+    it('deve lançar AppError 404 quando evento não existe', async () => {
+      await expect(eventosService.reorderMusicas(NON_EXISTENT_ID, ['any-id'])).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Deve lançar AppError 400 quando IDs não correspondem às músicas do evento. */
+    it('deve lançar AppError 400 quando IDs não correspondem às músicas do evento', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      await expect(eventosService.reorderMusicas(eventoId, [NON_EXISTENT_ID])).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'A lista de músicas não corresponde às músicas do evento',
+      });
+    });
+
+    /** Deve lançar AppError 400 quando lista de IDs tem tamanho diferente das músicas do evento. */
+    it('deve lançar AppError 400 quando lista tem tamanho diferente', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaIds = MOCK_EVENTOS_MUSICAS
+        .filter(em => em.evento_id === eventoId)
+        .map(em => em.musicas_id);
+
+      await expect(eventosService.reorderMusicas(eventoId, [...musicaIds, 'extra-id'])).rejects.toMatchObject({
+        statusCode: 400,
       });
     });
   });

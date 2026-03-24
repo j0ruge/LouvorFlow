@@ -43,7 +43,8 @@ function formatEventoShow(e: EventoShowRaw) {
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey
+                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ordem: m.ordem
             };
         }),
         integrantes: e.Eventos_Users.map(i => {
@@ -171,7 +172,7 @@ class EventosService {
 
     // --- Musicas ---
 
-    /** Lista as músicas vinculadas a um evento com tonalidade. */
+    /** Lista as músicas vinculadas a um evento com tonalidade e posição, ordenadas por ordem. */
     async listMusicas(eventoId: string) {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
@@ -182,7 +183,8 @@ class EventosService {
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey
+                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ordem: m.ordem
             };
         });
     }
@@ -209,12 +211,51 @@ class EventosService {
         await eventosRepository.createMusica(eventoId, musicas_id, tenantId);
     }
 
-    /** Remove o vínculo entre um evento e uma música. */
+    /**
+     * Remove o vínculo entre um evento e uma música.
+     * Após a remoção, recalcula a ordem das músicas restantes para manter sequência contínua.
+     */
     async removeMusica(eventoId: string, musicaId: string) {
         const registro = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);
 
         await eventosRepository.deleteMusica(registro.id);
+
+        const remaining = await eventosRepository.findMusicas(eventoId);
+        if (remaining.length > 0) {
+            const orderedIds = remaining.map(m => m.eventos_musicas_musicas_id_fkey.id);
+            await eventosRepository.reorderMusicas(eventoId, orderedIds);
+        }
+    }
+
+    /**
+     * Reordena as músicas de um evento conforme a ordem dos IDs recebidos.
+     * Valida que o evento existe e que os IDs correspondem exatamente às músicas vinculadas.
+     *
+     * @param eventoId - ID do evento
+     * @param musicasIds - Array de IDs de músicas na nova ordem desejada
+     * @throws {AppError} 404 — "Evento não encontrado" se o evento não existir
+     * @throws {AppError} 400 — Se os IDs não corresponderem às músicas do evento
+     */
+    async reorderMusicas(eventoId: string, musicasIds: string[]) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const musicas = await eventosRepository.findMusicas(eventoId);
+        const currentIds = new Set(musicas.map(m => m.eventos_musicas_musicas_id_fkey.id));
+        const newIds = new Set(musicasIds);
+
+        if (currentIds.size !== newIds.size || musicasIds.length !== currentIds.size) {
+            throw new AppError("A lista de músicas não corresponde às músicas do evento", 400);
+        }
+
+        for (const id of musicasIds) {
+            if (!currentIds.has(id)) {
+                throw new AppError("A lista de músicas não corresponde às músicas do evento", 400);
+            }
+        }
+
+        await eventosRepository.reorderMusicas(eventoId, musicasIds);
     }
 
     // --- Integrantes ---
