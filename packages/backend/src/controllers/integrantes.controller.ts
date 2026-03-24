@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import integrantesService from '../services/integrantes.service.js';
+import { AppError } from '../errors/AppError.js';
 
 /**
  * Controller de integrantes — opera sobre o model Users unificado.
@@ -11,8 +12,11 @@ class IntegrantesController {
      * Lista todos os integrantes (users com funções mapeadas).
      */
     async index(req: Request, res: Response): Promise<void> {
-        /** Filtra integrantes pelo tenant ativo do usuário autenticado. */
-        const integrantes = await integrantesService.listAll(req.user?.tenantId);
+        /** Garante que o tenant ativo está presente antes de listar. */
+        if (!req.user?.tenantId) {
+            throw new AppError('Contexto de tenant ausente', 403);
+        }
+        const integrantes = await integrantesService.listAll(req.user.tenantId);
         res.status(200).json(integrantes);
     }
 

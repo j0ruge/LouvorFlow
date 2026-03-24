@@ -57,6 +57,9 @@ describe('CreateUserAccessControlListService', () => {
             userId: user.id,
             roles: [role.id],
             permissions: [permission.id],
+            tenantId: 'tenant-test-id',
+            callerId: 'caller-test-id',
+            callerIsSuperAdmin: true,
         });
 
         expect(result).toHaveProperty('id', user.id);
@@ -71,6 +74,9 @@ describe('CreateUserAccessControlListService', () => {
                 userId: 'non-existent-id',
                 roles: [],
                 permissions: [],
+                tenantId: 'tenant-test-id',
+                callerId: 'caller-test-id',
+                callerIsSuperAdmin: false,
             }),
         ).rejects.toThrow('Usuário não encontrado');
     });
@@ -93,6 +99,9 @@ describe('CreateUserAccessControlListService', () => {
                 userId: user.id,
                 roles: [role.id, 'non-existent-role-id'],
                 permissions: [],
+                tenantId: 'tenant-test-id',
+                callerId: 'caller-test-id',
+                callerIsSuperAdmin: false,
             }),
         ).rejects.toThrow('Roles não encontradas');
     });
@@ -115,6 +124,9 @@ describe('CreateUserAccessControlListService', () => {
                 userId: user.id,
                 roles: [],
                 permissions: [permission.id, 'non-existent-permission-id'],
+                tenantId: 'tenant-test-id',
+                callerId: 'caller-test-id',
+                callerIsSuperAdmin: false,
             }),
         ).rejects.toThrow('Permissões não encontradas');
     });

@@ -3,6 +3,7 @@ import createRoleService from '../../services/auth/create-role.service.js';
 import rolesRepository from '../../repositories/auth/roles.repository.js';
 import { flattenRolePermissions } from '../../types/auth.types.js';
 import { PROTECTED_ROLE_NAMES } from '../../config/rbac.js';
+import { isSuperAdmin } from '../../helpers/is-super-admin.js';
 
 /**
  * Controller responsável pelo gerenciamento de papéis (roles).
@@ -27,17 +28,22 @@ class RolesController {
         const limit = req.query.limit ? Number(req.query.limit) : undefined;
         const result = await rolesRepository.findAll({ page, limit });
 
-        const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
+        const callerIsSuperAdmin = await isSuperAdmin(req.user!.id);
 
         /** Filtra roles protegidas para admins regulares. */
         const filteredData = callerIsSuperAdmin
             ? result.data
-            : result.data.filter((role) => !PROTECTED_ROLE_NAMES.includes(role.name));
+            : result.data.filter((role: { name: string }) => !PROTECTED_ROLE_NAMES.includes(role.name));
+
+        /** Ajusta o total subtraindo as roles protegidas filtradas desta página. */
+        const protectedCount = callerIsSuperAdmin
+            ? 0
+            : result.data.filter((role: { name: string }) => PROTECTED_ROLE_NAMES.includes(role.name)).length;
 
         res.json({
             ...result,
             data: filteredData.map(flattenRolePermissions),
-            total: filteredData.length,
+            total: result.total - protectedCount,
         });
     }
 

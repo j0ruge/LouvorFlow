@@ -38,12 +38,12 @@ class CreateUserAccessControlListService {
         callerId,
         callerIsSuperAdmin,
     }: ICreateUserAccessControlListDTO & {
-        tenantId?: string;
-        callerId?: string;
-        callerIsSuperAdmin?: boolean;
+        tenantId: string;
+        callerId: string;
+        callerIsSuperAdmin: boolean;
     }) {
         /** Regra anti-self-elevation: admin regular não pode editar próprias permissões. */
-        if (callerId && userId === callerId && !callerIsSuperAdmin) {
+        if (userId === callerId && !callerIsSuperAdmin) {
             throw new AppError('Não é permitido editar suas próprias permissões', 403);
         }
 

@@ -173,23 +173,25 @@ export function EventoDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/escalas")}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Voltar
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Detalhes da Escala
-          </h1>
-          <p className="text-muted-foreground mt-1">{evento.descricao}</p>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/escalas")}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              Detalhes da Escala
+            </h1>
+            <p className="text-muted-foreground mt-1">{evento.descricao}</p>
+          </div>
         </div>
         {canWrite && (
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-2 sm:ml-auto">
             <Button
               variant="outline"
               size="sm"

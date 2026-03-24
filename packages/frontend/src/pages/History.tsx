@@ -28,7 +28,7 @@ import { ErrorState } from "@/components/ErrorState";
 function HistorySkeleton() {
   return (
     <div className="p-5 rounded-lg bg-gradient-card border border-border">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Skeleton className="w-14 h-14 rounded-lg" />
           <div className="space-y-2">
@@ -36,7 +36,7 @@ function HistorySkeleton() {
             <Skeleton className="h-4 w-56" />
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
           <div className="text-center space-y-1">
             <Skeleton className="h-4 w-16" />
             <Skeleton className="h-7 w-8 mx-auto" />
@@ -139,9 +139,9 @@ const History = () => {
                   key={evento.id}
                   className="p-5 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-lg bg-gradient-primary flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
                         <Calendar className="h-7 w-7 text-white" />
                       </div>
                       <div>
@@ -159,13 +159,13 @@ const History = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
                       <div className="text-center">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                           <Music className="h-4 w-4" />
                           Músicas
                         </div>
-                        <p className="text-2xl font-bold text-primary">
+                        <p className="text-xl sm:text-2xl font-bold text-primary">
                           {evento.musicas.length}
                         </p>
                       </div>
@@ -175,7 +175,7 @@ const History = () => {
                           <Users className="h-4 w-4" />
                           Equipe
                         </div>
-                        <p className="text-2xl font-bold text-secondary">
+                        <p className="text-xl sm:text-2xl font-bold text-secondary">
                           {evento.integrantes.length}
                         </p>
                       </div>

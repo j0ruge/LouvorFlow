@@ -6,6 +6,7 @@
  */
 import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 import { USER_PUBLIC_SELECT } from '../../types/auth.types.js';
+import { AppError } from '../../errors/AppError.js';
 
 class UsersRepository {
     /**
@@ -210,7 +211,7 @@ class UsersRepository {
 
         if (roles !== undefined || permissions !== undefined) {
             if (!tenantId) {
-                throw new Error('tenant_id é obrigatório para modificar roles ou permissões de usuário.');
+                throw new AppError('tenant_id é obrigatório para modificar roles ou permissões de usuário.', 400);
             }
 
             return prisma.$transaction(async (tx) => {

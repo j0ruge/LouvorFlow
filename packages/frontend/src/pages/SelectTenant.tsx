@@ -46,18 +46,24 @@ const SelectTenant = () => {
 
   /**
    * Valida em runtime o state recebido via navegação.
-   * Garante que a estrutura esperada existe antes de fazer type assertion.
+   * Usa sessionStorage como fallback para sobreviver a recarregamentos (F5).
    */
   const rawState = location.state as Record<string, unknown> | null;
+  const storedToken = sessionStorage.getItem('selection_token');
   const state: SelectTenantLocationState | null =
     rawState != null
     && Array.isArray(rawState.tenants)
     && typeof rawState.selection_token === "string"
       ? (rawState as unknown as SelectTenantLocationState)
-      : null;
+      : rawState != null
+        && Array.isArray(rawState.tenants)
+        && typeof storedToken === "string"
+        ? { tenants: rawState.tenants as Tenant[], selection_token: storedToken }
+        : null;
 
   // Redireciona ao login se não houver state válido (acesso direto à URL)
   if (!state?.tenants || !state?.selection_token) {
+    sessionStorage.removeItem('selection_token');
     return <Navigate to="/login" replace />;
   }
 
@@ -81,6 +87,8 @@ const SelectTenant = () => {
 
     try {
       const response = await selectTenant(selection_token, tenantId);
+      /** Limpa o selection_token do sessionStorage após seleção bem-sucedida. */
+      sessionStorage.removeItem('selection_token');
       completeTenantLogin(response.user, response.token, response.refresh_token, tenants);
       navigate("/", { replace: true });
     } catch (err) {

@@ -222,6 +222,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     if ('requires_tenant_selection' in response && response.requires_tenant_selection) {
       persistAvailableTenants(response.tenants);
+      /** Persiste o selection_token em sessionStorage para sobreviver a recarregamentos (F5). */
+      sessionStorage.setItem('selection_token', response.selection_token);
       navigate("/selecionar-igreja", {
         state: {
           tenants: response.tenants,

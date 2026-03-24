@@ -16,19 +16,29 @@ const prisma = new PrismaClient();
 export default prisma;
 
 /**
- * Retorna o Prisma Client adequado ao contexto da requisição.
+ * Retorna o Prisma Client tenant-scoped do contexto da requisição.
  *
- * Se chamado dentro de uma requisição com tenant context (configurado
- * pelo middleware `ensureAuthenticated`), retorna o client tenant-scoped.
- * Caso contrário, retorna o client base (global).
+ * Deve ser chamado apenas dentro de uma requisição com tenant context
+ * (configurado pelo middleware `ensureAuthenticated` + `ensureTenantContext`).
+ * Lança erro se chamado fora do contexto de tenant para evitar acesso
+ * cross-tenant acidental.
  *
  * Uso: repositories de domínio devem usar `getPrisma()` ao invés de
- * importar `prisma` diretamente.
+ * importar `prisma` diretamente. Para operações globais (auth, seeds,
+ * super-admin), importe `prisma` (default export) diretamente.
  *
- * @returns PrismaClient — tenant-scoped se em contexto de request, base caso contrário
+ * @returns PrismaClient — tenant-scoped via AsyncLocalStorage
+ * @throws Error se chamado fora de um contexto de tenant ativo
  */
 export function getPrisma(): PrismaClient {
-  return (tenantContext.getStore() as PrismaClient) ?? prisma;
+  const client = tenantContext.getStore() as PrismaClient | undefined;
+  if (!client) {
+    throw new Error(
+      'getPrisma() chamado fora de um contexto de tenant. '
+      + 'Use tenantContext.run() ou importe o client base (prisma) diretamente para operações globais.',
+    );
+  }
+  return client;
 }
 
 /**
@@ -113,16 +123,24 @@ export function forTenant(tenantId: string) {
             return query(args);
           }
 
-          /** Operações de atualização: injetar where.tenant_id. */
+          /** Operações de atualização: injetar where.tenant_id e impedir troca de tenant via payload. */
           if (['update', 'updateMany'].includes(operation)) {
             args.where = { ...args.where, tenant_id: tenantId };
+            if (args.data) {
+              const { tenant_id: _stripped, ...safeData } = args.data;
+              args.data = safeData;
+            }
             return query(args);
           }
 
-          /** Upsert: injetar em where e create. */
+          /** Upsert: injetar em where e create, e impedir troca de tenant via update payload. */
           if (operation === 'upsert') {
             args.where = { ...args.where, tenant_id: tenantId };
             args.create = { ...args.create, tenant_id: tenantId };
+            if (args.update) {
+              const { tenant_id: _stripped, ...safeUpdate } = args.update;
+              args.update = safeUpdate;
+            }
             return query(args);
           }
 

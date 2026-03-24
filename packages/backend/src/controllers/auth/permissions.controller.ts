@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import createPermissionService from '../../services/auth/create-permission.service.js';
 import permissionsRepository from '../../repositories/auth/permissions.repository.js';
 import { PROTECTED_PERMISSION_NAMES } from '../../config/rbac.js';
+import { isSuperAdmin } from '../../helpers/is-super-admin.js';
 
 /**
  * Controller responsável pelo gerenciamento de permissões.
@@ -26,17 +27,22 @@ class PermissionsController {
         const limit = req.query.limit ? Number(req.query.limit) : undefined;
         const result = await permissionsRepository.findAll({ page, limit });
 
-        const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
+        const callerIsSuperAdmin = await isSuperAdmin(req.user!.id);
 
         /** Filtra permissions protegidas para admins regulares. */
         const filteredData = callerIsSuperAdmin
             ? result.data
-            : result.data.filter((perm) => !PROTECTED_PERMISSION_NAMES.includes(perm.name));
+            : result.data.filter((perm: { name: string }) => !PROTECTED_PERMISSION_NAMES.includes(perm.name));
+
+        /** Ajusta o total subtraindo as permissões protegidas filtradas desta página. */
+        const protectedCount = callerIsSuperAdmin
+            ? 0
+            : result.data.filter((perm: { name: string }) => PROTECTED_PERMISSION_NAMES.includes(perm.name)).length;
 
         res.json({
             ...result,
             data: filteredData,
-            total: filteredData.length,
+            total: result.total - protectedCount,
         });
     }
 

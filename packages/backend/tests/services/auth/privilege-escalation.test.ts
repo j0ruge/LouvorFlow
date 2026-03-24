@@ -65,6 +65,7 @@ describe('CreateUserAclService — Segurança', () => {
                 userId: MOCK_USER.id,
                 roles: [MOCK_SUPER_ADMIN_ROLE.id],
                 permissions: [],
+                tenantId: 'tenant-test-id',
                 callerId: CALLER_ID,
                 callerIsSuperAdmin: false,
             }),
@@ -81,6 +82,7 @@ describe('CreateUserAclService — Segurança', () => {
                 userId: MOCK_USER.id,
                 roles: [],
                 permissions: [MOCK_PROTECTED_PERM.id],
+                tenantId: 'tenant-test-id',
                 callerId: CALLER_ID,
                 callerIsSuperAdmin: false,
             }),
@@ -112,6 +114,7 @@ describe('CreateUserAclService — Segurança', () => {
             userId: MOCK_USER.id,
             roles: [MOCK_SUPER_ADMIN_ROLE.id],
             permissions: [],
+            tenantId: 'tenant-test-id',
             callerId: CALLER_ID,
             callerIsSuperAdmin: true,
         });
@@ -126,6 +129,7 @@ describe('CreateUserAclService — Segurança', () => {
             userId: MOCK_USER.id,
             roles: [],
             permissions: [MOCK_PROTECTED_PERM.id],
+            tenantId: 'tenant-test-id',
             callerId: CALLER_ID,
             callerIsSuperAdmin: true,
         });
@@ -139,6 +143,7 @@ describe('CreateUserAclService — Segurança', () => {
             userId: MOCK_USER.id,
             roles: [MOCK_ADMIN_ROLE.id],
             permissions: [],
+            tenantId: 'tenant-test-id',
             callerId: MOCK_USER.id,
             callerIsSuperAdmin: true,
         });

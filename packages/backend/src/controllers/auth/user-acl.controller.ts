@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import createUserAclService from '../../services/auth/create-user-acl.service.js';
 import listUserAclService from '../../services/auth/list-user-acl.service.js';
 import { flattenUserRelations } from '../../types/auth.types.js';
+import { isSuperAdmin } from '../../helpers/is-super-admin.js';
 
 /**
  * Controller responsável pelo gerenciamento da Lista de Controle de Acesso (ACL) dos usuários.
@@ -22,9 +23,9 @@ class UserAclController {
         const { userId } = req.params;
         const { roles, permissions } = req.body;
         /** Passa tenantId e dados do caller para validação de privilégios no service. */
-        const tenantId = req.user?.tenantId;
-        const callerId = req.user?.id;
-        const callerIsSuperAdmin = req.user?.roles?.some((r) => r.name === 'super-admin') ?? false;
+        const tenantId = req.user!.tenantId!;
+        const callerId = req.user!.id;
+        const callerIsSuperAdmin = await isSuperAdmin(req.user!.id);
         const user = await createUserAclService.execute({
             userId,
             roles,
@@ -47,7 +48,7 @@ class UserAclController {
      */
     async show(req: Request<{ userId: string }>, res: Response): Promise<void> {
         const { userId } = req.params;
-        const acl = await listUserAclService.execute(userId);
+        const acl = await listUserAclService.execute(userId, req.user?.tenantId);
         res.status(200).json(acl);
     }
 }
