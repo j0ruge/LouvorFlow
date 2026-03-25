@@ -364,7 +364,7 @@ Per Constitution Principle I (Mobile-First):
 
 | Pattern | Desktop (md+) | Mobile (<md) |
 |---|---|---|
-| **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column |
+| **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column (exception: compact stat cards may use `grid-cols-2`) |
 | **Tabs** | `md:grid md:grid-cols-5` | `flex overflow-x-auto` horizontal scroll |
 | **Dialogs** | `sm:max-w-[425px]` centered | Full-width with rounded corners |
 | **Buttons** | Inline with text labels | Some hidden (`hidden sm:inline-flex`), icon-only |
