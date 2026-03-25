@@ -342,43 +342,43 @@ Per Constitution Principle I (Mobile-First):
 | **Header padding** | `px-4` (16px) | `sm:px-6` (24px) |
 | **Main overflow** | `overflow-x-hidden` | — |
 
-#### Flex Rows com Múltiplos Elementos
+#### Flex Rows with Multiple Elements
 
 | Pattern | Mobile (<sm) | Desktop (sm+) |
 |---|---|---|
-| **Header + ações** | `flex-col items-start gap-3` | `sm:flex-row sm:items-center sm:justify-between` |
-| **Input + Select + botões** | `flex-wrap` + `w-full` nos inputs | `sm:w-48` / `sm:w-32` largura fixa |
-| **Título + botão** | `flex-col gap-2` ou `flex-wrap` | `sm:flex-row sm:items-center sm:justify-between` |
-| **Select + botão add** | `flex-wrap` com Select `flex-1` | Inline em uma linha |
+| **Header + actions** | `flex-col items-start gap-3` | `sm:flex-row sm:items-center sm:justify-between` |
+| **Input + Select + buttons** | `flex-wrap` + `w-full` on inputs | `sm:w-48` / `sm:w-32` fixed width |
+| **Title + button** | `flex-col gap-2` or `flex-wrap` | `sm:flex-row sm:items-center sm:justify-between` |
+| **Select + add button** | `flex-wrap` with Select `flex-1` | Inline in one row |
 
-#### Listas e Rows de Itens
+#### List Item Rows
 
 | Pattern | Mobile (<sm) | Desktop (sm+) |
 |---|---|---|
-| **Item row** | `gap-2`, `min-w-0` no conteúdo | `gap-3` |
-| **Texto dinâmico** | `truncate` + container `min-w-0` | Idem |
-| **Botões de ação** | `flex-shrink-0` | Idem |
-| **Ícones inline** | `flex-shrink-0` | Idem |
+| **Item row** | `gap-2`, `min-w-0` on content | `gap-3` |
+| **Dynamic text** | `truncate` + container `min-w-0` | Same |
+| **Action buttons** | `flex-shrink-0` | Same |
+| **Inline icons** | `flex-shrink-0` | Same |
 
-#### Componentes Específicos
+#### Specific Components
 
 | Pattern | Desktop (md+) | Mobile (<md) |
 |---|---|---|
-| **Grids** | `md:grid-cols-2` ou `lg:grid-cols-4` | Single column |
+| **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column |
 | **Tabs** | `md:grid md:grid-cols-5` | `flex overflow-x-auto` horizontal scroll |
 | **Dialogs** | `sm:max-w-[425px]` centered | Full-width with rounded corners |
 | **Buttons** | Inline with text labels | Some hidden (`hidden sm:inline-flex`), icon-only |
 | **Sidebar** | 16rem expanded, 3rem collapsed | 18rem overlay, auto-close on navigation |
 | **Detail buttons** | Visible "Detalhes" text button | Click anywhere on item row |
-| **Tables** | `<Table>` do shadcn com colunas | Cards empilhados (`sm:hidden`) + table (`hidden sm:block`) |
+| **Tables** | shadcn `<Table>` with columns | Stacked cards (`sm:hidden`) + table (`hidden sm:block`) |
 
-#### Anti-patterns (NUNCA usar em mobile)
+#### Anti-patterns (NEVER use on mobile)
 
-- `w-48`, `w-32`, `w-56` etc. sem prefixo responsivo → usar `w-full sm:w-48`
-- `flex items-center justify-between` sem `flex-wrap` ou `flex-col` mobile → sempre adicionar estratégia de wrap
-- Texto dinâmico (nomes, títulos) sem `truncate` + `min-w-0` → overflow horizontal
-- `p-6` / `px-6` em containers de layout sem `sm:` → usar `p-4 sm:p-6`
-- `<Table>` sem layout alternativo mobile → sempre usar dual layout: cards `sm:hidden` + table `hidden sm:block`
+- `w-48`, `w-32`, `w-56` etc. without responsive prefix → use `w-full sm:w-48`
+- `flex items-center justify-between` without `flex-wrap` or mobile `flex-col` → always add wrap strategy
+- Dynamic text (names, titles) without `truncate` + `min-w-0` → horizontal overflow
+- `p-6` / `px-6` in layout containers without `sm:` → use `p-4 sm:p-6`
+- `<Table>` without mobile alternative layout → always use dual layout: cards `sm:hidden` + table `hidden sm:block`
 
 ### Cross-References
 
