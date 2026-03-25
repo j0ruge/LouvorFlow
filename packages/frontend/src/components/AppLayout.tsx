@@ -29,14 +29,14 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gradient-subtle">
         <AppSidebar />
-        <main className="flex-1 min-w-0 overflow-x-hidden">
-          <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
+        <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+          <header className="shrink-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
             <SidebarTrigger />
             <div className="flex-1" />
             <ThemeToggle />
             <UserMenu />
           </header>
-          <div className="p-4 sm:p-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
             {children}
           </div>
         </main>
