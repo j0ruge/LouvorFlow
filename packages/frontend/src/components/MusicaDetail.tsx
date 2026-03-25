@@ -230,7 +230,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
               ) : (
                 <div>
                   <CardTitle className="text-xl flex items-center gap-2 min-w-0">
-                    <span className="truncate">{musica.nome}</span>
+                    <span className="truncate flex-1 min-w-0">{musica.nome}</span>
                     {canWrite && (
                       <Button
                         variant="ghost"
