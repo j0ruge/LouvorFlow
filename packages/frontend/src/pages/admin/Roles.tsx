@@ -180,7 +180,7 @@ const AdminRoles = () => {
                     className="p-4 rounded-lg border border-border space-y-3"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium truncate">{role.name}</span>
+                      <span className="font-medium truncate min-w-0 flex-1">{role.name}</span>
                       <Badge variant="secondary" className="text-xs flex-shrink-0">
                         {role.permissions.length} permissão(ões)
                       </Badge>
