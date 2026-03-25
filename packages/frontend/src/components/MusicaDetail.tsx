@@ -179,24 +179,24 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
       {/* Informações básicas */}
       <Card className="shadow-soft border-0">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
                 <Music className="h-6 w-6 text-white" />
               </div>
               {isEditingName ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="h-8 w-48"
+                    className="h-8 w-full sm:w-48"
                     autoFocus
                   />
                   <Select
                     value={editTonalidade}
                     onValueChange={setEditTonalidade}
                   >
-                    <SelectTrigger className="h-8 w-32">
+                    <SelectTrigger className="h-8 w-full sm:w-32">
                       <SelectValue placeholder="Tonalidade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -229,8 +229,8 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 </div>
               ) : (
                 <div>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    {musica.nome}
+                  <CardTitle className="text-xl flex items-center gap-2 min-w-0">
+                    <span className="truncate">{musica.nome}</span>
                     {canWrite && (
                       <Button
                         variant="ghost"
@@ -298,11 +298,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
               {musica.versoes.map((versao) => (
                 <div
                   key={versao.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
+                  className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <Music className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{versao.artista.nome}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Music className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="font-medium truncate">{versao.artista.nome}</span>
                     {versao.bpm && (
                       <Badge variant="outline" className="text-xs">
                         {versao.bpm} BPM
@@ -320,7 +320,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                     )}
                   </div>
                   {canWrite && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"

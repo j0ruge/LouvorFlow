@@ -107,6 +107,82 @@ Consultar esse arquivo antes de criar novos componentes ou alterar padrões de U
   2. **Renderização** — usar `isSafeUrl(url)` como guarda condicional antes de renderizar o elemento `<a>`.
 - **`dangerouslySetInnerHTML`**: Evitar. Se necessário, nunca incluir dados fornecidos pelo utilizador sem sanitização.
 
+## Responsividade Mobile — Regras Obrigatórias
+
+<CRITICAL>
+O app é usado primariamente em dispositivos móveis. Todo código novo ou modificado DEVE seguir os padrões mobile-first documentados em `packages/frontend/.interface-design/system.md` (seção Mobile Adaptations).
+</CRITICAL>
+
+### Padrões obrigatórios para todo componente novo/modificado
+
+1. **Inputs e Selects inline**: Usar `w-full sm:w-XX` — nunca largura fixa sem breakpoint.
+2. **Flex rows com múltiplos elementos**: Usar `flex flex-col gap-2 sm:flex-row sm:items-center` ou `flex flex-wrap`.
+3. **Texto dinâmico** (nomes, títulos de API): Sempre `truncate` com `min-w-0` no container pai.
+4. **Botões de ação em rows**: Sempre `flex-shrink-0` para não comprimir.
+5. **Container padding**: `p-4 sm:p-6` (AppLayout já implementa — não sobrescrever com `p-6` fixo em subcomponentes).
+6. **Overflow guard**: Containers principais devem ter `overflow-x-hidden`.
+7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal.
+
+### Padrão de referência (modelo correto)
+
+```typescript
+{/* Header com ações — empilha no mobile, inline no desktop */}
+<div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div className="flex items-center gap-3">...</div>
+  <Button>Ação</Button>
+</div>
+
+{/* Form inline — inputs full-width no mobile */}
+<div className="flex flex-wrap items-center gap-2">
+  <Input className="h-8 w-full sm:w-48" />
+  <SelectTrigger className="h-8 w-full sm:w-32" />
+  <Button size="sm">✓</Button>
+</div>
+
+{/* Item row — texto trunca, botões não comprimem */}
+<div className="flex items-center justify-between gap-2">
+  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <Icon className="h-4 w-4 flex-shrink-0" />
+    <span className="font-medium truncate">{dynamicText}</span>
+  </div>
+  <div className="flex items-center gap-1 flex-shrink-0">
+    <Button variant="ghost" size="sm">...</Button>
+  </div>
+</div>
+
+{/* Dual layout: Cards mobile / Table desktop */}
+<div className="space-y-3 sm:hidden">
+  {items.map((item) => (
+    <div key={item.id} className="p-4 rounded-lg border border-border space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium truncate">{item.name}</span>
+        <Badge className="flex-shrink-0">{item.count}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">{item.description}</p>
+      <Button variant="outline" size="sm" className="w-full">Ação</Button>
+    </div>
+  ))}
+</div>
+<div className="hidden sm:block">
+  <Table>...</Table>
+</div>
+```
+
+### Páginas já corrigidas
+
+| Arquivo | Correção aplicada |
+|---|---|
+| `MusicaDetail.tsx` | Edit overflow + truncate + flex-wrap + responsive gaps |
+| `AppLayout.tsx` | Padding responsivo `p-4 sm:p-6` + overflow-x-hidden |
+| `EventoDetail.tsx` | Responsive gaps + truncate integrantes + flex-shrink-0 |
+| `ConfigCrudSection.tsx` | flex-wrap form + gap + truncate nomes |
+| `Dashboard.tsx` | grid-cols-2 stats + responsive gaps + truncate |
+| `admin/Roles.tsx` | Dual layout cards/table + header responsivo |
+| `admin/Users.tsx` | Dual layout cards/table + header responsivo |
+| `Scales.tsx` | Header justify-between com prefixo sm: |
+| `IntegranteForm.tsx` | flex-wrap no select+button de funções |
+| `DateTimePicker.tsx` | min-w-0 nos selects de hora/minuto |
+
 ## Convenções de Código
 
 - Componentes React: **PascalCase** (ex.: `AppSidebar.tsx`).

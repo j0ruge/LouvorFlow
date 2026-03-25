@@ -72,7 +72,7 @@ const AdminRoles = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Roles
@@ -171,37 +171,70 @@ const AdminRoles = () => {
           )}
 
           {!isLoading && roles && roles.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Permissões</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: Cards */}
+              <div className="space-y-3 sm:hidden">
                 {roles.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell className="font-medium">{role.name}</TableCell>
-                    <TableCell>{role.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-xs">
+                  <div
+                    key={role.id}
+                    className="p-4 rounded-lg border border-border space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium truncate">{role.name}</span>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
                         {role.permissions.length} permissão(ões)
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/admin/roles/${role.id}/permissoes`}>
-                          <Key className="mr-1 h-3 w-3" />
-                          Gerenciar Permissões
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    {role.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {role.description}
+                      </p>
+                    )}
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link to={`/admin/roles/${role.id}/permissoes`}>
+                        <Key className="mr-1 h-3 w-3" />
+                        Gerenciar Permissões
+                      </Link>
+                    </Button>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Permissões</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {roles.map((role) => (
+                      <TableRow key={role.id}>
+                        <TableCell className="font-medium">{role.name}</TableCell>
+                        <TableCell>{role.description}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {role.permissions.length} permissão(ões)
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/admin/roles/${role.id}/permissoes`}>
+                              <Key className="mr-1 h-3 w-3" />
+                              Gerenciar Permissões
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
