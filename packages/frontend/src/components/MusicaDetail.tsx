@@ -302,7 +302,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 >
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <Music className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span className="font-medium truncate">{versao.artista.nome}</span>
+                    <span className="font-medium truncate min-w-0 flex-1">{versao.artista.nome}</span>
                     {versao.bpm && (
                       <Badge variant="outline" className="text-xs">
                         {versao.bpm} BPM
