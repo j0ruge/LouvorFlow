@@ -252,12 +252,12 @@ const AdminUsers = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link to={`/admin/usuarios/${user.id}/acl`}>
-                            <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/admin/usuarios/${user.id}/acl`}>
                               <Shield className="mr-1 h-3 w-3" />
                               Gerenciar ACL
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
