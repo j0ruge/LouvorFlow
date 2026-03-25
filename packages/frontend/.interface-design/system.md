@@ -334,14 +334,51 @@ Every data-driven view implements 4 states:
 
 Per Constitution Principle I (Mobile-First):
 
+#### Layout & Padding
+
+| Pattern | Mobile (<sm) | Desktop (sm+) |
+|---|---|---|
+| **Container padding** | `p-4` (16px) | `sm:p-6` (24px) |
+| **Header padding** | `px-4` (16px) | `sm:px-6` (24px) |
+| **Main overflow** | `overflow-x-hidden` | — |
+
+#### Flex Rows with Multiple Elements
+
+| Pattern | Mobile (<sm) | Desktop (sm+) |
+|---|---|---|
+| **Header + actions** | `flex-col items-start gap-3` | `sm:flex-row sm:items-center sm:justify-between` |
+| **Input + Select + buttons** | `flex-wrap` + `w-full` on inputs | `sm:w-48` / `sm:w-32` fixed width |
+| **Title + button** | `flex-col gap-2` or `flex-wrap` | `sm:flex-row sm:items-center sm:justify-between` |
+| **Select + add button** | `flex-wrap` with Select `flex-1` | Inline in one row |
+
+#### List Item Rows
+
+| Pattern | Mobile (<sm) | Desktop (sm+) |
+|---|---|---|
+| **Item row** | `gap-2`, `min-w-0` on content | `gap-3` |
+| **Dynamic text** | `truncate` + container `min-w-0` | Same |
+| **Action buttons** | `flex-shrink-0` | Same |
+| **Inline icons** | `flex-shrink-0` | Same |
+
+#### Specific Components
+
 | Pattern | Desktop (md+) | Mobile (<md) |
 |---|---|---|
-| **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column |
+| **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column (exception: compact stat cards may use `grid-cols-2`) |
 | **Tabs** | `md:grid md:grid-cols-5` | `flex overflow-x-auto` horizontal scroll |
 | **Dialogs** | `sm:max-w-[425px]` centered | Full-width with rounded corners |
 | **Buttons** | Inline with text labels | Some hidden (`hidden sm:inline-flex`), icon-only |
 | **Sidebar** | 16rem expanded, 3rem collapsed | 18rem overlay, auto-close on navigation |
 | **Detail buttons** | Visible "Detalhes" text button | Click anywhere on item row |
+| **Tables** | shadcn `<Table>` with columns | Stacked cards (`sm:hidden`) + table (`hidden sm:block`) |
+
+#### Anti-patterns (NEVER use on mobile)
+
+- `w-48`, `w-32`, `w-56` etc. without responsive prefix → use `w-full sm:w-48`
+- `flex items-center justify-between` without `flex-wrap` or mobile `flex-col` → always add wrap strategy
+- Dynamic text (names, titles) without `truncate` + `min-w-0` → horizontal overflow
+- `p-6` / `px-6` in layout containers without `sm:` → use `p-4 sm:p-6`
+- `<Table>` without mobile alternative layout → always use dual layout: cards `sm:hidden` + table `hidden sm:block`
 
 ### Cross-References
 

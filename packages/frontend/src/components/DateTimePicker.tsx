@@ -191,7 +191,7 @@ export function DateTimePicker({
         <div className="flex items-center gap-2 border-t px-4 py-3">
           <span className="text-sm text-muted-foreground">Horário:</span>
           <Select value={hour} onValueChange={handleHourChange}>
-            <SelectTrigger className="w-[70px]">
+            <SelectTrigger className="w-[70px] min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -204,7 +204,7 @@ export function DateTimePicker({
           </Select>
           <span className="text-sm font-medium">:</span>
           <Select value={minute} onValueChange={handleMinuteChange}>
-            <SelectTrigger className="w-[70px]">
+            <SelectTrigger className="w-[70px] min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

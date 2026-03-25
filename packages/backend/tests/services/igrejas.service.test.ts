@@ -72,6 +72,12 @@ vi.mock('../../seeds/domain-defaults.js', () => ({
   seedTenantDefaults: vi.fn().mockResolvedValue(undefined),
 }));
 
+/** Mock do invalidateTenantCache para verificar chamada na desativação. */
+const mockInvalidateTenantCache = vi.fn();
+vi.mock('../../src/middlewares/ensureAuthenticated.js', () => ({
+  invalidateTenantCache: (...args: unknown[]) => mockInvalidateTenantCache(...args),
+}));
+
 vi.mock('../../prisma/cliente.js', () => ({
   default: {
     users: {
@@ -106,6 +112,7 @@ describe('IgrejasService', () => {
     fakeTenantRepo.reset();
     fakeTenantUserBindings.length = 0;
     fakeUsersRoles.length = 0;
+    mockInvalidateTenantCache.mockClear();
   });
 
   // ─── create ──────────────────────────────────────────────────────────────
@@ -238,6 +245,17 @@ describe('IgrejasService', () => {
       const result = await igrejasService.deactivate(TENANT_A_ID);
 
       expect(result).toHaveProperty('status', 'inactive');
+    });
+
+    /**
+     * Deve invalidar o cache de status do tenant ao desativar,
+     * garantindo efeito imediato no middleware de autenticação.
+     */
+    it('deve invalidar o cache de status do tenant ao desativar', async () => {
+      await igrejasService.deactivate(TENANT_A_ID);
+
+      expect(mockInvalidateTenantCache).toHaveBeenCalledWith(TENANT_A_ID);
+      expect(mockInvalidateTenantCache).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -109,6 +109,9 @@ class IgrejasService {
     }
     const resultado = await igrejasRepository.update(id, { status: 'inactive' });
 
+    /** Invalida cache de status do tenant para efeito imediato no middleware de auth. */
+    invalidateTenantCache(id);
+
     /**
      * Invalida todos os refresh tokens dos usuários vinculados ao tenant desativado.
      * Isso força re-autenticação e impede que usuários continuem renovando sessões

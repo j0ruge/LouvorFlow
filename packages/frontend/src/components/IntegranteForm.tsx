@@ -276,7 +276,7 @@ export function IntegranteForm({
               {isEditing && integranteId && (
                 <div className="space-y-3 pt-2 border-t border-border">
                   <FormLabel>Funções</FormLabel>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Select
                       value={selectedFuncaoId}
                       onValueChange={setSelectedFuncaoId}

@@ -299,7 +299,7 @@ export function EventoDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
@@ -556,12 +556,12 @@ export function EventoDetail() {
               {evento.integrantes.map((integrante) => (
                 <div
                   key={integrante.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
+                  className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{integrante.nome}</span>
-                    <div className="flex gap-1">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className="font-medium truncate min-w-0 flex-1">{integrante.nome}</span>
+                    <div className="flex gap-1 flex-shrink-0">
                       {integrante.funcoes.map((f) => (
                         <Badge
                           key={f.id}
@@ -574,14 +574,16 @@ export function EventoDetail() {
                     </div>
                   </div>
                   {canWrite && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeIntegrante.mutate(integrante.id)}
-                      disabled={removeIntegrante.isPending}
-                    >
-                      <X className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeIntegrante.mutate(integrante.id)}
+                        disabled={removeIntegrante.isPending}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   )}
                 </div>
               ))}

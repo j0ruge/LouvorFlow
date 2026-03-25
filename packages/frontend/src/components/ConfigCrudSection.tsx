@@ -119,7 +119,7 @@ export function ConfigCrudSection<T>({
     <div className="space-y-4">
       {/* Formulário de criação (oculto em modo somente-leitura) */}
       {!readOnly && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Input
             placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
             value={newName}
@@ -163,7 +163,7 @@ export function ConfigCrudSection<T>({
             return (
               <div
                 key={id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border"
+                className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
               >
                 {isEditingThis ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -201,9 +201,9 @@ export function ConfigCrudSection<T>({
                   </div>
                 ) : (
                   <>
-                    <span className="font-medium">{name}</span>
+                    <span className="font-medium truncate min-w-0">{name}</span>
                     {!readOnly && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"
