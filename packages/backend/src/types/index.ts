@@ -258,7 +258,7 @@ export interface EventoShowRaw {
     data: Date;
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
-    Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
+    Eventos_Musicas: { id: string; ordem: number; eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
     Eventos_Users: EventoShowIntegranteRaw[];
 }
 
@@ -340,6 +340,8 @@ export const EVENTO_SHOW_SELECT = {
     },
     Eventos_Musicas: {
         select: {
+            id: true,
+            ordem: true,
             eventos_musicas_musicas_id_fkey: {
                 select: {
                     id: true,
@@ -349,7 +351,8 @@ export const EVENTO_SHOW_SELECT = {
                     }
                 }
             }
-        }
+        },
+        orderBy: { ordem: 'asc' as const }
     },
     Eventos_Users: {
         select: {

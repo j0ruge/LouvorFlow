@@ -62,6 +62,7 @@ export function createFakeEventosRepository() {
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
+      .sort((a, b) => a.ordem - b.ordem)
       .map(em => {
         const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
         return {
@@ -91,10 +92,13 @@ export function createFakeEventosRepository() {
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
+      .sort((a, b) => a.ordem - b.ordem)
       .map(em => {
         const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
         const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
         return {
+          id: em.id,
+          ordem: em.ordem,
           eventos_musicas_musicas_id_fkey: {
             id: musica.id,
             nome: musica.nome,
@@ -169,13 +173,17 @@ export function createFakeEventosRepository() {
 
     // --- Musicas (eventos_musicas) ---
 
+    /** Retorna as músicas vinculadas a um evento, ordenadas pelo campo ordem. */
     findMusicas: async (eventoId: string) =>
       eventosMusicas
         .filter(em => em.evento_id === eventoId)
+        .sort((a, b) => a.ordem - b.ordem)
         .map(em => {
           const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
           const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
           return {
+            id: em.id,
+            ordem: em.ordem,
             eventos_musicas_musicas_id_fkey: {
               id: musica.id,
               nome: musica.nome,
@@ -184,9 +192,11 @@ export function createFakeEventosRepository() {
           };
         }),
 
-    /** Vincula uma música a um evento em memória (parâmetro _tenantId ignorado no fake). */
+    /** Vincula uma música a um evento em memória com ordem automática (parâmetro _tenantId ignorado no fake). */
     createMusica: async (eventoId: string, musicasId: string, _tenantId?: string) => {
-      const record = { id: randomUUID(), evento_id: eventoId, musicas_id: musicasId };
+      const existing = eventosMusicas.filter(em => em.evento_id === eventoId);
+      const maxOrdem = existing.length > 0 ? Math.max(...existing.map(em => em.ordem)) : 0;
+      const record = { id: randomUUID(), evento_id: eventoId, musicas_id: musicasId, ordem: maxOrdem + 1 };
       eventosMusicas.push(record);
       return record;
     },
@@ -195,6 +205,24 @@ export function createFakeEventosRepository() {
       const idx = eventosMusicas.findIndex(em => em.id === id);
       if (idx === -1) return;
       eventosMusicas.splice(idx, 1);
+    },
+
+    /**
+     * Reordena as músicas de um evento atribuindo posições sequenciais (1..N)
+     * conforme a ordem dos IDs recebidos.
+     *
+     * @param eventoId - ID do evento
+     * @param musicasIds - Array de IDs de músicas na nova ordem desejada
+     */
+    reorderMusicas: async (eventoId: string, musicasIds: string[]) => {
+      musicasIds.forEach((musicaId, index) => {
+        const record = eventosMusicas.find(
+          em => em.evento_id === eventoId && em.musicas_id === musicaId
+        );
+        if (record) {
+          record.ordem = index + 1;
+        }
+      });
     },
 
     findMusicaDuplicate: async (eventoId: string, musicasId: string) =>
@@ -229,15 +257,7 @@ export function createFakeEventosRepository() {
           };
         }),
 
-    /**
-     * Cria um vínculo entre evento e user no array em memória, incluindo funções selecionadas.
-     *
-     * @param eventoId - ID do evento
-     * @param userId - ID do user
-     * @param funcaoIds - IDs das funções selecionadas para o evento
-     * @returns Registro criado com id gerado automaticamente
-     */
-    /** Cria vínculo entre evento e user em memória (parâmetro _tenantId ignorado no fake). */
+    /** Cria vínculo entre evento e user em memória, incluindo funções selecionadas (parâmetro _tenantId ignorado no fake). */
     createIntegrante: async (eventoId: string, userId: string, funcaoIds: string[], _tenantId?: string) => {
       const record = { id: randomUUID(), evento_id: eventoId, fk_user_id: userId };
       eventosIntegrantes.push(record);

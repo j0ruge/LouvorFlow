@@ -76,11 +76,13 @@ class EventosRepository {
 
     // --- Musicas (eventos_musicas) ---
 
-    /** Retorna as músicas vinculadas a um evento com tonalidade. */
+    /** Retorna as músicas vinculadas a um evento com tonalidade, ordenadas pelo campo ordem. */
     async findMusicas(eventoId: string) {
         return getPrisma().eventos_Musicas.findMany({
             where: { evento_id: eventoId },
             select: {
+                id: true,
+                ordem: true,
                 eventos_musicas_musicas_id_fkey: {
                     select: {
                         id: true,
@@ -90,12 +92,14 @@ class EventosRepository {
                         }
                     }
                 }
-            }
+            },
+            orderBy: { ordem: 'asc' }
         });
     }
 
     /**
      * Vincula uma música a um evento no tenant informado.
+     * Atribui automaticamente a próxima posição disponível (MAX(ordem) + 1).
      *
      * @param eventoId - ID do evento
      * @param musicasId - ID da música a vincular
@@ -103,14 +107,42 @@ class EventosRepository {
      * @returns Registro criado na tabela Eventos_Musicas
      */
     async createMusica(eventoId: string, musicasId: string, tenantId: string) {
-        return getPrisma().eventos_Musicas.create({
-            data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: tenantId }
+        return getPrisma().$transaction(async (tx) => {
+            const maxRecord = await tx.eventos_Musicas.findFirst({
+                where: { evento_id: eventoId },
+                orderBy: { ordem: 'desc' },
+                select: { ordem: true }
+            });
+            const nextOrdem = (maxRecord?.ordem ?? 0) + 1;
+
+            return tx.eventos_Musicas.create({
+                data: { evento_id: eventoId, musicas_id: musicasId, tenant_id: tenantId, ordem: nextOrdem }
+            });
         });
     }
 
     /** Remove o vínculo entre evento e música pelo ID do registro. */
     async deleteMusica(id: string) {
         return getPrisma().eventos_Musicas.delete({ where: { id } });
+    }
+
+    /**
+     * Reordena as músicas de um evento atribuindo posições sequenciais (1..N)
+     * conforme a ordem dos IDs recebidos. Executa em transação para garantir atomicidade.
+     *
+     * @param eventoId - ID do evento
+     * @param musicasIds - Array de IDs de músicas na nova ordem desejada
+     */
+    async reorderMusicas(eventoId: string, musicasIds: string[]) {
+        const prismaClient = getPrisma();
+        await prismaClient.$transaction(
+            musicasIds.map((musicaId, index) =>
+                prismaClient.eventos_Musicas.updateMany({
+                    where: { evento_id: eventoId, musicas_id: musicaId },
+                    data: { ordem: index + 1 }
+                })
+            )
+        );
     }
 
     /** Verifica se já existe vínculo entre o evento e a música informados. */

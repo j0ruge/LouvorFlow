@@ -6,8 +6,24 @@
  * usando selects populados com dados de `useMusicas` e `useIntegrantes`.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +45,7 @@ import {
   Guitar,
   Pencil,
   Trash2,
+  GripVertical,
 } from "lucide-react";
 import {
   useEvento,
@@ -36,6 +53,7 @@ import {
   useDeleteEvento,
   useAddMusicaToEvento,
   useRemoveMusicaFromEvento,
+  useReorderMusicas,
   useAddIntegranteToEvento,
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
@@ -47,6 +65,82 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
 import { useCan } from "@/hooks/use-can";
 import type { IntegranteComFuncoes } from "@/schemas/integrante";
+import type { MusicaEvento } from "@/schemas/evento";
+
+/**
+ * Card de música ordenável via drag-and-drop.
+ * Exibe badge de posição, grip handle (para usuários com permissão) e botão de remoção.
+ */
+function SortableMusicaCard({
+  musica,
+  canWrite,
+  onRemove,
+  isPending,
+}: {
+  musica: MusicaEvento;
+  canWrite: boolean;
+  onRemove: () => void;
+  isPending: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: musica.id, disabled: !canWrite });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-3 rounded-lg border border-border ${
+        isDragging ? "shadow-lg opacity-75 bg-muted/50 z-10" : ""
+      }`}
+    >
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {canWrite && (
+          <button
+            {...attributes}
+            {...listeners}
+            className="flex-shrink-0 w-11 h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            aria-label="Arrastar para reordenar"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0">
+          {musica.ordem}
+        </Badge>
+        <Music className="h-4 w-4 text-primary flex-shrink-0" />
+        <span className="font-medium truncate">{musica.nome}</span>
+        {musica.tonalidade && (
+          <Badge variant="outline" className="text-xs flex-shrink-0">
+            <Guitar className="h-3 w-3 mr-1" />
+            {musica.tonalidade.tom}
+          </Badge>
+        )}
+      </div>
+      {canWrite && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          disabled={isPending}
+          className="flex-shrink-0"
+        >
+          <X className="h-4 w-4 text-destructive" />
+        </Button>
+      )}
+    </div>
+  );
+}
 
 /**
  * Página de detalhe de evento com gerenciamento de associações.
@@ -61,6 +155,7 @@ export function EventoDetail() {
   const navigate = useNavigate();
   const [selectedMusicaId, setSelectedMusicaId] = useState("");
   const [selectedIntegranteId, setSelectedIntegranteId] = useState("");
+  const [removingMusicaId, setRemovingMusicaId] = useState<string | null>(null);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [funcaoDialogIntegrante, setFuncaoDialogIntegrante] =
@@ -81,9 +176,40 @@ export function EventoDetail() {
   const deleteEvento = useDeleteEvento();
   const addMusica = useAddMusicaToEvento(id ?? "");
   const removeMusica = useRemoveMusicaFromEvento(id ?? "");
+  const reorderMusicas = useReorderMusicas(id ?? "");
   const addIntegrante = useAddIntegranteToEvento(id ?? "");
   const removeIntegrante = useRemoveIntegranteFromEvento(id ?? "");
   const { can: canWrite } = useCan("escalas.write");
+
+  /** Sensores de drag-and-drop: PointerSensor para desktop, TouchSensor com long press para mobile. */
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 250, tolerance: 5 },
+  });
+  const sensors = useSensors(pointerSensor, touchSensor);
+
+  /** IDs das músicas ordenados para o SortableContext. */
+  const musicaIds = useMemo(
+    () => evento?.musicas.map((m) => m.id) ?? [],
+    [evento?.musicas],
+  );
+
+  /**
+   * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
+   */
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !evento) return;
+
+    const oldIndex = musicaIds.indexOf(active.id as string);
+    const newIndex = musicaIds.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(musicaIds, oldIndex, newIndex);
+    reorderMusicas.mutate(newOrder);
+  }
 
   if (isLoading) {
     return (
@@ -292,35 +418,30 @@ export function EventoDetail() {
               Nenhuma música associada. Selecione acima para adicionar.
             </p>
           ) : (
-            <div className="space-y-2">
-              {evento.musicas.map((musica) => (
-                <div
-                  key={musica.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
-                >
-                  <div className="flex items-center gap-3">
-                    <Music className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{musica.nome}</span>
-                    {musica.tonalidade && (
-                      <Badge variant="outline" className="text-xs">
-                        <Guitar className="h-3 w-3 mr-1" />
-                        {musica.tonalidade.tom}
-                      </Badge>
-                    )}
-                  </div>
-                  {canWrite && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeMusica.mutate(musica.id)}
-                      disabled={removeMusica.isPending}
-                    >
-                      <X className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={musicaIds} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {evento.musicas.map((musica) => (
+                    <SortableMusicaCard
+                      key={musica.id}
+                      musica={musica}
+                      canWrite={canWrite}
+                      onRemove={() => {
+                        setRemovingMusicaId(musica.id);
+                        removeMusica.mutate(musica.id, {
+                          onSettled: () => setRemovingMusicaId(null),
+                        });
+                      }}
+                      isPending={removingMusicaId === musica.id}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </CardContent>
       </Card>

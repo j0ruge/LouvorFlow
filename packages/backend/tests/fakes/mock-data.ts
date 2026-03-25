@@ -208,8 +208,8 @@ export const MOCK_EVENTOS = [
 
 // ─── Eventos_Musicas (junction) ──────────────────────────
 export const MOCK_EVENTOS_MUSICAS = [
-  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001' },
-  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002' },
+  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001', ordem: 1 },
+  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002', ordem: 2 },
 ];
 
 // ─── Eventos_Users (junction — ex-Eventos_Integrantes) ───
