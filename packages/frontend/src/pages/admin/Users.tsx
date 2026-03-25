@@ -211,12 +211,12 @@ const AdminUsers = () => {
                         </span>
                       )}
                     </div>
-                    <Link to={`/admin/usuarios/${user.id}/acl`}>
-                      <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link to={`/admin/usuarios/${user.id}/acl`}>
                         <Shield className="mr-1 h-3 w-3" />
                         Gerenciar ACL
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </div>
                 ))}
               </div>
