@@ -4787,6 +4787,7 @@
           "intensidade": {
             "type": "string",
             "enum": ["calma", "media", "agitada"],
+            "nullable": true,
             "description": "Nível de intensidade da versão"
           }
         },
@@ -4816,6 +4817,7 @@
           "intensidade": {
             "type": "string",
             "enum": ["calma", "media", "agitada"],
+            "nullable": true,
             "description": "Nível de intensidade da versão"
           }
         }
