@@ -64,7 +64,7 @@ export const createMusicaCompleteBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
-    intensidade: z.enum(["calma", "media", "agitada"]).optional(),
+    intensidade: z.preprocess((val) => (val === "" ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -78,7 +78,7 @@ export const updateMusicaCompleteBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
-    intensidade: z.enum(["calma", "media", "agitada"]).optional(),
+    intensidade: z.preprocess((val) => (val === "" ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -90,7 +90,7 @@ export const addVersaoBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
-    intensidade: z.enum(["calma", "media", "agitada"]).optional(),
+    intensidade: z.preprocess((val) => (val === "" ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 
 /** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). */
@@ -99,7 +99,7 @@ export const updateVersaoBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
-    intensidade: z.enum(["calma", "media", "agitada"]).optional(),
+    intensidade: z.preprocess((val) => (val === "" ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 
 /** Schema de validação para adição de categoria (POST /api/musicas/:musicaId/categorias). */
