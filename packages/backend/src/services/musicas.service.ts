@@ -146,7 +146,12 @@ class MusicasService {
             if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
         }
 
-        const temCamposVersao = bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined || intensidade !== undefined;
+        const temCamposVersao =
+            bpm !== undefined ||
+            cifras !== undefined ||
+            lyrics !== undefined ||
+            link_versao !== undefined ||
+            (intensidade !== undefined && intensidade !== "");
 
         if (temCamposVersao && !artista_id) {
             throw new AppError("Artista é obrigatório para criar uma versão", 400);

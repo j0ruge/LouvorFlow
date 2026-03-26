@@ -311,7 +311,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                     )}
                     {versao.intensidade && (
                       <Badge variant="outline" className="text-xs capitalize">
-                        {versao.intensidade === "media" ? "Média" : versao.intensidade === "calma" ? "Calma" : "Agitada"}
+                        {versao.intensidade === "media" ? "Média" : versao.intensidade}
                       </Badge>
                     )}
                     {versao.link_versao && isSafeUrl(versao.link_versao) && (

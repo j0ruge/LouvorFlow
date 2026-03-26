@@ -37,9 +37,11 @@ function IntensityBars({ bars, className }: { bars: number; className?: string }
     x: i * 3.5,
   }));
   const width = (bars - 1) * 3.5 + 2;
+  const maxHeight = 4 + (bars - 1) * 2.5;
+
   return (
     <svg
-      viewBox={`0 0 ${width} ${4 + (bars - 1) * 2.5}`}
+      viewBox={`0 0 ${width} ${maxHeight}`}
       fill="currentColor"
       className={className}
     >
@@ -47,7 +49,7 @@ function IntensityBars({ bars, className }: { bars: number; className?: string }
         <rect
           key={i}
           x={bar.x}
-          y={4 + (bars - 1) * 2.5 - bar.height}
+          y={maxHeight - bar.height}
           width="2"
           height={bar.height}
           rx="0.5"
@@ -73,6 +75,7 @@ export function IntensidadeSelector({ value, onChange }: IntensidadeSelectorProp
           <button
             key={opt.value}
             type="button"
+            aria-pressed={isActive}
             onClick={() => onChange(isActive ? "" : opt.value)}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all",

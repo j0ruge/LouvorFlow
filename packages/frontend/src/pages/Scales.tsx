@@ -321,8 +321,8 @@ const Scales = () => {
         <EmptyState
           title="Nenhuma escala cadastrada"
           description="Comece criando uma nova escala para organizar os cultos do ministério."
-          actionLabel="Nova Escala"
-          onAction={() => setFormOpen(true)}
+          actionLabel={canWrite ? "Nova Escala" : undefined}
+          onAction={canWrite ? () => setFormOpen(true) : undefined}
         />
       )}
 
@@ -341,8 +341,8 @@ const Scales = () => {
               <EmptyState
                 title="Nenhuma escala futura agendada"
                 description="Crie uma nova escala para organizar os próximos cultos."
-                actionLabel="Nova Escala"
-                onAction={() => setFormOpen(true)}
+                actionLabel={canWrite ? "Nova Escala" : undefined}
+                onAction={canWrite ? () => setFormOpen(true) : undefined}
               />
             ) : (
               renderScaleCards(upcoming)
