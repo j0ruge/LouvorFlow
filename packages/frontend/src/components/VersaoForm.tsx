@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { IntensidadeSelector } from "@/components/IntensidadeSelector";
 import { useArtistas } from "@/hooks/use-artistas";
 import {
   CreateVersaoFormSchema,
@@ -79,6 +80,7 @@ export function VersaoForm({
       cifras: "",
       lyrics: "",
       link_versao: "",
+      intensidade: "",
     },
   });
 
@@ -98,6 +100,7 @@ export function VersaoForm({
           cifras: versao.cifras ?? "",
           lyrics: versao.lyrics ?? "",
           link_versao: versao.link_versao ?? "",
+          intensidade: versao.intensidade ?? "",
         });
       } else {
         form.reset({
@@ -106,6 +109,7 @@ export function VersaoForm({
           cifras: "",
           lyrics: "",
           link_versao: "",
+          intensidade: "",
         });
       }
     },
@@ -168,6 +172,22 @@ export function VersaoForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="intensidade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Intensidade</FormLabel>
+                  <FormControl>
+                    <IntensidadeSelector
+                      value={field.value as "calma" | "media" | "agitada" | "" | undefined}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -4748,6 +4748,12 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "nullable": true,
+            "description": "Nível de intensidade da versão"
           }
         },
         "required": [
@@ -4777,6 +4783,11 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "description": "Nível de intensidade da versão"
           }
         },
         "required": [
@@ -4801,6 +4812,11 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "description": "Nível de intensidade da versão"
           }
         }
       },

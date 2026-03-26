@@ -1,12 +1,12 @@
 /**
  * Seletor de data e hora no formato brasileiro (dd/MM/yyyy HH:mm, relógio 24h).
  *
- * Utiliza Popover + Calendar (shadcn/ui) para seleção de data
- * e inputs numéricos para hora e minuto.
+ * Utiliza Popover + Calendar (shadcn/ui) no desktop e Drawer (bottom sheet)
+ * no mobile para evitar overflow em telas pequenas.
  * Recebe e emite valores no formato `YYYY-MM-DDThh:mm` (compatível com datetime-local).
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { CalendarIcon } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,6 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /** Propriedades do componente DateTimePicker. */
 interface DateTimePickerProps {
@@ -73,10 +81,85 @@ function formatToValue(date: Date): string {
 }
 
 /**
+ * Conteúdo compartilhado do picker: calendário, seletores de horário e botões.
+ *
+ * @param props - Propriedades internas do conteúdo.
+ * @returns Elemento React com calendário, hora/minuto e botões confirmar/cancelar.
+ */
+function DateTimePickerContent({
+  draftDate,
+  draftHour,
+  draftMinute,
+  onDaySelect,
+  onHourChange,
+  onMinuteChange,
+  onConfirm,
+  onCancel,
+}: {
+  draftDate: Date | undefined;
+  draftHour: string;
+  draftMinute: string;
+  onDaySelect: (day: Date | undefined) => void;
+  onHourChange: (h: string) => void;
+  onMinuteChange: (m: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <>
+      <Calendar
+        mode="single"
+        selected={draftDate}
+        onSelect={onDaySelect}
+        locale={ptBR}
+        initialFocus
+      />
+      <div className="flex items-center gap-2 border-t px-3 py-2">
+        <span className="text-sm text-muted-foreground">Horário:</span>
+        <Select value={draftHour} onValueChange={onHourChange}>
+          <SelectTrigger className="w-[70px] min-w-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {HOURS.map((h) => (
+              <SelectItem key={h} value={h}>
+                {h}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-sm font-medium">:</span>
+        <Select value={draftMinute} onValueChange={onMinuteChange}>
+          <SelectTrigger className="w-[70px] min-w-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MINUTES.map((m) => (
+              <SelectItem key={m} value={m}>
+                {m}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
+        <Button variant="ghost" size="sm" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button size="sm" onClick={onConfirm} disabled={!draftDate}>
+          Confirmar
+        </Button>
+      </div>
+    </>
+  );
+}
+
+/**
  * Componente de seleção de data e hora com formato brasileiro.
  *
- * Exibe a data no formato dd/MM/yyyy HH:mm e permite seleção
- * via calendário e selects de hora/minuto em formato 24h.
+ * No desktop, exibe o calendário em um Popover flutuante.
+ * No mobile, exibe o calendário em um Drawer (bottom sheet)
+ * para evitar overflow e deslocamento de conteúdo.
  *
  * @param props - Propriedades do componente.
  * @returns Elemento React com o seletor de data e hora.
@@ -86,86 +169,157 @@ export function DateTimePicker({
   onChange,
   placeholder = "Selecione a data e hora",
 }: DateTimePickerProps) {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+  const [draftDate, setDraftDate] = useState<Date | undefined>(
     parseValue(value),
   );
-  const [hour, setHour] = useState("09");
-  const [minute, setMinute] = useState("00");
+  const [draftHour, setDraftHour] = useState("09");
+  const [draftMinute, setDraftMinute] = useState("00");
 
-  /** Sincroniza o estado interno quando o valor externo muda. */
+  /** Sincroniza o rascunho interno quando o valor externo muda (e o picker está fechado). */
   useEffect(
     function syncFromExternalValue() {
+      if (open) return;
       const parsed = parseValue(value);
       if (parsed) {
-        setSelectedDate(parsed);
-        setHour(String(parsed.getHours()).padStart(2, "0"));
-        setMinute(String(parsed.getMinutes()).padStart(2, "0"));
+        setDraftDate(parsed);
+        setDraftHour(String(parsed.getHours()).padStart(2, "0"));
+        setDraftMinute(String(parsed.getMinutes()).padStart(2, "0"));
       } else {
-        setSelectedDate(undefined);
-        setHour("09");
-        setMinute("00");
+        setDraftDate(undefined);
+        setDraftHour("09");
+        setDraftMinute("00");
       }
     },
-    [value],
+    [value, open],
   );
 
   /**
-   * Emite o valor combinado de data + hora para o formulário pai.
-   *
-   * @param date - Data selecionada no calendário.
-   * @param h - Hora selecionada (string 2 dígitos).
-   * @param m - Minuto selecionado (string 2 dígitos).
+   * Restaura o rascunho ao valor confirmado ao abrir o picker.
    */
-  const emitChange = useCallback(
-    (date: Date | undefined, h: string, m: string) => {
-      if (!date) {
-        onChange("");
-        return;
+  useEffect(
+    function resetDraftOnOpen() {
+      if (!open) return;
+      const parsed = parseValue(value);
+      if (parsed) {
+        setDraftDate(parsed);
+        setDraftHour(String(parsed.getHours()).padStart(2, "0"));
+        setDraftMinute(String(parsed.getMinutes()).padStart(2, "0"));
+      } else {
+        setDraftDate(undefined);
+        setDraftHour("09");
+        setDraftMinute("00");
       }
-      const combined = new Date(date);
-      combined.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-      onChange(formatToValue(combined));
     },
-    [onChange],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [open],
   );
 
   /**
-   * Handler para seleção de dia no calendário.
+   * Handler para seleção de dia no calendário (apenas rascunho).
    *
    * @param day - Dia selecionado pelo react-day-picker.
    */
   function handleDaySelect(day: Date | undefined) {
-    setSelectedDate(day);
-    emitChange(day, hour, minute);
+    setDraftDate(day);
   }
 
   /**
-   * Handler para alteração da hora.
+   * Handler para alteração da hora (apenas rascunho).
    *
    * @param h - Nova hora selecionada.
    */
   function handleHourChange(h: string) {
-    setHour(h);
-    emitChange(selectedDate, h, minute);
+    setDraftHour(h);
   }
 
   /**
-   * Handler para alteração do minuto.
+   * Handler para alteração do minuto (apenas rascunho).
    *
    * @param m - Novo minuto selecionado.
    */
   function handleMinuteChange(m: string) {
-    setMinute(m);
-    emitChange(selectedDate, hour, m);
+    setDraftMinute(m);
   }
 
-  /** Texto exibido no botão trigger. */
-  const displayText = selectedDate
-    ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) +
-      ` ${hour}:${minute}`
+  /**
+   * Confirma a seleção, emitindo o valor combinado de data + hora
+   * e fechando o picker.
+   */
+  function handleConfirm() {
+    if (draftDate) {
+      const combined = new Date(draftDate);
+      combined.setHours(
+        parseInt(draftHour, 10),
+        parseInt(draftMinute, 10),
+        0,
+        0,
+      );
+      onChange(formatToValue(combined));
+    }
+    setOpen(false);
+  }
+
+  /**
+   * Cancela a seleção, descartando o rascunho e fechando o picker.
+   */
+  function handleCancel() {
+    setOpen(false);
+  }
+
+  /** Texto exibido no botão trigger com base no valor confirmado. */
+  const confirmed = parseValue(value);
+  const displayText = confirmed
+    ? format(confirmed, "dd/MM/yyyy", { locale: ptBR }) +
+      ` ${String(confirmed.getHours()).padStart(2, "0")}:${String(confirmed.getMinutes()).padStart(2, "0")}`
     : placeholder;
 
+  /** Props compartilhadas para o conteúdo do picker. */
+  const contentProps = {
+    draftDate,
+    draftHour,
+    draftMinute,
+    onDaySelect: handleDaySelect,
+    onHourChange: handleHourChange,
+    onMinuteChange: handleMinuteChange,
+    onConfirm: handleConfirm,
+    onCancel: handleCancel,
+  };
+
+  /** Renderização mobile: calendário em Drawer (bottom sheet). */
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !confirmed && "text-muted-foreground",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {displayText}
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerTitle className="sr-only">
+            Selecione a data e hora
+          </DrawerTitle>
+          <DrawerDescription className="sr-only">
+            Escolha uma data no calendário e defina o horário
+          </DrawerDescription>
+          <div className="flex flex-col items-center px-4 pb-6">
+            <DateTimePickerContent {...contentProps} />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  /** Renderização desktop: calendário em Popover flutuante. */
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -173,49 +327,15 @@ export function DateTimePicker({
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
-            !selectedDate && "text-muted-foreground",
+            !confirmed && "text-muted-foreground",
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {displayText}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={handleDaySelect}
-          locale={ptBR}
-          initialFocus
-        />
-        <div className="flex items-center gap-2 border-t px-4 py-3">
-          <span className="text-sm text-muted-foreground">Horário:</span>
-          <Select value={hour} onValueChange={handleHourChange}>
-            <SelectTrigger className="w-[70px] min-w-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {HOURS.map((h) => (
-                <SelectItem key={h} value={h}>
-                  {h}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-sm font-medium">:</span>
-          <Select value={minute} onValueChange={handleMinuteChange}>
-            <SelectTrigger className="w-[70px] min-w-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MINUTES.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <PopoverContent className="w-auto p-0" align="center" collisionPadding={16}>
+        <DateTimePickerContent {...contentProps} />
       </PopoverContent>
     </Popover>
   );

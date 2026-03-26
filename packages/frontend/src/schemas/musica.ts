@@ -22,6 +22,7 @@ export const VersaoSchema = z.object({
       "URL deve usar protocolo http ou https",
     )
     .nullable(),
+  intensidade: z.enum(["calma", "media", "agitada"]).nullable(),
 });
 
 /** Tipo inferido de uma versão. */
@@ -98,13 +99,14 @@ const linkVersaoFormField = z
  * @returns `true` se ao menos um campo de versão estiver preenchido.
  */
 function temCamposVersaoPreenchidos(
-  data: { bpm?: number | ""; cifras?: string; lyrics?: string; link_versao?: string },
+  data: { bpm?: number | ""; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string },
 ): boolean {
   return (
     (data.bpm !== undefined && data.bpm !== "") ||
     (data.cifras !== undefined && data.cifras !== "") ||
     (data.lyrics !== undefined && data.lyrics !== "") ||
-    (data.link_versao !== undefined && data.link_versao !== "")
+    (data.link_versao !== undefined && data.link_versao !== "") ||
+    (data.intensidade !== undefined && data.intensidade !== "")
   );
 }
 
@@ -115,6 +117,7 @@ export const CreateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
 /** Tipo inferido dos dados do formulário de criação de versão. */
@@ -126,6 +129,7 @@ export const UpdateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
 /** Tipo inferido dos dados do formulário de edição de versão. */
@@ -144,6 +148,7 @@ export const CreateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
 }).superRefine((data, ctx) => {
@@ -171,6 +176,7 @@ export const UpdateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
 });

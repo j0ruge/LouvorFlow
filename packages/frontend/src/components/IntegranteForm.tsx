@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X } from "lucide-react";
+import { CornerDownLeft, X } from "lucide-react";
 import {
   useCreateIntegrante,
   useIntegrante,
@@ -298,7 +298,7 @@ export function IntegranteForm({
                       onClick={handleAddFuncao}
                       disabled={!selectedFuncaoId || addFuncao.isPending}
                     >
-                      <Plus className="h-4 w-4" />
+                      <CornerDownLeft className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">

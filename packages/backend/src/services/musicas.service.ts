@@ -21,7 +21,8 @@ function formatMusica(m: MusicaRaw): Musica {
             bpm: v.bpm,
             cifras: v.cifras,
             lyrics: v.lyrics,
-            link_versao: v.link_versao
+            link_versao: v.link_versao,
+            intensidade: v.intensidade
         })),
         funcoes: m.Musicas_Funcoes.map(f => f.musicas_funcoes_funcao_id_fkey)
     };
@@ -136,7 +137,7 @@ class MusicasService {
      * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista/categoria/função não existir
      */
     async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
-        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, categoria_ids, funcao_ids } = body;
+        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, intensidade, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 
@@ -145,7 +146,7 @@ class MusicasService {
             if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
         }
 
-        const temCamposVersao = bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined;
+        const temCamposVersao = bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined || intensidade !== undefined;
 
         if (temCamposVersao && !artista_id) {
             throw new AppError("Artista é obrigatório para criar uma versão", 400);
@@ -210,7 +211,8 @@ class MusicasService {
             bpm: v.bpm,
             cifras: v.cifras,
             lyrics: v.lyrics,
-            link_versao: v.link_versao
+            link_versao: v.link_versao,
+            intensidade: v.intensidade
         }));
     }
 
@@ -223,8 +225,8 @@ class MusicasService {
      * @returns Versão criada com dados do artista
      * @throws {AppError} 400 se artista_id ausente; 404 se música ou artista não existir; 409 se duplicado
      */
-    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }, tenantId: string) {
-        const { artista_id, bpm, cifras, lyrics, link_versao } = body;
+    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
+        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
 
         if (!artista_id) throw new AppError("ID do artista é obrigatório", 400);
 
@@ -238,7 +240,7 @@ class MusicasService {
         if (existente) throw new AppError("Registro duplicado", 409);
 
         const versao = await musicasRepository.createVersao({
-            artista_id, musica_id: musicaId, bpm, cifras, lyrics, link_versao
+            artista_id, musica_id: musicaId, bpm, cifras, lyrics, link_versao, intensidade
         }, tenantId);
 
         return {
@@ -247,20 +249,22 @@ class MusicasService {
             bpm: versao.bpm,
             cifras: versao.cifras,
             lyrics: versao.lyrics,
-            link_versao: versao.link_versao
+            link_versao: versao.link_versao,
+            intensidade: versao.intensidade
         };
     }
 
-    async updateVersao(versaoId: string, body: { bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }) {
+    async updateVersao(versaoId: string, body: { bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }) {
         const existente = await musicasRepository.findVersaoById(versaoId);
         if (!existente) throw new AppError("Versão não encontrada", 404);
 
-        const { bpm, cifras, lyrics, link_versao } = body;
+        const { bpm, cifras, lyrics, link_versao, intensidade } = body;
         const updateData: Record<string, unknown> = {};
         if (bpm !== undefined) updateData.bpm = bpm;
         if (cifras !== undefined) updateData.cifras = cifras;
         if (lyrics !== undefined) updateData.lyrics = lyrics;
         if (link_versao !== undefined) updateData.link_versao = link_versao;
+        if (intensidade !== undefined) updateData.intensidade = intensidade;
 
         if (Object.keys(updateData).length === 0) {
             throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
@@ -274,7 +278,8 @@ class MusicasService {
             bpm: versao.bpm,
             cifras: versao.cifras,
             lyrics: versao.lyrics,
-            link_versao: versao.link_versao
+            link_versao: versao.link_versao,
+            intensidade: versao.intensidade
         };
     }
 
