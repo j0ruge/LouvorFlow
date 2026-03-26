@@ -75,6 +75,7 @@ export function IntensidadeSelector({ value, onChange }: IntensidadeSelectorProp
           <button
             key={opt.value}
             type="button"
+            aria-pressed={isActive}
             onClick={() => onChange(isActive ? "" : opt.value)}
             className={cn(
               "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all",
