@@ -107,6 +107,12 @@ Consultar esse arquivo antes de criar novos componentes ou alterar padrões de U
   2. **Renderização** — usar `isSafeUrl(url)` como guarda condicional antes de renderizar o elemento `<a>`.
 - **`dangerouslySetInnerHTML`**: Evitar. Se necessário, nunca incluir dados fornecidos pelo utilizador sem sanitização.
 
+## Elegância — Prioridade Máxima
+
+<CRITICAL>
+A elegância visual é o valor mais importante nas decisões de UI/UX. Sempre preferir a abordagem mais elegante, mesmo que exija mais esforço. Consultar `packages/frontend/.interface-design/system.md` (seção "Princípio de Elegância") para diretrizes completas.
+</CRITICAL>
+
 ## Responsividade Mobile — Regras Obrigatórias
 
 <CRITICAL>
@@ -117,11 +123,13 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 
 1. **Inputs e Selects inline**: Usar `w-full sm:w-XX` — nunca largura fixa sem breakpoint.
 2. **Flex rows com múltiplos elementos**: Usar `flex flex-col gap-2 sm:flex-row sm:items-center` ou `flex flex-wrap`.
-3. **Texto dinâmico** (nomes, títulos de API): Sempre `truncate` com `min-w-0` no container pai.
+3. **Texto dinâmico** (nomes, títulos de API): Usar `truncate` com `min-w-0` no container pai para textos curtos. Para títulos/nomes que podem ser longos (ex: nome de música em página de detalhe), preferir `line-clamp-2` para permitir até 2 linhas antes de truncar — mais legível que cortar em 1 linha. Sempre garantir `min-w-0` + `overflow-hidden` em toda a cadeia de containers flex pai.
 4. **Botões de ação em rows**: Sempre `flex-shrink-0` para não comprimir.
 5. **Container padding**: `p-4 sm:p-6` (AppLayout já implementa — não sobrescrever com `p-6` fixo em subcomponentes).
 6. **Overflow guard**: Containers principais devem ter `overflow-x-hidden`.
 7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal.
+8. **Overlays com conteúdo alto** (calendários, listas longas, filtros): Usar `Drawer` (bottom sheet) no mobile e `Popover` no desktop. Detectar com `useIsMobile()`. Nunca usar Popover no mobile para conteúdo que exceda ~300px de altura — causa overflow/corte. Nunca renderizar conteúdo inline que desloque campos abaixo — preferir overlay. Extrair conteúdo compartilhado em subcomponente para evitar duplicação. Referência: `DateTimePicker.tsx`.
+9. **Ícones de confirmação de seleção**: Em botões ao lado de um Select/Combobox que confirmam a escolha (adicionar item selecionado), usar `CornerDownLeft` (↵) em vez de `Plus` (+). Reservar `Plus` apenas para criar novos itens.
 
 ### Padrão de referência (modelo correto)
 
@@ -181,7 +189,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `admin/Users.tsx` | Dual layout cards/table + header responsivo |
 | `Scales.tsx` | Header justify-between com prefixo sm: |
 | `IntegranteForm.tsx` | flex-wrap no select+button de funções |
-| `DateTimePicker.tsx` | min-w-0 nos selects de hora/minuto |
+| `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
 
 ## Convenções de Código
 

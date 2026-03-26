@@ -119,6 +119,7 @@ class MusicasRepository {
                         cifras: data.cifras ?? null,
                         lyrics: data.lyrics ?? null,
                         link_versao: data.link_versao ?? null,
+                        intensidade: data.intensidade ?? null,
                         tenant_id: tenantId,
                     },
                 });
@@ -171,6 +172,7 @@ class MusicasRepository {
                 if (data.cifras !== undefined) versaoUpdate.cifras = data.cifras;
                 if (data.lyrics !== undefined) versaoUpdate.lyrics = data.lyrics;
                 if (data.link_versao !== undefined) versaoUpdate.link_versao = data.link_versao;
+                if (data.intensidade !== undefined) versaoUpdate.intensidade = data.intensidade;
 
                 if (Object.keys(versaoUpdate).length > 0) {
                     await tx.artistas_Musicas.update({
@@ -214,6 +216,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -232,7 +235,7 @@ class MusicasRepository {
      * @param tenantId - ID do tenant proprietário
      * @returns Versão criada com dados do artista
      */
-    async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }, tenantId: string) {
+    async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
         return getPrisma().artistas_Musicas.create({
             data: { ...data, tenant_id: tenantId },
             select: {
@@ -241,6 +244,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -258,6 +262,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }

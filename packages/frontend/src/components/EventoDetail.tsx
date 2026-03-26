@@ -39,7 +39,7 @@ import {
   Calendar,
   Music,
   Users,
-  Plus,
+  CornerDownLeft,
   X,
   ArrowLeft,
   Guitar,
@@ -408,7 +408,7 @@ export function EventoDetail() {
                   musicasDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -542,7 +542,7 @@ export function EventoDetail() {
                   integrantesDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}

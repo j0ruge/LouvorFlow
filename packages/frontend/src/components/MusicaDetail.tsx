@@ -23,6 +23,7 @@ import {
   Music,
   Guitar,
   Plus,
+  CornerDownLeft,
   X,
   Pencil,
   Check,
@@ -177,11 +178,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   return (
     <div className="space-y-6">
       {/* Informações básicas */}
-      <Card className="shadow-soft border-0">
+      <Card className="shadow-soft border-0 overflow-hidden">
         <CardHeader>
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0 overflow-hidden">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center flex-shrink-0">
                 <Music className="h-6 w-6 text-white" />
               </div>
               {isEditingName ? (
@@ -228,9 +229,9 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   </Button>
                 </div>
               ) : (
-                <div>
-                  <CardTitle className="text-xl flex items-center gap-2 min-w-0">
-                    <span className="truncate flex-1 min-w-0">{musica.nome}</span>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-xl flex items-start gap-2 min-w-0 overflow-hidden">
+                    <span className="flex-1 min-w-0 line-clamp-2">{musica.nome}</span>
                     {canWrite && (
                       <Button
                         variant="ghost"
@@ -306,6 +307,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                     {versao.bpm && (
                       <Badge variant="outline" className="text-xs">
                         {versao.bpm} BPM
+                      </Badge>
+                    )}
+                    {versao.intensidade && (
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {versao.intensidade === "media" ? "Média" : versao.intensidade === "calma" ? "Calma" : "Agitada"}
                       </Badge>
                     )}
                     {versao.link_versao && isSafeUrl(versao.link_versao) && (
@@ -392,7 +398,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   categoriasDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -464,7 +470,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   funcoesDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}

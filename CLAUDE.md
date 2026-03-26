@@ -16,6 +16,12 @@ No desenvolvimento do projeto, é crucial seguir as melhores práticas de design
 Nunca refatore código a menos que explicitamente solicitado.
 </IMPORTANTE>
 
+<CRITICAL>
+## Princípio de Elegância
+
+A elegância visual é prioridade máxima nas decisões de UI/UX. Ao escolher entre abordagens, **sempre preferir a mais elegante**, mesmo que exija mais esforço. Overlays sobre deslocamento de conteúdo, transições suaves, espaço para respirar, ícones semânticos e feedback claro ao usuário. Consultar `packages/frontend/.interface-design/system.md` (seção "Princípio de Elegância") para detalhes completos.
+</CRITICAL>
+
 ## Stack Tecnológico
 
 | Camada        | Tecnologia                                |

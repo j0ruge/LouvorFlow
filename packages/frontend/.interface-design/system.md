@@ -9,6 +9,17 @@
 **Light mode:** Amber/gold palette evoking candlelight, warm wood, linen hymnals. Canvas in cream — never pure white. Surfaces warm and quiet.
 **Dark mode:** Deep sanctuary — warm dark browns with soft gold accents. Like a dimmed church interior before worship starts.
 
+### Princípio de Elegância (prioridade máxima)
+
+A elegância visual é o valor mais importante nas decisões de UI/UX deste projeto. Ao escolher entre abordagens, **sempre preferir a mais elegante**, mesmo que exija mais esforço de implementação. Isso significa:
+
+- **Overlays sobre deslocamento**: Nunca empurrar conteúdo para baixo para mostrar algo temporário — usar overlays (Drawer, Popover, Dialog).
+- **Transições suaves**: Preferir animações de entrada/saída (slide, fade) a mudanças abruptas de layout.
+- **Espaço para respirar**: Manter padding e gaps generosos; evitar interfaces apertadas.
+- **Consistência visual**: Componentes semelhantes devem se comportar de forma idêntica em todo o app.
+- **Ícones semânticos**: Usar ícones que comuniquem a ação real (ex: `CornerDownLeft` ↵ para confirmar seleção, não `Plus` +).
+- **Feedback claro**: O usuário deve entender o estado atual sem pensar — abas ativas, botões desabilitados, estados vazios com mensagem.
+
 ## Color Tokens (HSL)
 
 ### Light Mode
@@ -200,6 +211,21 @@ Warm-tinted in light mode (brown shadows, not blue). Dark shadows in dark mode.
 - Content: `bg-background`, `sm:max-w-lg`, `sm:rounded-lg`, `shadow-lg`
 - Animations: fade-in/out + zoom 95% + slide from center, 200ms
 
+#### Padrão Responsivo de Overlays (elegância prioritária)
+
+Ao escolher um overlay para conteúdo contextual (date pickers, seletores, filtros):
+
+| Dispositivo | Componente | Razão |
+|---|---|---|
+| **Desktop** (≥768px) | `Popover` | Flutuante, posiciona próximo ao trigger sem deslocar layout |
+| **Mobile** (<768px) | `Drawer` (bottom sheet via Vaul) | Sobe da base da tela como overlay, sem deslocar conteúdo do formulário |
+
+- **Nunca** usar Popover em telas mobile para conteúdo alto (calendários, listas longas) — causa overflow ou corte.
+- **Nunca** renderizar conteúdo inline que desloque campos abaixo — preferir sempre overlay (Drawer).
+- Usar `useIsMobile()` de `@/hooks/use-mobile` para alternar entre os dois.
+- Extrair o conteúdo compartilhado em um subcomponente interno (ex: `DateTimePickerContent`) para evitar duplicação.
+- Referência: padrão oficial "Responsive Dialog" do shadcn/ui (Drawer docs).
+
 ### Empty States
 
 - Reusable `EmptyState` component: icon (`h-12 w-12`), title, description, optional action button
@@ -273,6 +299,7 @@ The UI reveals information in 4 layers, each triggered by intentional user actio
 - **Scrollable body:** `max-h-[70vh] overflow-y-auto` for long forms
 - **Draft recovery (MusicaForm only):** On open, checks `localStorage` for saved draft → shows `<AlertDialog>` "Recuperar rascunho?" with Descartar/Recuperar options
 - **Conditional sections:** IntegranteForm shows Funções section only in edit mode (not creation)
+- **Subcomponentes com overlay:** Quando um campo dentro de um Dialog precisa abrir conteúdo complexo (ex: DateTimePicker com calendário), usar o padrão responsivo Drawer (mobile) / Popover (desktop) — nunca renderizar inline, pois desloca os campos abaixo.
 - **Spec reference:** `specs/008-enhanced-musica-form/spec.md` FR-001–FR-015
 
 #### 3. Inline Editing (MusicaDetail, ConfigCrudSection)
@@ -310,6 +337,15 @@ The UI reveals information in 4 layers, each triggered by intentional user actio
 - **Pagination interaction:** When searching, pagination is disabled (loads all records). Cleared search restores pagination.
 - **Empty search result:** EmptyState with "Nenhum resultado encontrado para \"{term}\""
 - **Spec reference:** `specs/006-frontend-backend-phase2/spec.md` FR-022–FR-023
+
+#### 7b. Always-Visible Search (Escalas — padrão para novas telas com listas)
+
+- **Trigger:** Input sempre visível entre header e conteúdo (mesmo padrão de Songs.tsx)
+- **Layout:** `<div className="relative"><Search icon /><Input className="pl-10" /></div>`
+- **Mechanism:** Filtro client-side via `useMemo` sobre dados já carregados.
+- **Campos filtráveis:** Data formatada, descrição, tipo de evento, nomes de integrantes e músicas (case-insensitive).
+- **Interação com Tabs:** Contadores nas abas atualizam em tempo real conforme o filtro.
+- **Padrão reutilizável:** Usar esta mesma abordagem (input sempre visível com ícone de lupa) em todas as telas de lista. Mais clean que toggle/collapsible.
 
 #### 8. Permission-Based Visibility (all pages)
 
@@ -356,7 +392,8 @@ Per Constitution Principle I (Mobile-First):
 | Pattern | Mobile (<sm) | Desktop (sm+) |
 |---|---|---|
 | **Item row** | `gap-2`, `min-w-0` on content | `gap-3` |
-| **Dynamic text** | `truncate` + container `min-w-0` | Same |
+| **Dynamic text (curto)** | `truncate` + container `min-w-0` | Same |
+| **Dynamic text (longo, ex: nome de música)** | `line-clamp-2` + `min-w-0` (até 2 linhas, mais legível) | Same |
 | **Action buttons** | `flex-shrink-0` | Same |
 | **Inline icons** | `flex-shrink-0` | Same |
 
@@ -367,6 +404,7 @@ Per Constitution Principle I (Mobile-First):
 | **Grids** | `md:grid-cols-2` or `lg:grid-cols-4` | Single column (exception: compact stat cards may use `grid-cols-2`) |
 | **Tabs** | `md:grid md:grid-cols-5` | `flex overflow-x-auto` horizontal scroll |
 | **Dialogs** | `sm:max-w-[425px]` centered | Full-width with rounded corners |
+| **Popovers (conteúdo alto)** | `Popover` flutuante com `collisionPadding={16}` | `Drawer` (bottom sheet) — nunca Popover para calendários/listas |
 | **Buttons** | Inline with text labels | Some hidden (`hidden sm:inline-flex`), icon-only |
 | **Sidebar** | 16rem expanded, 3rem collapsed | 18rem overlay, auto-close on navigation |
 | **Detail buttons** | Visible "Detalhes" text button | Click anywhere on item row |

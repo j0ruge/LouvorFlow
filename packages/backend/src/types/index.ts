@@ -65,6 +65,8 @@ export interface CreateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
+    intensidade?: string;
     /** IDs de categorias a associar à música (opcional). */
     categoria_ids?: string[];
     /** IDs de funções requeridas a associar à música (opcional). */
@@ -90,6 +92,8 @@ export interface UpdateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
+    intensidade?: string;
     /** IDs de categorias desejadas (se presente, sincroniza; se ausente, mantém). */
     categoria_ids?: string[];
     /** IDs de funções requeridas desejadas (se presente, sincroniza; se ausente, mantém). */
@@ -159,6 +163,7 @@ export interface VersaoRaw {
     cifras: string | null;
     lyrics: string | null;
     link_versao: string | null;
+    intensidade: string | null;
     artistas_musicas_artista_id_fkey: IdNome;
 }
 
@@ -203,6 +208,7 @@ export interface Musica {
         cifras: string | null;
         lyrics: string | null;
         link_versao: string | null;
+        intensidade: string | null;
     }[];
     funcoes: IdNome[];
 }
@@ -293,6 +299,7 @@ export const MUSICA_SELECT = {
             cifras: true,
             lyrics: true,
             link_versao: true,
+            intensidade: true,
             artistas_musicas_artista_id_fkey: {
                 select: { id: true, nome: true }
             }
