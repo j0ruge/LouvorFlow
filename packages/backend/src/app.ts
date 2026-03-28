@@ -19,6 +19,7 @@ import permissionsRoutes from './routes/auth/permissions.routes.js';
 import passwordRoutes from './routes/auth/password.routes.js';
 import profileRoutes from './routes/auth/profile.routes.js';
 import igrejasRoutes from './routes/igrejas.routes.js';
+import convitesRoutes from './routes/convites.routes.js';
 
 /**
  * Classe principal da aplicação Express.
@@ -81,6 +82,7 @@ class App {
         this.app.use('/api/password', passwordRoutes);
         this.app.use('/api/profile', profileRoutes);
         this.app.use('/api/igrejas', igrejasRoutes);
+        this.app.use('/api/convites', convitesRoutes);
     }
     /**
      * Registra o handler centralizado de erros da aplicação.

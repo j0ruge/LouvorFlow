@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Plus, Search, Mail, Phone, Trash2 } from "lucide-react";
+import { Users, Plus, Search, Mail, Phone, Trash2, Link2, ListChecks } from "lucide-react";
 import { useIntegrantes, useDeleteIntegrante } from "@/hooks/use-integrantes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCan } from "@/hooks/use-can";
@@ -22,6 +22,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { IntegranteForm } from "@/components/IntegranteForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { InviteGenerateDialog } from "@/components/InviteGenerateDialog";
+import { InviteListDialog } from "@/components/InviteListDialog";
 
 /**
  * Extrai as iniciais do nome para exibir no avatar.
@@ -76,6 +78,8 @@ const Members = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingMember, setDeletingMember] = useState<{ id: string; nome: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteListOpen, setInviteListOpen] = useState(false);
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
   const deleteMutation = useDeleteIntegrante();
@@ -149,13 +153,31 @@ const Members = () => {
           </p>
         </div>
         {canWrite && (
-          <Button
-            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
-            onClick={handleOpenCreateForm}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Integrante
-          </Button>
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInviteListOpen(true)}
+            >
+              <ListChecks className="mr-2 h-4 w-4" />
+              Convites
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInviteDialogOpen(true)}
+            >
+              <Link2 className="mr-2 h-4 w-4" />
+              Gerar convite
+            </Button>
+            <Button
+              className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+              onClick={handleOpenCreateForm}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Integrante
+            </Button>
+          </div>
         )}
       </div>
 
@@ -294,6 +316,16 @@ const Members = () => {
         description="Essa ação não pode ser desfeita. O integrante será removido permanentemente do ministério."
         onConfirm={handleConfirmDelete}
         isLoading={deleteMutation.isPending}
+      />
+
+      <InviteGenerateDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+      />
+
+      <InviteListDialog
+        open={inviteListOpen}
+        onOpenChange={setInviteListOpen}
       />
     </div>
   );
