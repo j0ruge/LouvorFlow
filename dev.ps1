@@ -165,6 +165,11 @@ $backProc  = $null
 $frontProc = $null
 
 try {
+    # Desabilitar cores ANSI nos subprocessos — cmd.exe nao interpreta escape codes,
+    # causando caracteres estranhos (♪◙, ←[32m) no console do PowerShell.
+    $env:FORCE_COLOR = '0'
+    $env:NO_COLOR = '1'
+
     Write-Info "Iniciando backend (packages/backend)..."
     $backProc = Start-Process -NoNewWindow -PassThru `
         -FilePath "cmd.exe" `
