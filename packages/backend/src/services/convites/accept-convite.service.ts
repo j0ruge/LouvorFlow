@@ -103,16 +103,21 @@ class AcceptInviteService {
             throw new AppError('Senha incorreta para a conta existente.', 401);
         }
 
-        /** Vincula e marca como usado atomicamente para evitar race condition. */
-        await prisma.$transaction([
-            prisma.tenantUsers.create({
+        /** Vincula e marca como usado atomicamente com re-verificação de estado (TOCTOU guard). */
+        await prisma.$transaction(async (tx) => {
+            const fresh = await tx.inviteTokens.findUnique({ where: { id: invite.id } });
+            if (fresh?.used_at || fresh?.revoked_at) {
+                throw new AppError('Este convite já foi utilizado ou cancelado.', 400);
+            }
+
+            await tx.tenantUsers.create({
                 data: { tenant_id: invite.tenant_id, user_id: existingUser.id },
-            }),
-            prisma.inviteTokens.update({
+            });
+            await tx.inviteTokens.update({
                 where: { id: invite.id },
                 data: { used_at: new Date(), used_by: existingUser.id },
-            }),
-        ]);
+            });
+        });
 
         return {
             statusCode: 200,
@@ -138,8 +143,13 @@ class AcceptInviteService {
     ): Promise<{ statusCode: number; msg: string }> {
         const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
-        /** Cria user + vínculo + marca token atomicamente. */
+        /** Cria user + vínculo + marca token atomicamente com re-verificação de estado (TOCTOU guard). */
         await prisma.$transaction(async (tx) => {
+            const fresh = await tx.inviteTokens.findUnique({ where: { id: invite.id } });
+            if (fresh?.used_at || fresh?.revoked_at) {
+                throw new AppError('Este convite já foi utilizado ou cancelado.', 400);
+            }
+
             const user = await tx.users.create({
                 data: { name: nome, email, password: passwordHash },
             });
