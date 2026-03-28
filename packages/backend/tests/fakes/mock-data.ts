@@ -218,5 +218,65 @@ export const MOCK_EVENTOS_INTEGRANTES = [
   { id: 'jjj00006-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', fk_user_id: 'fff00001-0000-0000-0000-000000000002' },
 ];
 
+// ─── Convites (InviteTokens) ────────────────────────────
+/** ID do líder que gera convites nos testes. */
+export const INVITE_CREATOR_ID = 'fff00001-0000-0000-0000-000000000001';
+
+/** Convite ativo (expira em 2h a partir de agora). */
+export const MOCK_INVITE_ACTIVE = {
+  id: 'kkk00001-0000-0000-0000-000000000001',
+  token: 'kkk00002-0000-0000-0000-000000000001',
+  tenant_id: TENANT_A_ID,
+  created_by: INVITE_CREATOR_ID,
+  expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000),
+  used_at: null as Date | null,
+  used_by: null as string | null,
+  revoked_at: null as Date | null,
+  created_at: new Date(),
+  updated_at: new Date(),
+};
+
+/** Convite expirado (expirou 1h atrás). */
+export const MOCK_INVITE_EXPIRED = {
+  id: 'kkk00001-0000-0000-0000-000000000002',
+  token: 'kkk00002-0000-0000-0000-000000000002',
+  tenant_id: TENANT_A_ID,
+  created_by: INVITE_CREATOR_ID,
+  expires_at: new Date(Date.now() - 1 * 60 * 60 * 1000),
+  used_at: null as Date | null,
+  used_by: null as string | null,
+  revoked_at: null as Date | null,
+  created_at: new Date(Date.now() - 3 * 60 * 60 * 1000),
+  updated_at: new Date(Date.now() - 3 * 60 * 60 * 1000),
+};
+
+/** Convite já utilizado. */
+export const MOCK_INVITE_USED = {
+  id: 'kkk00001-0000-0000-0000-000000000003',
+  token: 'kkk00002-0000-0000-0000-000000000003',
+  tenant_id: TENANT_A_ID,
+  created_by: INVITE_CREATOR_ID,
+  expires_at: new Date(Date.now() + 1 * 60 * 60 * 1000),
+  used_at: new Date(),
+  used_by: 'fff00001-0000-0000-0000-000000000002',
+  revoked_at: null as Date | null,
+  created_at: new Date(Date.now() - 1 * 60 * 60 * 1000),
+  updated_at: new Date(),
+};
+
+/** Convite revogado pelo líder. */
+export const MOCK_INVITE_REVOKED = {
+  id: 'kkk00001-0000-0000-0000-000000000004',
+  token: 'kkk00002-0000-0000-0000-000000000004',
+  tenant_id: TENANT_A_ID,
+  created_by: INVITE_CREATOR_ID,
+  expires_at: new Date(Date.now() + 1 * 60 * 60 * 1000),
+  used_at: null as Date | null,
+  used_by: null as string | null,
+  revoked_at: new Date(),
+  created_at: new Date(Date.now() - 30 * 60 * 1000),
+  updated_at: new Date(),
+};
+
 // ─── UUID inexistente para testes de 404 ─────────────────
 export const NON_EXISTENT_ID = 'zzz00000-0000-0000-0000-000000000000';

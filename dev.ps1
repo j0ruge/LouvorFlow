@@ -109,6 +109,21 @@ if ($staleProcs) {
     Start-Sleep -Seconds 1
 }
 
+$staleFrontProcs = Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object {
+        Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    } |
+    Where-Object { $_.ProcessName -eq 'node' }
+
+if ($staleFrontProcs) {
+    Write-Warn "Processos Node orfaos detectados na porta 8080. Encerrando..."
+    $staleFrontProcs | ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+        Write-Info "  Processo node (PID $($_.Id)) encerrado."
+    }
+    Start-Sleep -Seconds 1
+}
+
 # ---------------------------------------------------------------------------
 # 6. Prisma generate + migrate (backend)
 # ---------------------------------------------------------------------------
@@ -150,6 +165,11 @@ $backProc  = $null
 $frontProc = $null
 
 try {
+    # Desabilitar cores ANSI nos subprocessos — cmd.exe nao interpreta escape codes,
+    # causando caracteres estranhos (♪◙, ←[32m) no console do PowerShell.
+    $env:FORCE_COLOR = '0'
+    $env:NO_COLOR = '1'
+
     Write-Info "Iniciando backend (packages/backend)..."
     $backProc = Start-Process -NoNewWindow -PassThru `
         -FilePath "cmd.exe" `
