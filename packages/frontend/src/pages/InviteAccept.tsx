@@ -7,7 +7,7 @@
  */
 
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useValidateInvite, useAcceptInvite } from "@/hooks/use-convites";
+import { useAuth } from "@/hooks/use-auth";
 
 /** Schema Zod para validação do formulário de cadastro via convite. */
 const AcceptFormSchema = z.object({
@@ -43,6 +44,7 @@ type AcceptForm = z.infer<typeof AcceptFormSchema>;
  * @returns Elemento JSX com a página de aceitação.
  */
 const InviteAccept = () => {
+  const { isAuthenticated } = useAuth();
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [success, setSuccess] = useState(false);
@@ -58,6 +60,9 @@ const InviteAccept = () => {
   } = useForm<AcceptForm>({
     resolver: zodResolver(AcceptFormSchema),
   });
+
+  /** Redireciona ao dashboard se já autenticado (padrão de rotas públicas). */
+  if (isAuthenticated) return <Navigate to="/" replace />;
 
   /**
    * Processa o envio do formulário de cadastro via convite.

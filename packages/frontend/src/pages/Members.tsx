@@ -318,15 +318,19 @@ const Members = () => {
         isLoading={deleteMutation.isPending}
       />
 
-      <InviteGenerateDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-      />
+      {canWrite && (
+        <>
+          <InviteGenerateDialog
+            open={inviteDialogOpen}
+            onOpenChange={setInviteDialogOpen}
+          />
 
-      <InviteListDialog
-        open={inviteListOpen}
-        onOpenChange={setInviteListOpen}
-      />
+          <InviteListDialog
+            open={inviteListOpen}
+            onOpenChange={setInviteListOpen}
+          />
+        </>
+      )}
     </div>
   );
 };
