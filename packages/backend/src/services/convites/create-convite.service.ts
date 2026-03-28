@@ -24,7 +24,7 @@ class CreateInviteService {
 
         const invite = await convitesRepository.create(tenantId, createdBy, expiresAt);
 
-        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
+        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
         const url = `${appWebUrl}/convite/${invite.token}`;
 
         return {

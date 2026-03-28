@@ -18,7 +18,7 @@ class ListInvitesService {
     async execute(tenantId: string): Promise<InviteResponse[]> {
         const invites = await convitesRepository.findAllByTenantId(tenantId);
 
-        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
+        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
 
         return invites.map((invite) => ({
             id: invite.id,

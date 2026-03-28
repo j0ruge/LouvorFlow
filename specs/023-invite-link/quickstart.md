@@ -77,10 +77,10 @@ curl -s http://localhost:3333/api/convites \
 
 ## Frontend Test
 
-1. Abrir `http://localhost:5173/` e logar como admin
+1. Abrir `http://localhost:8080/` e logar como admin
 2. Navegar para Integrantes
 3. Clicar "Gerar convite" → verificar que link foi copiado
-4. Abrir `http://localhost:5173/convite/{TOKEN}` em aba anônima
+4. Abrir `http://localhost:8080/convite/{TOKEN}` em aba anônima
 5. Preencher formulário e criar conta
 6. Verificar que novo integrante aparece na lista
 
