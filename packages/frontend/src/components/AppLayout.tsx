@@ -36,7 +36,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <ThemeToggle />
             <UserMenu />
           </header>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-overlay p-4 sm:p-6">
             {children}
           </div>
         </main>

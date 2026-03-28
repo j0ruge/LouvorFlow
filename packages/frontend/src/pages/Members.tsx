@@ -143,7 +143,7 @@ const Members = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Integrantes
@@ -153,7 +153,7 @@ const Members = () => {
           </p>
         </div>
         {canWrite && (
-          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center">
             <Button
               variant="outline"
               size="sm"
@@ -182,7 +182,7 @@ const Members = () => {
       </div>
 
       <Card className="shadow-soft border-0">
-        <CardHeader>
+        <CardHeader className="p-4 sm:p-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -193,7 +193,7 @@ const Members = () => {
             />
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
           {isLoading && (
             <div className="grid gap-4 md:grid-cols-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -230,18 +230,18 @@ const Members = () => {
               {filteredMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
+                  className="p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300 min-w-0 overflow-hidden"
                 >
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-14 w-14 border-2 border-primary/20">
-                      <AvatarFallback className="bg-gradient-primary text-white font-semibold text-lg">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <Avatar className="h-10 w-10 sm:h-14 sm:w-14 border-2 border-primary/20 flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-primary text-white font-semibold text-sm sm:text-lg">
                         {getInitials(member.nome)}
                       </AvatarFallback>
                     </Avatar>
 
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <h3 className="font-semibold text-foreground text-lg">
+                    <div className="flex-1 min-w-0 space-y-3">
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className="font-semibold text-foreground text-base sm:text-lg truncate">
                           {member.nome}
                         </h3>
                         {canWrite && (
@@ -257,14 +257,14 @@ const Members = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-4 w-4" />
-                          <span>{member.email}</span>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                          <Mail className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{member.email}</span>
                         </div>
                         {member.telefone && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="h-4 w-4" />
-                            <span>{member.telefone}</span>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-0">
+                            <Phone className="h-4 w-4 flex-shrink-0" />
+                            <span className="truncate">{member.telefone}</span>
                           </div>
                         )}
                       </div>
