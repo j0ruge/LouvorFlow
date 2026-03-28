@@ -5,7 +5,7 @@
  * (active, expired, used, revoked) para cada um.
  */
 import convitesRepository from '../../repositories/convites.repository.js';
-import { deriveStatus } from './create-convite.service.js';
+import { deriveInviteStatus } from '../../types/convites.types.js';
 import type { InviteResponse } from '../../types/convites.types.js';
 
 class ListInvitesService {
@@ -27,7 +27,7 @@ class ListInvitesService {
             expires_at: invite.expires_at,
             created_at: invite.created_at,
             used_at: invite.used_at,
-            status: deriveStatus(invite),
+            status: deriveInviteStatus(invite),
             created_by: invite.creator,
             used_by: invite.user,
         }));

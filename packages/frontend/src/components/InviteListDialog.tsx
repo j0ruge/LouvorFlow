@@ -70,6 +70,8 @@ export function InviteListDialog({ open, onOpenChange }: InviteListDialogProps) 
   function handleCopy(invite: Invite) {
     navigator.clipboard.writeText(invite.url).then(() => {
       toast.success("Link copiado!");
+    }).catch(() => {
+      toast.error("Não foi possível copiar. Copie manualmente.");
     });
   }
 

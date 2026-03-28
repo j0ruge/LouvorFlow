@@ -3,6 +3,8 @@
  *
  * Fluxo completo: valida token → verifica e-mail → cria conta nova
  * ou vincula conta existente ao tenant → marca token como usado.
+ * Todas as operações de escrita são envolvidas em transação Prisma
+ * para garantir atomicidade e evitar race conditions.
  */
 import bcrypt from 'bcryptjs';
 import { AppError } from '../../errors/AppError.js';
@@ -16,6 +18,9 @@ const SALT_ROUNDS = 12;
 class AcceptInviteService {
     /**
      * Aceita um convite: cria conta nova ou vincula conta existente ao tenant.
+     *
+     * Usa transação Prisma para garantir atomicidade — evita que dois requests
+     * simultâneos aceitem o mesmo convite (race condition).
      *
      * @param token - UUID do token de convite
      * @param input - Dados do participante (nome, email, senha, senha_confirmacao)
@@ -57,14 +62,15 @@ class AcceptInviteService {
     /**
      * Trata o caso de e-mail já existente no sistema.
      * Verifica senha e vincula ao tenant se ainda não pertence.
+     * Operações de escrita são atômicas via transação.
      *
-     * @param existingUser - Usuário encontrado pelo e-mail
+     * @param existingUser - Usuário encontrado pelo e-mail (sem password)
      * @param invite - Registro do convite com tenant_id
      * @param senha - Senha informada pelo participante
      * @returns Resultado com statusCode 200 e mensagem de vínculo
      */
     private async handleExistingUser(
-        existingUser: { id: string; password?: string },
+        existingUser: { id: string },
         invite: { id: string; tenant_id: string },
         senha: string,
     ): Promise<{ statusCode: number; msg: string }> {
@@ -97,12 +103,16 @@ class AcceptInviteService {
             throw new AppError('Senha incorreta para a conta existente.', 401);
         }
 
-        /** Vincula o usuário existente ao tenant do convite. */
-        await prisma.tenantUsers.create({
-            data: { tenant_id: invite.tenant_id, user_id: existingUser.id },
-        });
-
-        await convitesRepository.markAsUsed(invite.id, existingUser.id);
+        /** Vincula e marca como usado atomicamente para evitar race condition. */
+        await prisma.$transaction([
+            prisma.tenantUsers.create({
+                data: { tenant_id: invite.tenant_id, user_id: existingUser.id },
+            }),
+            prisma.inviteTokens.update({
+                where: { id: invite.id },
+                data: { used_at: new Date(), used_by: existingUser.id },
+            }),
+        ]);
 
         return {
             statusCode: 200,
@@ -112,6 +122,7 @@ class AcceptInviteService {
 
     /**
      * Cria uma nova conta de usuário e vincula ao tenant do convite.
+     * Operações de escrita são atômicas via transação interativa.
      *
      * @param nome - Nome do participante
      * @param email - E-mail do participante
@@ -127,15 +138,21 @@ class AcceptInviteService {
     ): Promise<{ statusCode: number; msg: string }> {
         const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
-        const user = await prisma.users.create({
-            data: { name: nome, email, password: passwordHash },
-        });
+        /** Cria user + vínculo + marca token atomicamente. */
+        await prisma.$transaction(async (tx) => {
+            const user = await tx.users.create({
+                data: { name: nome, email, password: passwordHash },
+            });
 
-        await prisma.tenantUsers.create({
-            data: { tenant_id: invite.tenant_id, user_id: user.id },
-        });
+            await tx.tenantUsers.create({
+                data: { tenant_id: invite.tenant_id, user_id: user.id },
+            });
 
-        await convitesRepository.markAsUsed(invite.id, user.id);
+            await tx.inviteTokens.update({
+                where: { id: invite.id },
+                data: { used_at: new Date(), used_by: user.id },
+            });
+        });
 
         return {
             statusCode: 201,

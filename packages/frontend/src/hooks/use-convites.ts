@@ -95,8 +95,5 @@ export function useAcceptInvite() {
   return useMutation({
     mutationFn: ({ token, body }: { token: string; body: AcceptInviteData }) =>
       acceptInvite(token, body),
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
   });
 }

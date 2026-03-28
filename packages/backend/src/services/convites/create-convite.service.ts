@@ -5,23 +5,11 @@
  * a URL pública para compartilhamento via WhatsApp ou outro canal.
  */
 import convitesRepository from '../../repositories/convites.repository.js';
+import { deriveInviteStatus } from '../../types/convites.types.js';
 import type { InviteResponse } from '../../types/convites.types.js';
 
 /** Duração do convite em milissegundos (2 horas). */
 const INVITE_EXPIRATION_MS = 2 * 60 * 60 * 1000;
-
-/**
- * Deriva o status de um convite a partir dos campos temporais.
- *
- * @param invite - Registro do convite com campos used_at, revoked_at, expires_at
- * @returns Status derivado: 'used', 'revoked', 'expired' ou 'active'
- */
-function deriveStatus(invite: { used_at: Date | null; revoked_at: Date | null; expires_at: Date }): 'active' | 'expired' | 'used' | 'revoked' {
-    if (invite.used_at) return 'used';
-    if (invite.revoked_at) return 'revoked';
-    if (new Date() > invite.expires_at) return 'expired';
-    return 'active';
-}
 
 class CreateInviteService {
     /**
@@ -45,10 +33,9 @@ class CreateInviteService {
             url,
             expires_at: invite.expires_at,
             created_at: invite.created_at,
-            status: deriveStatus(invite),
+            status: deriveInviteStatus(invite),
         };
     }
 }
 
 export default new CreateInviteService();
-export { deriveStatus };

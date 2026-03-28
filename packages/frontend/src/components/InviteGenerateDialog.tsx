@@ -89,6 +89,8 @@ export function InviteGenerateDialog({ open, onOpenChange }: InviteGenerateDialo
           setCopied(true);
           toast.success("Link copiado para a área de transferência!");
           setTimeout(() => setCopied(false), 3000);
+        }).catch(() => {
+          toast.error("Não foi possível copiar. Copie manualmente.");
         });
       },
     });
@@ -101,6 +103,8 @@ export function InviteGenerateDialog({ open, onOpenChange }: InviteGenerateDialo
       setCopied(true);
       toast.success("Link copiado!");
       setTimeout(() => setCopied(false), 3000);
+    }).catch(() => {
+      toast.error("Não foi possível copiar. Copie manualmente.");
     });
   }
 

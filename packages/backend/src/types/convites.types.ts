@@ -40,3 +40,17 @@ export interface InviteValidationResult {
     valid: boolean;
     tenant: { name: string };
 }
+
+/**
+ * Deriva o status de um convite a partir dos campos temporais.
+ * Prioridade: used > revoked > expired > active.
+ *
+ * @param invite - Registro do convite com campos used_at, revoked_at, expires_at
+ * @returns Status derivado: 'used', 'revoked', 'expired' ou 'active'
+ */
+export function deriveInviteStatus(invite: { used_at: Date | null; revoked_at: Date | null; expires_at: Date }): InviteStatus {
+    if (invite.used_at) return 'used';
+    if (invite.revoked_at) return 'revoked';
+    if (new Date() > invite.expires_at) return 'expired';
+    return 'active';
+}

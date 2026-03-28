@@ -15,7 +15,7 @@ class ValidateInviteService {
      * @param token - UUID do token de convite
      * @returns Resultado com `valid: true` e nome do tenant se o token for válido
      * @throws AppError 404 se o token não existir
-     * @throws AppError 400 se o token estiver expirado, usado ou revogado (com status específico)
+     * @throws AppError 400 se o token estiver expirado, usado ou revogado
      */
     async execute(token: string): Promise<InviteValidationResult> {
         const invite = await convitesRepository.findByToken(token);
@@ -25,24 +25,15 @@ class ValidateInviteService {
         }
 
         if (invite.used_at) {
-            throw Object.assign(
-                new AppError('Este convite já foi utilizado.', 400),
-                { status: 'used' },
-            );
+            throw new AppError('Este convite já foi utilizado.', 400);
         }
 
         if (invite.revoked_at) {
-            throw Object.assign(
-                new AppError('Este convite foi cancelado.', 400),
-                { status: 'revoked' },
-            );
+            throw new AppError('Este convite foi cancelado.', 400);
         }
 
         if (new Date() > invite.expires_at) {
-            throw Object.assign(
-                new AppError('Este convite expirou. Peça um novo ao seu líder.', 400),
-                { status: 'expired' },
-            );
+            throw new AppError('Este convite expirou. Peça um novo ao seu líder.', 400);
         }
 
         return {
