@@ -11,6 +11,7 @@
     display: none;
   }
 
+  /* Scrollbar fino no desktop, oculto no mobile para evitar deslocamento de layout */
   .scrollbar-overlay {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

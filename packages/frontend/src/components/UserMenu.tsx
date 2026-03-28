@@ -2,8 +2,9 @@
  * Menu do usuário no header da aplicação.
  *
  * Exibe o avatar do usuário autenticado que, ao ser clicado,
- * abre um dropdown estilo GitHub com nome, e-mail, link para
- * o perfil e botão de logout.
+ * abre um dropdown com nome, e-mail, igreja atual, acesso ao
+ * perfil, seleção de tema de cores (inline no mobile, submenu
+ * lateral no desktop) e botão de logout.
  */
 
 import { LogOut, User, Palette } from "lucide-react";
@@ -26,6 +27,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getInitials } from "@/lib/utils";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { COLOR_THEMES } from "@/contexts/ThemeColorContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 /**
  * Componente de menu do usuário com avatar e dropdown.
@@ -40,8 +42,32 @@ export function UserMenu() {
   const { user, signOut, currentTenant } = useAuth();
   const navigate = useNavigate();
   const { colorTheme, setColorTheme } = useColorTheme();
+  const isMobile = useIsMobile();
 
   if (!user) return null;
+
+  /** Itens de rádio para seleção de tema de cores. */
+  const themeRadioItems = (
+    <DropdownMenuRadioGroup
+      value={colorTheme}
+      onValueChange={setColorTheme}
+    >
+      {COLOR_THEMES.map((theme) => (
+        <DropdownMenuRadioItem
+          key={theme.id}
+          value={theme.id}
+          className="cursor-pointer"
+        >
+          <div className="flex flex-col">
+            <span className="text-sm">{theme.label}</span>
+            <span className="text-xs text-muted-foreground">
+              {theme.description}
+            </span>
+          </div>
+        </DropdownMenuRadioItem>
+      ))}
+    </DropdownMenuRadioGroup>
+  );
 
   /**
    * Executa logout e redireciona à tela de login.
@@ -88,33 +114,26 @@ export function UserMenu() {
           <User className="mr-2 h-4 w-4" />
           Meu Perfil
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="cursor-pointer">
-            <Palette className="mr-2 h-4 w-4" />
-            Temas
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup
-              value={colorTheme}
-              onValueChange={setColorTheme}
-            >
-              {COLOR_THEMES.map((theme) => (
-                <DropdownMenuRadioItem
-                  key={theme.id}
-                  value={theme.id}
-                  className="cursor-pointer"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-sm">{theme.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {theme.description}
-                    </span>
-                  </div>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        {isMobile ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground flex items-center gap-2">
+              <Palette className="h-3.5 w-3.5" />
+              Temas
+            </DropdownMenuLabel>
+            {themeRadioItems}
+          </>
+        ) : (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="cursor-pointer">
+              <Palette className="mr-2 h-4 w-4" />
+              Temas
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {themeRadioItems}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleSignOut}
