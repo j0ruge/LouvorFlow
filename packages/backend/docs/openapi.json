@@ -5054,7 +5054,8 @@
           "artista_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID do artista (opcional). Quando omitido, versão é criada sem artista."
+            "nullable": true,
+            "description": "ID do artista (opcional). Aceita UUID, null ou campo omitido; quando null ou omitido, a versão é criada sem artista."
           },
           "bpm": {
             "type": "integer",
