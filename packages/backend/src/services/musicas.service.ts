@@ -275,6 +275,10 @@ class MusicasService {
             }
             const artistaExiste = await musicasRepository.findArtistaById(artista_id);
             if (!artistaExiste) throw new AppError("Artista não encontrado", 404);
+
+            const duplicata = await musicasRepository.findVersaoDuplicate(existente.musica_id, artista_id);
+            if (duplicata && duplicata.id !== versaoId) throw new AppError("Registro duplicado", 409);
+
             updateData.artista_id = artista_id;
         }
 
