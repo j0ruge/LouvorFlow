@@ -224,6 +224,9 @@ class MusicasService {
     async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
         const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
 
+        const temAlgumCampo = artista_id || bpm !== undefined || cifras || lyrics || link_versao || intensidade;
+        if (!temAlgumCampo) throw new AppError("Informe ao menos um campo da versão", 400);
+
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
         if (!musicaExiste) throw new AppError("Música não encontrada", 404);
 
