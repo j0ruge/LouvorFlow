@@ -68,7 +68,7 @@ Como usuário, quero poder editar uma versão que foi criada sem artista para ad
 - **FR-001**: O sistema DEVE aceitar criação de versão sem `artista_id` tanto no endpoint dedicado de criação de versão quanto no endpoint de criação completa de música (quando campos de versão são preenchidos sem artista)
 - **FR-002**: O sistema DEVE persistir versões com artista nulo no banco de dados
 - **FR-003**: O sistema DEVE retornar `artista: null` em versões sem artista nos endpoints de leitura
-- **FR-004**: O sistema DEVE limitar a 1 (uma) versão sem artista por música por tenant, retornando erro de duplicata caso já exista uma versão sem artista para aquela música
+- **FR-004**: O sistema DEVE limitar a 1 (uma) versão sem artista por música por tenant, com enforcement atômico via partial unique index no banco (`WHERE artista_id IS NULL`) e guard no service retornando erro de duplicata
 - **FR-005**: O sistema DEVE tratar `artista_id` como string vazia ou nulo no corpo da requisição como "sem artista"
 - **FR-006**: O formulário de versão DEVE exibir o campo artista como opcional, sem asterisco de obrigatoriedade, com placeholder "Não informado (opcional)"
 - **FR-007**: A listagem de versões DEVE exibir "Não informado" para versões sem artista, em estilo visual diferenciado

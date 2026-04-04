@@ -22,15 +22,19 @@
 **Alternatives considered**:
 - `onDelete: SetNull`: Rejeitado — já é nullable, e o comportamento desejado ao deletar um artista é remover as versões associadas (cascade), não apenas desvinculá-las.
 
-## R-003: Guard de duplicata null-artist no service layer
+## R-003: Guard de duplicata null-artist — DB + service layer
 
-**Decision**: Adicionar método `findVersaoWithoutArtist(musicaId)` no repository. No service `addVersao`, quando `artista_id` é ausente/null, verificar se já existe versão sem artista para aquela música → 409 se sim.
+**Decision**: Defesa em profundidade com dois mecanismos:
+1. **Partial unique index no banco**: `UNIQUE(tenant_id, musica_id) WHERE artista_id IS NULL` — enforcement atômico, previne race conditions.
+2. **Guard no service**: `findVersaoWithoutArtist(musicaId)` antes do insert — retorna 409 com mensagem amigável em vez de propagar erro de constraint do DB.
 
-**Rationale**: O partial unique index no banco só protege combinações com artista preenchido. A regra de negócio "max 1 versão sem artista por música" precisa de guard explícito no service.
+**Rationale**: O guard no service sozinho tem race condition (check-then-insert não é atômico). O partial unique index garante atomicidade no banco. O guard no service fornece mensagem de erro clara ao usuário sem depender de parsing de erros de constraint do PostgreSQL.
 
 **Alternatives considered**:
+- Apenas guard no service (sem index): Rejeitado — race condition entre check e insert.
+- Apenas index no banco (sem guard): Funcional mas a mensagem de erro seria crua (violação de constraint). O guard adiciona UX.
 - Unique partial index com COALESCE: Rejeitado — hack que mapeia NULL para valor sentinela no índice; frágil e não idiomático.
-- Permitir múltiplas versões sem artista: Rejeitado — spec FR-004 exige limite de 1.
+- Transação com SELECT FOR UPDATE: Possível mas o partial unique index é mais simples e igualmente eficaz.
 
 ## R-004: Frontend — campo artista condicional na edição
 

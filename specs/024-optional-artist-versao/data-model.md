@@ -18,8 +18,8 @@
 | Constraint | Antes | Depois |
 |-----------|-------|--------|
 | `@@unique([tenant_id, artista_id, musica_id])` | Full unique index | Removido do schema Prisma |
-| Partial unique index | N/A | `UNIQUE(tenant_id, artista_id, musica_id) WHERE artista_id IS NOT NULL` |
-| Max 1 null-artist per music | N/A | Guard no service layer (não no banco) |
+| Partial unique index (NOT NULL) | N/A | `UNIQUE(tenant_id, artista_id, musica_id) WHERE artista_id IS NOT NULL` |
+| Partial unique index (NULL) | N/A | `UNIQUE(tenant_id, musica_id) WHERE artista_id IS NULL` — max 1 versão sem artista por música por tenant, enforcement no banco |
 
 ### Validation Rules
 

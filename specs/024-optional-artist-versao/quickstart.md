@@ -47,7 +47,11 @@ curl -X POST http://localhost:3333/api/musicas/<musicaId>/versoes \
 # Esperado: 201, artista: null
 
 # Tentar criar segunda versão sem artista (mesma música)
-# Esperado: 409
+curl -X POST http://localhost:3333/api/musicas/<musicaId>/versoes \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"bpm": 90, "cifras": "C G Am F"}'
+# Esperado: 409, { "erro": "Registro duplicado", "codigo": 409 }
 
 # Listar versões
 curl http://localhost:3333/api/musicas/<musicaId>/versoes \
