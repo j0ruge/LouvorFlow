@@ -270,7 +270,7 @@ class MusicasService {
         const updateData: Record<string, unknown> = {};
 
         if (artista_id !== undefined) {
-            if (existente.artista_id) {
+            if (existente.artista_id && existente.artista_id !== artista_id) {
                 throw new AppError("Não é permitido alterar artista já vinculado", 400);
             }
             const artistaExiste = await musicasRepository.findArtistaById(artista_id);
