@@ -110,7 +110,7 @@ export function createFakeMusicasRepository() {
       const musica = { id: randomUUID(), nome: data.nome!, fk_tonalidade: data.fk_tonalidade ?? '' };
       musicasData.push(musica);
 
-      const temCamposVersao = data.artista_id || data.bpm || data.cifras || data.lyrics || data.link_versao;
+      const temCamposVersao = data.artista_id || data.bpm || data.cifras || data.lyrics || data.link_versao || data.intensidade;
       if (temCamposVersao) {
         const versao = {
           id: randomUUID(),

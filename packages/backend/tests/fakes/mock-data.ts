@@ -169,6 +169,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     lyrics: 'Grande é o Senhor...',
     link_versao: null,
   },
+  /** Versão sem artista vinculado para testes de artista opcional (spec 024). */
   {
     id: 'jjj00002-0000-0000-0000-000000000004',
     artista_id: null,

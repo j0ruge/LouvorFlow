@@ -92,24 +92,6 @@ const linkVersaoFormField = z
   .optional()
   .or(z.literal(""));
 
-/**
- * Verifica se algum campo de versão foi preenchido (não vazio e não undefined).
- *
- * @param data - Dados do formulário com campos de versão opcionais.
- * @returns `true` se ao menos um campo de versão estiver preenchido.
- */
-function temCamposVersaoPreenchidos(
-  data: { bpm?: number | ""; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string },
-): boolean {
-  return (
-    (data.bpm !== undefined && data.bpm !== "") ||
-    (data.cifras !== undefined && data.cifras !== "") ||
-    (data.lyrics !== undefined && data.lyrics !== "") ||
-    (data.link_versao !== undefined && data.link_versao !== "") ||
-    (data.intensidade !== undefined && data.intensidade !== "")
-  );
-}
-
 /** Schema de validação do formulário de criação de versão. Artista é opcional. */
 export const CreateVersaoFormSchema = z.object({
   artista_id: z.string().uuid().optional().or(z.literal("")),

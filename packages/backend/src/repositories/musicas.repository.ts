@@ -236,7 +236,7 @@ class MusicasRepository {
      * @param tenantId - ID do tenant proprietário
      * @returns Versão criada com dados do artista (ou null se sem artista)
      */
-    async createVersao(data: { artista_id?: string | null; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
+    async createVersao(data: { artista_id: string | null; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
         return getPrisma().artistas_Musicas.create({
             data: {
                 musica_id: data.musica_id,
