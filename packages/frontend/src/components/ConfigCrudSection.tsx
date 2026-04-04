@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, X, Check, Loader2 } from "lucide-react";
+import { Pencil, Trash2, CornerDownLeft, X, Check, Loader2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -121,6 +121,7 @@ export function ConfigCrudSection<T>({
       {!readOnly && (
         <div className="flex flex-wrap items-center gap-2">
           <Input
+            className="flex-1"
             placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -137,7 +138,7 @@ export function ConfigCrudSection<T>({
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Plus className="h-4 w-4" />
+              <CornerDownLeft className="h-4 w-4" />
             )}
           </Button>
         </div>

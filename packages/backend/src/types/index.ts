@@ -164,7 +164,7 @@ export interface VersaoRaw {
     lyrics: string | null;
     link_versao: string | null;
     intensidade: string | null;
-    artistas_musicas_artista_id_fkey: IdNome;
+    artistas_musicas_artista_id_fkey: IdNome | null;
 }
 
 /**
@@ -203,7 +203,7 @@ export interface Musica {
     categorias: IdNome[];
     versoes: {
         id: string;
-        artista: IdNome;
+        artista: IdNome | null;
         bpm: number | null;
         cifras: string | null;
         lyrics: string | null;

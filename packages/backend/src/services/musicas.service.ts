@@ -128,13 +128,13 @@ class MusicasService {
 
     /**
      * Cria uma música com versão opcional de forma atômica.
-     * Se campos de versão forem preenchidos, exige `artista_id`.
-     * Valida existência de categorias e funções quando fornecidas.
+     * Versão é criada quando artista_id ou qualquer campo de versão é fornecido.
+     * Artista é opcional — versão pode existir sem artista vinculado.
      *
      * @param body - Dados de criação completa
      * @param tenantId - ID do tenant proprietário
      * @returns Música criada formatada com todos os relacionamentos
-     * @throws {AppError} 400 se nome ausente ou versão sem artista; 404 se tonalidade/artista/categoria/função não existir
+     * @throws {AppError} 400 se nome ausente; 404 se tonalidade/artista/categoria/função não existir
      */
     async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
         const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, intensidade, categoria_ids, funcao_ids } = body;
@@ -144,17 +144,6 @@ class MusicasService {
         if (fk_tonalidade) {
             const tonalidade = await tonalidadesRepository.findById(fk_tonalidade);
             if (!tonalidade) throw new AppError("Tonalidade não encontrada", 404);
-        }
-
-        const temCamposVersao =
-            bpm !== undefined ||
-            cifras !== undefined ||
-            lyrics !== undefined ||
-            link_versao !== undefined ||
-            (intensidade !== undefined && intensidade !== "");
-
-        if (temCamposVersao && !artista_id) {
-            throw new AppError("Artista é obrigatório para criar uma versão", 400);
         }
 
         if (artista_id) {
@@ -222,30 +211,35 @@ class MusicasService {
     }
 
     /**
-     * Vincula uma versão (artista_musicas) a uma música existente.
+     * Vincula uma versão (artista_musicas) a uma música existente. Artista é opcional.
+     * Quando artista_id é fornecido, valida existência e duplicata normal.
+     * Quando artista_id é ausente/null, permite max 1 versão sem artista por música (FR-004).
      *
      * @param musicaId - ID da música
-     * @param body - Dados da versão (artista_id, bpm, cifras, lyrics, link_versao)
+     * @param body - Dados da versão (artista_id opcional, bpm, cifras, lyrics, link_versao, intensidade)
      * @param tenantId - ID do tenant proprietário
-     * @returns Versão criada com dados do artista
-     * @throws {AppError} 400 se artista_id ausente; 404 se música ou artista não existir; 409 se duplicado
+     * @returns Versão criada com dados do artista (ou null se sem artista)
+     * @throws {AppError} 404 se música ou artista não existir; 409 se duplicado
      */
     async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
         const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
 
-        if (!artista_id) throw new AppError("ID do artista é obrigatório", 400);
-
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
         if (!musicaExiste) throw new AppError("Música não encontrada", 404);
 
-        const artistaExiste = await musicasRepository.findArtistaById(artista_id);
-        if (!artistaExiste) throw new AppError("Artista não encontrado", 404);
+        if (artista_id) {
+            const artistaExiste = await musicasRepository.findArtistaById(artista_id);
+            if (!artistaExiste) throw new AppError("Artista não encontrado", 404);
 
-        const existente = await musicasRepository.findVersaoDuplicate(musicaId, artista_id);
-        if (existente) throw new AppError("Registro duplicado", 409);
+            const existente = await musicasRepository.findVersaoDuplicate(musicaId, artista_id);
+            if (existente) throw new AppError("Registro duplicado", 409);
+        } else {
+            const versaoSemArtista = await musicasRepository.findVersaoWithoutArtist(musicaId);
+            if (versaoSemArtista) throw new AppError("Registro duplicado", 409);
+        }
 
         const versao = await musicasRepository.createVersao({
-            artista_id, musica_id: musicaId, bpm, cifras, lyrics, link_versao, intensidade
+            artista_id: artista_id ?? null, musica_id: musicaId, bpm, cifras, lyrics, link_versao, intensidade
         }, tenantId);
 
         return {
@@ -259,12 +253,31 @@ class MusicasService {
         };
     }
 
-    async updateVersao(versaoId: string, body: { bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }) {
+    /**
+     * Atualiza uma versão existente. Aceita artista_id apenas quando a versão não tem artista vinculado (null → artista).
+     * Rejeita artista_id quando a versão já possui artista (400).
+     *
+     * @param versaoId - UUID da versão
+     * @param body - Dados de atualização (artista_id opcional, bpm, cifras, lyrics, link_versao, intensidade)
+     * @returns Versão atualizada com dados do artista
+     * @throws {AppError} 400 se nenhum campo enviado ou artista_id enviado para versão com artista; 404 se versão ou artista não existir
+     */
+    async updateVersao(versaoId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }) {
         const existente = await musicasRepository.findVersaoById(versaoId);
         if (!existente) throw new AppError("Versão não encontrada", 404);
 
-        const { bpm, cifras, lyrics, link_versao, intensidade } = body;
+        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
         const updateData: Record<string, unknown> = {};
+
+        if (artista_id !== undefined) {
+            if (existente.artista_id) {
+                throw new AppError("Não é permitido alterar artista já vinculado", 400);
+            }
+            const artistaExiste = await musicasRepository.findArtistaById(artista_id);
+            if (!artistaExiste) throw new AppError("Artista não encontrado", 404);
+            updateData.artista_id = artista_id;
+        }
+
         if (bpm !== undefined) updateData.bpm = bpm;
         if (cifras !== undefined) updateData.cifras = cifras;
         if (lyrics !== undefined) updateData.lyrics = lyrics;

@@ -83,9 +83,9 @@ export const updateMusicaCompleteBodySchema = z.object({
     funcao_ids: z.array(uuidSchema).optional(),
 });
 
-/** Schema de validação para adição de versão (POST /api/musicas/:musicaId/versoes). */
+/** Schema de validação para adição de versão (POST /api/musicas/:musicaId/versoes). Artista é opcional. */
 export const addVersaoBodySchema = z.object({
-    artista_id: z.string({ required_error: 'ID do artista é obrigatório' }).uuid('ID do artista deve ser um UUID válido'),
+    artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
@@ -93,8 +93,9 @@ export const addVersaoBodySchema = z.object({
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 
-/** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). */
+/** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). Aceita artista_id para vincular artista a versões sem artista. */
 export const updateVersaoBodySchema = z.object({
+    artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),

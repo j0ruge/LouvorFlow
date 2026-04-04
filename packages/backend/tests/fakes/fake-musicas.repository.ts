@@ -43,7 +43,7 @@ export function createFakeMusicasRepository() {
         cifras: v.cifras,
         lyrics: v.lyrics,
         link_versao: v.link_versao,
-        artistas_musicas_artista_id_fkey: MOCK_ARTISTAS.find(a => a.id === v.artista_id)!,
+        artistas_musicas_artista_id_fkey: v.artista_id ? MOCK_ARTISTAS.find(a => a.id === v.artista_id)! : null,
       })),
     Musicas_Funcoes: funcoesData
       .filter(f => f.musica_id === musica.id)
@@ -110,10 +110,11 @@ export function createFakeMusicasRepository() {
       const musica = { id: randomUUID(), nome: data.nome!, fk_tonalidade: data.fk_tonalidade ?? '' };
       musicasData.push(musica);
 
-      if (data.artista_id) {
+      const temCamposVersao = data.artista_id || data.bpm || data.cifras || data.lyrics || data.link_versao || data.intensidade;
+      if (temCamposVersao) {
         const versao = {
           id: randomUUID(),
-          artista_id: data.artista_id,
+          artista_id: data.artista_id ?? null,
           musica_id: musica.id,
           bpm: data.bpm ?? null,
           cifras: data.cifras ?? null,
@@ -184,14 +185,15 @@ export function createFakeMusicasRepository() {
           cifras: v.cifras,
           lyrics: v.lyrics,
           link_versao: v.link_versao,
-          artistas_musicas_artista_id_fkey: MOCK_ARTISTAS.find(a => a.id === v.artista_id)!,
+          artistas_musicas_artista_id_fkey: v.artista_id ? MOCK_ARTISTAS.find(a => a.id === v.artista_id)! : null,
         })),
 
     findVersaoById: async (versaoId: string) =>
       versoesData.find(v => v.id === versaoId) ?? null,
 
+    /** Cria uma versão de música. Aceita artista_id null para versões sem artista. */
     createVersao: async (data: {
-      artista_id: string;
+      artista_id?: string | null;
       musica_id: string;
       bpm?: number;
       cifras?: string;
@@ -200,7 +202,7 @@ export function createFakeMusicasRepository() {
     }, _tenantId?: string) => {
       const versao = {
         id: randomUUID(),
-        artista_id: data.artista_id,
+        artista_id: data.artista_id ?? null,
         musica_id: data.musica_id,
         bpm: data.bpm ?? null,
         cifras: data.cifras ?? null,
@@ -208,14 +210,14 @@ export function createFakeMusicasRepository() {
         link_versao: data.link_versao ?? null,
       };
       versoesData.push(versao);
-      const artista = MOCK_ARTISTAS.find(a => a.id === data.artista_id)!;
+      const artista = data.artista_id ? MOCK_ARTISTAS.find(a => a.id === data.artista_id)! : null;
       return {
         id: versao.id,
         bpm: versao.bpm,
         cifras: versao.cifras,
         lyrics: versao.lyrics,
         link_versao: versao.link_versao,
-        artistas_musicas_artista_id_fkey: { id: artista.id, nome: artista.nome },
+        artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
       };
     },
 
@@ -223,14 +225,14 @@ export function createFakeMusicasRepository() {
       const versao = versoesData.find(v => v.id === versaoId);
       if (!versao) return null;
       Object.assign(versao, updateData);
-      const artista = MOCK_ARTISTAS.find(a => a.id === versao.artista_id)!;
+      const artista = versao.artista_id ? MOCK_ARTISTAS.find(a => a.id === versao.artista_id)! : null;
       return {
         id: versao.id,
         bpm: versao.bpm,
         cifras: versao.cifras,
         lyrics: versao.lyrics,
         link_versao: versao.link_versao,
-        artistas_musicas_artista_id_fkey: { id: artista.id, nome: artista.nome },
+        artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
       };
     },
 
@@ -242,6 +244,10 @@ export function createFakeMusicasRepository() {
 
     findVersaoDuplicate: async (musicaId: string, artistaId: string) =>
       versoesData.find(v => v.musica_id === musicaId && v.artista_id === artistaId) ?? null,
+
+    /** Busca versão sem artista para uma música (artista_id = null). */
+    findVersaoWithoutArtist: async (musicaId: string) =>
+      versoesData.find(v => v.musica_id === musicaId && v.artista_id === null) ?? null,
 
     findArtistaById: async (artistaId: string) =>
       MOCK_ARTISTAS.find(a => a.id === artistaId) ?? null,

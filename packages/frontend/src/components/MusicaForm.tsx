@@ -385,7 +385,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                 name="artista_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Artista</FormLabel>
+                    <FormLabel>Artista (opcional)</FormLabel>
                     <FormControl>
                       <CreatableCombobox
                         options={artistaOptions}
