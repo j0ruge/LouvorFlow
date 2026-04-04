@@ -54,28 +54,28 @@ specs/024-optional-artist-versao/
 
 ```text
 packages/
-├── backend/
-│   ├── prisma/
-│   │   ├── schema.prisma                          # Model Artistas_Musicas: artista_id nullable
-│   │   └── migrations/<timestamp>_.../migration.sql
-│   ├── src/
-│   │   ├── types/index.ts                         # VersaoRaw, Musica: artista nullable
-│   │   ├── validators/musicas.validators.ts       # addVersaoBodySchema: artista_id optional
-│   │   ├── services/musicas.service.ts            # addVersao, createComplete: null-artist logic
-│   │   ├── repositories/musicas.repository.ts     # createVersao, findVersaoWithoutArtist
-│   │   └── controllers/musicas.controller.ts      # (sem alteração direta)
-│   ├── tests/
-│   │   ├── fakes/fake-musicas.repository.ts       # Handle null artista_id
-���   │   ├── fakes/mock-data.ts                     # Mock entry com artista_id null
-│   │   └── services/musicas.service.test.ts       # Novos testes
-│   └── docs/openapi.json                          # Schemas atualizados
-└── frontend/
-    └── src/
-        ├─�� schemas/musica.ts                      # VersaoSchema, CreateVersaoFormSchema nullable
-        └── components/
-            ├── VersaoForm.tsx                      # Select artista opcional
-            ├── MusicaDetail.tsx                    # "Não informado" display
-            └── MusicaForm.tsx                      # Label "(opcional)"
+|-- backend/
+|   |-- prisma/
+|   |   |-- schema.prisma                          # Model Artistas_Musicas: artista_id nullable
+|   |   `-- migrations/<timestamp>_.../migration.sql
+|   |-- src/
+|   |   |-- types/index.ts                         # VersaoRaw, Musica: artista nullable
+|   |   |-- validators/musicas.validators.ts       # addVersaoBodySchema: artista_id optional
+|   |   |-- services/musicas.service.ts            # addVersao, createComplete: null-artist logic
+|   |   |-- repositories/musicas.repository.ts     # createVersao, findVersaoWithoutArtist
+|   |   `-- controllers/musicas.controller.ts      # (sem alteracao direta)
+|   |-- tests/
+|   |   |-- fakes/fake-musicas.repository.ts       # Handle null artista_id
+|   |   |-- fakes/mock-data.ts                     # Mock entry com artista_id null
+|   |   `-- services/musicas.service.test.ts       # Novos testes
+|   `-- docs/openapi.json                          # Schemas atualizados
+`-- frontend/
+    `-- src/
+        |-- schemas/musica.ts                      # VersaoSchema, CreateVersaoFormSchema nullable
+        `-- components/
+            |-- VersaoForm.tsx                      # CreatableCombobox artista opcional
+            |-- MusicaDetail.tsx                    # Sem artista display
+            `-- MusicaForm.tsx                      # Label (opcional)
 ```
 
 **Structure Decision**: Monorepo existente com `packages/backend` e `packages/frontend`. Nenhuma mudança estrutural — apenas alterações em arquivos existentes.
