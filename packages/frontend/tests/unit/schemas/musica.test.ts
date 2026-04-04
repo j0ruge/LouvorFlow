@@ -1,9 +1,9 @@
 /**
  * Testes unitários para os schemas Zod de criação/edição completa de música.
  *
- * Valida o comportamento do `superRefine` em `CreateMusicaCompleteFormSchema`
- * (artista obrigatório quando campos de versão são preenchidos) e as regras
- * de validação de `UpdateMusicaCompleteFormSchema`.
+ * Valida que artista é opcional em `CreateMusicaCompleteFormSchema`
+ * (campos de versão aceitos sem artista) e as regras de validação
+ * de `UpdateMusicaCompleteFormSchema`.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -58,55 +58,42 @@ describe('CreateMusicaCompleteFormSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  // ─── superRefine: artista obrigatório com campos de versão ───
+  // ─── Artista opcional: campos de versão aceitos sem artista (spec 024) ───
 
-  it('deve rejeitar quando bpm preenchido sem artista', () => {
+  /** Deve aceitar bpm preenchido sem artista (artista é opcional). */
+  it('deve aceitar quando bpm preenchido sem artista', () => {
     const result = CreateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       bpm: 120,
     });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const artistaIssue = result.error.issues.find(i => i.path.includes('artista_id'));
-      expect(artistaIssue).toBeDefined();
-      expect(artistaIssue?.message).toBe('Artista é obrigatório quando campos de versão são preenchidos');
-    }
+    expect(result.success).toBe(true);
   });
 
-  it('deve rejeitar quando cifras preenchidas sem artista', () => {
+  /** Deve aceitar cifras preenchidas sem artista (artista é opcional). */
+  it('deve aceitar quando cifras preenchidas sem artista', () => {
     const result = CreateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       cifras: 'G D Em C',
     });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const artistaIssue = result.error.issues.find(i => i.path.includes('artista_id'));
-      expect(artistaIssue).toBeDefined();
-    }
+    expect(result.success).toBe(true);
   });
 
-  it('deve rejeitar quando lyrics preenchidas sem artista', () => {
+  /** Deve aceitar lyrics preenchidas sem artista (artista é opcional). */
+  it('deve aceitar quando lyrics preenchidas sem artista', () => {
     const result = CreateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       lyrics: 'Letra da música...',
     });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const artistaIssue = result.error.issues.find(i => i.path.includes('artista_id'));
-      expect(artistaIssue).toBeDefined();
-    }
+    expect(result.success).toBe(true);
   });
 
-  it('deve rejeitar quando link_versao preenchido sem artista', () => {
+  /** Deve aceitar link_versao preenchido sem artista (artista é opcional). */
+  it('deve aceitar quando link_versao preenchido sem artista', () => {
     const result = CreateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       link_versao: 'https://exemplo.com/versao',
     });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const artistaIssue = result.error.issues.find(i => i.path.includes('artista_id'));
-      expect(artistaIssue).toBeDefined();
-    }
+    expect(result.success).toBe(true);
   });
 
   it('deve aceitar artista sem campos de versão (versão vazia)', () => {
