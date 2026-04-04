@@ -78,22 +78,23 @@ model Artistas {
 }
 
 model Artistas_Musicas {
-  id                               String   @id @default(uuid()) @db.Uuid
-  artista_id                       String   @db.Uuid
-  musica_id                        String   @db.Uuid
-  tenant_id                        String   @db.Uuid
+  id                               String    @id @default(uuid()) @db.Uuid
+  artista_id                       String?   @db.Uuid
+  musica_id                        String    @db.Uuid
+  tenant_id                        String    @db.Uuid
   bpm                              Int?
   cifras                           String?
   lyrics                           String?
   link_versao                      String?
   intensidade                      String?
-  created_at                       DateTime @default(now()) @db.Timestamp(6)
-  updated_at                       DateTime @updatedAt @db.Timestamp(6)
-  tenant                           Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  artistas_musicas_artista_id_fkey Artistas @relation(fields: [artista_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  artistas_musicas_musica_id_fkey  Musicas  @relation(fields: [musica_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  created_at                       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime  @updatedAt @db.Timestamp(6)
+  tenant                           Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  artistas_musicas_artista_id_fkey Artistas? @relation(fields: [artista_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  artistas_musicas_musica_id_fkey  Musicas   @relation(fields: [musica_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([tenant_id, artista_id, musica_id])
+  // Partial unique index: uniqueness enforced only when artista_id IS NOT NULL
+  // Created via raw SQL in migration. Service layer guards max 1 null-artist per music.
   @@index([tenant_id])
   @@map("artistas_musicas")
 }

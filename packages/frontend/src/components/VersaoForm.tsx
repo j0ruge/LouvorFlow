@@ -95,7 +95,7 @@ export function VersaoForm({
 
       if (isEditing && versao) {
         form.reset({
-          artista_id: versao.artista.id,
+          artista_id: versao.artista?.id ?? "",
           bpm: versao.bpm ?? "",
           cifras: versao.cifras ?? "",
           lyrics: versao.lyrics ?? "",
@@ -148,15 +148,15 @@ export function VersaoForm({
               name="artista_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Artista</FormLabel>
+                  <FormLabel>Artista (opcional)</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={artistasLoading || isEditing}
+                    disabled={artistasLoading || (isEditing && !!versao?.artista)}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione um artista" />
+                        <SelectValue placeholder="Não informado (opcional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>

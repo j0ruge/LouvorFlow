@@ -169,6 +169,15 @@ export const MOCK_ARTISTAS_MUSICAS = [
     lyrics: 'Grande é o Senhor...',
     link_versao: null,
   },
+  {
+    id: 'jjj00002-0000-0000-0000-000000000004',
+    artista_id: null,
+    musica_id: 'ggg00001-0000-0000-0000-000000000003',
+    bpm: 90,
+    cifras: 'Am F C G',
+    lyrics: 'Nada além do sangue...',
+    link_versao: null,
+  },
 ];
 
 // ─── Musicas_Categorias (junction) ──────────────────────

@@ -224,14 +224,16 @@ describe('MusicasService', () => {
       });
     });
 
-    it('deve lançar AppError 400 quando campos de versão preenchidos sem artista', async () => {
-      await expect(musicasService.createComplete({
-        nome: 'Teste',
+    /** Deve criar música completa com versão sem artista quando campos de versão preenchidos (FR-001). */
+    it('deve criar música completa sem artista quando campos de versão preenchidos', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Teste Sem Artista',
         bpm: 120,
-      }, 'tenant-fake-id')).rejects.toMatchObject({
-        statusCode: 400,
-        message: 'Artista é obrigatório para criar uma versão',
-      });
+        cifras: 'Am G',
+      }, 'tenant-fake-id');
+      expect(result.versoes).toHaveLength(1);
+      expect(result.versoes[0].artista).toBeNull();
+      expect(result.versoes[0].bpm).toBe(120);
     });
 
     it('deve lançar AppError 404 quando artista não existe', async () => {
@@ -432,10 +434,23 @@ describe('MusicasService', () => {
       expect(result.bpm).toBe(80);
     });
 
-    it('deve lançar AppError 400 quando artista_id não é enviado', async () => {
-      await expect(musicasService.addVersao(MOCK_MUSICAS_BASE[0].id, {}, 'tenant-fake-id')).rejects.toMatchObject({
-        statusCode: 400,
-        message: 'ID do artista é obrigatório',
+    /** Deve criar versão sem artista quando artista_id não é enviado. */
+    it('deve criar versão sem artista quando artista_id não é enviado', async () => {
+      const result = await musicasService.addVersao(MOCK_MUSICAS_BASE[0].id, {
+        bpm: 100,
+        cifras: 'Em C G D',
+      }, 'tenant-fake-id');
+      expect(result).toHaveProperty('id');
+      expect(result.artista).toBeNull();
+      expect(result.bpm).toBe(100);
+    });
+
+    /** Deve rejeitar segunda versão sem artista para mesma música (409). */
+    it('deve lançar AppError 409 quando já existe versão sem artista para a música', async () => {
+      await musicasService.addVersao(MOCK_MUSICAS_BASE[1].id, { bpm: 60 }, 'tenant-fake-id');
+      await expect(musicasService.addVersao(MOCK_MUSICAS_BASE[1].id, { bpm: 70 }, 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Registro duplicado',
       });
     });
 
@@ -481,6 +496,22 @@ describe('MusicasService', () => {
       await expect(musicasService.updateVersao(NON_EXISTENT_ID, { bpm: 90 })).rejects.toMatchObject({
         statusCode: 404,
         message: 'Versão não encontrada',
+      });
+    });
+
+    /** Deve aceitar artista_id no update quando versão não tem artista (null → artista). */
+    it('deve aceitar artista_id no update quando versão não tem artista', async () => {
+      const versaoSemArtista = await musicasService.addVersao(MOCK_MUSICAS_BASE[1].id, { bpm: 85 }, 'tenant-fake-id');
+      const result = await musicasService.updateVersao(versaoSemArtista.id, { artista_id: MOCK_ARTISTAS[0].id });
+      expect(result.artista).not.toBeNull();
+      expect(result.artista!.id).toBe(MOCK_ARTISTAS[0].id);
+    });
+
+    /** Deve retornar AppError 400 quando artista_id enviado para versão que já possui artista. */
+    it('deve lançar AppError 400 quando artista_id enviado para versão com artista', async () => {
+      await expect(musicasService.updateVersao(MOCK_ARTISTAS_MUSICAS[0].id, { artista_id: MOCK_ARTISTAS[1].id })).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Não é permitido alterar artista já vinculado',
       });
     });
   });

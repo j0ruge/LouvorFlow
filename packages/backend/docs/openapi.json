@@ -5017,7 +5017,9 @@
             "format": "uuid"
           },
           "artista": {
-            "$ref": "#/components/schemas/IdNome"
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/IdNome" }],
+            "description": "Artista da versão. Null quando artista não informado."
           },
           "bpm": {
             "type": "integer",
@@ -5043,8 +5045,7 @@
           }
         },
         "required": [
-          "id",
-          "artista"
+          "id"
         ]
       },
       "VersaoInput": {
@@ -5052,7 +5053,8 @@
         "properties": {
           "artista_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "ID do artista (opcional). Quando omitido, versão é criada sem artista."
           },
           "bpm": {
             "type": "integer",
@@ -5077,13 +5079,15 @@
             "description": "Nível de intensidade da versão"
           }
         },
-        "required": [
-          "artista_id"
-        ]
       },
       "VersaoUpdateInput": {
         "type": "object",
         "properties": {
+          "artista_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do artista. Aceito apenas quando versão não tem artista vinculado (null → artista). Retorna 400 se versão já possui artista."
+          },
           "bpm": {
             "type": "integer",
             "nullable": true

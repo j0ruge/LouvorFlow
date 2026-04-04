@@ -11,7 +11,7 @@ import { IdNomeSchema, TonalidadeSchema, PaginationMetaSchema } from "@/schemas/
 /** Schema de uma versão de música (por artista). */
 export const VersaoSchema = z.object({
   id: z.string().uuid(),
-  artista: IdNomeSchema,
+  artista: IdNomeSchema.nullable(),
   bpm: z.number().nullable(),
   cifras: z.string().nullable(),
   lyrics: z.string().nullable(),
@@ -110,9 +110,9 @@ function temCamposVersaoPreenchidos(
   );
 }
 
-/** Schema de validação do formulário de criação de versão. */
+/** Schema de validação do formulário de criação de versão. Artista é opcional. */
 export const CreateVersaoFormSchema = z.object({
-  artista_id: z.string().uuid("Selecione um artista"),
+  artista_id: z.string().uuid().optional().or(z.literal("")),
   bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
@@ -123,8 +123,9 @@ export const CreateVersaoFormSchema = z.object({
 /** Tipo inferido dos dados do formulário de criação de versão. */
 export type CreateVersaoForm = z.infer<typeof CreateVersaoFormSchema>;
 
-/** Schema de validação do formulário de edição de versão. */
+/** Schema de validação do formulário de edição de versão. Aceita artista_id para vincular artista a versões sem artista. */
 export const UpdateVersaoFormSchema = z.object({
+  artista_id: z.string().uuid().optional().or(z.literal("")),
   bpm: bpmFormField,
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
@@ -137,8 +138,8 @@ export type UpdateVersaoForm = z.infer<typeof UpdateVersaoFormSchema>;
 
 /**
  * Schema de validação do formulário de criação completa de música.
- * Inclui campos da música e da versão opcional, com validação cruzada:
- * artista é obrigatório quando qualquer campo de versão está preenchido.
+ * Inclui campos da música e da versão opcional. Artista é opcional —
+ * versão pode ser criada sem artista quando outros campos de versão estão preenchidos.
  */
 export const CreateMusicaCompleteFormSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
@@ -151,14 +152,6 @@ export const CreateMusicaCompleteFormSchema = z.object({
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
-}).superRefine((data, ctx) => {
-  if (temCamposVersaoPreenchidos(data) && (!data.artista_id || data.artista_id === "")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Artista é obrigatório quando campos de versão são preenchidos",
-      path: ["artista_id"],
-    });
-  }
 });
 
 /** Tipo inferido dos dados do formulário de criação completa de música. */
