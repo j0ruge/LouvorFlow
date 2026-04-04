@@ -5,9 +5,10 @@
  * artista (na criação), informar BPM, cifras, letras e link da versão.
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -24,18 +25,12 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { IntensidadeSelector } from "@/components/IntensidadeSelector";
-import { useArtistas } from "@/hooks/use-artistas";
+import { CreatableCombobox } from "@/components/CreatableCombobox";
+import { useArtistas, useCreateArtista } from "@/hooks/use-artistas";
 import {
   CreateVersaoFormSchema,
   type CreateVersaoForm,
@@ -71,6 +66,13 @@ export function VersaoForm({
 }: VersaoFormProps) {
   const isEditing = !!versao;
   const { data: artistas, isLoading: artistasLoading } = useArtistas();
+  const createArtista = useCreateArtista();
+
+  /** Opções do combobox de artistas mapeadas para { value, label }. */
+  const artistaOptions = useMemo(
+    () => (artistas ?? []).map((a) => ({ value: a.id, label: a.nome })),
+    [artistas],
+  );
 
   const form = useForm<CreateVersaoForm>({
     resolver: zodResolver(CreateVersaoFormSchema),
@@ -117,6 +119,23 @@ export function VersaoForm({
   );
 
   /**
+   * Cria um artista inline via CreatableCombobox e retorna seu UUID.
+   *
+   * @param input - Nome digitado pelo usuário.
+   * @returns UUID do artista criado ou `undefined` em caso de falha.
+   */
+  async function handleCreateArtista(input: string): Promise<string | undefined> {
+    try {
+      const result = await createArtista.mutateAsync({ nome: input });
+      return result.artista.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar artista";
+      toast.error(message);
+      return undefined;
+    }
+  }
+
+  /**
    * Delega a submissão dos dados validados ao callback `onSubmit`.
    *
    * @param dados - Dados validados do formulário de versão.
@@ -149,29 +168,18 @@ export function VersaoForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Artista (opcional)</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={artistasLoading || (isEditing && !!versao?.artista)}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Não informado (opcional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {artistasLoading && (
-                        <SelectItem value="_loading" disabled>
-                          Carregando...
-                        </SelectItem>
-                      )}
-                      {artistas?.map((artista) => (
-                        <SelectItem key={artista.id} value={artista.id}>
-                          {artista.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <CreatableCombobox
+                      options={artistaOptions}
+                      value={field.value || undefined}
+                      onSelect={field.onChange}
+                      onCreate={handleCreateArtista}
+                      placeholder="Não informado (opcional)"
+                      searchPlaceholder="Buscar artista..."
+                      isLoading={artistasLoading}
+                      disabled={isEditing && !!versao?.artista}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
