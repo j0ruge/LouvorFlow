@@ -137,10 +137,12 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
         {
           versaoId: editingVersao.id,
           dados: {
+            ...((!editingVersao.artista && dados.artista_id) ? { artista_id: dados.artista_id } : {}),
             bpm: dados.bpm,
             cifras: dados.cifras,
             lyrics: dados.lyrics,
             link_versao: dados.link_versao,
+            intensidade: dados.intensidade,
           },
         },
         {
