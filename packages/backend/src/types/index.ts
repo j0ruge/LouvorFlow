@@ -157,6 +157,17 @@ export interface IntegranteWithFuncoes {
     }[];
 }
 
+/**
+ * Representação bruta de uma versão retornada pelo Prisma (antes da transformação).
+ *
+ * @property id - Identificador único da versão (UUID)
+ * @property bpm - Batidas por minuto ou `null`
+ * @property cifras - Cifras da versão ou `null`
+ * @property lyrics - Letra da versão ou `null`
+ * @property link_versao - Link externo da versão ou `null`
+ * @property intensidade - Nível de intensidade ("calma" | "media" | "agitada") ou `null`
+ * @property artistas_musicas_artista_id_fkey - Artista associado (id e nome) ou `null`
+ */
 export interface VersaoRaw {
     id: string;
     bpm: number | null;

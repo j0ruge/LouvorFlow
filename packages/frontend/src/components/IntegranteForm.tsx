@@ -297,6 +297,7 @@ export function IntegranteForm({
                       size="sm"
                       onClick={handleAddFuncao}
                       disabled={!selectedFuncaoId || addFuncao.isPending}
+                      aria-label="Adicionar função"
                     >
                       <CornerDownLeft className="h-4 w-4" />
                     </Button>

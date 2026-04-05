@@ -4,6 +4,7 @@
  * Cria um token de convite com expiração de 2 horas e constrói
  * a URL pública para compartilhamento via WhatsApp ou outro canal.
  */
+import { AppError } from '../../errors/AppError.js';
 import convitesRepository from '../../repositories/convites.repository.js';
 import { deriveInviteStatus } from '../../types/convites.types.js';
 import type { InviteResponse } from '../../types/convites.types.js';
@@ -24,8 +25,14 @@ class CreateInviteService {
 
         const invite = await convitesRepository.create(tenantId, createdBy, expiresAt);
 
-        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
-        const url = `${appWebUrl}/convite/${invite.token}`;
+        const appWebUrl = process.env.APP_WEB_URL;
+
+        if (!appWebUrl && process.env.NODE_ENV === 'production') {
+            throw new AppError('APP_WEB_URL é obrigatória em ambiente de produção', 500);
+        }
+
+        const baseUrl = (appWebUrl ?? 'http://localhost:8080').replace(/\/+$/, '');
+        const url = `${baseUrl}/convite/${invite.token}`;
 
         return {
             id: invite.id,

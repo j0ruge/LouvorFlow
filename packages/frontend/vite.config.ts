@@ -1,7 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-// https://vitejs.dev/config/
+/**
+ * Configuração do Vite para o frontend LouvorFlow.
+ *
+ * Define servidor de desenvolvimento com proxy para a API, plugin React SWC e alias de importação.
+ */
 export default defineConfig(({ mode }) => ({
   server: {
     host: process.env.HOST ?? "::",

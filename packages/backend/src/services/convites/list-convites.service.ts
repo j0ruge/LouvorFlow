@@ -4,6 +4,7 @@
  * Busca todos os convites do tenant e computa o status derivado
  * (active, expired, used, revoked) para cada um.
  */
+import { AppError } from '../../errors/AppError.js';
 import convitesRepository from '../../repositories/convites.repository.js';
 import { deriveInviteStatus } from '../../types/convites.types.js';
 import type { InviteResponse } from '../../types/convites.types.js';
@@ -18,12 +19,18 @@ class ListInvitesService {
     async execute(tenantId: string): Promise<InviteResponse[]> {
         const invites = await convitesRepository.findAllByTenantId(tenantId);
 
-        const appWebUrl = (process.env.APP_WEB_URL ?? 'http://localhost:8080').replace(/\/+$/, '');
+        const appWebUrl = process.env.APP_WEB_URL;
+
+        if (!appWebUrl && process.env.NODE_ENV === 'production') {
+            throw new AppError('APP_WEB_URL é obrigatória em ambiente de produção', 500);
+        }
+
+        const baseUrl = (appWebUrl ?? 'http://localhost:8080').replace(/\/+$/, '');
 
         return invites.map((invite) => ({
             id: invite.id,
             token: invite.token,
-            url: `${appWebUrl}/convite/${invite.token}`,
+            url: `${baseUrl}/convite/${invite.token}`,
             expires_at: invite.expires_at,
             created_at: invite.created_at,
             used_at: invite.used_at,

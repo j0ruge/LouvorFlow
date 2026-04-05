@@ -120,6 +120,7 @@ export function createFakeMusicasRepository() {
           cifras: data.cifras ?? null,
           lyrics: data.lyrics ?? null,
           link_versao: data.link_versao ?? null,
+          intensidade: data.intensidade ?? null,
         };
         versoesData.push(versao);
       }
@@ -155,6 +156,7 @@ export function createFakeMusicasRepository() {
           if (data.cifras !== undefined) versao.cifras = data.cifras ?? null;
           if (data.lyrics !== undefined) versao.lyrics = data.lyrics ?? null;
           if (data.link_versao !== undefined) versao.link_versao = data.link_versao ?? null;
+          if (data.intensidade !== undefined) (versao as any).intensidade = data.intensidade ?? null;
         }
       }
 
@@ -185,6 +187,7 @@ export function createFakeMusicasRepository() {
           cifras: v.cifras,
           lyrics: v.lyrics,
           link_versao: v.link_versao,
+          intensidade: (v as any).intensidade ?? null,
           artistas_musicas_artista_id_fkey: v.artista_id ? MOCK_ARTISTAS.find(a => a.id === v.artista_id)! : null,
         })),
 
@@ -199,6 +202,7 @@ export function createFakeMusicasRepository() {
       cifras?: string;
       lyrics?: string;
       link_versao?: string;
+      intensidade?: string | null;
     }, _tenantId?: string) => {
       const versao = {
         id: randomUUID(),
@@ -208,6 +212,7 @@ export function createFakeMusicasRepository() {
         cifras: data.cifras ?? null,
         lyrics: data.lyrics ?? null,
         link_versao: data.link_versao ?? null,
+        intensidade: data.intensidade ?? null,
       };
       versoesData.push(versao);
       const artista = data.artista_id ? MOCK_ARTISTAS.find(a => a.id === data.artista_id)! : null;
@@ -217,6 +222,7 @@ export function createFakeMusicasRepository() {
         cifras: versao.cifras,
         lyrics: versao.lyrics,
         link_versao: versao.link_versao,
+        intensidade: versao.intensidade,
         artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
       };
     },
@@ -232,6 +238,7 @@ export function createFakeMusicasRepository() {
         cifras: versao.cifras,
         lyrics: versao.lyrics,
         link_versao: versao.link_versao,
+        intensidade: (versao as any).intensidade ?? null,
         artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
       };
     },

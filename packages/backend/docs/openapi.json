@@ -5045,7 +5045,13 @@
           }
         },
         "required": [
-          "id"
+          "id",
+          "artista",
+          "bpm",
+          "cifras",
+          "lyrics",
+          "link_versao",
+          "intensidade"
         ]
       },
       "VersaoInput": {
@@ -5079,7 +5085,7 @@
             "nullable": true,
             "description": "Nível de intensidade da versão"
           }
-        },
+        }
       },
       "VersaoUpdateInput": {
         "type": "object",

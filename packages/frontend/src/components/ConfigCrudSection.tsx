@@ -134,6 +134,7 @@ export function ConfigCrudSection<T>({
             size="sm"
             onClick={handleCreate}
             disabled={isCreating || !newName.trim()}
+            aria-label="Confirmar criação"
           >
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin" />

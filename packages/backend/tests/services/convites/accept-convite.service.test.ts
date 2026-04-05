@@ -25,6 +25,7 @@ const {
     mockUsersFindUnique,
     mockUsersCreate,
     mockInviteTokensUpdate,
+    mockInviteTokensUpdateMany,
 } = vi.hoisted(() => ({
     mockFindByEmail: vi.fn(),
     mockHash: vi.fn().mockResolvedValue('hashed-password'),
@@ -34,6 +35,7 @@ const {
     mockUsersFindUnique: vi.fn(),
     mockUsersCreate: vi.fn(),
     mockInviteTokensUpdate: vi.fn(),
+    mockInviteTokensUpdateMany: vi.fn().mockResolvedValue({ count: 1 }),
 }));
 
 vi.mock('../../../src/repositories/convites.repository.js', async () => {
@@ -68,10 +70,14 @@ vi.mock('../../../prisma/cliente.js', () => ({
         },
         $transaction: vi.fn().mockImplementation(async (fn: Function) => {
             const tx = {
-                tenantUsers: { create: (...args: unknown[]) => mockTenantUsersCreate(...args) },
+                tenantUsers: {
+                    findUnique: (...args: unknown[]) => mockTenantUsersFindUnique(...args),
+                    create: (...args: unknown[]) => mockTenantUsersCreate(...args),
+                },
                 users: { create: (...args: unknown[]) => mockUsersCreate(...args) },
                 inviteTokens: {
                     update: (...args: unknown[]) => mockInviteTokensUpdate(...args),
+                    updateMany: (...args: unknown[]) => mockInviteTokensUpdateMany(...args),
                     findUnique: vi.fn().mockResolvedValue({ used_at: null, revoked_at: null }),
                 },
             };
@@ -148,6 +154,8 @@ describe('AcceptInviteService', () => {
     it('deve lançar erro 409 se usuário já pertence ao tenant', async () => {
         fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
         mockFindByEmail.mockResolvedValue({ id: 'existing-user-id' });
+        mockUsersFindUnique.mockResolvedValue({ password: 'hashed-existing' });
+        mockCompare.mockResolvedValue(true);
         mockTenantUsersFindUnique.mockResolvedValue({ id: 'link-id' });
 
         await expect(
