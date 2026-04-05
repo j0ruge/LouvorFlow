@@ -11,6 +11,14 @@ import { z } from 'zod';
 /** Padrão UUID v4 para validação de identificadores. */
 const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
 
+/** Schema de URL restrito a protocolos seguros (http/https). Previne XSS via javascript:/data:. */
+const safeUrlSchema = z.string()
+    .url('Link da versão deve ser uma URL válida')
+    .refine(
+        (url) => /^https?:\/\//i.test(url),
+        { message: 'Link da versão deve usar protocolo http ou https' },
+    );
+
 // --- Params ---
 
 /** Schema de validação para parâmetros com `:id` (GET/PUT/DELETE /api/musicas/:id). */
@@ -63,7 +71,7 @@ export const createMusicaCompleteBodySchema = z.object({
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
+    link_versao: safeUrlSchema.optional(),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
@@ -77,7 +85,7 @@ export const updateMusicaCompleteBodySchema = z.object({
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
+    link_versao: safeUrlSchema.optional(),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
@@ -89,7 +97,7 @@ export const addVersaoBodySchema = z.object({
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
+    link_versao: safeUrlSchema.optional(),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 
@@ -99,7 +107,7 @@ export const updateVersaoBodySchema = z.object({
     bpm: z.number().int().positive().optional(),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: z.string().url('Link da versão deve ser uma URL válida').optional(),
+    link_versao: safeUrlSchema.optional(),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 

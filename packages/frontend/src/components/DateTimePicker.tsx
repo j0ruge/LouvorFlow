@@ -143,10 +143,10 @@ function DateTimePickerContent({
         </Select>
       </div>
       <div className="flex items-center justify-between gap-2 border-t px-3 py-2">
-        <Button variant="ghost" size="sm" onClick={onCancel}>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button size="sm" onClick={onConfirm} disabled={!draftDate}>
+        <Button type="button" size="sm" onClick={onConfirm} disabled={!draftDate}>
           Confirmar
         </Button>
       </div>
@@ -324,6 +324,7 @@ export function DateTimePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",

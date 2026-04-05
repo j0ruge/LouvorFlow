@@ -74,7 +74,7 @@ vi.mock('../../seeds/domain-defaults.js', () => ({
 
 /** Mock do invalidateTenantCache para verificar chamada na desativação. */
 const mockInvalidateTenantCache = vi.fn();
-vi.mock('../../src/middlewares/ensureAuthenticated.js', () => ({
+vi.mock('../../src/providers/tenant-cache.provider.js', () => ({
   invalidateTenantCache: (...args: unknown[]) => mockInvalidateTenantCache(...args),
 }));
 

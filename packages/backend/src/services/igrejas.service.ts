@@ -9,7 +9,7 @@ import { AppError } from '../errors/AppError.js';
 import igrejasRepository from '../repositories/igrejas.repository.js';
 import prisma from '../../prisma/cliente.js';
 import { seedTenantDefaults } from '../../seeds/domain-defaults.js';
-import { invalidateTenantCache } from '../middlewares/ensureAuthenticated.js';
+import { invalidateTenantCache } from '../providers/tenant-cache.provider.js';
 
 /**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
