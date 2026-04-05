@@ -58,6 +58,12 @@ class EventosController {
         res.status(200).json({ msg: "Música removida do evento com sucesso" });
     }
 
+    /** Reordena as músicas de um evento conforme a ordem dos IDs recebidos. */
+    async reorderMusicas(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
+        await eventosService.reorderMusicas(req.params.eventoId, req.body.musicas_ids);
+        res.status(200).json({ msg: "Ordem das músicas atualizada com sucesso" });
+    }
+
     // --- Junction: Integrantes ---
 
     /** Lista os integrantes vinculados a um evento com funções. */

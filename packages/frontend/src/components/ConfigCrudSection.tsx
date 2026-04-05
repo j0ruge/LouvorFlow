@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Trash2, Plus, X, Check, Loader2 } from "lucide-react";
+import { Pencil, Trash2, CornerDownLeft, X, Check, Loader2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -119,8 +119,9 @@ export function ConfigCrudSection<T>({
     <div className="space-y-4">
       {/* Formulário de criação (oculto em modo somente-leitura) */}
       {!readOnly && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Input
+            className="flex-1"
             placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -133,11 +134,12 @@ export function ConfigCrudSection<T>({
             size="sm"
             onClick={handleCreate}
             disabled={isCreating || !newName.trim()}
+            aria-label="Confirmar criação"
           >
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Plus className="h-4 w-4" />
+              <CornerDownLeft className="h-4 w-4" />
             )}
           </Button>
         </div>
@@ -163,7 +165,7 @@ export function ConfigCrudSection<T>({
             return (
               <div
                 key={id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border"
+                className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
               >
                 {isEditingThis ? (
                   <div className="flex items-center gap-2 flex-1">
@@ -201,9 +203,9 @@ export function ConfigCrudSection<T>({
                   </div>
                 ) : (
                   <>
-                    <span className="font-medium">{name}</span>
+                    <span className="font-medium truncate min-w-0">{name}</span>
                     {!readOnly && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="sm"

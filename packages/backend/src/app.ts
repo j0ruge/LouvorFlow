@@ -19,6 +19,7 @@ import permissionsRoutes from './routes/auth/permissions.routes.js';
 import passwordRoutes from './routes/auth/password.routes.js';
 import profileRoutes from './routes/auth/profile.routes.js';
 import igrejasRoutes from './routes/igrejas.routes.js';
+import convitesRoutes from './routes/convites.routes.js';
 
 /**
  * Classe principal da aplicação Express.
@@ -81,12 +82,14 @@ class App {
         this.app.use('/api/password', passwordRoutes);
         this.app.use('/api/profile', profileRoutes);
         this.app.use('/api/igrejas', igrejasRoutes);
+        this.app.use('/api/convites', convitesRoutes);
     }
     /**
      * Registra o handler centralizado de erros da aplicação.
      *
      * Trata instâncias de `AppError` retornando o status e mensagem correspondentes.
-     * Para erros genéricos, mascara a mensagem em produção retornando status 500.
+     * Para erros genéricos, loga o erro no console e mascara a mensagem em produção
+     * retornando status 500.
      */
     errorHandler(): void {
         this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -94,6 +97,7 @@ class App {
                 res.status(err.statusCode).json({ erro: err.errors ? err.errors.join('; ') : err.message, codigo: err.statusCode });
                 return;
             }
+            console.error('[ErrorHandler]', err);
             const message = process.env.NODE_ENV === 'production'
                 ? 'Erro interno do servidor'
                 : err.message || 'Erro interno do servidor';

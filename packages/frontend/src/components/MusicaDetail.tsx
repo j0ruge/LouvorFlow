@@ -23,6 +23,7 @@ import {
   Music,
   Guitar,
   Plus,
+  CornerDownLeft,
   X,
   Pencil,
   Check,
@@ -46,7 +47,7 @@ import {
 } from "@/hooks/use-musicas";
 import { useTonalidades, useCategorias, useFuncoes } from "@/hooks/use-support";
 import type { Musica, Versao, CreateVersaoForm } from "@/schemas/musica";
-import { isSafeUrl } from "@/lib/utils";
+import { cn, isSafeUrl } from "@/lib/utils";
 import { useCan } from "@/hooks/use-can";
 
 /** Propriedades do componente MusicaDetail. */
@@ -136,10 +137,12 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
         {
           versaoId: editingVersao.id,
           dados: {
+            ...((!editingVersao.artista && dados.artista_id) ? { artista_id: dados.artista_id } : {}),
             bpm: dados.bpm,
             cifras: dados.cifras,
             lyrics: dados.lyrics,
             link_versao: dados.link_versao,
+            intensidade: dados.intensidade,
           },
         },
         {
@@ -177,26 +180,26 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
   return (
     <div className="space-y-6">
       {/* Informações básicas */}
-      <Card className="shadow-soft border-0">
+      <Card className="shadow-soft border-0 overflow-hidden">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0 overflow-hidden">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center flex-shrink-0">
                 <Music className="h-6 w-6 text-white" />
               </div>
               {isEditingName ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="h-8 w-48"
+                    className="h-8 w-full sm:w-48"
                     autoFocus
                   />
                   <Select
                     value={editTonalidade}
                     onValueChange={setEditTonalidade}
                   >
-                    <SelectTrigger className="h-8 w-32">
+                    <SelectTrigger className="h-8 w-full sm:w-32">
                       <SelectValue placeholder="Tonalidade" />
                     </SelectTrigger>
                     <SelectContent>
@@ -228,9 +231,9 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   </Button>
                 </div>
               ) : (
-                <div>
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    {musica.nome}
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-xl flex items-start gap-2 min-w-0 overflow-hidden">
+                    <span className="flex-1 min-w-0 line-clamp-2">{musica.nome}</span>
                     {canWrite && (
                       <Button
                         variant="ghost"
@@ -298,14 +301,21 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
               {musica.versoes.map((versao) => (
                 <div
                   key={versao.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
+                  className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <Music className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{versao.artista.nome}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <Music className="h-4 w-4 text-primary flex-shrink-0" />
+                    <span className={cn("font-medium truncate min-w-0 flex-1", !versao.artista && "italic text-muted-foreground")}>
+                      {versao.artista ? versao.artista.nome : "Sem artista"}
+                    </span>
                     {versao.bpm && (
                       <Badge variant="outline" className="text-xs">
                         {versao.bpm} BPM
+                      </Badge>
+                    )}
+                    {versao.intensidade && (
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {versao.intensidade === "media" ? "Média" : versao.intensidade}
                       </Badge>
                     )}
                     {versao.link_versao && isSafeUrl(versao.link_versao) && (
@@ -320,7 +330,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                     )}
                   </div>
                   {canWrite && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -392,7 +402,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   categoriasDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -464,7 +474,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   funcoesDisponiveis.length === 0
                 }
               >
-                <Plus className="h-4 w-4" />
+                <CornerDownLeft className="h-4 w-4" />
               </Button>
             </div>
           )}

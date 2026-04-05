@@ -135,6 +135,24 @@ export async function removeMusicaFromEvento(
 }
 
 /**
+ * Reordena as músicas de um evento conforme a ordem dos IDs recebidos.
+ *
+ * @param eventoId - UUID do evento.
+ * @param musicasIds - Array de UUIDs das músicas na nova ordem desejada.
+ * @returns Resposta da API com mensagem de confirmação.
+ */
+export async function reorderMusicas(
+  eventoId: string,
+  musicasIds: string[],
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/musicas/reorder`, {
+    method: "PATCH",
+    body: JSON.stringify({ musicas_ids: musicasIds }),
+  });
+  return AssociationResponseSchema.parse(data);
+}
+
+/**
  * Associa um integrante a um evento, opcionalmente selecionando funções específicas.
  *
  * @param eventoId - UUID do evento.

@@ -87,7 +87,7 @@ const Dashboard = () => {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
           <Card
             key={stat.title}
@@ -116,7 +116,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <Card className="shadow-soft border-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -140,10 +140,10 @@ const Dashboard = () => {
                 {proximasEscalas.map((scale) => (
                   <div
                     key={scale.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border"
+                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border gap-2"
                   >
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">
+                    <div className="space-y-1 min-w-0">
+                      <p className="font-medium text-foreground truncate">
                         {scale.descricao || "Evento"}
                       </p>
                       <p className="text-sm text-muted-foreground">

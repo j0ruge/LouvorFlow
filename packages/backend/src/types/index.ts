@@ -65,6 +65,8 @@ export interface CreateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
+    intensidade?: string;
     /** IDs de categorias a associar à música (opcional). */
     categoria_ids?: string[];
     /** IDs de funções requeridas a associar à música (opcional). */
@@ -90,6 +92,8 @@ export interface UpdateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
+    intensidade?: string;
     /** IDs de categorias desejadas (se presente, sincroniza; se ausente, mantém). */
     categoria_ids?: string[];
     /** IDs de funções requeridas desejadas (se presente, sincroniza; se ausente, mantém). */
@@ -153,13 +157,25 @@ export interface IntegranteWithFuncoes {
     }[];
 }
 
+/**
+ * Representação bruta de uma versão retornada pelo Prisma (antes da transformação).
+ *
+ * @property id - Identificador único da versão (UUID)
+ * @property bpm - Batidas por minuto ou `null`
+ * @property cifras - Cifras da versão ou `null`
+ * @property lyrics - Letra da versão ou `null`
+ * @property link_versao - Link externo da versão ou `null`
+ * @property intensidade - Nível de intensidade ("calma" | "media" | "agitada") ou `null`
+ * @property artistas_musicas_artista_id_fkey - Artista associado (id e nome) ou `null`
+ */
 export interface VersaoRaw {
     id: string;
     bpm: number | null;
     cifras: string | null;
     lyrics: string | null;
     link_versao: string | null;
-    artistas_musicas_artista_id_fkey: IdNome;
+    intensidade: string | null;
+    artistas_musicas_artista_id_fkey: IdNome | null;
 }
 
 /**
@@ -198,11 +214,12 @@ export interface Musica {
     categorias: IdNome[];
     versoes: {
         id: string;
-        artista: IdNome;
+        artista: IdNome | null;
         bpm: number | null;
         cifras: string | null;
         lyrics: string | null;
         link_versao: string | null;
+        intensidade: string | null;
     }[];
     funcoes: IdNome[];
 }
@@ -258,7 +275,7 @@ export interface EventoShowRaw {
     data: Date;
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
-    Eventos_Musicas: { eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
+    Eventos_Musicas: { id: string; ordem: number; eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
     Eventos_Users: EventoShowIntegranteRaw[];
 }
 
@@ -293,6 +310,7 @@ export const MUSICA_SELECT = {
             cifras: true,
             lyrics: true,
             link_versao: true,
+            intensidade: true,
             artistas_musicas_artista_id_fkey: {
                 select: { id: true, nome: true }
             }
@@ -340,6 +358,8 @@ export const EVENTO_SHOW_SELECT = {
     },
     Eventos_Musicas: {
         select: {
+            id: true,
+            ordem: true,
             eventos_musicas_musicas_id_fkey: {
                 select: {
                     id: true,
@@ -349,7 +369,8 @@ export const EVENTO_SHOW_SELECT = {
                     }
                 }
             }
-        }
+        },
+        orderBy: { ordem: 'asc' as const }
     },
     Eventos_Users: {
         select: {

@@ -41,6 +41,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM, letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
 - **Escalas de culto** — Criação, edição e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento.
 - **Gerenciamento de integrantes** — Cadastro de membros com atribuição e remoção de funções (voz, guitarra, teclado, etc.).
+- **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente.
 - **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Tonalidades e Tipos de Evento.
 - **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
 - **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
@@ -262,6 +263,7 @@ Base URL: `http://localhost:3000/api`
 | Artistas         | `/artistas`         | Sim  | —                                      |
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
 | Integrantes      | `/integrantes`      | Sim  | `/funcoes`                             |
+| Convites         | `/convites`         | Parcial | Gerar, listar, revogar (auth). Validar, aceitar (público) |
 | Eventos          | `/eventos`          | Sim  | `/musicas`, `/integrantes`             |
 | Tags             | `/tags`             | Sim  | —                                      |
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
@@ -323,6 +325,13 @@ DELETE /api/eventos/:eventoId/integrantes/:integranteId
 GET    /api/igrejas/:igrejaId/users
 POST   /api/igrejas/:igrejaId/users
 DELETE /api/igrejas/:igrejaId/users/:userId
+
+# Convites (onboarding via link)
+POST   /api/convites                    # Gerar convite (auth)
+GET    /api/convites                    # Listar convites (auth)
+DELETE /api/convites/:id                # Revogar convite (auth)
+GET    /api/convites/:token/validate    # Validar token (público)
+POST   /api/convites/:token/accept      # Aceitar convite (público)
 ```
 
 ### Formato de erros
@@ -404,6 +413,7 @@ LouvorFlow/
 - [x] Integração frontend-backend — Fase 2 (CRUD completo, configurações, dashboard real, busca, testes E2E)
 - [x] Autenticação com JWT e RBAC (backend + frontend)
 - [x] Multi-tenant — suporte a múltiplas igrejas com isolamento de dados
+- [x] Convite via link para onboarding de integrantes
 - [ ] Seleção de versão ao associar música a escala (débito técnico)
 - [ ] Compartilhamento de escalas via WhatsApp
 - [ ] Relatórios de frequência de execução

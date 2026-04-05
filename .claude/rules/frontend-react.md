@@ -72,7 +72,7 @@ packages/frontend/src/
 - **Token storage**: Access token em memória (variável JS). Refresh token em `localStorage`. Nunca armazenar access token em localStorage.
 - **Auto-refresh**: `apiFetch` intercepta 401, tenta refresh via singleton promise (evita race conditions com token rotation). Se refresh falha, limpa tokens e redireciona ao login.
 - **Rotas protegidas**: Usar `<ProtectedRoute>` para rotas que exigem autenticação. Usar `<AdminRoute>` dentro de `ProtectedRoute` para rotas que exigem role "admin".
-- **Rotas públicas**: `/login`, `/esqueci-senha`, `/redefinir-senha`, `/selecionar-igreja` não usam `ProtectedRoute`.
+- **Rotas públicas**: `/login`, `/esqueci-senha`, `/redefinir-senha`, `/selecionar-igreja`, `/convite/:token` não usam `ProtectedRoute`.
 - **Sidebar RBAC**: Todos os itens de domínio visíveis para qualquer autenticado. Seção "Administração" visível apenas para `isAdmin`.
 - **Multi-tenant**: `currentTenant: { id, name } | null` disponível no AuthContext. Definido no login, seleção de tenant e troca de tenant.
 - **SelectTenantPage** (`/selecionar-igreja`): Exibida quando o login retorna `requires_tenant_selection` (usuário pertence a múltiplas igrejas).
@@ -106,6 +106,90 @@ Consultar esse arquivo antes de criar novos componentes ou alterar padrões de U
   1. **Schema Zod** — usar `.refine()` para aceitar apenas `http://` ou `https://` nos schemas de resposta da API e de formulários.
   2. **Renderização** — usar `isSafeUrl(url)` como guarda condicional antes de renderizar o elemento `<a>`.
 - **`dangerouslySetInnerHTML`**: Evitar. Se necessário, nunca incluir dados fornecidos pelo utilizador sem sanitização.
+
+## Elegância — Prioridade Máxima
+
+<CRITICAL>
+A elegância visual é o valor mais importante nas decisões de UI/UX. Sempre preferir a abordagem mais elegante, mesmo que exija mais esforço. Consultar `packages/frontend/.interface-design/system.md` (seção "Princípio de Elegância") para diretrizes completas.
+</CRITICAL>
+
+## Responsividade Mobile — Regras Obrigatórias
+
+<CRITICAL>
+O app é usado primariamente em dispositivos móveis. Todo código novo ou modificado DEVE seguir os padrões mobile-first documentados em `packages/frontend/.interface-design/system.md` (seção Mobile Adaptations).
+</CRITICAL>
+
+### Padrões obrigatórios para todo componente novo/modificado
+
+1. **Inputs e Selects inline**: Usar `w-full sm:w-XX` — nunca largura fixa sem breakpoint.
+2. **Flex rows com múltiplos elementos**: Usar `flex flex-col gap-2 sm:flex-row sm:items-center` ou `flex flex-wrap`.
+3. **Texto dinâmico** (nomes, títulos de API): Usar `truncate` com `min-w-0` no container pai para textos curtos. Para títulos/nomes que podem ser longos (ex: nome de música em página de detalhe), preferir `line-clamp-2` para permitir até 2 linhas antes de truncar — mais legível que cortar em 1 linha. Sempre garantir `min-w-0` + `overflow-hidden` em toda a cadeia de containers flex pai.
+4. **Botões de ação em rows**: Sempre `flex-shrink-0` para não comprimir.
+5. **Container padding**: `p-4 sm:p-6` (AppLayout já implementa — não sobrescrever com `p-6` fixo em subcomponentes).
+6. **Overflow guard**: Containers principais devem ter `overflow-x-hidden`.
+7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal.
+8. **Overlays com conteúdo alto** (calendários, listas longas, filtros): Usar `Drawer` (bottom sheet) no mobile e `Popover` no desktop. Detectar com `useIsMobile()`. Nunca usar Popover no mobile para conteúdo que exceda ~300px de altura — causa overflow/corte. Nunca renderizar conteúdo inline que desloque campos abaixo — preferir overlay. Extrair conteúdo compartilhado em subcomponente para evitar duplicação. Referência: `DateTimePicker.tsx`.
+9. **Ícones de confirmação de seleção**: Em botões ao lado de um Select/Combobox que confirmam a escolha (adicionar item selecionado), usar `CornerDownLeft` (↵) em vez de `Plus` (+). Reservar `Plus` apenas para criar novos itens.
+
+### Padrão de referência (modelo correto)
+
+```typescript
+{/* Header com ações — empilha no mobile, inline no desktop */}
+<div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div className="flex items-center gap-3">...</div>
+  <Button>Ação</Button>
+</div>
+
+{/* Form inline — inputs full-width no mobile */}
+<div className="flex flex-wrap items-center gap-2">
+  <Input className="h-8 w-full sm:w-48" />
+  <SelectTrigger className="h-8 w-full sm:w-32" />
+  <Button size="sm">✓</Button>
+</div>
+
+{/* Item row — texto trunca, botões não comprimem */}
+<div className="flex items-center justify-between gap-2">
+  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+    <Icon className="h-4 w-4 flex-shrink-0" />
+    <span className="font-medium truncate">{dynamicText}</span>
+  </div>
+  <div className="flex items-center gap-1 flex-shrink-0">
+    <Button variant="ghost" size="sm">...</Button>
+  </div>
+</div>
+
+{/* Dual layout: Cards mobile / Table desktop */}
+<div className="space-y-3 sm:hidden">
+  {items.map((item) => (
+    <div key={item.id} className="p-4 rounded-lg border border-border space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium truncate">{item.name}</span>
+        <Badge className="flex-shrink-0">{item.count}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">{item.description}</p>
+      <Button variant="outline" size="sm" className="w-full">Ação</Button>
+    </div>
+  ))}
+</div>
+<div className="hidden sm:block">
+  <Table>...</Table>
+</div>
+```
+
+### Páginas já corrigidas
+
+| Arquivo | Correção aplicada |
+|---|---|
+| `MusicaDetail.tsx` | Edit overflow + truncate + flex-wrap + responsive gaps |
+| `AppLayout.tsx` | Padding responsivo `p-4 sm:p-6` + overflow-x-hidden |
+| `EventoDetail.tsx` | Responsive gaps + truncate integrantes + flex-shrink-0 |
+| `ConfigCrudSection.tsx` | flex-wrap form + gap + truncate nomes |
+| `Dashboard.tsx` | grid-cols-2 stats + responsive gaps + truncate |
+| `admin/Roles.tsx` | Dual layout cards/table + header responsivo |
+| `admin/Users.tsx` | Dual layout cards/table + header responsivo |
+| `Scales.tsx` | Header justify-between com prefixo sm: |
+| `IntegranteForm.tsx` | flex-wrap no select+button de funções |
+| `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
 
 ## Convenções de Código
 

@@ -46,6 +46,7 @@ import AdminPermissions from "./pages/admin/Permissions";
 import AdminIgrejas from "./pages/admin/Igrejas";
 import AdminIgrejaUsers from "./pages/admin/IgrejaUsers";
 import SelectTenant from "./pages/SelectTenant";
+import InviteAccept from "./pages/InviteAccept";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +118,8 @@ const App = () => (
                 <Route path="/redefinir-senha" element={<ResetPassword />} />
                 {/* Rota de seleção de organização (mid-login, sem ProtectedRoute) */}
                 <Route path="/selecionar-igreja" element={<SelectTenant />} />
+                {/* Rota pública de convite para onboarding de integrantes */}
+                <Route path="/convite/:token" element={<InviteAccept />} />
 
                 {/* Rotas protegidas (autenticação obrigatória) */}
                 <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />

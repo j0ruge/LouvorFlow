@@ -10,6 +10,32 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+
+  /* Scrollbar fino no desktop, oculto no mobile para evitar deslocamento de layout */
+  .scrollbar-overlay {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-overlay::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+  }
+  .scrollbar-overlay::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  .scrollbar-overlay::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (max-width: 639px) {
+    .scrollbar-overlay {
+      scrollbar-width: none;
+    }
+    .scrollbar-overlay::-webkit-scrollbar {
+      display: none;
+    }
+  }
 }
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here.

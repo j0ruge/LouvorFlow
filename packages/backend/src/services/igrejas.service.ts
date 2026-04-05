@@ -9,7 +9,7 @@ import { AppError } from '../errors/AppError.js';
 import igrejasRepository from '../repositories/igrejas.repository.js';
 import prisma from '../../prisma/cliente.js';
 import { seedTenantDefaults } from '../../seeds/domain-defaults.js';
-import { invalidateTenantCache } from '../middlewares/ensureAuthenticated.js';
+import { invalidateTenantCache } from '../providers/tenant-cache.provider.js';
 
 /**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
@@ -108,6 +108,9 @@ class IgrejasService {
       throw new AppError('Igreja não encontrada', 404);
     }
     const resultado = await igrejasRepository.update(id, { status: 'inactive' });
+
+    /** Invalida cache de status do tenant para efeito imediato no middleware de auth. */
+    invalidateTenantCache(id);
 
     /**
      * Invalida todos os refresh tokens dos usuários vinculados ao tenant desativado.

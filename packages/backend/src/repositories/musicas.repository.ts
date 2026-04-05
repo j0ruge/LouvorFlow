@@ -110,15 +110,17 @@ class MusicasRepository {
                 },
             });
 
-            if (data.artista_id) {
+            const temCamposVersao = data.artista_id || data.bpm || data.cifras || data.lyrics || data.link_versao || data.intensidade;
+            if (temCamposVersao) {
                 await tx.artistas_Musicas.create({
                     data: {
-                        artista_id: data.artista_id,
+                        artista_id: data.artista_id ?? null,
                         musica_id: musica.id,
                         bpm: data.bpm ?? null,
                         cifras: data.cifras ?? null,
                         lyrics: data.lyrics ?? null,
                         link_versao: data.link_versao ?? null,
+                        intensidade: data.intensidade ?? null,
                         tenant_id: tenantId,
                     },
                 });
@@ -171,6 +173,7 @@ class MusicasRepository {
                 if (data.cifras !== undefined) versaoUpdate.cifras = data.cifras;
                 if (data.lyrics !== undefined) versaoUpdate.lyrics = data.lyrics;
                 if (data.link_versao !== undefined) versaoUpdate.link_versao = data.link_versao;
+                if (data.intensidade !== undefined) versaoUpdate.intensidade = data.intensidade;
 
                 if (Object.keys(versaoUpdate).length > 0) {
                     await tx.artistas_Musicas.update({
@@ -214,6 +217,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -226,21 +230,31 @@ class MusicasRepository {
     }
 
     /**
-     * Cria uma nova versão (artista_musicas) para uma música.
+     * Cria uma nova versão (artista_musicas) para uma música. Aceita artista_id null para versões sem artista.
      *
-     * @param data - Dados da versão (artista, música, bpm, cifras, lyrics, link)
+     * @param data - Dados da versão (artista opcional, música, bpm, cifras, lyrics, link, intensidade)
      * @param tenantId - ID do tenant proprietário
-     * @returns Versão criada com dados do artista
+     * @returns Versão criada com dados do artista (ou null se sem artista)
      */
-    async createVersao(data: { artista_id: string; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string }, tenantId: string) {
+    async createVersao(data: { artista_id: string | null; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
         return getPrisma().artistas_Musicas.create({
-            data: { ...data, tenant_id: tenantId },
+            data: {
+                musica_id: data.musica_id,
+                artista_id: data.artista_id ?? null,
+                bpm: data.bpm ?? null,
+                cifras: data.cifras ?? null,
+                lyrics: data.lyrics ?? null,
+                link_versao: data.link_versao ?? null,
+                intensidade: data.intensidade ?? null,
+                tenant_id: tenantId,
+            },
             select: {
                 id: true,
                 bpm: true,
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -258,6 +272,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -272,6 +287,18 @@ class MusicasRepository {
     async findVersaoDuplicate(musicaId: string, artistaId: string) {
         return getPrisma().artistas_Musicas.findFirst({
             where: { artista_id: artistaId, musica_id: musicaId }
+        });
+    }
+
+    /**
+     * Busca versão sem artista (artista_id IS NULL) para uma música específica.
+     *
+     * @param musicaId - UUID da música
+     * @returns Versão sem artista ou null se não existir
+     */
+    async findVersaoWithoutArtist(musicaId: string) {
+        return getPrisma().artistas_Musicas.findFirst({
+            where: { musica_id: musicaId, artista_id: null }
         });
     }
 

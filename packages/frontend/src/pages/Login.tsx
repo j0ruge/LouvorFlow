@@ -97,7 +97,7 @@ const Login = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="seu@email.com"
+                placeholder="Digite seu e-mail"
                 autoComplete="email"
                 {...register("email")}
               />
@@ -110,7 +110,7 @@ const Login = () => {
               <Label htmlFor="password">Senha</Label>
               <PasswordInput
                 id="password"
-                placeholder="••••••••"
+                placeholder="Digite sua senha"
                 autoComplete="current-password"
                 {...register("password")}
               />

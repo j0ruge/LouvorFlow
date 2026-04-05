@@ -21,7 +21,8 @@ packages/backend/
 │   ├── controllers/     # Manipuladores de requisição HTTP
 │   │   └── auth/        # Controllers de auth (sessions, users, roles, permissions, profile, password)
 │   ├── services/        # Lógica de negócio e validações
-│   │   └── auth/        # Services de auth
+│   │   ├── auth/        # Services de auth
+│   │   └── convites/    # Services de convites (gerar, validar, aceitar, listar, revogar)
 │   ├── repositories/    # Acesso a dados (Prisma ORM)
 │   │   └── auth/        # Repositories de auth
 │   ├── context/          # AsyncLocalStorage para tenant context por request
@@ -33,7 +34,7 @@ packages/backend/
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (23 modelos: 15 domínio + 8 auth)
+│   ├── schema.prisma    # Schema do banco (24 modelos: 15 domínio + 9 auth)
 │   ├── cliente.ts       # Prisma Client: singleton base + forTenant() + getPrisma()
 │   └── migrations/      # Migrações do banco
 ├── seeds/
@@ -98,6 +99,10 @@ Todos os endpoints de domínio (artistas, categorias, eventos, funções, integr
 
 - **GET**: `ensureAuthenticated, ensureTenantContext` — qualquer usuário logado com tenant ativo
 - **POST / PUT / DELETE**: `ensureAuthenticated, ensureTenantContext, can(['recurso.write'])` — exige permissão de escrita no tenant ativo
+
+### Padrão misto: rotas autenticadas + públicas (Convites)
+
+O módulo de convites (`/api/convites`) combina rotas autenticadas (líder: gerar, listar, revogar) e rotas públicas (participante: validar token, aceitar convite) no mesmo arquivo de rotas. Rotas públicas não usam middlewares de autenticação — o token UUID na URL é a única forma de autorização.
 
 ### Rotas de gestão de tenants
 
@@ -172,7 +177,7 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `packages/backend/prisma/schema.prisma` (23 modelos: 15 domínio + 8 auth).
+- Schema: `packages/backend/prisma/schema.prisma` (24 modelos: 15 domínio + 9 auth).
 - Client: `packages/backend/prisma/cliente.ts`:
   - `prisma` (default export) — singleton base, sem filtro de tenant. Usar para operações globais (auth, seeds, super-admin).
   - `forTenant(tenantId)` — retorna client com `$extends` que injeta `tenant_id` em todas as operações de domínio.

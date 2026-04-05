@@ -99,6 +99,10 @@
     {
       "name": "Profile",
       "description": "Perfil do usuário autenticado"
+    },
+    {
+      "name": "Convites",
+      "description": "Links de convite para onboarding de integrantes"
     }
   ],
   "paths": {
@@ -2046,6 +2050,7 @@
                     {
                       "id": "b2c3d4e5-2222-4000-b000-000000000001",
                       "nome": "Rendido Estou",
+                      "ordem": 1,
                       "tonalidade": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000007",
                         "tom": "G"
@@ -2054,6 +2059,7 @@
                     {
                       "id": "b2c3d4e5-2222-4000-b000-000000000002",
                       "nome": "Ninguém Explica Deus",
+                      "ordem": 2,
                       "tonalidade": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000004",
                         "tom": "D"
@@ -2249,6 +2255,7 @@
                   {
                     "id": "b2c3d4e5-2222-4000-b000-000000000001",
                     "nome": "Rendido Estou",
+                    "ordem": 1,
                     "tonalidade": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000007",
                       "tom": "G"
@@ -2257,6 +2264,7 @@
                   {
                     "id": "b2c3d4e5-2222-4000-b000-000000000002",
                     "nome": "Ninguém Explica Deus",
+                    "ordem": 2,
                     "tonalidade": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000004",
                       "tom": "D"
@@ -2374,6 +2382,83 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/eventos/{eventoId}/musicas/reorder": {
+      "patch": {
+        "summary": "Reordena as músicas de um evento",
+        "description": "Reordena as músicas vinculadas a um evento conforme a ordem dos IDs recebidos.",
+        "tags": [
+          "Eventos"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "musicas_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "description": "Lista ordenada de IDs das músicas do evento"
+                  }
+                },
+                "required": [
+                  "musicas_ids"
+                ]
+              },
+              "example": {
+                "musicas_ids": [
+                  "b2c3d4e5-2222-4000-b000-000000000002",
+                  "b2c3d4e5-2222-4000-b000-000000000001",
+                  "b2c3d4e5-2222-4000-b000-000000000003"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem das músicas atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Ordem das músicas atualizada com sucesso"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -4567,10 +4652,292 @@
           }
         }
       }
+    },
+    "/convites": {
+      "post": {
+        "summary": "Gerar link de convite",
+        "description": "Gera um novo link de convite com expiração de 2 horas para o tenant do líder autenticado.",
+        "tags": ["Convites"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "201": {
+            "description": "Convite gerado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": { "type": "string", "example": "Convite gerado com sucesso" },
+                    "invite": { "$ref": "#/components/schemas/Invite" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      },
+      "get": {
+        "summary": "Listar convites",
+        "description": "Lista todos os convites do tenant do líder autenticado com status derivado.",
+        "tags": ["Convites"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Lista de convites retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invites": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Invite" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" }
+        }
+      }
+    },
+    "/convites/{id}": {
+      "delete": {
+        "summary": "Revogar convite",
+        "description": "Revoga um convite ativo antes de ser utilizado.",
+        "tags": ["Convites"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "UUID do registro de convite"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Convite revogado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": { "type": "string", "example": "Convite revogado com sucesso" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Convite já utilizado ou já revogado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "404": {
+            "description": "Convite não encontrado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/{token}/validate": {
+      "get": {
+        "summary": "Validar token de convite",
+        "description": "Valida o estado de um token de convite e retorna nome do tenant. Rota pública.",
+        "tags": ["Convites"],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "UUID do token de convite"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": { "type": "boolean", "example": true },
+                    "tenant": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string", "example": "Igreja Exemplo" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token expirado, usado ou revogado",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "expired": { "value": { "erro": "Este convite expirou. Peça um novo ao seu líder.", "codigo": 400 } },
+                  "used": { "value": { "erro": "Este convite já foi utilizado.", "codigo": 400 } },
+                  "revoked": { "value": { "erro": "Este convite foi cancelado.", "codigo": 400 } }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Token inexistente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/{token}/accept": {
+      "post": {
+        "summary": "Aceitar convite",
+        "description": "Aceita um convite e cria conta ou vincula conta existente ao tenant. Rota pública.",
+        "tags": ["Convites"],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "UUID do token de convite"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nome", "email", "senha", "senha_confirmacao"],
+                "properties": {
+                  "nome": { "type": "string", "example": "Maria Silva" },
+                  "email": { "type": "string", "format": "email", "example": "maria@gmail.com" },
+                  "senha": { "type": "string", "minLength": 6, "example": "minhasenha123" },
+                  "senha_confirmacao": { "type": "string", "example": "minhasenha123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": { "type": "string", "example": "Conta criada com sucesso! Faça login para continuar." }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Conta existente vinculada ao tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": { "type": "string", "example": "Você foi adicionado à igreja com sucesso! Faça login para continuar." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token inválido ou validação falhou",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Senha incorreta para conta existente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "erro": "Senha incorreta para a conta existente.", "codigo": 401 }
+              }
+            }
+          },
+          "404": {
+            "description": "Token inexistente",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "409": {
+            "description": "Usuário já pertence ao tenant",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "erro": "Você já pertence a este grupo.", "codigo": 409 }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Invite": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "token": { "type": "string", "format": "uuid" },
+          "url": { "type": "string", "format": "uri", "example": "https://app.louvorflow.com/convite/uuid" },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "used_at": { "type": "string", "format": "date-time", "nullable": true },
+          "status": { "type": "string", "enum": ["active", "expired", "used", "revoked"] },
+          "created_by": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            }
+          },
+          "used_by": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            }
+          }
+        },
+        "required": ["id", "token", "url", "expires_at", "created_at", "status"]
+      },
       "IdNome": {
         "type": "object",
         "properties": {
@@ -4650,7 +5017,9 @@
             "format": "uuid"
           },
           "artista": {
-            "$ref": "#/components/schemas/IdNome"
+            "nullable": true,
+            "allOf": [{ "$ref": "#/components/schemas/IdNome" }],
+            "description": "Artista da versão. Null quando artista não informado."
           },
           "bpm": {
             "type": "integer",
@@ -4667,11 +5036,22 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "nullable": true,
+            "description": "Nível de intensidade da versão"
           }
         },
         "required": [
           "id",
-          "artista"
+          "artista",
+          "bpm",
+          "cifras",
+          "lyrics",
+          "link_versao",
+          "intensidade"
         ]
       },
       "VersaoInput": {
@@ -4679,7 +5059,9 @@
         "properties": {
           "artista_id": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true,
+            "description": "ID do artista (opcional). Aceita UUID, null ou campo omitido; quando null ou omitido, a versão é criada sem artista."
           },
           "bpm": {
             "type": "integer",
@@ -4696,15 +5078,23 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "nullable": true,
+            "description": "Nível de intensidade da versão"
           }
-        },
-        "required": [
-          "artista_id"
-        ]
+        }
       },
       "VersaoUpdateInput": {
         "type": "object",
         "properties": {
+          "artista_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do artista. Aceito apenas quando versão não tem artista vinculado (null → artista). Retorna 400 se versão já possui artista."
+          },
           "bpm": {
             "type": "integer",
             "nullable": true
@@ -4720,6 +5110,12 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": ["calma", "media", "agitada"],
+            "nullable": true,
+            "description": "Nível de intensidade da versão"
           }
         }
       },
@@ -4883,6 +5279,10 @@
           "nome": {
             "type": "string"
           },
+          "ordem": {
+            "type": "integer",
+            "description": "Posição da música na ordem do evento"
+          },
           "tonalidade": {
             "nullable": true,
             "allOf": [
@@ -4894,7 +5294,8 @@
         },
         "required": [
           "id",
-          "nome"
+          "nome",
+          "ordem"
         ]
       },
       "IntegranteComFuncoes": {

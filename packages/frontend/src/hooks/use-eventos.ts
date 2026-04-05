@@ -15,10 +15,11 @@ import {
   deleteEvento,
   addMusicaToEvento,
   removeMusicaFromEvento,
+  reorderMusicas,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
 } from "@/services/eventos";
-import type { CreateEventoForm, UpdateEventoForm } from "@/schemas/evento";
+import type { CreateEventoForm, UpdateEventoForm, EventoShow } from "@/schemas/evento";
 
 /**
  * Hook para buscar a lista de eventos.
@@ -161,6 +162,54 @@ export function useRemoveMusicaFromEvento(eventoId: string) {
     },
     onError: (error: Error) => {
       toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para reordenar as músicas de um evento com optimistic UI.
+ *
+ * Atualiza o cache imediatamente após o drop, salva em background,
+ * e reverte com toast de erro em caso de falha.
+ *
+ * @param eventoId - UUID do evento para invalidação de cache.
+ * @returns Resultado do useMutation para reordenação de músicas.
+ */
+export function useReorderMusicas(eventoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (musicasIds: string[]) => reorderMusicas(eventoId, musicasIds),
+    onMutate: async (musicasIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: ["eventos", eventoId] });
+
+      const previousData = queryClient.getQueryData<EventoShow>(["eventos", eventoId]);
+
+      if (previousData) {
+        const reorderedMusicas = musicasIds
+          .map((id, index) => {
+            const musica = previousData.musicas.find(m => m.id === id);
+            return musica ? { ...musica, ordem: index + 1 } : null;
+          })
+          .filter(Boolean);
+
+        queryClient.setQueryData<EventoShow>(["eventos", eventoId], {
+          ...previousData,
+          musicas: reorderedMusicas as EventoShow["musicas"],
+        });
+      }
+
+      return { previousData };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(["eventos", eventoId], context.previousData);
+      }
+      toast.error("Erro ao reordenar músicas. A ordem anterior foi restaurada.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
     },
   });
 }

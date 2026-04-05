@@ -92,6 +92,7 @@ jobs:
 
       - name: Run database migrations
         run: |
+          docker pull ghcr.io/j0ruge/louvorflow-api:staging
           docker run --rm --network ${{ secrets.NGINX_NETWORK_NAME }} \
             -e DB_URL=${{ secrets.DB_URL }} \
             ghcr.io/j0ruge/louvorflow-api:staging \

@@ -5,9 +5,10 @@
  * artista (na criação), informar BPM, cifras, letras e link da versão.
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -24,17 +25,12 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useArtistas } from "@/hooks/use-artistas";
+import { IntensidadeSelector } from "@/components/IntensidadeSelector";
+import { CreatableCombobox } from "@/components/CreatableCombobox";
+import { useArtistas, useCreateArtista } from "@/hooks/use-artistas";
 import {
   CreateVersaoFormSchema,
   type CreateVersaoForm,
@@ -70,6 +66,13 @@ export function VersaoForm({
 }: VersaoFormProps) {
   const isEditing = !!versao;
   const { data: artistas, isLoading: artistasLoading } = useArtistas();
+  const createArtista = useCreateArtista();
+
+  /** Opções do combobox de artistas mapeadas para { value, label }. */
+  const artistaOptions = useMemo(
+    () => (artistas ?? []).map((a) => ({ value: a.id, label: a.nome })),
+    [artistas],
+  );
 
   const form = useForm<CreateVersaoForm>({
     resolver: zodResolver(CreateVersaoFormSchema),
@@ -79,6 +82,7 @@ export function VersaoForm({
       cifras: "",
       lyrics: "",
       link_versao: "",
+      intensidade: "",
     },
   });
 
@@ -93,11 +97,12 @@ export function VersaoForm({
 
       if (isEditing && versao) {
         form.reset({
-          artista_id: versao.artista.id,
+          artista_id: versao.artista?.id ?? "",
           bpm: versao.bpm ?? "",
           cifras: versao.cifras ?? "",
           lyrics: versao.lyrics ?? "",
           link_versao: versao.link_versao ?? "",
+          intensidade: versao.intensidade ?? "",
         });
       } else {
         form.reset({
@@ -106,11 +111,29 @@ export function VersaoForm({
           cifras: "",
           lyrics: "",
           link_versao: "",
+          intensidade: "",
         });
       }
     },
     [open, isEditing, versao, form],
   );
+
+  /**
+   * Cria um artista inline via CreatableCombobox e retorna seu UUID.
+   *
+   * @param input - Nome digitado pelo usuário.
+   * @returns UUID do artista criado ou `undefined` em caso de falha.
+   */
+  async function handleCreateArtista(input: string): Promise<string | undefined> {
+    try {
+      const result = await createArtista.mutateAsync({ nome: input });
+      return result.artista.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao criar artista";
+      toast.error(message);
+      return undefined;
+    }
+  }
 
   /**
    * Delega a submissão dos dados validados ao callback `onSubmit`.
@@ -144,30 +167,35 @@ export function VersaoForm({
               name="artista_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Artista</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={artistasLoading || isEditing}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um artista" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {artistasLoading && (
-                        <SelectItem value="_loading" disabled>
-                          Carregando...
-                        </SelectItem>
-                      )}
-                      {artistas?.map((artista) => (
-                        <SelectItem key={artista.id} value={artista.id}>
-                          {artista.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Artista (opcional)</FormLabel>
+                  <FormControl>
+                    <CreatableCombobox
+                      options={artistaOptions}
+                      value={field.value || undefined}
+                      onSelect={field.onChange}
+                      onCreate={handleCreateArtista}
+                      placeholder="Não informado (opcional)"
+                      searchPlaceholder="Buscar artista..."
+                      isLoading={artistasLoading}
+                      disabled={isEditing && !!versao?.artista}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="intensidade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Intensidade</FormLabel>
+                  <FormControl>
+                    <IntensidadeSelector
+                      value={field.value as "calma" | "media" | "agitada" | "" | undefined}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -8,11 +8,12 @@
 import { z } from "zod";
 import { IdNomeSchema, TonalidadeSchema } from "@/schemas/shared";
 
-/** Schema de música simplificada no contexto de evento. */
+/** Schema de música simplificada no contexto de evento, incluindo posição na escala. */
 export const MusicaEventoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
   tonalidade: TonalidadeSchema.nullable(),
+  ordem: z.number().int(),
 });
 
 /** Tipo inferido de música no contexto de evento. */

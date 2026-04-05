@@ -73,7 +73,7 @@ const AdminUsers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Usuários
@@ -185,44 +185,86 @@ const AdminUsers = () => {
           )}
 
           {!isLoading && users && users.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Roles</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: Cards */}
+              <div className="space-y-3 sm:hidden">
                 {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.map((role) => (
-                          <Badge key={role.id} variant="outline" className="text-xs">
-                            {role.name}
-                          </Badge>
-                        ))}
-                        {user.roles.length === 0 && (
-                          <span className="text-xs text-muted-foreground">Sem roles</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
+                  <div
+                    key={user.id}
+                    className="p-4 rounded-lg border border-border space-y-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{user.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {user.roles.map((role) => (
+                        <Badge key={role.id} variant="outline" className="text-xs">
+                          {role.name}
+                        </Badge>
+                      ))}
+                      {user.roles.length === 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          Sem roles
+                        </span>
+                      )}
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link to={`/admin/usuarios/${user.id}/acl`}>
-                        <Button variant="outline" size="sm">
-                          <Shield className="mr-1 h-3 w-3" />
-                          Gerenciar ACL
-                        </Button>
+                        <Shield className="mr-1 h-3 w-3" />
+                        Gerenciar ACL
                       </Link>
-                    </TableCell>
-                  </TableRow>
+                    </Button>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Roles</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {user.roles.map((role) => (
+                              <Badge key={role.id} variant="outline" className="text-xs">
+                                {role.name}
+                              </Badge>
+                            ))}
+                            {user.roles.length === 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                Sem roles
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/admin/usuarios/${user.id}/acl`}>
+                              <Shield className="mr-1 h-3 w-3" />
+                              Gerenciar ACL
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -178,6 +178,45 @@ check_docker() {
 }
 
 # =============================================================================
+# Port helpers
+# =============================================================================
+
+# Procura uma porta livre a partir de base_port, tentando até max_tries vezes.
+find_available_port() {
+    local base_port="$1"
+    local max_tries="${2:-10}"
+    local port="$base_port"
+    local attempt=0
+
+    while [[ $attempt -lt $max_tries ]]; do
+        if ! ss -tlnp 2>/dev/null | grep -q ":${port} "; then
+            echo "$port"
+            return 0
+        fi
+        ((port++))
+        ((attempt++))
+    done
+
+    return 1
+}
+
+# Atualiza a porta do PostgreSQL nos arquivos .env de infra e backend.
+update_port_in_env_files() {
+    local new_port="$1"
+    local infra_env="$INFRA_DIR/.env"
+    local backend_env="$BACKEND_DIR/.env"
+
+    sed -i "s/^POSTGRES_LOCAL_PORT=.*/POSTGRES_LOCAL_PORT=${new_port}/" "$infra_env"
+    log_info "Atualizado POSTGRES_LOCAL_PORT=${new_port} em ${infra_env}"
+
+    if [[ -f "$backend_env" ]]; then
+        sed -i "s/^DB_PORT=.*/DB_PORT=${new_port}/" "$backend_env"
+        sed -i "s|\(localhost:\)[0-9]\{1,5\}\(/\)|\1${new_port}\2|" "$backend_env"
+        log_info "Atualizado DB_PORT=${new_port} e DB_URL em ${backend_env}"
+    fi
+}
+
+# =============================================================================
 # Start PostgreSQL
 # =============================================================================
 
@@ -204,31 +243,36 @@ start_postgres() {
     container_name=$(grep -E "^CONTAINER_NAME=" "$env_file" 2>/dev/null | cut -d'=' -f2)
     container_name="${container_name:-louvorflow_db}"
 
-    # Check if service is already running via docker compose
-    if docker compose --env-file "$env_file" -f "$compose_file" ps --status running -q 2>/dev/null | grep -q .; then
-        log_info "Container PostgreSQL já está rodando."
+    # Check if our container is already running (identity-based, not port-based)
+    if docker inspect --format='{{.State.Running}}' "$container_name" 2>/dev/null | grep -q "true"; then
+        log_info "Container PostgreSQL '${container_name}' já está rodando."
         return 0
     fi
 
-    # Check if port is already in use by something else
+    # Read configured port
     local pg_port
     pg_port=$(grep -E "^POSTGRES_LOCAL_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2)
     pg_port="${pg_port:-35432}"
 
+    # Check if port is occupied by another process
     if ss -tlnp 2>/dev/null | grep -q ":${pg_port} "; then
-        if (echo >/dev/tcp/localhost/"$pg_port") 2>/dev/null; then
-            log_info "PostgreSQL já está rodando na porta ${pg_port} (container externo)."
-            return 0
-        fi
+        log_warn "Porta ${pg_port} está em uso por outro processo."
 
-        log_error "Porta ${pg_port} já em uso. Pare o processo ou altere POSTGRES_LOCAL_PORT."
-        exit 1
+        local new_port
+        new_port=$(find_available_port "$((pg_port + 1))") || {
+            log_error "Não foi possível encontrar uma porta disponível (tentou ${pg_port}–$((pg_port + 10)))."
+            exit 1
+        }
+
+        log_warn "Usando porta alternativa: ${new_port}"
+        update_port_in_env_files "$new_port"
+        pg_port="$new_port"
     fi
 
     # Start container
     docker compose --env-file "$env_file" -f "$compose_file" up -d
 
-    log_info "Container PostgreSQL iniciado."
+    log_info "Container PostgreSQL iniciado na porta ${pg_port}."
 }
 
 # =============================================================================
@@ -256,12 +300,8 @@ healthcheck_postgres() {
     local attempt=1
 
     while [[ $attempt -le $max_attempts ]]; do
-        # Try pg_isready via docker exec first, fallback to TCP check
         if docker exec "$container_name" pg_isready -U "$db_user" &>/dev/null; then
             log_info "PostgreSQL pronto! (porta $pg_port)"
-            return 0
-        elif (echo >/dev/tcp/localhost/"$pg_port") 2>/dev/null; then
-            log_info "PostgreSQL pronto! (porta $pg_port, externo)"
             return 0
         fi
 

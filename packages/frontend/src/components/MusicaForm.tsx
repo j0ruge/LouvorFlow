@@ -43,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { CreatableCombobox } from "@/components/CreatableCombobox";
 import { CreatableMultiCombobox } from "@/components/CreatableMultiCombobox";
+import { IntensidadeSelector } from "@/components/IntensidadeSelector";
 import { useCreateMusicaComplete, useUpdateMusicaComplete } from "@/hooks/use-musicas";
 import { useTonalidades, useCreateTonalidade, useCategorias, useCreateCategoria, useFuncoes, useCreateFuncao } from "@/hooks/use-support";
 import { useArtistas, useCreateArtista } from "@/hooks/use-artistas";
@@ -62,6 +63,7 @@ const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
   cifras: "",
   lyrics: "",
   link_versao: "",
+  intensidade: "",
   categoria_ids: [],
   funcao_ids: [],
 };
@@ -171,6 +173,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           cifras: versaoDefault?.cifras ?? "",
           lyrics: versaoDefault?.lyrics ?? "",
           link_versao: versaoDefault?.link_versao ?? "",
+          intensidade: versaoDefault?.intensidade ?? "",
           categoria_ids: musica.categorias.map((c) => c.id),
           funcao_ids: musica.funcoes.map((f) => f.id),
         });
@@ -335,6 +338,24 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                 )}
               />
 
+              {/* Intensidade (pill buttons) */}
+              <FormField
+                control={form.control}
+                name="intensidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Intensidade</FormLabel>
+                    <FormControl>
+                      <IntensidadeSelector
+                        value={field.value as "calma" | "media" | "agitada" | "" | undefined}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Tonalidade (CreatableCombobox) */}
               <FormField
                 control={form.control}
@@ -364,7 +385,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                 name="artista_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Artista</FormLabel>
+                    <FormLabel>Artista (opcional)</FormLabel>
                     <FormControl>
                       <CreatableCombobox
                         options={artistaOptions}
