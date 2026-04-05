@@ -74,20 +74,6 @@ class AcceptInviteService {
         invite: { id: string; tenant_id: string },
         senha: string,
     ): Promise<{ statusCode: number; msg: string }> {
-        /** Verifica se o usuário já pertence ao tenant do convite. */
-        const existingLink = await prisma.tenantUsers.findUnique({
-            where: {
-                tenant_id_user_id: {
-                    tenant_id: invite.tenant_id,
-                    user_id: existingUser.id,
-                },
-            },
-        });
-
-        if (existingLink) {
-            throw new AppError('Você já pertence a este grupo.', 409);
-        }
-
         /** Busca o hash completo do usuário para verificação de senha. */
         const userWithPassword = await prisma.users.findUnique({
             where: { id: existingUser.id },
@@ -103,8 +89,23 @@ class AcceptInviteService {
             throw new AppError('Senha incorreta para a conta existente.', 401);
         }
 
-        /** Vincula e marca como usado atomicamente com re-verificação de estado (TOCTOU guard). */
+        /** Vincula e marca como usado atomicamente com guards de duplicata e TOCTOU. */
         await prisma.$transaction(async (tx) => {
+            /** Verifica se o usuário já pertence ao tenant do convite (dentro da transaction para evitar race condition). */
+            const existingLink = await tx.tenantUsers.findUnique({
+                where: {
+                    tenant_id_user_id: {
+                        tenant_id: invite.tenant_id,
+                        user_id: existingUser.id,
+                    },
+                },
+            });
+
+            if (existingLink) {
+                throw new AppError('Você já pertence a este grupo.', 409);
+            }
+
+            /** Re-verifica estado do convite para prevenir uso concorrente (TOCTOU guard). */
             const fresh = await tx.inviteTokens.findUnique({ where: { id: invite.id } });
             if (fresh?.used_at || fresh?.revoked_at) {
                 throw new AppError('Este convite já foi utilizado ou cancelado.', 400);
