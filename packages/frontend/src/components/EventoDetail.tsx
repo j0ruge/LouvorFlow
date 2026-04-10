@@ -58,6 +58,10 @@ import {
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
 import { useMusicas } from "@/hooks/use-musicas";
+import {
+  CreatableCombobox,
+  type ComboboxOption,
+} from "@/components/CreatableCombobox";
 import { useIntegrantes } from "@/hooks/use-integrantes";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
@@ -196,6 +200,28 @@ export function EventoDetail() {
     [evento?.musicas],
   );
 
+  /** IDs das músicas já associadas ao evento (derivado de musicaIds). */
+  const musicasAssociadasIds = useMemo(
+    () => new Set(musicaIds),
+    [musicaIds],
+  );
+
+  /** Músicas disponíveis para associação (excluindo já associadas). */
+  const musicasDisponiveis = useMemo(
+    () => allMusicas?.items.filter((m) => !musicasAssociadasIds.has(m.id)) ?? [],
+    [allMusicas?.items, musicasAssociadasIds],
+  );
+
+  /** Opções formatadas para o combobox de busca de músicas. */
+  const musicaOptions: ComboboxOption[] = useMemo(
+    () =>
+      musicasDisponiveis.map((m) => ({
+        value: m.id,
+        label: m.nome + (m.tonalidade ? ` (${m.tonalidade.tom})` : ""),
+      })),
+    [musicasDisponiveis],
+  );
+
   /**
    * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
    */
@@ -230,17 +256,10 @@ export function EventoDetail() {
     );
   }
 
-  /** IDs das músicas já associadas ao evento. */
-  const musicasAssociadasIds = new Set(evento.musicas.map((m) => m.id));
-
   /** IDs dos integrantes já associados ao evento. */
   const integrantesAssociadosIds = new Set(
     evento.integrantes.map((i) => i.id),
   );
-
-  /** Músicas disponíveis para associação (excluindo já associadas). */
-  const musicasDisponiveis =
-    allMusicas?.items.filter((m) => !musicasAssociadasIds.has(m.id)) ?? [];
 
   /** Integrantes disponíveis para associação (excluindo já associados). */
   const integrantesDisponiveis =
@@ -374,31 +393,22 @@ export function EventoDetail() {
         <CardContent className="space-y-4">
           {canWrite && (
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedMusicaId}
-                onValueChange={setSelectedMusicaId}
-                disabled={musicasDisponiveis.length === 0}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue
-                    placeholder={
-                      (allMusicas?.items.length ?? 0) === 0
-                        ? "Nenhuma música cadastrada no sistema"
-                        : musicasDisponiveis.length === 0
-                          ? "Todas as músicas já foram adicionadas"
-                          : "Selecione uma música para adicionar"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {musicasDisponiveis.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nome}
-                      {m.tonalidade ? ` (${m.tonalidade.tom})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-0">
+                <CreatableCombobox
+                  options={musicaOptions}
+                  value={selectedMusicaId || undefined}
+                  onSelect={setSelectedMusicaId}
+                  placeholder={
+                    (allMusicas?.items.length ?? 0) === 0
+                      ? "Nenhuma música cadastrada no sistema"
+                      : musicasDisponiveis.length === 0
+                        ? "Todas as músicas já foram adicionadas"
+                        : "Selecione uma música para adicionar"
+                  }
+                  searchPlaceholder="Buscar música..."
+                  disabled={musicasDisponiveis.length === 0}
+                />
+              </div>
               <Button
                 size="sm"
                 onClick={handleAddMusica}

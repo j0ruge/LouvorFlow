@@ -1,10 +1,11 @@
 /**
- * Combobox reutilizável com suporte a criação inline de novos itens.
+ * Combobox reutilizável com busca e suporte opcional a criação inline.
  *
  * Construído sobre os componentes shadcn/ui `Popover` e `Command` (cmdk).
- * Permite buscar e filtrar opções existentes, e quando o texto digitado
- * não corresponde a nenhuma opção, exibe um botão "Criar X" para
- * adicionar o item sem sair do formulário.
+ * Permite buscar e filtrar opções existentes. Quando `onCreate` é fornecido
+ * e o texto digitado não corresponde a nenhuma opção, exibe um botão
+ * "Criar X" para adicionar o item sem sair do formulário.
+ * Quando `onCreate` é omitido, funciona como um select com busca puro.
  */
 
 import { useState } from "react";
@@ -45,8 +46,9 @@ interface CreatableComboboxProps {
    * Callback para criar um novo item inline.
    * Recebe o texto digitado e deve retornar o UUID do item criado,
    * ou `undefined` se a criação falhar.
+   * Quando omitido, o combobox funciona apenas como select com busca.
    */
-  onCreate: (inputValue: string) => Promise<string | undefined>;
+  onCreate?: (inputValue: string) => Promise<string | undefined>;
   /** Texto exibido no trigger quando nenhum valor está selecionado. */
   placeholder?: string;
   /** Texto exibido no campo de busca dentro do popover. */
@@ -111,7 +113,7 @@ export function CreatableCombobox({
    * evitando flash do placeholder enquanto o React Query refaz o fetch.
    */
   async function handleCreate() {
-    if (!search.trim() || creating) return;
+    if (!onCreate || !search.trim() || creating) return;
     setCreating(true);
     try {
       const label = search.trim();
@@ -170,7 +172,7 @@ export function CreatableCombobox({
           />
           <CommandList>
             <CommandEmpty>
-              {search.trim() ? (
+              {search.trim() && onCreate ? (
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
@@ -206,7 +208,7 @@ export function CreatableCombobox({
               ))}
             </CommandGroup>
             {/* Botão "Criar" exibido abaixo das opções filtradas quando não há match exato */}
-            {search.trim() && !hasExactMatch && mergedOptions.length > 0 && (
+            {onCreate && search.trim() && !hasExactMatch && mergedOptions.length > 0 && (
               <CommandGroup>
                 <CommandItem
                   value={`__create__${search.trim()}`}
