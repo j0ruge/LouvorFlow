@@ -417,6 +417,10 @@ Per Constitution Principle I (Mobile-First):
 - Dynamic text (names, titles) without `truncate` + `min-w-0` → horizontal overflow
 - `p-6` / `px-6` in layout containers without `sm:` → use `p-4 sm:p-6`
 - `<Table>` without mobile alternative layout → always use dual layout: cards `sm:hidden` + table `hidden sm:block`
+- Placeholder text in Select/Combobox without `truncate` → overflows onto adjacent buttons
+- Button labels always visible on mobile → use `<span className="hidden sm:inline">Label</span>` for icon-only on mobile
+- `items-center` in flex rows where text uses `line-clamp-2` → use `items-start` to top-align icons/badges
+- All metadata (badges, tags, versions) on same row as name → split into 2 rows: name+actions on top, metadata below with aligned padding
 
 ### Cross-References
 
