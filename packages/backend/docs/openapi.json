@@ -2311,6 +2311,12 @@
                   "musicas_id": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "artistas_musicas_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "UUID da versão (artista) selecionada para esta música. Opcional; se omitido, nenhuma versão é pré-selecionada."
                   }
                 },
                 "required": [
@@ -2318,7 +2324,8 @@
                 ]
               },
               "example": {
-                "musicas_id": "b2c3d4e5-2222-4000-b000-000000000003"
+                "musicas_id": "b2c3d4e5-2222-4000-b000-000000000003",
+                "artistas_musicas_id": "a1b2c3d4-1111-4000-a000-000000000001"
               }
             }
           }
@@ -2358,6 +2365,77 @@
       }
     },
     "/eventos/{eventoId}/musicas/{musicaId}": {
+      "patch": {
+        "summary": "Atualizar versão selecionada de uma música no evento",
+        "description": "Define ou limpa a versão (artista) selecionada para uma música escalada. Enviar `artistas_musicas_id: null` limpa a seleção.",
+        "tags": [
+          "Eventos - Músicas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/MusicaIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "artistas_musicas_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "UUID da versão desejada, ou null para limpar a seleção"
+                  }
+                },
+                "required": [
+                  "artistas_musicas_id"
+                ]
+              },
+              "example": {
+                "artistas_musicas_id": "a1b2c3d4-1111-4000-a000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Versão atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Versão atualizada"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
       "delete": {
         "summary": "Remover música de um evento",
         "description": "Remove uma música da escala de um evento.",
@@ -5269,6 +5347,29 @@
           "total_pages"
         ]
       },
+      "VersaoMusica": {
+        "type": "object",
+        "description": "Versão de uma música (artista + link) disponível para seleção na escala.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "artista_nome": {
+            "type": "string",
+            "nullable": true
+          },
+          "link_versao": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "artista_nome",
+          "link_versao"
+        ]
+      },
       "MusicaEvento": {
         "type": "object",
         "properties": {
@@ -5290,12 +5391,29 @@
                 "$ref": "#/components/schemas/Tonalidade"
               }
             ]
+          },
+          "versao_selecionada": {
+            "nullable": true,
+            "description": "Versão selecionada para esta música nesta escala",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersaoMusica"
+              }
+            ]
+          },
+          "versoes_disponiveis": {
+            "type": "array",
+            "description": "Todas as versões disponíveis para esta música",
+            "items": {
+              "$ref": "#/components/schemas/VersaoMusica"
+            }
           }
         },
         "required": [
           "id",
           "nome",
-          "ordem"
+          "ordem",
+          "versoes_disponiveis"
         ]
       },
       "IntegranteComFuncoes": {

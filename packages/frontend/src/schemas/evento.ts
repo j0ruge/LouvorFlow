@@ -8,12 +8,24 @@
 import { z } from "zod";
 import { IdNomeSchema, TonalidadeSchema } from "@/schemas/shared";
 
-/** Schema de música simplificada no contexto de evento, incluindo posição na escala. */
+/** Schema de versão de música (artista + link) no contexto de evento. */
+export const VersaoMusicaSchema = z.object({
+  id: z.string().uuid(),
+  artista_nome: z.string().nullable(),
+  link_versao: z.string().nullable(),
+});
+
+/** Tipo inferido de versão de música. */
+export type VersaoMusica = z.infer<typeof VersaoMusicaSchema>;
+
+/** Schema de música simplificada no contexto de evento, incluindo posição na escala e versões. */
 export const MusicaEventoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
   tonalidade: TonalidadeSchema.nullable(),
   ordem: z.number().int(),
+  versao_selecionada: VersaoMusicaSchema.nullable(),
+  versoes_disponiveis: z.array(VersaoMusicaSchema),
 });
 
 /** Tipo inferido de música no contexto de evento. */

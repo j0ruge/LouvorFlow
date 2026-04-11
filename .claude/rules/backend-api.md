@@ -34,7 +34,7 @@ packages/backend/
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (24 modelos: 15 domínio + 9 auth)
+│   ├── schema.prisma    # Schema do banco (25 modelos: 16 domínio + 9 auth)
 │   ├── cliente.ts       # Prisma Client: singleton base + forTenant() + getPrisma()
 │   └── migrations/      # Migrações do banco
 ├── seeds/

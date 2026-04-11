@@ -113,23 +113,25 @@ export const MOCK_INTEGRANTES_FUNCOES = [
   },
 ];
 
-// ─── Músicas (3 para testes gerais) ──────────────────────
+// ─── Músicas (4 para testes gerais) ──────────────────────
 export const MOCK_MUSICAS_BASE = [
   { id: 'ggg00001-0000-0000-0000-000000000001', nome: 'Rendido Estou', fk_tonalidade: 'bbb00001-0000-0000-0000-000000000001' },
   { id: 'ggg00001-0000-0000-0000-000000000002', nome: 'Grande é o Senhor', fk_tonalidade: 'bbb00001-0000-0000-0000-000000000002' },
   { id: 'ggg00001-0000-0000-0000-000000000003', nome: 'Nada Além do Sangue', fk_tonalidade: 'bbb00001-0000-0000-0000-000000000003' },
+  /** Música sem nenhuma versão cadastrada — usada para testar listas vazias de versoes_disponiveis. */
+  { id: 'ggg00001-0000-0000-0000-000000000099', nome: 'Música Sem Versões', fk_tonalidade: null as string | null },
 ];
 
 /**
  * Gera 25 músicas para teste de paginação.
- * As 3 primeiras são provenientes de MOCK_MUSICAS_BASE e as demais são geradas dinamicamente.
+ * As 4 primeiras são provenientes de MOCK_MUSICAS_BASE e as demais são geradas dinamicamente.
  * Cada objeto de música contém as propriedades: id, nome e fk_tonalidade.
- * @returns Lista de músicas mockadas para testes de paginação. 
- * As 3 primeiras são as MOCK_MUSICAS_BASE, as demais são geradas.
+ * @returns Lista de músicas mockadas para testes de paginação.
+ * As 4 primeiras são as MOCK_MUSICAS_BASE, as demais são geradas.
  */
 export function generatePaginationMusicas() {
-  const musicas = [...MOCK_MUSICAS_BASE];
-  for (let i = 4; i <= 25; i++) {
+  const musicas: { id: string; nome: string; fk_tonalidade: string | null }[] = [...MOCK_MUSICAS_BASE];
+  for (let i = 5; i <= 25; i++) {
     const padded = String(i).padStart(3, '0');
     musicas.push({
       id: `ggg00001-0000-0000-0000-0000000000${padded.slice(-2).padStart(2, '0')}`,
@@ -217,9 +219,24 @@ export const MOCK_EVENTOS = [
 ];
 
 // ─── Eventos_Musicas (junction) ──────────────────────────
-export const MOCK_EVENTOS_MUSICAS = [
-  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001', ordem: 1 },
-  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002', ordem: 2 },
+/**
+ * Vínculos entre eventos e músicas com versão selecionada opcional (`fk_artistas_musicas`).
+ * - Linha 1: evento 1 ↔ música 1, com versão selecionada (Aline) — testa selected populado.
+ * - Linha 2: evento 1 ↔ música 2, sem versão selecionada — testa selected null.
+ * - Linha 3: evento 3 ↔ música 3, com versão genérica (artista nulo) — testa artista_nome null.
+ * - Linha 4: evento 3 ↔ música 4 (sem versões cadastradas) — testa versoes_disponiveis vazio.
+ */
+export const MOCK_EVENTOS_MUSICAS: {
+  id: string;
+  evento_id: string;
+  musicas_id: string;
+  ordem: number;
+  fk_artistas_musicas: string | null;
+}[] = [
+  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000001' },
+  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002', ordem: 2, fk_artistas_musicas: null },
+  { id: 'jjj00005-0000-0000-0000-000000000003', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000003', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000004' },
+  { id: 'jjj00005-0000-0000-0000-000000000004', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000099', ordem: 2, fk_artistas_musicas: null },
 ];
 
 // ─── Eventos_Users (junction — ex-Eventos_Integrantes) ───

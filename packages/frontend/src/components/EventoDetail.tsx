@@ -54,6 +54,7 @@ import {
   useAddMusicaToEvento,
   useRemoveMusicaFromEvento,
   useReorderMusicas,
+  useSetMusicaVersao,
   useAddIntegranteToEvento,
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
@@ -67,6 +68,8 @@ import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
+import { MusicaVersaoPicker } from "@/components/MusicaVersaoPicker";
+import { EscalaShareActions } from "@/components/EscalaShareActions";
 import { useCan } from "@/hooks/use-can";
 import type { IntegranteComFuncoes } from "@/schemas/integrante";
 import type { MusicaEvento } from "@/schemas/evento";
@@ -80,12 +83,15 @@ function SortableMusicaCard({
   canWrite,
   onRemove,
   isPending,
+  eventoId,
 }: {
   musica: MusicaEvento;
   canWrite: boolean;
   onRemove: () => void;
   isPending: boolean;
+  eventoId: string;
 }) {
+  const setVersao = useSetMusicaVersao(eventoId);
   const {
     attributes,
     listeners,
@@ -130,6 +136,20 @@ function SortableMusicaCard({
             {musica.tonalidade.tom}
           </Badge>
         )}
+        <MusicaVersaoPicker
+          musicaId={musica.id}
+          versaoSelecionada={musica.versao_selecionada}
+          versoesDisponiveis={musica.versoes_disponiveis}
+          onSelect={(artistasMusicasId, options) =>
+            setVersao.mutate({
+              musicaId: musica.id,
+              artistasMusicasId,
+              silent: options?.silent,
+            })
+          }
+          isPending={setVersao.isPending}
+          readOnly={!canWrite}
+        />
       </div>
       {canWrite && (
         <Button
@@ -345,6 +365,7 @@ export function EventoDetail() {
               <Pencil className="h-4 w-4 mr-1" />
               Editar
             </Button>
+            <EscalaShareActions evento={evento} />
             <Button
               variant="destructive"
               size="sm"
@@ -440,6 +461,7 @@ export function EventoDetail() {
                       key={musica.id}
                       musica={musica}
                       canWrite={canWrite}
+                      eventoId={evento.id}
                       onRemove={() => {
                         setRemovingMusicaId(musica.id);
                         removeMusica.mutate(musica.id, {

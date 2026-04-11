@@ -16,6 +16,7 @@ import {
   addMusicaToEvento,
   removeMusicaFromEvento,
   reorderMusicas,
+  setMusicaVersao,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
 } from "@/services/eventos";
@@ -210,6 +211,41 @@ export function useReorderMusicas(eventoId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
+    },
+  });
+}
+
+/**
+ * Hook para definir a versão selecionada de uma música em um evento.
+ *
+ * Invalida apenas a query de detalhe do evento — a listagem (`EVENTO_INDEX_SELECT`)
+ * não expõe versão e não precisa ser refetchada. O parâmetro `silent` suprime o toast
+ * de sucesso em cenários de auto-seleção (ex.: música com uma única versão), atendendo
+ * ao requisito do PRD "no UI noise".
+ *
+ * @param eventoId - UUID do evento para invalidação de cache.
+ * @returns Resultado do useMutation para seleção de versão.
+ */
+export function useSetMusicaVersao(eventoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      musicaId,
+      artistasMusicasId,
+    }: {
+      musicaId: string;
+      artistasMusicasId: string | null;
+      silent?: boolean;
+    }) => setMusicaVersao(eventoId, musicaId, artistasMusicasId),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      if (!variables.silent) {
+        toast.success(data.msg);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }

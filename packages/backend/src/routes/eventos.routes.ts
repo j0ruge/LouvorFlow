@@ -11,7 +11,14 @@ import { ensureAuthenticated } from '../middlewares/ensureAuthenticated.js';
 import { ensureTenantContext } from '../middlewares/ensureTenantContext.js';
 import { can } from '../middlewares/can.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
-import { addIntegranteBodySchema, reorderMusicasBodySchema } from '../validators/eventos.validators.js';
+import {
+    addIntegranteBodySchema,
+    addMusicaBodySchema,
+    eventoIdParamSchema,
+    eventoMusicaParamsSchema,
+    reorderMusicasBodySchema,
+    setMusicaVersaoBodySchema,
+} from '../validators/eventos.validators.js';
 
 const router: Router = Router();
 
@@ -24,9 +31,38 @@ router.delete('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.wr
 
 // Junction: Musicas (eventos_musicas)
 router.get('/:eventoId/musicas', ensureAuthenticated, ensureTenantContext, eventosController.listMusicas);
-router.post('/:eventoId/musicas', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.addMusica);
-router.delete('/:eventoId/musicas/:musicaId', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.removeMusica);
-router.patch('/:eventoId/musicas/reorder', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), validateRequest({ body: reorderMusicasBodySchema }), eventosController.reorderMusicas);
+router.post(
+    '/:eventoId/musicas',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoIdParamSchema, body: addMusicaBodySchema }),
+    eventosController.addMusica,
+);
+router.patch(
+    '/:eventoId/musicas/reorder',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoIdParamSchema, body: reorderMusicasBodySchema }),
+    eventosController.reorderMusicas,
+);
+router.patch(
+    '/:eventoId/musicas/:musicaId',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoMusicaParamsSchema, body: setMusicaVersaoBodySchema }),
+    eventosController.setMusicaVersao,
+);
+router.delete(
+    '/:eventoId/musicas/:musicaId',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoMusicaParamsSchema }),
+    eventosController.removeMusica,
+);
 
 // Junction: Integrantes (eventos_integrantes)
 router.get('/:eventoId/integrantes', ensureAuthenticated, ensureTenantContext, eventosController.listIntegrantes);

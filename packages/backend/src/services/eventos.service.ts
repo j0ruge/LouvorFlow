@@ -1,7 +1,47 @@
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
-import type { EventoIndexRaw, EventoShowRaw } from '../types/index.js';
+import type {
+    EventoIndexRaw,
+    EventoShowRaw,
+    EventoMusicaDetailRaw,
+    MusicaEvento,
+    VersaoMusicaShowRaw,
+    VersaoMusicaEvento,
+} from '../types/index.js';
+
+/**
+ * Achata uma versão crua (`Artistas_Musicas` projetada) no formato consumido pela API.
+ *
+ * @param raw - Versão bruta vinda do Prisma ou `null`
+ * @returns Objeto plano `{ id, artista_nome, link_versao }` ou `null`
+ */
+function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | null {
+    if (!raw) return null;
+    return {
+        id: raw.id,
+        artista_nome: raw.artistas_musicas_artista_id_fkey?.nome ?? null,
+        link_versao: raw.link_versao,
+    };
+}
+
+/**
+ * Achata um registro `Eventos_Musicas` projetado em `findEventoMusicaDetail` no formato MusicaEvento.
+ *
+ * @param raw - Registro cru com a música, tonalidade e versões aninhadas
+ * @returns MusicaEvento pronta para resposta da API
+ */
+function flattenEventoMusicaDetail(raw: EventoMusicaDetailRaw): MusicaEvento {
+    const musica = raw.eventos_musicas_musicas_id_fkey;
+    return {
+        id: musica.id,
+        nome: musica.nome,
+        tonalidade: musica.musicas_fk_tonalidade_fkey,
+        ordem: raw.ordem,
+        versao_selecionada: flattenVersao(raw.eventos_musicas_artistas_musicas_fkey),
+        versoes_disponiveis: musica.Artistas_Musicas.map(v => flattenVersao(v)!),
+    };
+}
 
 /**
  * Converte um registro bruto de evento no formato simplificado para listagem (index).
@@ -44,7 +84,9 @@ function formatEventoShow(e: EventoShowRaw) {
                 id: musica.id,
                 nome: musica.nome,
                 tonalidade: musica.musicas_fk_tonalidade_fkey,
-                ordem: m.ordem
+                ordem: m.ordem,
+                versao_selecionada: flattenVersao(m.eventos_musicas_artistas_musicas_fkey),
+                versoes_disponiveis: musica.Artistas_Musicas.map(v => flattenVersao(v)!),
             };
         }),
         integrantes: e.Eventos_Users.map(i => {
@@ -190,13 +232,69 @@ class EventosService {
     }
 
     /**
-     * Vincula uma música a um evento no tenant informado.
+     * Converte erros sentinela lançados pelo repositório (dentro das transações atômicas)
+     * e erros Prisma de constraint violation para `AppError` com o statusCode correto.
+     *
+     * Trata erros sentinela (`VERSAO_NOT_FOUND`, `VERSAO_WRONG_MUSICA`), erros de FK
+     * (`P2003`) distinguindo qual FK falhou via `error.meta.field_name`, e erros de
+     * unique constraint (`P2002`) para corridas de duplicação concorrente.
+     *
+     * @param error - Erro capturado de uma operação atômica
+     * @throws {AppError} Sempre — re-lança o erro convertido ou propaga desconhecidos
+     */
+    private handleVersaoSentinel(error: unknown): never {
+        if (error instanceof Error) {
+            if (error.message === 'VERSAO_NOT_FOUND') {
+                throw new AppError('Versão não encontrada', 404);
+            }
+            if (error.message === 'VERSAO_WRONG_MUSICA') {
+                throw new AppError('A versão informada não pertence a esta música', 400);
+            }
+        }
+
+        const prismaError = error as { code?: string; meta?: { field_name?: string } };
+
+        // P2002 (unique constraint) — corrida de duplicação concorrente entre
+        // findMusicaDuplicate e createMusica.
+        if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
+            throw new AppError('Registro duplicado', 409);
+        }
+
+        // P2003 (FK violation) — distingue qual FK falhou para retornar mensagem adequada.
+        if (error instanceof Error && 'code' in error && prismaError.code === 'P2003') {
+            const field = prismaError.meta?.field_name ?? '';
+            if (field.includes('fk_artistas_musicas')) {
+                throw new AppError('Versão não encontrada', 404);
+            }
+            if (field.includes('evento_id')) {
+                throw new AppError('Evento não encontrado', 404);
+            }
+            if (field.includes('musicas_id')) {
+                throw new AppError('Música não encontrada', 404);
+            }
+            // FK desconhecida — propaga como 404 genérico para não vazar detalhes internos.
+            throw new AppError('Recurso referenciado não encontrado', 404);
+        }
+
+        throw error;
+    }
+
+    /**
+     * Vincula uma música a um evento no tenant informado, opcionalmente com uma versão selecionada.
+     *
+     * A validação da versão (quando fornecida) roda dentro da transação do repositório
+     * para evitar TOCTOU entre a checagem de existência e a gravação do FK.
      *
      * @param eventoId - ID do evento
      * @param musicas_id - ID da música a vincular
      * @param tenantId - ID do tenant ao qual o vínculo pertence
+     * @param artistas_musicas_id - UUID da versão selecionada (opcional)
+     * @returns MusicaEvento formatada com versão e versões disponíveis
+     * @throws {AppError} 400 — ID da música ausente
+     * @throws {AppError} 404 — Evento, música ou versão não encontrada
+     * @throws {AppError} 409 — Vínculo duplicado
      */
-    async addMusica(eventoId: string, musicas_id: string | undefined, tenantId: string) {
+    async addMusica(eventoId: string, musicas_id: string | undefined, tenantId: string, artistas_musicas_id?: string | null) {
         if (!musicas_id) throw new AppError("ID da música é obrigatório", 400);
 
         const evento = await eventosRepository.findByIdSimple(eventoId);
@@ -208,7 +306,45 @@ class EventosService {
         const existente = await eventosRepository.findMusicaDuplicate(eventoId, musicas_id);
         if (existente) throw new AppError("Registro duplicado", 409);
 
-        await eventosRepository.createMusica(eventoId, musicas_id, tenantId);
+        try {
+            await eventosRepository.createMusica(eventoId, musicas_id, tenantId, artistas_musicas_id);
+        } catch (error) {
+            this.handleVersaoSentinel(error);
+        }
+
+        const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicas_id);
+        return flattenEventoMusicaDetail(detail!);
+    }
+
+    /**
+     * Atualiza ou limpa a versão selecionada de uma música em um evento.
+     *
+     * A validação + escrita rodam dentro de uma única transação para eliminar o TOCTOU
+     * entre "versão existe" e "FK gravado". Versão inexistente retorna 404 (convenção
+     * REST do projeto); versão pertencendo a outra música retorna 400 (entrada inválida).
+     *
+     * @param eventoId - ID do evento
+     * @param musicaId - ID da música no evento
+     * @param artistas_musicas_id - UUID da versão desejada, ou `null` para limpar
+     * @returns MusicaEvento formatada com a versão atualizada
+     * @throws {AppError} 404 — Se o evento, o vínculo evento-música ou a versão não existir
+     * @throws {AppError} 400 — Se a versão pertencer a outra música
+     */
+    async setMusicaVersao(eventoId: string, musicaId: string, artistas_musicas_id: string | null) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const eventoMusica = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
+        if (!eventoMusica) throw new AppError("Música não encontrada no evento", 404);
+
+        try {
+            await eventosRepository.setMusicaVersaoAtomic(eventoMusica.id, musicaId, artistas_musicas_id);
+        } catch (error) {
+            this.handleVersaoSentinel(error);
+        }
+
+        const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicaId);
+        return flattenEventoMusicaDetail(detail!);
     }
 
     /**
