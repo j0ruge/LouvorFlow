@@ -22,6 +22,23 @@ Nunca refatore código a menos que explicitamente solicitado.
 A elegância visual é prioridade máxima nas decisões de UI/UX. Ao escolher entre abordagens, **sempre preferir a mais elegante**, mesmo que exija mais esforço. Overlays sobre deslocamento de conteúdo, transições suaves, espaço para respirar, ícones semânticos e feedback claro ao usuário. Consultar `packages/frontend/.interface-design/system.md` (seção "Princípio de Elegância") para detalhes completos.
 </CRITICAL>
 
+<CRITICAL>
+## Mobile-First — Regra Inviolável
+
+Este app é usado **primariamente em dispositivos móveis** (Galaxy S8, 360×740). Todo código de UI DEVE ser desenvolvido com abordagem **mobile-first**: escrever para mobile primeiro, depois adaptar para desktop com breakpoints `sm:`, `md:`, `lg:`.
+
+**Antes de considerar QUALQUER task de frontend como completa:**
+
+1. Verificar visualmente o componente em viewport **360px de largura** (mobile)
+2. Verificar que não há overflow horizontal, texto cortado ou botões inacessíveis
+3. Verificar que não há classes de largura fixa (`w-48`, `w-64`, `w-32`) sem variante responsiva (`w-full sm:w-48`)
+4. Verificar que inputs e selects usam `w-full sm:w-XX`
+5. Verificar que flex rows usam `flex-col sm:flex-row` ou `flex-wrap`
+6. Verificar que textos dinâmicos usam `truncate` + `min-w-0` no container pai
+
+Se um componente funciona no desktop mas quebra no mobile, **a implementação está incorreta** — mobile é o target primário. Consultar `.claude/rules/frontend-react.md` (seção "Responsividade Mobile") e `packages/frontend/.interface-design/system.md` (seção "Mobile Adaptations") para padrões obrigatórios.
+</CRITICAL>
+
 ## Stack Tecnológico
 
 | Camada        | Tecnologia                                |
@@ -83,8 +100,9 @@ A task não pode ser considerada completa enquanto essa documentação e rules n
 - `CLAUDE.md` atualizado se houver mudança na stack, estrutura do monorepo ou regras gerais.
 - `README.md` atualizado se houver mudança em funcionalidades, stack, estrutura do projeto, rotas de API ou roadmap.
 - MEMORY.md atualizado com novos padrões ou correções de informações desatualizadas.
+- **Responsividade mobile verificada**: todo componente de UI testado em viewport 360px (mobile) e 1024px (desktop). Sem overflow, sem larguras fixas sem breakpoint, sem texto cortado.
 
-Se a documentação não estiver 100% sincronizada com o código, a implementação está **INCOMPLETA** — independentemente de todos os testes passarem.
+Se a documentação não estiver 100% sincronizada com o código **ou a responsividade mobile não estiver verificada**, a implementação está **INCOMPLETA** — independentemente de todos os testes passarem.
 </CRITICAL>
 
 ## Integração com Ferramentas
