@@ -230,7 +230,7 @@ const Scales = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 mt-4 pt-4 border-t border-border">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 mt-4 pt-4 border-t border-border">
                 <div className="flex flex-wrap gap-2">
                   {canWrite && (
                     <>

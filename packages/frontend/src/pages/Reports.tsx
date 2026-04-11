@@ -57,7 +57,7 @@ const Reports = () => {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Ranking de Músicas Mais Tocadas */}
         <Card className="shadow-soft border-0">
           <CardHeader>
@@ -176,7 +176,7 @@ const Reports = () => {
       </div>
 
       {/* Cards de Resumo */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <Card className="shadow-soft border-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
