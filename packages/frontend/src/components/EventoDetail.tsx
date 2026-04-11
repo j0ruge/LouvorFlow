@@ -115,7 +115,7 @@ function SortableMusicaCard({
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-start gap-2 min-w-0">
           {canWrite && (
             <button
               {...attributes}
@@ -126,10 +126,10 @@ function SortableMusicaCard({
               <GripVertical className="h-4 w-4" />
             </button>
           )}
-          <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0">
+          <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0 mt-0.5">
             {musica.ordem}
           </Badge>
-          <Music className="h-4 w-4 text-primary flex-shrink-0 hidden sm:block" />
+          <Music className="h-4 w-4 text-primary flex-shrink-0 hidden sm:block mt-1" />
           <span className="font-medium line-clamp-2 min-w-0">{musica.nome}</span>
         </div>
         {canWrite && (
@@ -144,6 +144,7 @@ function SortableMusicaCard({
           </Button>
         )}
       </div>
+      {/* pl-9/pl-14: alinha com o nome da música acima (grip w-8/w-11 + badge w-6 + gaps) */}
       <div className="flex items-center gap-2 mt-1.5 pl-9 sm:pl-14 flex-wrap">
         {musica.tonalidade && (
           <Badge variant="outline" className="text-xs flex-shrink-0">
