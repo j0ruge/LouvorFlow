@@ -121,11 +121,11 @@ export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
         aria-label="Copiar escala para a área de transferência"
       >
         {copied ? (
-          <Check className="h-4 w-4 mr-1 text-green-500" />
+          <Check className="h-4 w-4 sm:mr-1 text-green-500" />
         ) : (
-          <Copy className="h-4 w-4 mr-1" />
+          <Copy className="h-4 w-4 sm:mr-1" />
         )}
-        Copiar texto
+        <span className="hidden sm:inline">Copiar texto</span>
       </Button>
       <Button
         variant="outline"
@@ -134,8 +134,8 @@ export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
         disabled={!evento}
         aria-label="Abrir escala no WhatsApp"
       >
-        <MessageCircle className="h-4 w-4 mr-1" />
-        WhatsApp
+        <MessageCircle className="h-4 w-4 sm:mr-1" />
+        <span className="hidden sm:inline">WhatsApp</span>
       </Button>
     </>
   );

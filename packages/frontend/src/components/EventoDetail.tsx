@@ -110,26 +110,41 @@ function SortableMusicaCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between p-3 rounded-lg border border-border ${
+      className={`p-3 rounded-lg border border-border ${
         isDragging ? "shadow-lg opacity-75 bg-muted/50 z-10" : ""
       }`}
     >
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {canWrite && (
+            <button
+              {...attributes}
+              {...listeners}
+              className="flex-shrink-0 w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+              aria-label="Arrastar para reordenar"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+          <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0">
+            {musica.ordem}
+          </Badge>
+          <Music className="h-4 w-4 text-primary flex-shrink-0 hidden sm:block" />
+          <span className="font-medium line-clamp-2 min-w-0">{musica.nome}</span>
+        </div>
         {canWrite && (
-          <button
-            {...attributes}
-            {...listeners}
-            className="flex-shrink-0 w-11 h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-            aria-label="Arrastar para reordenar"
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            disabled={isPending}
+            className="flex-shrink-0"
           >
-            <GripVertical className="h-4 w-4" />
-          </button>
+            <X className="h-4 w-4 text-destructive" />
+          </Button>
         )}
-        <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0">
-          {musica.ordem}
-        </Badge>
-        <Music className="h-4 w-4 text-primary flex-shrink-0" />
-        <span className="font-medium truncate">{musica.nome}</span>
+      </div>
+      <div className="flex items-center gap-2 mt-1.5 pl-9 sm:pl-14 flex-wrap">
         {musica.tonalidade && (
           <Badge variant="outline" className="text-xs flex-shrink-0">
             <Guitar className="h-3 w-3 mr-1" />
@@ -151,17 +166,6 @@ function SortableMusicaCard({
           readOnly={!canWrite}
         />
       </div>
-      {canWrite && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onRemove}
-          disabled={isPending}
-          className="flex-shrink-0"
-        >
-          <X className="h-4 w-4 text-destructive" />
-        </Button>
-      )}
     </div>
   );
 }
@@ -338,32 +342,35 @@ export function EventoDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-4">
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/escalas")}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Voltar
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent truncate">
               Detalhes da Escala
             </h1>
-            <p className="text-muted-foreground mt-1">{evento.descricao}</p>
+            {evento.descricao && (
+              <p className="text-muted-foreground text-sm mt-0.5 truncate">{evento.descricao}</p>
+            )}
           </div>
         </div>
         {canWrite && (
-          <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setEditFormOpen(true)}
             >
-              <Pencil className="h-4 w-4 mr-1" />
-              Editar
+              <Pencil className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
             <EscalaShareActions evento={evento} />
             <Button
@@ -371,8 +378,8 @@ export function EventoDetail() {
               size="sm"
               onClick={() => setDeleteOpen(true)}
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Excluir
+              <Trash2 className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Excluir</span>
             </Button>
           </div>
         )}
@@ -588,12 +595,27 @@ export function EventoDetail() {
               {evento.integrantes.map((integrante) => (
                 <div
                   key={integrante.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
+                  className="p-3 rounded-lg border border-border"
                 >
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Users className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span className="font-medium truncate min-w-0 flex-1">{integrante.nome}</span>
-                    <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="font-medium truncate min-w-0">{integrante.nome}</span>
+                    </div>
+                    {canWrite && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeIntegrante.mutate(integrante.id)}
+                        disabled={removeIntegrante.isPending}
+                        className="flex-shrink-0"
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                  {integrante.funcoes.length > 0 && (
+                    <div className="flex gap-1 flex-wrap mt-1.5 pl-6">
                       {integrante.funcoes.map((f) => (
                         <Badge
                           key={f.id}
@@ -603,18 +625,6 @@ export function EventoDetail() {
                           {f.nome}
                         </Badge>
                       ))}
-                    </div>
-                  </div>
-                  {canWrite && (
-                    <div className="flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeIntegrante.mutate(integrante.id)}
-                        disabled={removeIntegrante.isPending}
-                      >
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
                     </div>
                   )}
                 </div>
