@@ -34,3 +34,14 @@ Ao concluir a implementação de uma feature:
 2. Comparar o resultado com o comportamento esperado do código-fonte.
 3. Se houver divergência entre código no disco e comportamento da API: **reiniciar processos antes de alterar código**.
 4. Executar `npm test` em ambos os packages (backend + frontend) para garantir que nada foi quebrado.
+
+## 4. Git — CWD Sempre na Raiz do Repositório (Windows)
+
+No monorepo, comandos como `cd packages/backend && yarn run test` mudam o CWD para um subdiretório. Se o próximo comando executar `git add packages/backend/...` com caminho relativo à raiz, o git resolve como `packages/backend/packages/backend/...` — caminho duplicado, falha com `pathspec did not match`.
+
+**Regra**: todo comando `git` (add, commit, diff, status, log, etc.) DEVE garantir que o CWD é a **raiz do repositório**. Duas formas válidas:
+
+1. **Prefixar com `cd` para a raiz**: `cd /c/Users/pc_admin/source/repos/LouvorFlow && git add packages/backend/...`
+2. **Usar caminhos absolutos**: `git -C /c/Users/pc_admin/source/repos/LouvorFlow add packages/backend/...`
+
+**Nunca** executar `git add`, `git commit` ou `git diff` com caminhos relativos à raiz do repo sem antes confirmar que o CWD está na raiz. Isso é especialmente crítico no Windows, onde o CWD persiste entre invocações do Bash tool.
