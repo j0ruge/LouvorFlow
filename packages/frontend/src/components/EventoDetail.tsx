@@ -241,6 +241,29 @@ export function EventoDetail() {
     [musicasDisponiveis],
   );
 
+  /** IDs dos integrantes já associados ao evento. */
+  const integrantesAssociadosIds = useMemo(
+    () => new Set(evento?.integrantes.map((i) => i.id) ?? []),
+    [evento?.integrantes],
+  );
+
+  /** Integrantes disponíveis para associação (excluindo já associados). */
+  const integrantesDisponiveis = useMemo(
+    () =>
+      allIntegrantes?.filter((i) => !integrantesAssociadosIds.has(i.id)) ?? [],
+    [allIntegrantes, integrantesAssociadosIds],
+  );
+
+  /** Opções formatadas para o combobox de busca de integrantes. */
+  const integranteOptions: ComboboxOption[] = useMemo(
+    () =>
+      integrantesDisponiveis.map((i) => ({
+        value: i.id,
+        label: i.nome,
+      })),
+    [integrantesDisponiveis],
+  );
+
   /**
    * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
    */
@@ -274,25 +297,6 @@ export function EventoDetail() {
       />
     );
   }
-
-  /** IDs dos integrantes já associados ao evento. */
-  const integrantesAssociadosIds = new Set(
-    evento.integrantes.map((i) => i.id),
-  );
-
-  /** Integrantes disponíveis para associação (excluindo já associados). */
-  const integrantesDisponiveis =
-    allIntegrantes?.filter((i) => !integrantesAssociadosIds.has(i.id)) ?? [];
-
-  /** Opções formatadas para o combobox de busca de integrantes. */
-  const integranteOptions: ComboboxOption[] = useMemo(
-    () =>
-      integrantesDisponiveis.map((i) => ({
-        value: i.id,
-        label: i.nome,
-      })),
-    [integrantesDisponiveis],
-  );
 
   /**
    * Adiciona a música selecionada ao evento.
