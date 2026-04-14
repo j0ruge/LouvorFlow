@@ -46,10 +46,25 @@ class EventosController {
         res.status(200).json(musicas);
     }
 
-    /** Vincula uma música a um evento no tenant do usuário autenticado. */
+    /** Vincula uma música a um evento no tenant do usuário autenticado, opcionalmente com versão selecionada. */
     async addMusica(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
-        await eventosService.addMusica(req.params.eventoId, req.body.musicas_id, req.user!.tenantId!);
+        await eventosService.addMusica(
+            req.params.eventoId,
+            req.body.musicas_id,
+            req.user!.tenantId!,
+            req.body.artistas_musicas_id
+        );
         res.status(201).json({ msg: "Música adicionada ao evento com sucesso" });
+    }
+
+    /** Atualiza ou limpa a versão selecionada de uma música no evento. */
+    async setMusicaVersao(req: Request<{ eventoId: string; musicaId: string }>, res: Response): Promise<void> {
+        await eventosService.setMusicaVersao(
+            req.params.eventoId,
+            req.params.musicaId,
+            req.body.artistas_musicas_id
+        );
+        res.status(200).json({ msg: "Versão atualizada" });
     }
 
     /** Remove o vínculo entre um evento e uma música. */

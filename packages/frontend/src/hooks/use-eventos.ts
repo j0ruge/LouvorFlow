@@ -16,6 +16,7 @@ import {
   addMusicaToEvento,
   removeMusicaFromEvento,
   reorderMusicas,
+  setMusicaVersao,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
 } from "@/services/eventos";
@@ -210,6 +211,59 @@ export function useReorderMusicas(eventoId: string) {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       queryClient.invalidateQueries({ queryKey: ["eventos"], exact: true });
+    },
+  });
+}
+
+/**
+ * Hook para definir a versão selecionada de uma música em um evento.
+ *
+ * Invalida apenas a query de detalhe do evento — a listagem (`EVENTO_INDEX_SELECT`)
+ * não expõe versão e não precisa ser refetchada. O parâmetro `silent` suprime o toast
+ * de sucesso em cenários de auto-seleção (ex.: música com uma única versão), atendendo
+ * ao requisito do PRD "no UI noise".
+ *
+ * @param eventoId - UUID do evento para invalidação de cache.
+ * @returns Resultado do useMutation para seleção de versão.
+ */
+export function useSetMusicaVersao(eventoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    /**
+     * Executa a chamada PATCH para atualizar a versão selecionada da música.
+     *
+     * @param args - Objeto com `musicaId`, `artistasMusicasId` e flag `silent` opcional.
+     * @returns Promise com a resposta da API (`AssociationResponse`).
+     */
+    mutationFn: ({
+      musicaId,
+      artistasMusicasId,
+    }: {
+      musicaId: string;
+      artistasMusicasId: string | null;
+      silent?: boolean;
+    }) => setMusicaVersao(eventoId, musicaId, artistasMusicasId),
+    /**
+     * Callback de sucesso: invalida o cache do detalhe do evento e dispara toast
+     * de sucesso quando `variables.silent` é falso.
+     *
+     * @param data - Resposta da API (`AssociationResponse`).
+     * @param variables - Variáveis enviadas à mutation (inclui `silent`).
+     */
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      if (!variables.silent) {
+        toast.success(data.msg);
+      }
+    },
+    /**
+     * Callback de erro: exibe toast com a mensagem do erro.
+     *
+     * @param error - Erro lançado pelo `mutationFn`.
+     */
+    onError: (error: Error) => {
+      toast.error(error.message);
     },
   });
 }

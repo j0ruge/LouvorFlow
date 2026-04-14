@@ -130,6 +130,10 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal.
 8. **Overlays com conteúdo alto** (calendários, listas longas, filtros): Usar `Drawer` (bottom sheet) no mobile e `Popover` no desktop. Detectar com `useIsMobile()`. Nunca usar Popover no mobile para conteúdo que exceda ~300px de altura — causa overflow/corte. Nunca renderizar conteúdo inline que desloque campos abaixo — preferir overlay. Extrair conteúdo compartilhado em subcomponente para evitar duplicação. Referência: `DateTimePicker.tsx`.
 9. **Ícones de confirmação de seleção**: Em botões ao lado de um Select/Combobox que confirmam a escolha (adicionar item selecionado), usar `CornerDownLeft` (↵) em vez de `Plus` (+). Reservar `Plus` apenas para criar novos itens.
+10. **Placeholders em Select/Combobox**: Sempre usar `truncate` no span do placeholder. Textos longos como "Todas as músicas já foram adicionadas" transbordam sobre botões adjacentes em telas estreitas. Referência: `CreatableCombobox.tsx` linha 161.
+11. **Botões de ação com labels**: No mobile, usar `hidden sm:inline` nos labels de texto e manter apenas o ícone visível. Garantir `aria-label` para acessibilidade. Exemplo: `<Pencil className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Editar</span>`.
+12. **Cards com informação densa** (música com nome + tonalidade + versão + ações): Separar em 2 linhas — 1ª linha: nome + ação de remoção; 2ª linha: badges/metadata com padding-left alinhado ao nome. Usar `items-start` (não `items-center`) quando o nome pode quebrar em `line-clamp-2`.
+13. **Integrantes com funções/badges**: Nome + botão de remoção na 1ª linha, badges de função em linha separada com `flex-wrap` e padding-left alinhado ao nome.
 
 ### Padrão de referência (modelo correto)
 
@@ -182,7 +186,9 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 |---|---|
 | `MusicaDetail.tsx` | Edit overflow + truncate + flex-wrap + responsive gaps |
 | `AppLayout.tsx` | Padding responsivo `p-4 sm:p-6` + overflow-x-hidden |
-| `EventoDetail.tsx` | Responsive gaps + truncate integrantes + flex-shrink-0 |
+| `EventoDetail.tsx` | Layout 2 linhas em cards (nome+ação / metadata), icon-only buttons, items-start com line-clamp-2 |
+| `EscalaShareActions.tsx` | Labels com `hidden sm:inline` para icon-only no mobile |
+| `CreatableCombobox.tsx` | `truncate` no span do placeholder para evitar overflow sobre botão adjacente |
 | `ConfigCrudSection.tsx` | flex-wrap form + gap + truncate nomes |
 | `Dashboard.tsx` | grid-cols-2 stats + responsive gaps + truncate |
 | `admin/Roles.tsx` | Dual layout cards/table + header responsivo |

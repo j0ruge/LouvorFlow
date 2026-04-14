@@ -35,7 +35,7 @@ class ListInvitesService {
             created_at: invite.created_at,
             used_at: invite.used_at,
             status: deriveInviteStatus(invite),
-            created_by: invite.creator ? { id: invite.creator.id, name: invite.creator.name } : null,
+            created_by: { id: invite.creator.id, name: invite.creator.name },
             used_by: invite.user ? { id: invite.user.id, name: invite.user.name } : null,
         }));
     }

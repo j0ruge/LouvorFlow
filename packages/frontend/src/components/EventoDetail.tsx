@@ -29,13 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Calendar,
   Music,
   Users,
@@ -54,15 +47,22 @@ import {
   useAddMusicaToEvento,
   useRemoveMusicaFromEvento,
   useReorderMusicas,
+  useSetMusicaVersao,
   useAddIntegranteToEvento,
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
 import { useMusicas } from "@/hooks/use-musicas";
+import {
+  CreatableCombobox,
+  type ComboboxOption,
+} from "@/components/CreatableCombobox";
 import { useIntegrantes } from "@/hooks/use-integrantes";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
+import { MusicaVersaoPicker } from "@/components/MusicaVersaoPicker";
+import { EscalaShareActions } from "@/components/EscalaShareActions";
 import { useCan } from "@/hooks/use-can";
 import type { IntegranteComFuncoes } from "@/schemas/integrante";
 import type { MusicaEvento } from "@/schemas/evento";
@@ -76,12 +76,15 @@ function SortableMusicaCard({
   canWrite,
   onRemove,
   isPending,
+  eventoId,
 }: {
   musica: MusicaEvento;
   canWrite: boolean;
   onRemove: () => void;
   isPending: boolean;
+  eventoId: string;
 }) {
+  const setVersao = useSetMusicaVersao(eventoId);
   const {
     attributes,
     listeners,
@@ -100,44 +103,64 @@ function SortableMusicaCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between p-3 rounded-lg border border-border ${
+      className={`p-3 rounded-lg border border-border ${
         isDragging ? "shadow-lg opacity-75 bg-muted/50 z-10" : ""
       }`}
     >
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          {canWrite && (
+            <button
+              {...attributes}
+              {...listeners}
+              className="flex-shrink-0 w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+              aria-label="Arrastar para reordenar"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+          <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0 mt-0.5">
+            {musica.ordem}
+          </Badge>
+          <Music className="h-4 w-4 text-primary flex-shrink-0 hidden sm:block mt-1" />
+          <span className="font-medium line-clamp-2 min-w-0">{musica.nome}</span>
+        </div>
         {canWrite && (
-          <button
-            {...attributes}
-            {...listeners}
-            className="flex-shrink-0 w-11 h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-            aria-label="Arrastar para reordenar"
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRemove}
+            disabled={isPending}
+            className="flex-shrink-0"
+            aria-label="Remover música"
           >
-            <GripVertical className="h-4 w-4" />
-          </button>
+            <X className="h-4 w-4 text-destructive" />
+          </Button>
         )}
-        <Badge variant="secondary" className="flex-shrink-0 text-xs font-mono w-6 h-6 flex items-center justify-center p-0">
-          {musica.ordem}
-        </Badge>
-        <Music className="h-4 w-4 text-primary flex-shrink-0" />
-        <span className="font-medium truncate">{musica.nome}</span>
+      </div>
+      {/* pl-9/pl-14: alinha com o nome da música acima (grip w-8/w-11 + badge w-6 + gaps) */}
+      <div className="flex items-center gap-2 mt-1.5 pl-9 sm:pl-14 flex-wrap">
         {musica.tonalidade && (
           <Badge variant="outline" className="text-xs flex-shrink-0">
             <Guitar className="h-3 w-3 mr-1" />
             {musica.tonalidade.tom}
           </Badge>
         )}
+        <MusicaVersaoPicker
+          musicaId={musica.id}
+          versaoSelecionada={musica.versao_selecionada}
+          versoesDisponiveis={musica.versoes_disponiveis}
+          onSelect={(artistasMusicasId, options) =>
+            setVersao.mutate({
+              musicaId: musica.id,
+              artistasMusicasId,
+              silent: options?.silent,
+            })
+          }
+          isPending={setVersao.isPending}
+          readOnly={!canWrite}
+        />
       </div>
-      {canWrite && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onRemove}
-          disabled={isPending}
-          className="flex-shrink-0"
-        >
-          <X className="h-4 w-4 text-destructive" />
-        </Button>
-      )}
     </div>
   );
 }
@@ -196,6 +219,51 @@ export function EventoDetail() {
     [evento?.musicas],
   );
 
+  /** IDs das músicas já associadas ao evento (derivado de musicaIds). */
+  const musicasAssociadasIds = useMemo(
+    () => new Set(musicaIds),
+    [musicaIds],
+  );
+
+  /** Músicas disponíveis para associação (excluindo já associadas). */
+  const musicasDisponiveis = useMemo(
+    () => allMusicas?.items.filter((m) => !musicasAssociadasIds.has(m.id)) ?? [],
+    [allMusicas?.items, musicasAssociadasIds],
+  );
+
+  /** Opções formatadas para o combobox de busca de músicas. */
+  const musicaOptions: ComboboxOption[] = useMemo(
+    () =>
+      musicasDisponiveis.map((m) => ({
+        value: m.id,
+        label: m.nome + (m.tonalidade ? ` (${m.tonalidade.tom})` : ""),
+      })),
+    [musicasDisponiveis],
+  );
+
+  /** IDs dos integrantes já associados ao evento. */
+  const integrantesAssociadosIds = useMemo(
+    () => new Set(evento?.integrantes.map((i) => i.id) ?? []),
+    [evento?.integrantes],
+  );
+
+  /** Integrantes disponíveis para associação (excluindo já associados). */
+  const integrantesDisponiveis = useMemo(
+    () =>
+      allIntegrantes?.filter((i) => !integrantesAssociadosIds.has(i.id)) ?? [],
+    [allIntegrantes, integrantesAssociadosIds],
+  );
+
+  /** Opções formatadas para o combobox de busca de integrantes. */
+  const integranteOptions: ComboboxOption[] = useMemo(
+    () =>
+      integrantesDisponiveis.map((i) => ({
+        value: i.id,
+        label: i.nome,
+      })),
+    [integrantesDisponiveis],
+  );
+
   /**
    * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
    */
@@ -229,22 +297,6 @@ export function EventoDetail() {
       />
     );
   }
-
-  /** IDs das músicas já associadas ao evento. */
-  const musicasAssociadasIds = new Set(evento.musicas.map((m) => m.id));
-
-  /** IDs dos integrantes já associados ao evento. */
-  const integrantesAssociadosIds = new Set(
-    evento.integrantes.map((i) => i.id),
-  );
-
-  /** Músicas disponíveis para associação (excluindo já associadas). */
-  const musicasDisponiveis =
-    allMusicas?.items.filter((m) => !musicasAssociadasIds.has(m.id)) ?? [];
-
-  /** Integrantes disponíveis para associação (excluindo já associados). */
-  const integrantesDisponiveis =
-    allIntegrantes?.filter((i) => !integrantesAssociadosIds.has(i.id)) ?? [];
 
   /**
    * Adiciona a música selecionada ao evento.
@@ -299,43 +351,51 @@ export function EventoDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-4">
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/escalas")}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Voltar
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent truncate">
               Detalhes da Escala
             </h1>
-            <p className="text-muted-foreground mt-1">{evento.descricao}</p>
+            {evento.descricao && (
+              <p className="text-muted-foreground text-sm mt-0.5 truncate">{evento.descricao}</p>
+            )}
           </div>
         </div>
-        {canWrite && (
-          <div className="flex items-center gap-2 sm:ml-auto">
+        <div className="flex items-center gap-2 flex-wrap">
+          {canWrite && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setEditFormOpen(true)}
+              aria-label="Editar evento"
             >
-              <Pencil className="h-4 w-4 mr-1" />
-              Editar
+              <Pencil className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
+          )}
+          <EscalaShareActions evento={evento} />
+          {canWrite && (
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setDeleteOpen(true)}
+              aria-label="Excluir evento"
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Excluir
+              <Trash2 className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Excluir</span>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Card className="shadow-soft border-0">
@@ -374,31 +434,22 @@ export function EventoDetail() {
         <CardContent className="space-y-4">
           {canWrite && (
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedMusicaId}
-                onValueChange={setSelectedMusicaId}
-                disabled={musicasDisponiveis.length === 0}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue
-                    placeholder={
-                      (allMusicas?.items.length ?? 0) === 0
-                        ? "Nenhuma música cadastrada no sistema"
-                        : musicasDisponiveis.length === 0
-                          ? "Todas as músicas já foram adicionadas"
-                          : "Selecione uma música para adicionar"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {musicasDisponiveis.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nome}
-                      {m.tonalidade ? ` (${m.tonalidade.tom})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-0">
+                <CreatableCombobox
+                  options={musicaOptions}
+                  value={selectedMusicaId || undefined}
+                  onSelect={setSelectedMusicaId}
+                  placeholder={
+                    (allMusicas?.items.length ?? 0) === 0
+                      ? "Nenhuma música cadastrada no sistema"
+                      : musicasDisponiveis.length === 0
+                        ? "Todas as músicas já foram adicionadas"
+                        : "Selecione uma música para adicionar"
+                  }
+                  searchPlaceholder="Buscar música..."
+                  disabled={musicasDisponiveis.length === 0}
+                />
+              </div>
               <Button
                 size="sm"
                 onClick={handleAddMusica}
@@ -430,6 +481,7 @@ export function EventoDetail() {
                       key={musica.id}
                       musica={musica}
                       canWrite={canWrite}
+                      eventoId={evento.id}
                       onRemove={() => {
                         setRemovingMusicaId(musica.id);
                         removeMusica.mutate(musica.id, {
@@ -509,30 +561,22 @@ export function EventoDetail() {
         <CardContent className="space-y-4">
           {canWrite && (
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedIntegranteId}
-                onValueChange={setSelectedIntegranteId}
-                disabled={integrantesDisponiveis.length === 0}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue
-                    placeholder={
-                      (allIntegrantes?.length ?? 0) === 0
-                        ? "Nenhum integrante cadastrado no sistema"
-                        : integrantesDisponiveis.length === 0
-                          ? "Todos os integrantes já foram adicionados"
-                          : "Selecione um integrante para adicionar"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {integrantesDisponiveis.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      {i.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-0">
+                <CreatableCombobox
+                  options={integranteOptions}
+                  value={selectedIntegranteId || undefined}
+                  onSelect={setSelectedIntegranteId}
+                  placeholder={
+                    (allIntegrantes?.length ?? 0) === 0
+                      ? "Nenhum integrante cadastrado no sistema"
+                      : integrantesDisponiveis.length === 0
+                        ? "Todos os integrantes já foram adicionados"
+                        : "Selecione um integrante para adicionar"
+                  }
+                  searchPlaceholder="Buscar integrante..."
+                  disabled={integrantesDisponiveis.length === 0}
+                />
+              </div>
               <Button
                 size="sm"
                 onClick={handleAddIntegrante}
@@ -556,12 +600,28 @@ export function EventoDetail() {
               {evento.integrantes.map((integrante) => (
                 <div
                   key={integrante.id}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
+                  className="p-3 rounded-lg border border-border"
                 >
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                    <Users className="h-4 w-4 text-primary flex-shrink-0" />
-                    <span className="font-medium truncate min-w-0 flex-1">{integrante.nome}</span>
-                    <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="font-medium truncate min-w-0">{integrante.nome}</span>
+                    </div>
+                    {canWrite && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeIntegrante.mutate(integrante.id)}
+                        disabled={removeIntegrante.isPending}
+                        className="flex-shrink-0"
+                        aria-label="Remover integrante"
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                  {integrante.funcoes.length > 0 && (
+                    <div className="flex gap-1 flex-wrap mt-1.5 pl-6">
                       {integrante.funcoes.map((f) => (
                         <Badge
                           key={f.id}
@@ -571,18 +631,6 @@ export function EventoDetail() {
                           {f.nome}
                         </Badge>
                       ))}
-                    </div>
-                  </div>
-                  {canWrite && (
-                    <div className="flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeIntegrante.mutate(integrante.id)}
-                        disabled={removeIntegrante.isPending}
-                      >
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
                     </div>
                   )}
                 </div>

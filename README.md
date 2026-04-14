@@ -414,8 +414,8 @@ LouvorFlow/
 - [x] Autenticação com JWT e RBAC (backend + frontend)
 - [x] Multi-tenant — suporte a múltiplas igrejas com isolamento de dados
 - [x] Convite via link para onboarding de integrantes
-- [ ] Seleção de versão ao associar música a escala (débito técnico)
-- [ ] Compartilhamento de escalas via WhatsApp
+- [x] Seleção de versão ao associar música a escala
+- [x] Compartilhamento de escalas via WhatsApp
 - [ ] Relatórios de frequência de execução
 - [ ] Histórico de escalas por período
 - [ ] Busca avançada de músicas (por tag, tonalidade, artista)

@@ -243,10 +243,72 @@ export interface EventoIndexRaw {
     Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
 }
 
+/**
+ * Representação bruta de uma versão de música para o detalhe de evento (subset projetado).
+ *
+ * @property id - Identificador único da versão (UUID)
+ * @property link_versao - Link externo da versão ou `null`
+ * @property artistas_musicas_artista_id_fkey - Artista associado (id e nome) ou `null` (versão genérica)
+ */
+export interface VersaoMusicaShowRaw {
+    id: string;
+    link_versao: string | null;
+    artistas_musicas_artista_id_fkey: IdNome | null;
+}
+
 export interface EventoShowMusica {
     id: string;
     nome: string;
     musicas_fk_tonalidade_fkey: IdTom | null;
+    Artistas_Musicas: VersaoMusicaShowRaw[];
+}
+
+/**
+ * Versão de música no formato achatado para a API de detalhe de evento.
+ *
+ * @property id - Identificador único da versão (UUID)
+ * @property artista_nome - Nome do artista da versão ou `null` quando a versão é genérica
+ * @property link_versao - Link externo da versão ou `null`
+ */
+export interface VersaoMusicaEvento {
+    id: string;
+    artista_nome: string | null;
+    link_versao: string | null;
+}
+
+/**
+ * Música no formato achatado retornado pelo endpoint de detalhe de evento.
+ *
+ * @property id - Identificador único da música (UUID)
+ * @property nome - Nome da música
+ * @property tonalidade - Tonalidade associada ou `null`
+ * @property ordem - Posição da música na escala (1..N)
+ * @property versao_selecionada - Versão escolhida pelo líder para esta escala ou `null`
+ * @property versoes_disponiveis - Lista de todas as versões cadastradas para a música
+ */
+export interface MusicaEvento {
+    id: string;
+    nome: string;
+    tonalidade: IdTom | null;
+    ordem: number;
+    versao_selecionada: VersaoMusicaEvento | null;
+    versoes_disponiveis: VersaoMusicaEvento[];
+}
+
+/**
+ * Projeção crua de um único `Eventos_Musicas` para resposta de `addMusica`/`setMusicaVersao`.
+ * Evita recarregar o evento inteiro apenas para retornar a música afetada.
+ *
+ * @property id - ID do registro em Eventos_Musicas
+ * @property ordem - Posição da música na escala
+ * @property eventos_musicas_musicas_id_fkey - Música associada com tonalidade e versões disponíveis
+ * @property eventos_musicas_artistas_musicas_fkey - Versão atualmente selecionada ou `null`
+ */
+export interface EventoMusicaDetailRaw {
+    id: string;
+    ordem: number;
+    eventos_musicas_musicas_id_fkey: EventoShowMusica;
+    eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
 }
 
 /**
@@ -275,7 +337,12 @@ export interface EventoShowRaw {
     data: Date;
     descricao: string;
     eventos_fk_tipo_evento_fkey: IdNome | null;
-    Eventos_Musicas: { id: string; ordem: number; eventos_musicas_musicas_id_fkey: EventoShowMusica }[];
+    Eventos_Musicas: {
+        id: string;
+        ordem: number;
+        eventos_musicas_musicas_id_fkey: EventoShowMusica;
+        eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
+    }[];
     Eventos_Users: EventoShowIntegranteRaw[];
 }
 
@@ -349,6 +416,18 @@ export const EVENTO_INDEX_SELECT = {
     }
 } as const;
 
+/**
+ * Select canônico para o endpoint de detalhe de evento.
+ *
+ * **Tenant safety (invariante):** o `$extends` de `forTenant()` injeta `tenant_id` apenas
+ * nas operações de topo (aqui, `eventos.findUnique`). Os `select`s aninhados abaixo
+ * (`Artistas_Musicas`, `Eventos_Users`, etc.) NÃO são re-filtrados pelo interceptor.
+ * Esse detalhe é seguro hoje porque a integridade de FK garante que todo registro
+ * relacionado compartilha o mesmo `tenant_id` do evento pai via cadeia:
+ * `Eventos.tenant_id → Eventos_Musicas.tenant_id → Musicas.tenant_id → Artistas_Musicas.tenant_id`.
+ * Caso essa invariante seja quebrada no futuro (ex.: relacionamento cross-tenant),
+ * será necessário adicionar `where: { tenant_id }` explícito nos selects aninhados.
+ */
 export const EVENTO_SHOW_SELECT = {
     id: true,
     data: true,
@@ -366,6 +445,25 @@ export const EVENTO_SHOW_SELECT = {
                     nome: true,
                     musicas_fk_tonalidade_fkey: {
                         select: { id: true, tom: true }
+                    },
+                    Artistas_Musicas: {
+                        select: {
+                            id: true,
+                            link_versao: true,
+                            artistas_musicas_artista_id_fkey: {
+                                select: { id: true, nome: true }
+                            }
+                        },
+                        orderBy: { created_at: 'asc' as const }
+                    }
+                }
+            },
+            eventos_musicas_artistas_musicas_fkey: {
+                select: {
+                    id: true,
+                    link_versao: true,
+                    artistas_musicas_artista_id_fkey: {
+                        select: { id: true, nome: true }
                     }
                 }
             }

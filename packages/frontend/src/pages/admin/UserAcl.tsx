@@ -173,7 +173,7 @@ const UserAcl = () => {
         </CardHeader>
         <CardContent>
           {allRoles && allRoles.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {allRoles.map((role) => {
                 const isChecked = selectedRoles.includes(role.id);
                 const isDisabled =
@@ -218,7 +218,7 @@ const UserAcl = () => {
         </CardHeader>
         <CardContent>
           {allPermissions && allPermissions.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {allPermissions.map((permission) => (
                 <div key={permission.id} className="flex items-start gap-3">
                   <Checkbox

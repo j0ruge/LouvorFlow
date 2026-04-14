@@ -153,6 +153,26 @@ export async function reorderMusicas(
 }
 
 /**
+ * Define a versão selecionada de uma música em um evento (escala).
+ *
+ * @param eventoId - UUID do evento.
+ * @param musicaId - UUID da música.
+ * @param artistasMusicasId - UUID da versão (artistas_musicas) ou `null` para limpar.
+ * @returns Resposta da API com mensagem (`AssociationResponse`).
+ */
+export async function setMusicaVersao(
+  eventoId: string,
+  musicaId: string,
+  artistasMusicasId: string | null,
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/musicas/${musicaId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ artistas_musicas_id: artistasMusicasId }),
+  });
+  return AssociationResponseSchema.parse(data);
+}
+
+/**
  * Associa um integrante a um evento, opcionalmente selecionando funções específicas.
  *
  * @param eventoId - UUID do evento.

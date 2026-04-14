@@ -9,7 +9,35 @@ import {
   MOCK_INTEGRANTES,
   MOCK_INTEGRANTES_FUNCOES,
   MOCK_FUNCOES,
+  MOCK_ARTISTAS_MUSICAS,
+  MOCK_ARTISTAS,
 } from './mock-data.js';
+
+/**
+ * Constrói o subset projetado de uma versão para o detalhe de evento.
+ * Retorna `null` se o ID não existir ou for nulo.
+ */
+function buildVersaoShow(versaoId: string | null | undefined) {
+  if (!versaoId) return null;
+  const versao = MOCK_ARTISTAS_MUSICAS.find(am => am.id === versaoId);
+  if (!versao) return null;
+  const artista = versao.artista_id ? MOCK_ARTISTAS.find(a => a.id === versao.artista_id) ?? null : null;
+  return {
+    id: versao.id,
+    link_versao: versao.link_versao,
+    artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
+  };
+}
+
+/**
+ * Lista todas as versões cadastradas para uma música, no formato projetado para detalhe de evento.
+ */
+function listVersoesShowByMusica(musicaId: string) {
+  return MOCK_ARTISTAS_MUSICAS
+    .filter(am => am.musica_id === musicaId)
+    .map(am => buildVersaoShow(am.id)!)
+    .filter(Boolean);
+}
 
 /** Representa um registro na tabela eventos_users_funcoes (funções selecionadas por evento). */
 interface EventoUserFuncao {
@@ -103,7 +131,9 @@ export function createFakeEventosRepository() {
             id: musica.id,
             nome: musica.nome,
             musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+            Artistas_Musicas: listVersoesShowByMusica(musica.id),
           },
+          eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
         };
       }),
     Eventos_Users: eventosIntegrantes
@@ -192,11 +222,22 @@ export function createFakeEventosRepository() {
           };
         }),
 
-    /** Vincula uma música a um evento em memória com ordem automática (parâmetro _tenantId ignorado no fake). */
-    createMusica: async (eventoId: string, musicasId: string, _tenantId?: string) => {
+    /** Vincula uma música a um evento em memória com ordem automática e versão opcional (parâmetro _tenantId ignorado no fake). */
+    createMusica: async (eventoId: string, musicasId: string, _tenantId?: string, artistas_musicas_id?: string | null) => {
+      if (artistas_musicas_id != null) {
+        const versao = MOCK_ARTISTAS_MUSICAS.find(am => am.id === artistas_musicas_id);
+        if (!versao) throw new Error('VERSAO_NOT_FOUND');
+        if (versao.musica_id !== musicasId) throw new Error('VERSAO_WRONG_MUSICA');
+      }
       const existing = eventosMusicas.filter(em => em.evento_id === eventoId);
       const maxOrdem = existing.length > 0 ? Math.max(...existing.map(em => em.ordem)) : 0;
-      const record = { id: randomUUID(), evento_id: eventoId, musicas_id: musicasId, ordem: maxOrdem + 1 };
+      const record = {
+        id: randomUUID(),
+        evento_id: eventoId,
+        musicas_id: musicasId,
+        ordem: maxOrdem + 1,
+        fk_artistas_musicas: artistas_musicas_id ?? null,
+      };
       eventosMusicas.push(record);
       return record;
     },
@@ -228,8 +269,83 @@ export function createFakeEventosRepository() {
     findMusicaDuplicate: async (eventoId: string, musicasId: string) =>
       eventosMusicas.find(em => em.evento_id === eventoId && em.musicas_id === musicasId) ?? null,
 
+    /**
+     * Atualiza a versão selecionada de uma música no evento em memória.
+     *
+     * @param id - ID do registro eventos_musicas
+     * @param artistas_musicas_id - UUID da versão ou `null` para limpar
+     */
+    setMusicaVersao: async (id: string, artistas_musicas_id: string | null) => {
+      const record = eventosMusicas.find(em => em.id === id);
+      if (record) {
+        record.fk_artistas_musicas = artistas_musicas_id;
+      }
+      return record ?? null;
+    },
+
+    /**
+     * Valida e persiste atomicamente a versão selecionada de uma música.
+     * No fake a "transação" é sincrônica; lançamos sentinelas compatíveis com o service.
+     *
+     * @param eventoMusicaId - ID do registro em eventos_musicas
+     * @param musicaId - ID da música esperada
+     * @param artistas_musicas_id - UUID da versão ou `null` para limpar
+     */
+    setMusicaVersaoAtomic: async (
+      eventoMusicaId: string,
+      musicaId: string,
+      artistas_musicas_id: string | null,
+    ) => {
+      if (artistas_musicas_id !== null) {
+        const versao = MOCK_ARTISTAS_MUSICAS.find(am => am.id === artistas_musicas_id);
+        if (!versao) throw new Error('VERSAO_NOT_FOUND');
+        if (versao.musica_id !== musicaId) throw new Error('VERSAO_WRONG_MUSICA');
+      }
+      const record = eventosMusicas.find(em => em.id === eventoMusicaId);
+      if (record) {
+        record.fk_artistas_musicas = artistas_musicas_id;
+      }
+    },
+
+    /**
+     * Projeta uma única música no formato de detalhe de evento, sem recarregar o evento inteiro.
+     * Usado por addMusica/setMusicaVersao para responder apenas a música afetada.
+     *
+     * @param eventoId - ID do evento
+     * @param musicasId - ID da música
+     * @returns Registro cru compatível com EventoMusicaDetailRaw, ou `null`
+     */
+    findEventoMusicaDetail: async (eventoId: string, musicasId: string) => {
+      const em = eventosMusicas.find(x => x.evento_id === eventoId && x.musicas_id === musicasId);
+      if (!em) return null;
+      const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
+      const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
+      return {
+        id: em.id,
+        ordem: em.ordem,
+        eventos_musicas_musicas_id_fkey: {
+          id: musica.id,
+          nome: musica.nome,
+          musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+          Artistas_Musicas: listVersoesShowByMusica(musica.id),
+        },
+        eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
+      };
+    },
+
     findMusicaById: async (musicasId: string) =>
       MOCK_MUSICAS_BASE.find(m => m.id === musicasId) ?? null,
+
+    /**
+     * Busca uma versão (Artistas_Musicas) pelo ID nos dados mock.
+     *
+     * @param id - UUID da versão
+     * @returns Objeto com id e musica_id, ou `null` se não encontrada
+     */
+    findArtistaMusicaById: async (id: string) => {
+      const am = MOCK_ARTISTAS_MUSICAS.find(a => a.id === id);
+      return am ? { id: am.id, musica_id: am.musica_id } : null;
+    },
 
     // --- Integrantes (eventos_users) ---
 

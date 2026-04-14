@@ -16,6 +16,46 @@ export const addIntegranteBodySchema = z.object({
 });
 
 /**
+ * Schema de validação do body para adição de música a um evento.
+ *
+ * @property musicas_id - UUID da música a vincular (obrigatório)
+ * @property artistas_musicas_id - UUID da versão selecionada (opcional, nullable — permite escolher a versão ao adicionar)
+ */
+export const addMusicaBodySchema = z.object({
+    musicas_id: z.string().uuid('ID da música deve ser um UUID válido'),
+    artistas_musicas_id: z.string().uuid('artistas_musicas_id deve ser um UUID válido').nullable().optional(),
+});
+
+/**
+ * Schema de validação do body para atualização da versão selecionada de uma música no evento.
+ *
+ * @property artistas_musicas_id - UUID da versão desejada, ou `null` para limpar a seleção
+ */
+export const setMusicaVersaoBodySchema = z.object({
+    artistas_musicas_id: z.string().uuid('artistas_musicas_id deve ser um UUID válido').nullable(),
+});
+
+/**
+ * Schema de validação dos params `eventoId` e `musicaId` nas rotas de junção evento-música.
+ *
+ * @property eventoId - UUID do evento
+ * @property musicaId - UUID da música
+ */
+export const eventoMusicaParamsSchema = z.object({
+    eventoId: z.string().uuid('eventoId deve ser um UUID válido'),
+    musicaId: z.string().uuid('musicaId deve ser um UUID válido'),
+});
+
+/**
+ * Schema de validação do param `eventoId` nas rotas de junção evento-música.
+ *
+ * @property eventoId - UUID do evento
+ */
+export const eventoIdParamSchema = z.object({
+    eventoId: z.string().uuid('eventoId deve ser um UUID válido'),
+});
+
+/**
  * Schema de validação do body para reordenação de músicas em um evento.
  *
  * @property musicas_ids - Array de UUIDs das músicas na nova ordem desejada
