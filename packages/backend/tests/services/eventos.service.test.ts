@@ -408,6 +408,24 @@ describe('EventosService', () => {
         message: 'Música não encontrada',
       });
     });
+
+    /**
+     * Cobre a guard contra race condition: se o registro recém-criado some entre
+     * `createMusica` e `findEventoMusicaDetail`, o serviço lança AppError 500
+     * em vez de quebrar com `detail!`.
+     */
+    it('deve lançar AppError 500 quando findEventoMusicaDetail retorna null após createMusica', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      vi.spyOn(fakeRepo, 'findEventoMusicaDetail').mockResolvedValueOnce(null);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
+      ).rejects.toMatchObject({
+        statusCode: 500,
+        message: 'Falha ao recuperar música criada',
+      });
+    });
   });
 
   // ─── setMusicaVersao ────────────────────────────────────
@@ -506,6 +524,25 @@ describe('EventosService', () => {
         versoes_disponiveis: expect.any(Array),
       }));
     });
+
+    /**
+     * Cobre a guard contra race condition em `setMusicaVersao`: se o vínculo
+     * evento-música some entre `setMusicaVersaoAtomic` e `findEventoMusicaDetail`,
+     * o serviço lança AppError 500 em vez de quebrar com `detail!`.
+     */
+    it('deve lançar AppError 500 quando findEventoMusicaDetail retorna null após setMusicaVersaoAtomic', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      vi.spyOn(fakeRepo, 'findEventoMusicaDetail').mockResolvedValueOnce(null);
+
+      await expect(
+        eventosService.setMusicaVersao(eventoId, musicaId, null)
+      ).rejects.toMatchObject({
+        statusCode: 500,
+        message: 'Falha ao recuperar música atualizada',
+      });
+    });
+
   });
 
   // ─── removeMusica ───────────────────────────────────────
