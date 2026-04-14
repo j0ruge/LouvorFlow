@@ -313,7 +313,8 @@ class EventosService {
         }
 
         const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicas_id);
-        return flattenEventoMusicaDetail(detail!);
+        if (!detail) throw new AppError("Falha ao recuperar música criada", 500);
+        return flattenEventoMusicaDetail(detail);
     }
 
     /**
@@ -344,7 +345,8 @@ class EventosService {
         }
 
         const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicaId);
-        return flattenEventoMusicaDetail(detail!);
+        if (!detail) throw new AppError("Falha ao recuperar música atualizada", 500);
+        return flattenEventoMusicaDetail(detail);
     }
 
     /**

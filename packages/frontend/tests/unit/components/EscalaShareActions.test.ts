@@ -60,6 +60,10 @@ function makeEvento(): EventoShow {
   };
 }
 
+/**
+ * Suite de testes do handler "Copiar texto": garante que o clipboard é acionado
+ * exatamente uma vez com a saída do formatador e cobre caminhos de sucesso/falha.
+ */
 describe("EscalaShareActions — handler: Copiar texto", () => {
   let writeTextMock: ReturnType<typeof vi.fn>;
 
@@ -103,6 +107,10 @@ describe("EscalaShareActions — handler: Copiar texto", () => {
   });
 });
 
+/**
+ * Suite de testes do handler "Abrir no WhatsApp": verifica chamada a `window.open`
+ * com URL `wa.me` correta, formato da URL gerada e detecção de popup bloqueado.
+ */
 describe("EscalaShareActions — handler: Abrir no WhatsApp", () => {
   let originalOpen: typeof window.open;
 
@@ -165,6 +173,10 @@ describe("EscalaShareActions — handler: Abrir no WhatsApp", () => {
   });
 });
 
+/**
+ * Suite de testes do estado desabilitado: valida que handlers não executam
+ * efeitos colaterais (clipboard, window.open) quando `evento` é `undefined`.
+ */
 describe("EscalaShareActions — estado desabilitado", () => {
   /** Verifica que os handlers não executam quando evento é undefined. */
   it("não deve chamar clipboard nem window.open quando evento é undefined", () => {
@@ -186,9 +198,15 @@ describe("EscalaShareActions — estado desabilitado", () => {
   });
 });
 
+/**
+ * Suite de testes do ícone de confirmação: valida que o estado `copied` reverte
+ * para `false` após ~3 segundos (fake timers). Restauração dos timers em `afterEach`
+ * para garantir cleanup mesmo em throw antecipado.
+ */
 describe("EscalaShareActions — ícone de confirmação", () => {
-  /** Remove stubs globais após cada teste para evitar vazamento de estado. */
+  /** Restaura fake timers e limpa stubs globais após cada teste (cleanup incondicional). */
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -217,7 +235,5 @@ describe("EscalaShareActions — ícone de confirmação", () => {
     vi.advanceTimersByTime(3000);
 
     expect(copied).toBe(false);
-
-    vi.useRealTimers();
   });
 });

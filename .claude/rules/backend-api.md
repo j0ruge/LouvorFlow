@@ -177,7 +177,7 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `packages/backend/prisma/schema.prisma` (24 modelos: 15 domínio + 9 auth).
+- Schema: `packages/backend/prisma/schema.prisma` (25 modelos: 16 domínio + 9 auth).
 - Client: `packages/backend/prisma/cliente.ts`:
   - `prisma` (default export) — singleton base, sem filtro de tenant. Usar para operações globais (auth, seeds, super-admin).
   - `forTenant(tenantId)` — retorna client com `$extends` que injeta `tenant_id` em todas as operações de domínio.

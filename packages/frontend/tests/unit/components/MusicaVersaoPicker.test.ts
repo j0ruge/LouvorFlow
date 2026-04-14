@@ -20,24 +20,32 @@ function criarVersao(overrides: Partial<VersaoMusica> = {}): VersaoMusica {
   };
 }
 
+/**
+ * Suite de testes para `selectDefaultVersaoId`: cobre as regras de auto-seleção
+ * (0/1/N versões, seleção válida, seleção stale).
+ */
 describe("selectDefaultVersaoId", () => {
+  /** Auto-seleciona o id quando há exatamente uma versão disponível e nenhuma seleção. */
   it("retorna o id da versão quando há exatamente uma versão e current é null", () => {
     const versao = criarVersao({ id: "v1" });
     const resultado = selectDefaultVersaoId([versao], null);
     expect(resultado).toBe("v1");
   });
 
+  /** Retorna null quando a lista está vazia e não há seleção atual. */
   it("retorna null quando não há versões disponíveis", () => {
     const resultado = selectDefaultVersaoId([], null);
     expect(resultado).toBeNull();
   });
 
+  /** Retorna null quando a lista está vazia mesmo havendo seleção atual. */
   it("retorna null quando não há versões disponíveis mesmo com current preenchido", () => {
     const current = criarVersao({ id: "v-stale" });
     const resultado = selectDefaultVersaoId([], current);
     expect(resultado).toBeNull();
   });
 
+  /** Com múltiplas versões e sem seleção, retorna null para não adivinhar escolha do usuário. */
   it("retorna null quando há múltiplas versões e current é null (não adivinha)", () => {
     const versoes = [
       criarVersao({ id: "v1", artista_nome: "Artista 1" }),
@@ -47,6 +55,7 @@ describe("selectDefaultVersaoId", () => {
     expect(resultado).toBeNull();
   });
 
+  /** Preserva seleção atual quando ela continua disponível na lista. */
   it("retorna o id da seleção atual quando ela existe nas versões disponíveis", () => {
     const versoes = [
       criarVersao({ id: "v1", artista_nome: "Artista 1" }),
@@ -58,6 +67,7 @@ describe("selectDefaultVersaoId", () => {
     expect(resultado).toBe("v2");
   });
 
+  /** Retorna null quando a seleção atual ficou stale (removida da lista). */
   it("retorna null quando a seleção atual não existe mais nas versões (stale)", () => {
     const versoes = [
       criarVersao({ id: "v1", artista_nome: "Artista 1" }),
@@ -68,12 +78,14 @@ describe("selectDefaultVersaoId", () => {
     expect(resultado).toBeNull();
   });
 
+  /** Auto-seleciona mesmo quando a única versão tem `artista_nome` null (sem artista). */
   it("retorna o id da única versão quando current é null e versão tem artista_nome null", () => {
     const versao = criarVersao({ id: "v1", artista_nome: null });
     const resultado = selectDefaultVersaoId([versao], null);
     expect(resultado).toBe("v1");
   });
 
+  /** Não sobrescreve seleção válida quando há apenas uma versão. */
   it("preserva seleção atual válida mesmo com apenas uma versão disponível", () => {
     const versao = criarVersao({ id: "v1" });
     const current = criarVersao({ id: "v1" });

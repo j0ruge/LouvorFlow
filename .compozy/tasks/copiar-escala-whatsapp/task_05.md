@@ -31,12 +31,12 @@ Adds the version picker UI: a clickable badge next to the tonalidade badge insid
 </requirements>
 
 ## Subtasks
-- [ ] 5.1 Create `components/MusicaVersaoPicker.tsx` with the badge + Popover + radio list UI.
-- [ ] 5.2 Extract `selectDefaultVersaoId` as a pure helper used by the auto-select effect.
-- [ ] 5.3 Wire `MusicaVersaoPicker` into `SortableMusicaCard` next to the tonalidade badge.
-- [ ] 5.4 Verify the existing `Editar`/`Excluir` and drag-and-drop behavior is unchanged.
-- [ ] 5.5 Add Vitest tests for `selectDefaultVersaoId` covering the auto-select branches.
-- [ ] 5.6 Manual verification that toggling versions updates the badge label after the mutation settles.
+- [x] 5.1 Create `components/MusicaVersaoPicker.tsx` with the badge + Popover + radio list UI.
+- [x] 5.2 Extract `selectDefaultVersaoId` as a pure helper used by the auto-select effect.
+- [x] 5.3 Wire `MusicaVersaoPicker` into `SortableMusicaCard` next to the tonalidade badge.
+- [x] 5.4 Verify the existing `Editar`/`Excluir` and drag-and-drop behavior is unchanged.
+- [x] 5.5 Add Vitest tests for `selectDefaultVersaoId` covering the auto-select branches.
+- [x] 5.6 Manual verification that toggling versions updates the badge label after the mutation settles.
 
 ## Implementation Details
 Use shadcn primitives that are already in the project: `Badge`, `Popover`, `PopoverTrigger`, `PopoverContent`, and a simple radio group (or labeled buttons). The picker is a child of `SortableMusicaCard` (lines 78-147 of `EventoDetail.tsx`) and reuses the existing flex layout. Do not modify the drag handle or remove button placement.

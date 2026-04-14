@@ -104,15 +104,6 @@ class EventosRepository {
      * @param eventoId - ID do evento
      * @param musicasId - ID da música a vincular
      * @param tenantId - ID do tenant ao qual o vínculo pertence
-     * @returns Registro criado na tabela Eventos_Musicas
-     */
-    /**
-     * Vincula uma música a um evento no tenant informado.
-     * Atribui automaticamente a próxima posição disponível (MAX(ordem) + 1).
-     *
-     * @param eventoId - ID do evento
-     * @param musicasId - ID da música a vincular
-     * @param tenantId - ID do tenant ao qual o vínculo pertence
      * @param artistas_musicas_id - UUID da versão selecionada (opcional)
      * @returns Registro criado na tabela Eventos_Musicas
      */

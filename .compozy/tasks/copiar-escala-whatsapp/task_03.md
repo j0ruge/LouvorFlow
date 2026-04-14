@@ -23,18 +23,18 @@ Brings `packages/backend/docs/openapi.json` in sync with the new backend surface
 <requirements>
 - The `MusicaEvento` schema in `openapi.json` MUST gain `versao_selecionada` (nullable object) and `versoes_disponiveis` (array of objects). Both items use the new `VersaoMusica` schema with `{ id: uuid, artista_nome: string|null, link_versao: string|null }`.
 - A new component schema `VersaoMusica` MUST be defined under `components.schemas`.
-- A new operation `PATCH /api/eventos/{eventoId}/musicas/{musicaId}` MUST be added under tag `Eventos - Músicas` with: path params, request body referencing the new body schema, success response `{ msg, musica }`, and error responses `400`, `401`, `403`, `404`.
+- A new operation `PATCH /api/eventos/{eventoId}/musicas/{musicaId}` MUST be added under tag `Eventos - Músicas` with: path params, request body referencing the new body schema, success response `{ msg }`, and error responses `400`, `401`, `403`, `404`.
 - The existing `POST /api/eventos/{eventoId}/musicas` body schema MUST gain an optional `artistas_musicas_id` field (UUID, nullable).
 - The spec MUST remain valid JSON and parse cleanly (`jq . openapi.json` succeeds).
 - The new operation MUST follow the existing security scheme used by other write endpoints (bearer JWT).
 </requirements>
 
 ## Subtasks
-- [ ] 3.1 Add the `VersaoMusica` schema under `components.schemas`.
-- [ ] 3.2 Extend the `MusicaEvento` schema with the two new fields.
-- [ ] 3.3 Extend the `POST /api/eventos/{eventoId}/musicas` request body schema with optional `artistas_musicas_id`.
-- [ ] 3.4 Add the new `PATCH /api/eventos/{eventoId}/musicas/{musicaId}` operation.
-- [ ] 3.5 Validate the full JSON document parses with `jq`.
+- [x] 3.1 Add the `VersaoMusica` schema under `components.schemas`.
+- [x] 3.2 Extend the `MusicaEvento` schema with the two new fields.
+- [x] 3.3 Extend the `POST /api/eventos/{eventoId}/musicas` request body schema with optional `artistas_musicas_id`.
+- [x] 3.4 Add the new `PATCH /api/eventos/{eventoId}/musicas/{musicaId}` operation.
+- [x] 3.5 Validate the full JSON document parses with `jq`.
 
 ## Implementation Details
 The OpenAPI spec is hand-maintained JSON. Locate the existing `Eventos - Músicas` operations and the `MusicaEvento` schema, then add the new pieces in the same style. No code generation tooling is involved.

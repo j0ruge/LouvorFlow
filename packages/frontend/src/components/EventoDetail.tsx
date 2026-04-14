@@ -29,13 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Calendar,
   Music,
   Users,
@@ -139,6 +132,7 @@ function SortableMusicaCard({
             onClick={onRemove}
             disabled={isPending}
             className="flex-shrink-0"
+            aria-label="Remover música"
           >
             <X className="h-4 w-4 text-destructive" />
           </Button>
@@ -290,6 +284,16 @@ export function EventoDetail() {
   const integrantesDisponiveis =
     allIntegrantes?.filter((i) => !integrantesAssociadosIds.has(i.id)) ?? [];
 
+  /** Opções formatadas para o combobox de busca de integrantes. */
+  const integranteOptions: ComboboxOption[] = useMemo(
+    () =>
+      integrantesDisponiveis.map((i) => ({
+        value: i.id,
+        label: i.nome,
+      })),
+    [integrantesDisponiveis],
+  );
+
   /**
    * Adiciona a música selecionada ao evento.
    */
@@ -363,27 +367,31 @@ export function EventoDetail() {
             )}
           </div>
         </div>
-        {canWrite && (
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {canWrite && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setEditFormOpen(true)}
+              aria-label="Editar evento"
             >
               <Pencil className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Editar</span>
             </Button>
-            <EscalaShareActions evento={evento} />
+          )}
+          <EscalaShareActions evento={evento} />
+          {canWrite && (
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setDeleteOpen(true)}
+              aria-label="Excluir evento"
             >
               <Trash2 className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Excluir</span>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <Card className="shadow-soft border-0">
@@ -549,30 +557,22 @@ export function EventoDetail() {
         <CardContent className="space-y-4">
           {canWrite && (
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedIntegranteId}
-                onValueChange={setSelectedIntegranteId}
-                disabled={integrantesDisponiveis.length === 0}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue
-                    placeholder={
-                      (allIntegrantes?.length ?? 0) === 0
-                        ? "Nenhum integrante cadastrado no sistema"
-                        : integrantesDisponiveis.length === 0
-                          ? "Todos os integrantes já foram adicionados"
-                          : "Selecione um integrante para adicionar"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {integrantesDisponiveis.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>
-                      {i.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-0">
+                <CreatableCombobox
+                  options={integranteOptions}
+                  value={selectedIntegranteId || undefined}
+                  onSelect={setSelectedIntegranteId}
+                  placeholder={
+                    (allIntegrantes?.length ?? 0) === 0
+                      ? "Nenhum integrante cadastrado no sistema"
+                      : integrantesDisponiveis.length === 0
+                        ? "Todos os integrantes já foram adicionados"
+                        : "Selecione um integrante para adicionar"
+                  }
+                  searchPlaceholder="Buscar integrante..."
+                  disabled={integrantesDisponiveis.length === 0}
+                />
+              </div>
               <Button
                 size="sm"
                 onClick={handleAddIntegrante}
@@ -610,6 +610,7 @@ export function EventoDetail() {
                         onClick={() => removeIntegrante.mutate(integrante.id)}
                         disabled={removeIntegrante.isPending}
                         className="flex-shrink-0"
+                        aria-label="Remover integrante"
                       >
                         <X className="h-4 w-4 text-destructive" />
                       </Button>

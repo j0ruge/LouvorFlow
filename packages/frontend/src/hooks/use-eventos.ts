@@ -230,6 +230,12 @@ export function useSetMusicaVersao(eventoId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
+    /**
+     * Executa a chamada PATCH para atualizar a versão selecionada da música.
+     *
+     * @param args - Objeto com `musicaId`, `artistasMusicasId` e flag `silent` opcional.
+     * @returns Promise com a resposta da API (`AssociationResponse`).
+     */
     mutationFn: ({
       musicaId,
       artistasMusicasId,
@@ -238,12 +244,24 @@ export function useSetMusicaVersao(eventoId: string) {
       artistasMusicasId: string | null;
       silent?: boolean;
     }) => setMusicaVersao(eventoId, musicaId, artistasMusicasId),
+    /**
+     * Callback de sucesso: invalida o cache do detalhe do evento e dispara toast
+     * de sucesso quando `variables.silent` é falso.
+     *
+     * @param data - Resposta da API (`AssociationResponse`).
+     * @param variables - Variáveis enviadas à mutation (inclui `silent`).
+     */
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
       if (!variables.silent) {
         toast.success(data.msg);
       }
     },
+    /**
+     * Callback de erro: exibe toast com a mensagem do erro.
+     *
+     * @param error - Erro lançado pelo `mutationFn`.
+     */
     onError: (error: Error) => {
       toast.error(error.message);
     },

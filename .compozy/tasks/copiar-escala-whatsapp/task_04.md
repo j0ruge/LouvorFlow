@@ -31,12 +31,12 @@ Bootstraps the first Vitest configuration in `packages/frontend/`, extends the Z
 </requirements>
 
 ## Subtasks
-- [ ] 4.1 Add Vitest as a devDependency, write `vitest.config.ts`, and add the npm scripts.
-- [ ] 4.2 Add `VersaoMusicaSchema` and extend `MusicaEventoSchema` in `schemas/evento.ts`.
-- [ ] 4.3 Add `setMusicaVersao` to `services/eventos.ts`.
-- [ ] 4.4 Add `useSetMusicaVersao` mutation hook to `hooks/use-eventos.ts`.
-- [ ] 4.5 Write the schema parse tests in `schemas/evento.test.ts`.
-- [ ] 4.6 Verify `npm run test` in `packages/frontend/` exits 0.
+- [x] 4.1 Add Vitest as a devDependency, write `vitest.config.ts`, and add the npm scripts.
+- [x] 4.2 Add `VersaoMusicaSchema` and extend `MusicaEventoSchema` in `schemas/evento.ts`.
+- [x] 4.3 Add `setMusicaVersao` to `services/eventos.ts`.
+- [x] 4.4 Add `useSetMusicaVersao` mutation hook to `hooks/use-eventos.ts`.
+- [x] 4.5 Write the schema parse tests in `schemas/evento.test.ts`.
+- [x] 4.6 Verify `npm run test` in `packages/frontend/` exits 0.
 
 ## Implementation Details
 See TechSpec section "Implementation Design → Core Interfaces" for the exact Zod and function signatures. The service function should follow the existing `apiFetch` pattern in `lib/api.ts`. The hook follows the same `onSuccess` invalidation + toast pattern as `useAddMusicaToEvento` in `use-eventos.ts`.

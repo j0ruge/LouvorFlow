@@ -32,7 +32,7 @@
  */
 
 import 'dotenv/config';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
@@ -155,6 +155,13 @@ async function main(): Promise<void> {
 
     const summary: { migration: string; action: 'updated' | 'inserted' | 'skipped' }[] = [];
 
+    /**
+     * Transação atômica que atualiza o checksum da migration de feature e insere
+     * linhas "already applied" para as migrations de drift, caso ainda não existam.
+     *
+     * @param tx - Cliente Prisma transacional injetado por `$transaction`.
+     * @returns Promise que resolve quando todas as escritas são persistidas.
+     */
     await prisma.$transaction(async (tx) => {
         await tx.$executeRaw`
             UPDATE "_prisma_migrations"
@@ -173,12 +180,13 @@ async function main(): Promise<void> {
             }
 
             const checksum = checksumOf(name);
+            const migrationId = randomUUID();
             await tx.$executeRaw`
                 INSERT INTO "_prisma_migrations" (
                     id, checksum, started_at, finished_at, migration_name, applied_steps_count
                 )
                 VALUES (
-                    gen_random_uuid()::text,
+                    ${migrationId},
                     ${checksum},
                     NOW(),
                     NOW(),
@@ -200,10 +208,20 @@ async function main(): Promise<void> {
 }
 
 main()
+    /**
+     * Handler de falha da execução principal: registra o erro no console e encerra
+     * o processo com código 1 para sinalizar falha ao orquestrador (CI/script).
+     *
+     * @param err - Erro propagado por `main()`; tipo `unknown` porque pode vir de qualquer camada.
+     */
     .catch((err: unknown) => {
         console.error('Reconciliation failed:', err);
         process.exit(1);
     })
+    /**
+     * Finalizador incondicional: desconecta o Prisma Client independentemente do
+     * resultado para liberar o pool de conexões. `void` descarta a Promise retornada.
+     */
     .finally(() => {
         void prisma.$disconnect();
     });

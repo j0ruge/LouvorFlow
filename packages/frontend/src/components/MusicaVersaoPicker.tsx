@@ -117,15 +117,16 @@ export function MusicaVersaoPicker({
 }: MusicaVersaoPickerProps) {
   const [open, setOpen] = useState(false);
   /**
-   * Guard composto do auto-select: reseta sempre que `musicaId` muda ou que a quantidade
-   * de versões disponíveis muda (ex.: versão adicionada/deletada no catálogo).
+   * Guard composto do auto-select: reseta sempre que `musicaId` muda ou quando o
+   * conjunto de IDs de versões disponíveis muda (swap com mesma cardinalidade
+   * também dispara o efeito — fix do caso "stale não limpo" quando A sai e B entra).
    */
   const autoSelectKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (readOnly) return;
 
-    const currentKey = `${musicaId}:${versoesDisponiveis.length}`;
+    const currentKey = `${musicaId}:${versoesDisponiveis.map((v) => v.id).join(",")}`;
     if (autoSelectKeyRef.current === currentKey) return;
 
     // Caso 1: seleção stale — limpar silenciosamente.

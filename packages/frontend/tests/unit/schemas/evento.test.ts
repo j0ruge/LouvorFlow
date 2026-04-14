@@ -15,6 +15,10 @@ const VALID_UUID_2 = 'bbb00001-0000-0000-0000-000000000002';
 const VALID_UUID_3 = 'ccc00001-0000-0000-0000-000000000003';
 const VALID_UUID_TONALIDADE = 'ddd00001-0000-0000-0000-000000000004';
 
+/**
+ * Suite de testes do `VersaoMusicaSchema`: valida parsing de versões com/sem
+ * artista e link, rejeição de id não-UUID e de campos obrigatórios ausentes.
+ */
 describe('VersaoMusicaSchema', () => {
   /** Deve aceitar versão completa com artista e link. */
   it('deve aceitar versão com artista_nome e link_versao preenchidos', () => {
@@ -56,6 +60,11 @@ describe('VersaoMusicaSchema', () => {
   });
 });
 
+/**
+ * Suite de testes do `MusicaEventoSchema`: valida o shape da música no evento
+ * (incluindo `versao_selecionada` e `versoes_disponiveis`) e rejeição de campos
+ * obrigatórios ausentes.
+ */
 describe('MusicaEventoSchema', () => {
   /** Deve aceitar item com versão selecionada e versões disponíveis populadas. */
   it('deve aceitar item com versao_selecionada e versoes_disponiveis populados', () => {

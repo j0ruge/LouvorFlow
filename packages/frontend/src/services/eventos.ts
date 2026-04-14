@@ -158,7 +158,7 @@ export async function reorderMusicas(
  * @param eventoId - UUID do evento.
  * @param musicaId - UUID da música.
  * @param artistasMusicasId - UUID da versão (artistas_musicas) ou `null` para limpar.
- * @returns Resposta da API com mensagem e música atualizada.
+ * @returns Resposta da API com mensagem (`AssociationResponse`).
  */
 export async function setMusicaVersao(
   eventoId: string,

@@ -112,6 +112,10 @@ function makeFullEvento(): EventoShow {
   };
 }
 
+/**
+ * Suite de testes de `formatEscalaWhatsApp`: valida o layout canônico do texto
+ * gerado (header, músicas, integrantes, casos de falta de dados).
+ */
 describe("formatEscalaWhatsApp", () => {
   /** Verifica se a escala completa produz o layout canônico exato. */
   it("deve renderizar escala completa com header, músicas com tom e link, e integrantes com funções", () => {
@@ -319,6 +323,10 @@ describe("formatEscalaWhatsApp", () => {
   });
 });
 
+/**
+ * Suite de testes de `buildWhatsAppShareUrl`: valida que a URL gerada começa
+ * com `https://wa.me/?text=` e que a mensagem é corretamente percent-encoded.
+ */
 describe("buildWhatsAppShareUrl", () => {
   /** Verifica que a URL retornada contém o prefixo wa.me e a mensagem codificada. */
   it("deve retornar URL wa.me com a mensagem codificada", () => {
@@ -333,6 +341,10 @@ describe("buildWhatsAppShareUrl", () => {
   });
 });
 
+/**
+ * Suite de testes de `copyEscalaToClipboard`: valida que `navigator.clipboard.writeText`
+ * é chamado com a saída do formatador e que erros propagam para o caller.
+ */
 describe("copyEscalaToClipboard", () => {
   let writeTextMock: ReturnType<typeof vi.fn>;
 
