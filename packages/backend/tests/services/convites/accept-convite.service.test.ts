@@ -68,7 +68,7 @@ vi.mock('../../../prisma/cliente.js', () => ({
             update: (...args: unknown[]) => mockInviteTokensUpdate(...args),
             findUnique: vi.fn().mockResolvedValue({ used_at: null, revoked_at: null }),
         },
-        $transaction: vi.fn().mockImplementation(async (fn: Function) => {
+        $transaction: vi.fn().mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
             const tx = {
                 tenantUsers: {
                     findUnique: (...args: unknown[]) => mockTenantUsersFindUnique(...args),
