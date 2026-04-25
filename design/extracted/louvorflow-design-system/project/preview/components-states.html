@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; border:1px dashed hsl(35 18% 87%); border-radius:12px; background:hsl(38 30% 99%); text-align:center; gap:10px }
+  .empty .icon { width:40px;height:40px; color:hsl(30 12% 45%); opacity:0.7 }
+  .empty h3 { margin:0; font-size:16px; font-weight:600; color:hsl(30 15% 18%) }
+  .empty p { margin:0; font-size:13px; color:hsl(30 12% 45%); max-width:280px; line-height:1.5 }
+  .btn-primary { background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); color:#fff; border:0; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:500; margin-top:6px; cursor:pointer; font-family:inherit }
+  .error { border-color:hsla(0,84%,60%,0.3); background:hsla(0,84%,60%,0.04) }
+  .error .icon { color:hsl(0 84% 60%); opacity:1 }
+</style>
+</head>
+<body>
+<div class="card-root">
+  <div class="row" style="gap:12px">
+    <div class="empty" style="flex:1">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <h3>Nenhuma música cadastrada</h3>
+      <p>Comece adicionando músicas ao catálogo do ministério.</p>
+      <button class="btn-primary">+ Nova Música</button>
+    </div>
+    <div class="empty error" style="flex:1">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <h3>Erro ao carregar músicas</h3>
+      <p>Não foi possível conectar ao servidor. Tente novamente em alguns instantes.</p>
+      <button class="btn-primary" style="background:hsl(0 84% 60%)">Tentar novamente</button>
+    </div>
+  </div>
+</div>
+</body></html>

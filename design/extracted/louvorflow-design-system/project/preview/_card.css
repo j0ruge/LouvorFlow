@@ -1,0 +1,58 @@
+/* Shared styles for preview cards — ~700×auto, warm neutral */
+@import url("../colors_and_type.css");
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  padding: 20px;
+}
+.card-root {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.col { display: flex; flex-direction: column; }
+.label {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+}
+.swatch {
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.swatch .chip {
+  height: 54px;
+}
+.swatch .meta {
+  padding: 6px 8px;
+  background: hsl(var(--card));
+  font-size: 11px;
+  line-height: 1.3;
+}
+.swatch .meta .name { color: hsl(var(--foreground)); font-weight: 600; }
+.swatch .meta .hsl { color: hsl(var(--muted-foreground)); font-family: var(--font-mono); }

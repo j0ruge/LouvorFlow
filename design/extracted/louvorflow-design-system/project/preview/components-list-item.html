@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .item { display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:10px; background:linear-gradient(135deg,hsl(38 30% 99%),hsl(35 25% 97%)); border:1px solid hsl(35 18% 87%) }
+  .tile { width:46px; height:46px; border-radius:10px; background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); display:flex;align-items:center;justify-content:center;flex-shrink:0 }
+  .tile svg { width:22px;height:22px;color:#fff }
+  .text .t { font-size:15px; font-weight:600; color:hsl(30 15% 18%); line-height:1.2 }
+  .text .s { font-size:13px; color:hsl(30 12% 45%); margin-top:2px }
+  .meta { margin-left:auto; display:flex; gap:16px; align-items:center; font-size:13px; color:hsl(30 12% 45%) }
+  .key { display:flex; align-items:center; gap:6px; color:hsl(30 15% 18%); font-weight:500 }
+  .chip { font-size:11px; padding:3px 10px; border-radius:9999px; background:hsla(38,80%,52%,0.1); color:hsl(38 70% 38%); font-weight:500 }
+</style>
+</head>
+<body>
+<div class="card-root">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="item">
+      <div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div class="text"><div class="t">Deus é Deus</div><div class="s">Delino Marçal</div></div>
+      <div class="meta">
+        <div class="key"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(38 80% 52%)" stroke-width="2"><path d="M11.5 15.5L15 19l5-5"/><circle cx="8" cy="12" r="6"/></svg> G</div>
+        <span>84 BPM</span>
+        <span class="chip">Adoração</span>
+      </div>
+    </div>
+    <div class="item">
+      <div class="tile"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div class="text"><div class="t">Lugar Secreto</div><div class="s">Gabriela Rocha</div></div>
+      <div class="meta">
+        <div class="key"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(38 80% 52%)" stroke-width="2"><path d="M11.5 15.5L15 19l5-5"/><circle cx="8" cy="12" r="6"/></svg> D</div>
+        <span>72 BPM</span>
+        <span class="chip">Intimidade</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
