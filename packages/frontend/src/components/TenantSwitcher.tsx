@@ -1,13 +1,10 @@
 /**
  * Componente de alternância de tenant (organização) para usuários multi-tenant.
  *
- * Exibe um botão dropdown com o nome do tenant ativo. Ao abrir, lista todos os
- * tenants disponíveis para o usuário. Clicar em um tenant diferente do ativo
- * chama `switchTenant()` do AuthContext, que troca a sessão sem re-login.
- *
- * Para usuários com apenas um tenant, exibe o nome como texto estático (sem
- * interação). Retorna `null` se o usuário não possui nenhum tenant definido.
- * Design mobile-first usando shadcn/ui DropdownMenu.
+ * Renderizado no rodapé da sidebar como tile (ícone Building2 em quadrado +
+ * nome da igreja + subtitle "Ministério de Louvor"). Para usuários multi-tenant
+ * abre dropdown ao clicar; para single-tenant fica como display estático.
+ * Retorna `null` se o usuário não possui nenhum tenant definido.
  */
 
 import { useState } from "react";
@@ -20,32 +17,67 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 /**
- * Componente TenantSwitcher — alternância de organização no sidebar.
+ * Conteúdo visual interno do tile (compartilhado entre single e multi-tenant).
  *
- * Renderiza um botão que exibe o tenant ativo e um dropdown com todos os
- * tenants do usuário. Ao selecionar outro tenant, realiza a troca via API.
- * Para usuários com apenas um tenant, exibe o nome do tenant como texto
- * estático sem interação. Retorna `null` se não há tenant definido.
+ * @param props - Props do tile.
+ * @param props.name - Nome do tenant ativo.
+ * @param props.showChevron - Se `true`, exibe o ícone de chevron à direita
+ *   indicando que o tile é interativo (multi-tenant).
+ * @returns Elemento React com o conteúdo do tile.
+ */
+function TenantTile({
+  name,
+  showChevron,
+}: {
+  name: string;
+  showChevron: boolean;
+}) {
+  return (
+    <>
+      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <p className="text-[13px] font-bold text-sidebar-foreground leading-tight truncate">
+          {name}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          Ministério de Louvor
+        </p>
+      </div>
+      {showChevron && (
+        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+      )}
+    </>
+  );
+}
+
+/**
+ * Componente TenantSwitcher — alternância de organização no rodapé da sidebar.
+ *
+ * Para usuários multi-tenant renderiza um botão clicável que abre dropdown
+ * com a lista de tenants disponíveis. Para single-tenant exibe o nome como
+ * tile estático sem interação. Retorna `null` se não há tenant definido.
  *
  * @returns Elemento JSX com o seletor de tenant, exibição estática ou `null`.
  */
 export function TenantSwitcher() {
   const { currentTenant, availableTenants, switchTenant } = useAuth();
-  const [switchingTenantId, setSwitchingTenantId] = useState<string | null>(null);
+  const [switchingTenantId, setSwitchingTenantId] = useState<string | null>(
+    null,
+  );
 
+  if (!currentTenant) return null;
+
+  // Single-tenant: tile estático
   if (availableTenants.length <= 1) {
-    if (!currentTenant) return null;
     return (
-      <div className="flex items-center gap-2 px-3 py-2">
-        <Building2 className="h-4 w-4 shrink-0 text-sidebar-foreground/70" />
-        <span className="truncate text-sm font-medium text-sidebar-foreground">
-          {currentTenant.name}
-        </span>
+      <div className="flex items-center gap-2.5 px-2 py-1.5">
+        <TenantTile name={currentTenant.name} showChevron={false} />
       </div>
     );
   }
@@ -66,7 +98,9 @@ export function TenantSwitcher() {
     try {
       await switchTenant(tenantId);
       const tenant = availableTenants.find((t) => t.id === tenantId);
-      toast.success(`Organização alterada para ${tenant?.name ?? "nova organização"}`);
+      toast.success(
+        `Organização alterada para ${tenant?.name ?? "nova organização"}`,
+      );
     } catch (err) {
       toast.error(
         err instanceof Error
@@ -78,28 +112,23 @@ export function TenantSwitcher() {
     }
   }
 
+  // Multi-tenant: tile clicável com dropdown
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-between px-3 h-10 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        <button
+          type="button"
+          className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 disabled:opacity-50"
           disabled={switchingTenantId !== null}
           aria-label="Selecionar organização"
         >
-          <div className="flex items-center gap-2 min-w-0">
-            <Building2 className="h-4 w-4 shrink-0 text-sidebar-foreground/70" />
-            <span className="truncate text-sm font-medium">
-              {currentTenant?.name ?? "Sem organização"}
-            </span>
-          </div>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+          <TenantTile name={currentTenant.name} showChevron={true} />
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side="bottom"
+        side="top"
         align="start"
-        className="w-[--radix-dropdown-menu-trigger-width] min-w-48"
+        className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
       >
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
           Suas organizações

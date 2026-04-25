@@ -2,17 +2,68 @@
  * Página principal do Dashboard.
  *
  * Exibe dados reais do servidor: total de músicas, escalas, integrantes,
- * e próximas escalas. Usa hooks do React Query para carregar dados
- * e calcular estatísticas no cliente.
+ * e próximas escalas. Layout fiel ao handoff de design (Sora + tiles
+ * âmbar + bloco de data nas próximas escalas).
  */
 
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Music, Calendar, Users, TrendingUp } from "lucide-react";
+import {
+  Music,
+  Calendar,
+  Users,
+  TrendingUp,
+  Plus,
+  ChevronRight,
+} from "lucide-react";
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
+
+/** Abreviações de mês em PT-BR (3 letras, primeira maiúscula). */
+const MESES_ABREV = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+/**
+ * Extrai dia e mês abreviado em PT-BR de uma data ISO.
+ *
+ * @param iso - Data em formato ISO ou parsável pelo Date.
+ * @returns Objeto com `dia` (1-31) e `mes` (3 letras).
+ */
+function formatDateBlock(iso: string): { dia: number; mes: string } {
+  const date = new Date(iso);
+  return { dia: date.getDate(), mes: MESES_ABREV[date.getMonth()] };
+}
+
+/**
+ * Calcula iniciais (até 2 letras) a partir do nome completo.
+ *
+ * @param nome - Nome completo do integrante.
+ * @returns Iniciais em maiúsculas.
+ */
+function iniciais(nome: string): string {
+  return nome
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 /**
  * Componente da página de Dashboard com dados reais.
@@ -20,6 +71,7 @@ import { useIntegrantes } from "@/hooks/use-integrantes";
  * @returns Elemento JSX com o Dashboard do ministério.
  */
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { data: musicasData, isLoading: musicasLoading } = useMusicas(1, 1);
   const { data: eventos, isLoading: eventosLoading } = useEventos();
   const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
@@ -40,95 +92,128 @@ const Dashboard = () => {
     return eventos
       .filter((e) => new Date(e.data) >= agora)
       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
-      .slice(0, 5);
+      .slice(0, 4);
   }, [eventos]);
 
   const isLoading = musicasLoading || eventosLoading || integrantesLoading;
 
   const stats = [
     {
-      title: "Total de Músicas",
+      title: "Músicas",
       value: totalMusicas,
       icon: Music,
-      description: "Cadastradas no repertório",
-      gradient: "from-primary to-primary-light",
+      description: "No repertório",
+      tintGradient: "from-primary to-primary-light",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
       title: "Escalas",
       value: totalEscalas,
       icon: Calendar,
       description: `${proximasEscalas.length} próximas`,
-      gradient: "from-secondary to-accent",
+      tintGradient: "from-secondary to-accent",
+      iconBg: "bg-accent/10",
+      iconColor: "text-accent",
     },
     {
       title: "Integrantes",
       value: totalIntegrantes,
       icon: Users,
-      description: "Membros do ministério",
-      gradient: "from-accent to-primary",
+      description: "Membros ativos",
+      tintGradient: "from-accent to-primary",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
-      title: "Próximos Eventos",
+      title: "Eventos",
       value: proximasEscalas.length,
       icon: TrendingUp,
-      description: "Eventos futuros agendados",
-      gradient: "from-primary-light to-secondary",
+      description: "Futuros agendados",
+      tintGradient: "from-primary-light to-secondary",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
     },
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Visão geral do ministério de louvor
-        </p>
+    <div className="space-y-6 sm:space-y-8">
+      {/* Page head — título com gradient + botão Nova Escala */}
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl sm:text-[34px] font-bold leading-[1.05] tracking-tight bg-gradient-primary bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Visão geral do ministério de louvor
+          </p>
+        </div>
+        <Button
+          size="sm"
+          className="bg-gradient-primary hover:opacity-90 text-white shadow-soft font-semibold"
+          onClick={() => navigate("/escalas")}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Escala
+        </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card
+          <div
             key={stat.title}
-            className="relative overflow-hidden border-0 shadow-medium hover:shadow-glow transition-all duration-300"
+            className="relative overflow-hidden bg-card border border-border rounded-2xl shadow-soft hover:shadow-glow transition-all duration-300 p-4 sm:p-[18px]"
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-5`} />
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold text-foreground">
-                  {stat.value}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
+            <div
+              className={`absolute inset-0 bg-gradient-to-br ${stat.tintGradient} opacity-[0.06] pointer-events-none`}
+            />
+            <div
+              className={`absolute top-3 right-3 h-8 w-8 rounded-lg ${stat.iconBg} ${stat.iconColor} flex items-center justify-center`}
+            >
+              <stat.icon className="h-4 w-4" />
+            </div>
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground pr-10">
+              {stat.title}
+            </h3>
+            {isLoading ? (
+              <Skeleton className="h-8 w-16 mt-1.5" />
+            ) : (
+              <div className="font-display text-3xl font-bold leading-none text-foreground tabular-nums mt-1">
+                {stat.value}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              {stat.description}
+            </p>
+          </div>
         ))}
       </div>
 
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-        <Card className="shadow-soft border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+      {/* Two-up grid: Próximas Escalas + Equipe */}
+      <div className="grid gap-4 sm:gap-[18px] md:grid-cols-2">
+        {/* ── Próximas Escalas ───────────────────────────── */}
+        <Card className="shadow-soft border border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground">
+              <Calendar className="h-[18px] w-[18px] text-primary" />
               Próximas Escalas
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => navigate("/escalas")}
+            >
+              Ver todas
+              <ChevronRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
           </CardHeader>
           <CardContent>
             {eventosLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  <Skeleton key={i} className="h-[68px] w-full rounded-xl" />
                 ))}
               </div>
             ) : proximasEscalas.length === 0 ? (
@@ -136,46 +221,75 @@ const Dashboard = () => {
                 Nenhuma escala futura agendada.
               </p>
             ) : (
-              <div className="space-y-4">
-                {proximasEscalas.map((scale) => (
-                  <div
-                    key={scale.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-gradient-card border border-border gap-2"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">
-                        {scale.descricao || "Evento"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(scale.data).toLocaleDateString("pt-BR")} •{" "}
-                        {scale.musicas.length} músicas •{" "}
-                        {scale.integrantes.length} integrantes
-                      </p>
-                    </div>
-                    {scale.tipoEvento && (
-                      <div className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {scale.tipoEvento.nome}
+              <div className="flex flex-col gap-2.5">
+                {proximasEscalas.map((scale) => {
+                  const { dia, mes } = formatDateBlock(scale.data);
+                  return (
+                    <div
+                      key={scale.id}
+                      className="flex items-center gap-3 p-3 bg-gradient-card border border-border rounded-xl hover:border-primary/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/escalas/${scale.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") navigate(`/escalas/${scale.id}`);
+                      }}
+                    >
+                      {/* Bloco de data âmbar */}
+                      <div className="w-[52px] flex-shrink-0 text-center py-1.5 rounded-[10px] bg-primary/10 text-primary">
+                        <div className="font-display text-xl font-bold leading-none tabular-nums">
+                          {dia}
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mt-[3px]">
+                          {mes}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {/* Corpo */}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-foreground leading-tight truncate">
+                          {scale.descricao || "Evento"}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-[3px] truncate">
+                          {scale.musicas.length} músicas ·{" "}
+                          {scale.integrantes.length} integrantes
+                        </div>
+                      </div>
+                      {/* Tag */}
+                      {scale.tipoEvento && (
+                        <span className="ml-auto flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
+                          {scale.tipoEvento.nome}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-soft border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
+        {/* ── Equipe do Ministério ──────────────────────── */}
+        <Card className="shadow-soft border border-border">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
+            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground">
+              <Users className="h-[18px] w-[18px] text-primary" />
               Equipe do Ministério
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => navigate("/integrantes")}
+            >
+              Ver integrantes
+              <ChevronRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
           </CardHeader>
           <CardContent>
             {integrantesLoading ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                  <Skeleton key={i} className="h-14 w-full rounded-[10px]" />
                 ))}
               </div>
             ) : !integrantes || integrantes.length === 0 ? (
@@ -183,25 +297,25 @@ const Dashboard = () => {
                 Nenhum integrante vinculado a esta igreja.
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="flex flex-col gap-2">
                 {integrantes
-                  .filter(i => i.funcoes.length > 0)
+                  .filter((i) => i.funcoes.length > 0)
                   .slice(0, 5)
                   .map((integrante) => (
                     <div
                       key={integrante.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-gradient-card border border-border"
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border border-border bg-card"
                     >
-                      <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                        {integrante.nome.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                      <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {iniciais(integrante.nome)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground text-sm truncate">
+                        <div className="text-sm font-semibold text-foreground leading-tight truncate">
                           {integrante.nome}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {integrante.funcoes.map(f => f.nome).join(", ")}
-                        </p>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {integrante.funcoes.map((f) => f.nome).join(" · ")}
+                        </div>
                       </div>
                     </div>
                   ))}
