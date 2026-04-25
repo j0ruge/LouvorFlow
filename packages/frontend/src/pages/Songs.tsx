@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
 import { useCan } from "@/hooks/use-can";
+import { handleClickableKeyDown } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -181,9 +182,9 @@ const Songs = () => {
                     onClick={() => navigate(`/musicas/${song.id}`)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") navigate(`/musicas/${song.id}`);
-                    }}
+                    onKeyDown={handleClickableKeyDown(() =>
+                      navigate(`/musicas/${song.id}`),
+                    )}
                   >
                     <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                       <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 shadow-soft">

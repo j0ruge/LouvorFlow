@@ -208,7 +208,7 @@ export function AppSidebar() {
         {!collapsed ? (
           <TenantSwitcher />
         ) : (
-          <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center mx-auto">
+          <div className="h-8 w-8 rounded-md bg-sidebar-accent flex items-center justify-center mx-auto">
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </div>
         )}

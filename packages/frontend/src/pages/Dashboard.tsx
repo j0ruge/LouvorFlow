@@ -22,33 +22,7 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
-
-/** Abreviações de mês em PT-BR (3 letras, primeira maiúscula). */
-const MESES_ABREV = [
-  "Jan",
-  "Fev",
-  "Mar",
-  "Abr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Set",
-  "Out",
-  "Nov",
-  "Dez",
-];
-
-/**
- * Extrai dia e mês abreviado em PT-BR de uma data ISO.
- *
- * @param iso - Data em formato ISO ou parsável pelo Date.
- * @returns Objeto com `dia` (1-31) e `mes` (3 letras).
- */
-function formatDateBlock(iso: string): { dia: number; mes: string } {
-  const date = new Date(iso);
-  return { dia: date.getDate(), mes: MESES_ABREV[date.getMonth()] };
-}
+import { formatDateBlock, handleClickableKeyDown } from "@/lib/utils";
 
 /**
  * Calcula iniciais (até 2 letras) a partir do nome completo.
@@ -231,9 +205,9 @@ const Dashboard = () => {
                       onClick={() => navigate(`/escalas/${scale.id}`)}
                       role="button"
                       tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") navigate(`/escalas/${scale.id}`);
-                      }}
+                      onKeyDown={handleClickableKeyDown(() =>
+                        navigate(`/escalas/${scale.id}`),
+                      )}
                     >
                       {/* Bloco de data âmbar */}
                       <div className="w-[52px] flex-shrink-0 text-center py-1.5 rounded-[10px] bg-primary/10 text-primary">

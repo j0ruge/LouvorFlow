@@ -1,3 +1,4 @@
+import type React from "react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -72,6 +73,61 @@ export function isSafeUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** Abreviações de mês em PT-BR (3 letras, primeira maiúscula). */
+export const MESES_ABREV = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+] as const;
+
+/**
+ * Extrai dia e mês abreviado em PT-BR de uma data ISO 8601.
+ *
+ * Usa intencionalmente o **timezone local do navegador** (`getDate`/`getMonth`),
+ * coerente com `toDatetimeLocalValue` e `localDatetimeToISO` no mesmo módulo.
+ * O backend armazena `data` como `DateTime` (timestamp completo); a renderização
+ * do dia/mês reflete o fuso do usuário, que é o que se espera ao exibir uma
+ * agenda local. Para datas-only sem componente de hora, considere normalizar
+ * antes de chamar esta função.
+ *
+ * @param iso - Data em formato ISO 8601 ou parsável pelo construtor `Date`.
+ * @returns Objeto com `dia` (1-31) e `mes` (3 letras, primeira maiúscula).
+ */
+export function formatDateBlock(iso: string): { dia: number; mes: string } {
+  const date = new Date(iso);
+  return { dia: date.getDate(), mes: MESES_ABREV[date.getMonth()] };
+}
+
+/**
+ * Helper de acessibilidade para elementos com `role="button"` que devem ser
+ * acionados por Enter ou Space (WCAG 2.1.4 — Keyboard accessible).
+ *
+ * Retorna um handler `onKeyDown` que invoca `action` ao detectar Enter ou
+ * Space, prevenindo o scroll padrão do navegador no caso do Space.
+ *
+ * @param action - Função a ser executada quando o usuário aciona via teclado.
+ * @returns Handler de evento `onKeyDown` para anexar ao elemento clicável.
+ */
+export function handleClickableKeyDown(
+  action: () => void,
+): (event: React.KeyboardEvent) => void {
+  return (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      action();
+    }
+  };
 }
 
 /**
