@@ -189,10 +189,18 @@ export function VersaoForm({
                       searchPlaceholder="Buscar artista..."
                       isLoading={artistasLoading}
                       disabled={artistaBloqueado}
+                      aria-describedby={
+                        exibirAvisoAlteracaoArtista
+                          ? "versao-artista-aviso"
+                          : undefined
+                      }
                     />
                   </FormControl>
                   {exibirAvisoAlteracaoArtista && (
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                      id="versao-artista-aviso"
+                      className="text-xs text-muted-foreground"
+                    >
                       Alterar o artista move esta versão para outro artista. Use apenas para corrigir cadastros.
                     </p>
                   )}

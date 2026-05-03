@@ -535,6 +535,25 @@ describe('MusicasService', () => {
       expect(result.artista).not.toBeNull();
       expect(result.artista!.id).toBe(novoArtistaId);
     });
+
+    /**
+     * Mesmo com `allowArtistChange: true`, a checagem de duplicata
+     * deve continuar valendo: se já existe versão da mesma música com
+     * o artista alvo, a API responde 409.
+     */
+    it('deve retornar 409 quando admin tenta trocar para artista que já tem versão da mesma música', async () => {
+      /** MOCK_ARTISTAS_MUSICAS[1] já vincula MOCK_ARTISTAS[1] à mesma música de MOCK_ARTISTAS_MUSICAS[0]. */
+      await expect(
+        musicasService.updateVersao(
+          MOCK_ARTISTAS_MUSICAS[0].id,
+          { artista_id: MOCK_ARTISTAS[1].id },
+          { allowArtistChange: true },
+        ),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Registro duplicado',
+      });
+    });
   });
 
   // ─── removeVersao ───────────────────────────────────────
