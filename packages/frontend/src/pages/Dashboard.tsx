@@ -22,22 +22,11 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
-import { formatDateBlock, handleClickableKeyDown } from "@/lib/utils";
-
-/**
- * Calcula iniciais (até 2 letras) a partir do nome completo.
- *
- * @param nome - Nome completo do integrante.
- * @returns Iniciais em maiúsculas.
- */
-function iniciais(nome: string): string {
-  return nome
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+import {
+  formatDateBlock,
+  getInitials,
+  handleClickableKeyDown,
+} from "@/lib/utils";
 
 /**
  * Componente da página de Dashboard com dados reais.
@@ -115,7 +104,7 @@ const Dashboard = () => {
       {/* Page head — título com gradient + botão Nova Escala */}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl sm:text-[34px] font-bold leading-[1.05] tracking-tight bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="font-display text-2xl font-bold leading-[1.05] tracking-tight bg-gradient-primary bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -125,7 +114,7 @@ const Dashboard = () => {
         <Button
           size="sm"
           className="bg-gradient-primary hover:opacity-90 text-white shadow-soft font-semibold"
-          onClick={() => navigate("/escalas")}
+          onClick={() => navigate("/escalas?nova=1")}
         >
           <Plus className="mr-2 h-4 w-4" />
           Nova Escala
@@ -281,7 +270,7 @@ const Dashboard = () => {
                       className="flex items-center gap-2.5 px-3 py-2.5 rounded-[10px] border border-border bg-card"
                     >
                       <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-                        {iniciais(integrante.nome)}
+                        {getInitials(integrante.nome)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-foreground leading-tight truncate">

@@ -1,5 +1,5 @@
 /* Shared styles for preview cards — ~700×auto, warm neutral */
-@import url("../colors_and_type.css");
+@import "../colors_and_type.css";
 
 * { box-sizing: border-box; }
 html, body {

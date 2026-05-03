@@ -175,7 +175,18 @@ const Songs = () => {
           {!isLoading && !isError && filteredSongs.length > 0 && (
             <>
               <div className="space-y-4">
-                {filteredSongs.map((song) => (
+                {filteredSongs.map((song) => {
+                  /** Badges de categoria reutilizadas no layout desktop e mobile. */
+                  const categoriaBadges = song.categorias.map((categoria) => (
+                    <Badge
+                      key={categoria.id}
+                      variant="secondary"
+                      className="bg-primary/10 text-primary hover:bg-primary/20"
+                    >
+                      {categoria.nome}
+                    </Badge>
+                  ));
+                  return (
                   <div
                     key={song.id}
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-medium hover:border-primary/30 transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
@@ -223,17 +234,7 @@ const Songs = () => {
                           {song.versoes[0].bpm} BPM
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        {song.categorias.map((categoria) => (
-                          <Badge
-                            key={categoria.id}
-                            variant="secondary"
-                            className="bg-primary/10 text-primary hover:bg-primary/20"
-                          >
-                            {categoria.nome}
-                          </Badge>
-                        ))}
-                      </div>
+                      <div className="flex gap-2">{categoriaBadges}</div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -248,19 +249,12 @@ const Songs = () => {
 
                     {song.categorias.length > 0 && (
                       <div className="flex flex-wrap gap-2 sm:hidden">
-                        {song.categorias.map((categoria) => (
-                          <Badge
-                            key={categoria.id}
-                            variant="secondary"
-                            className="bg-primary/10 text-primary hover:bg-primary/20"
-                          >
-                            {categoria.nome}
-                          </Badge>
-                        ))}
+                        {categoriaBadges}
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {!isSearching && meta && meta.total_pages > 1 && (

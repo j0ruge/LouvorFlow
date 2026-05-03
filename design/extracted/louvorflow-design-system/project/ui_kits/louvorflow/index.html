@@ -905,7 +905,7 @@ nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto
   {"nome":"Grande é o Senhor","artista":"Adhemar de Campos","tom":"C","bpm":118,"cat":"Celebração","duracao":"3:48"},
   {"nome":"Ousado Amor","artista":"Isaías Saad","tom":"Bm","bpm":68,"cat":"Intimidade","duracao":"7:10"},
   {"nome":"Santo Espírito","artista":"Laura Souguellis","tom":"F","bpm":70,"cat":"Adoração","duracao":"6:24"},
-  {"nome":"Em Teus Braços","artives":"Laura Souguellis","artista":"Laura Souguellis","tom":"A","bpm":64,"cat":"Intimidade","duracao":"5:18"},
+  {"nome":"Em Teus Braços","artista":"Laura Souguellis","tom":"A","bpm":64,"cat":"Intimidade","duracao":"5:18"},
   {"nome":"Teu Santo Nome","artista":"Gabriel Guedes","tom":"G","bpm":80,"cat":"Celebração","duracao":"4:56"},
   {"nome":"Tu és Santo","artista":"Diante do Trono","tom":"D","bpm":92,"cat":"Celebração","duracao":"4:32"},
   {"nome":"A Capela","artista":"Eli Soares","tom":"E","bpm":76,"cat":"Adoração","duracao":"5:08"}
@@ -1114,7 +1114,7 @@ nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto
     down:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
     mic:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>'
   };
-  const init = (s) => s.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  const init = initials;
 
   /* ── Escalas ─────────────────────────────────────────── */
   const escalasData = [

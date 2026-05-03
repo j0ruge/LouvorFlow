@@ -24,7 +24,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { getInitials } from "@/lib/utils";
+import { formatRoleLabel, getInitials } from "@/lib/utils";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { COLOR_THEMES } from "@/contexts/ThemeColorContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -48,22 +48,12 @@ export function UserMenu() {
 
   /**
    * Rótulo curto da role principal do usuário, capitalizado em PT-BR.
-   * Usado como subtítulo no chip do header.
+   * Usado como subtítulo no chip do header. Delega o mapeamento para
+   * `formatRoleLabel` em `@/lib/utils` para manter a fonte única de
+   * verdade dos rótulos de role.
    */
-  const roleLabel = (() => {
-    const primaryRole = user.roles?.[0]?.name;
-    if (!primaryRole) return null;
-    const map: Record<string, string> = {
-      "super-admin": "Super Admin",
-      admin: "Admin",
-      lider: "Líder",
-      integrante: "Integrante",
-    };
-    return (
-      map[primaryRole] ??
-      primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1)
-    );
-  })();
+  const primaryRole = user.roles?.[0]?.name;
+  const roleLabel = primaryRole ? formatRoleLabel(primaryRole) : null;
 
   /** Itens de rádio para seleção de tema de cores. */
   const themeRadioItems = (
@@ -124,7 +114,7 @@ export function UserMenu() {
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="w-72 p-0 rounded-xl border border-border shadow-medium overflow-hidden"
+        className="w-72 max-w-[calc(100vw-1rem)] p-0 rounded-xl border border-border shadow-medium overflow-hidden"
       >
         {/* Header — card visual com avatar tile */}
         <div className="flex items-center gap-3 p-4 bg-gradient-card border-b border-border">

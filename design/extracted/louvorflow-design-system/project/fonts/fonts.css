@@ -1,6 +1,6 @@
 /* LouvorFlow — brand font (Sora via Google Fonts)
  *
- * Decisão: família única Sora (geométrica/humanista), pesos 400–800.
+ * Decisão: família única Sora (geométrica/humanista), pesos 400–700.
  * Usada para display (h1/h2/wordmark) E corpo/UI.
  * Substitui o par anterior Fraunces + Nunito Sans.
  *
@@ -8,4 +8,4 @@
  * Se quiser self-host depois, basta trocar este @import por @font-face
  * blocks apontando para /fonts/sora-*.woff2.
  */
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap");
+@import "https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap";

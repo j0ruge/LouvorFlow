@@ -206,6 +206,6 @@ Imagery is **incidental** — no hero photos, no illustrations. The only image-l
 
 ## Caveats
 
-- **Brand typography** is a single family: **Sora** (display + body), open-source Google Font. The live app ships with a system-font stack — this is a forward recommendation. If adopted, update `packages/frontend/index.html` with the Google Fonts `<link>` and extend `tailwind.config.ts` with `fontFamily.sans: ['Sora', ...]` and `fontFamily.display: ['Sora', ...]`.
+- **Brand typography** is a single family: **Sora** (display + body), open-source Google Font. Since this PR, the live app already ships with Sora as default — `packages/frontend/index.html` carrega o Google Font e `tailwind.config.ts` define `fontFamily.sans` e `fontFamily.display` apontando para `Sora`.
 - **No bespoke logo.** The `Music` icon + wordmark is the lockup. If a real logomark exists elsewhere, please attach it.
 - **No marketing surfaces.** Only the authenticated app is represented.

@@ -182,17 +182,36 @@
   }
 
   /* ── Router ────────────────────────────────────────────── */
+  /**
+   * Views suportadas pelo shell deste preview enxuto. Caso o usuário
+   * tente abrir uma view ainda não migrada (`lf-view` no localStorage
+   * compartilhado com o shell completo), normalizamos para `dashboard`
+   * para não destacar um nav-item incoerente com o conteúdo.
+   */
+  const supportedViews = new Set(["dashboard", "songs"]);
+
   function go(view) {
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.view === view));
-    if (view === "songs") renderSongs();
+    const safeView = supportedViews.has(view) ? view : "dashboard";
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.view === safeView));
+    if (safeView === "songs") renderSongs();
     else renderDashboard();
-    localStorage.setItem("lf-view", view);
+    localStorage.setItem("lf-view", safeView);
     if (window.matchMedia("(max-width: 899px)").matches) app.classList.remove("drawer-open");
     window.scrollTo({ top: 0 });
   }
 
   document.querySelectorAll(".nav-item[data-view]").forEach(n => {
     n.addEventListener("click", (e) => { e.preventDefault(); go(n.dataset.view); });
+  });
+
+  /**
+   * CTAs "Nova Escala" / "Nova Música" do header neste preview são
+   * apenas demonstração visual — o shell completo está em `index.html`.
+   * Marcamos como `disabled` para não enganar o leitor que clicaria.
+   */
+  document.querySelectorAll('.page-head-row .btn-primary').forEach(b => {
+    b.disabled = true;
+    b.title = "Demo estático — abra index.html para a versão interativa";
   });
 
   go(localStorage.getItem("lf-view") || "dashboard");

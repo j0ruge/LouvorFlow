@@ -123,7 +123,7 @@ export function AppSidebar() {
             <div className="h-9 w-9 rounded-[10px] bg-gradient-primary shadow-soft flex items-center justify-center shrink-0">
               <Music className="h-5 w-5 text-white" />
             </div>
-            <h2 className="font-display text-[22px] font-bold tracking-tight text-sidebar-foreground leading-none">
+            <h2 className="font-display text-lg font-bold tracking-tight text-sidebar-foreground leading-none">
               LouvorFlow
             </h2>
           </div>
@@ -136,7 +136,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
+          <SidebarGroupLabel className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
             {!collapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -162,7 +162,7 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10.5px] font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
+            <SidebarGroupLabel className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
               {!collapsed && "Administração"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -205,13 +205,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-3">
-        {!collapsed ? (
-          <TenantSwitcher />
-        ) : (
-          <div className="h-8 w-8 rounded-md bg-sidebar-accent flex items-center justify-center mx-auto">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </div>
-        )}
+        <TenantSwitcher compact={collapsed} />
       </SidebarFooter>
     </Sidebar>
   );

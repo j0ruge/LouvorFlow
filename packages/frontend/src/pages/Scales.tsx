@@ -8,8 +8,8 @@
  * O botão "Ver Detalhes" navega para `/escalas/:id`.
  */
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -80,9 +80,25 @@ const Scales = () => {
   const [deletingEvento, setDeletingEvento] = useState<EventoIndex | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
   const deleteEvento = useDeleteEvento();
   const { can: canWrite } = useCan("escalas.write");
+
+  /**
+   * Quando a página recebe `?nova=1` (ex: vindo do CTA "Nova Escala" do
+   * Dashboard), abre o formulário de criação automaticamente e remove o
+   * parâmetro da URL para evitar reabertura ao recarregar.
+   */
+  useEffect(() => {
+    if (searchParams.get("nova") === "1" && canWrite) {
+      setEditingEvento(null);
+      setFormOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("nova");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams, canWrite]);
 
   /**
    * Separa as escalas em próximas (data >= início do dia) e passadas,

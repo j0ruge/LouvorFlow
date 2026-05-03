@@ -8,6 +8,7 @@
  * - `isSafeRedirect` / `isSafeUrl`: validações de URL contra XSS/open redirect
  */
 
+import type React from "react";
 import { describe, it, expect, vi } from "vitest";
 import {
   formatDateBlock,
@@ -48,6 +49,20 @@ describe("formatDateBlock", () => {
     expect(MESES_ABREV[0]).toBe("Jan");
     expect(MESES_ABREV[11]).toBe("Dez");
   });
+
+  /** Para ISO inválido devolve fallback NaN/"" em vez de undefined no DOM. */
+  it("retorna fallback {NaN, ''} para data inválida", () => {
+    const result = formatDateBlock("not a date");
+    expect(Number.isNaN(result.dia)).toBe(true);
+    expect(result.mes).toBe("");
+  });
+
+  /** Strings date-only não devem deslocar de um dia em fusos ocidentais. */
+  it("usa UTC getters para date-only ISO (YYYY-MM-DD)", () => {
+    const result = formatDateBlock("2026-03-27");
+    expect(result.dia).toBe(27);
+    expect(result.mes).toBe("Mar");
+  });
 });
 
 describe("handleClickableKeyDown", () => {
@@ -79,6 +94,22 @@ describe("handleClickableKeyDown", () => {
 
     expect(action).toHaveBeenCalledOnce();
     expect(preventDefault).toHaveBeenCalledOnce();
+  });
+
+  /** Eventos com tecla mantida pressionada não devem disparar a ação várias vezes. */
+  it("ignora keydown com event.repeat = true", () => {
+    const action = vi.fn();
+    const preventDefault = vi.fn();
+    const handler = handleClickableKeyDown(action);
+
+    handler({
+      key: "Enter",
+      repeat: true,
+      preventDefault,
+    } as unknown as React.KeyboardEvent);
+
+    expect(action).not.toHaveBeenCalled();
+    expect(preventDefault).not.toHaveBeenCalled();
   });
 
   /** Garante que outras teclas não disparam a action. */
