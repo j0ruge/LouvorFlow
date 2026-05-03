@@ -104,7 +104,7 @@ const Dashboard = () => {
       {/* Page head — título com gradient + botão Nova Escala */}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold leading-[1.05] tracking-tight bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-[34px] font-bold leading-[1.05] tracking-tight bg-gradient-primary bg-clip-text text-transparent">
             Dashboard
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

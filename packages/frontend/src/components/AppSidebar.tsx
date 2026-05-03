@@ -123,7 +123,7 @@ export function AppSidebar() {
             <div className="h-9 w-9 rounded-[10px] bg-gradient-primary shadow-soft flex items-center justify-center shrink-0">
               <Music className="h-5 w-5 text-white" />
             </div>
-            <h2 className="font-display text-lg font-bold tracking-tight text-sidebar-foreground leading-none">
+            <h2 className="font-display text-lg sm:text-[22px] font-bold tracking-tight text-sidebar-foreground leading-none">
               LouvorFlow
             </h2>
           </div>

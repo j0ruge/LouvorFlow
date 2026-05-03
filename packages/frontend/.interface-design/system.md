@@ -133,6 +133,13 @@ Warm-tinted in light mode (brown shadows, not blue). Dark shadows in dark mode.
 | Small | `text-xs text-muted-foreground` | Badges, timestamps |
 | Logo / brand | `font-display text-lg font-bold tracking-tight` | Sidebar brand |
 
+**Responsividade:** os tamanhos da tabela acima são o **baseline mobile** (alinhado a Galaxy S8 / 360px). Hero elements podem escalar com `sm:`/`md:` para ganhar presença no desktop sem prejudicar mobile. Padrões consolidados:
+
+- **Dashboard h1** (front-door): `text-2xl sm:text-3xl md:text-[34px]` — 24 → 30 → 34px.
+- **Sidebar wordmark**: `text-lg sm:text-[22px]` — 18 → 22px.
+
+Páginas internas (`Scales`, `Songs`, `Members`, `Reports`, `Profile`, `History`, `SongDetail`, `admin/*`) mantêm `text-2xl` flat — só a página de aterragem ultrapassa esse tamanho-canônico.
+
 ## Icon System
 
 **Library:** Lucide React (`lucide-react` v0.462.0)
