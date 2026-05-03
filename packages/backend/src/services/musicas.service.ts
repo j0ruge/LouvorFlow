@@ -257,15 +257,24 @@ class MusicasService {
     }
 
     /**
-     * Atualiza uma versão existente. Aceita artista_id apenas quando a versão não tem artista vinculado (null → artista).
-     * Rejeita artista_id quando a versão já possui artista (400).
+     * Atualiza uma versão existente.
+     *
+     * Por padrão, aceita `artista_id` apenas quando a versão ainda não tem artista vinculado
+     * (null → artista). Caso a versão já possua artista, rejeita a alteração com erro 400.
+     * Esse comportamento pode ser sobreposto via `options.allowArtistChange = true`, usado
+     * pelo controller quando o usuário autenticado é admin/super-admin.
      *
      * @param versaoId - UUID da versão
      * @param body - Dados de atualização (artista_id opcional, bpm, cifras, lyrics, link_versao, intensidade)
+     * @param options - Opções de execução; `allowArtistChange` libera a troca de artista de uma versão já vinculada
      * @returns Versão atualizada com dados do artista
-     * @throws {AppError} 400 se nenhum campo enviado ou artista_id enviado para versão com artista; 404 se versão ou artista não existir
+     * @throws {AppError} 400 se nenhum campo enviado ou se artista_id for enviado para versão com artista sem `allowArtistChange`; 404 se versão ou artista não existir; 409 se houver duplicata
      */
-    async updateVersao(versaoId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }) {
+    async updateVersao(
+        versaoId: string,
+        body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string },
+        options: { allowArtistChange?: boolean } = {},
+    ) {
         const existente = await musicasRepository.findVersaoById(versaoId);
         if (!existente) throw new AppError("Versão não encontrada", 404);
 
@@ -273,7 +282,11 @@ class MusicasService {
         const updateData: Record<string, unknown> = {};
 
         if (artista_id !== undefined) {
-            if (existente.artista_id && existente.artista_id !== artista_id) {
+            if (
+                existente.artista_id &&
+                existente.artista_id !== artista_id &&
+                !options.allowArtistChange
+            ) {
                 throw new AppError("Não é permitido alterar artista já vinculado", 400);
             }
             const artistaExiste = await musicasRepository.findArtistaById(artista_id);

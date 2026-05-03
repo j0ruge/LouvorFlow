@@ -924,7 +924,7 @@
     "/musicas/{musicaId}/versoes/{versaoId}": {
       "put": {
         "summary": "Atualizar versão",
-        "description": "Atualiza os dados de uma versão existente (BPM, cifra, letra, link).",
+        "description": "Atualiza os dados de uma versão existente (BPM, cifra, letra, link). O campo `artista_id`, por padrão, só pode ser definido quando a versão ainda não tem artista vinculado; usuários com role 'admin' ou 'super-admin' podem alterá-lo a qualquer momento (caso contrário a API responde 400 com a mensagem `Não é permitido alterar artista já vinculado`).",
         "tags": [
           "Músicas - Versões"
         ],
@@ -5171,7 +5171,7 @@
           "artista_id": {
             "type": "string",
             "format": "uuid",
-            "description": "ID do artista. Aceito apenas quando versão não tem artista vinculado (null → artista). Retorna 400 se versão já possui artista."
+            "description": "ID do artista. Por padrão, só é aceito quando a versão ainda não tem artista vinculado (null → artista) — caso contrário retorna 400. Usuários com role 'admin' ou 'super-admin' podem alterar o artista de uma versão já vinculada."
           },
           "bpm": {
             "type": "integer",

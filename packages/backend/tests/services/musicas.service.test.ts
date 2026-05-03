@@ -507,12 +507,33 @@ describe('MusicasService', () => {
       expect(result.artista!.id).toBe(MOCK_ARTISTAS[0].id);
     });
 
-    /** Deve retornar AppError 400 quando artista_id enviado para versão que já possui artista. */
-    it('deve lançar AppError 400 quando artista_id enviado para versão com artista', async () => {
+    /**
+     * Deve retornar AppError 400 quando artista_id é enviado para versão que já possui
+     * artista e o chamador não passou `allowArtistChange: true` (caminho default — usuário
+     * sem privilégio de admin).
+     */
+    it('deve lançar AppError 400 quando artista_id enviado para versão com artista (sem allowArtistChange)', async () => {
       await expect(musicasService.updateVersao(MOCK_ARTISTAS_MUSICAS[0].id, { artista_id: MOCK_ARTISTAS[1].id })).rejects.toMatchObject({
         statusCode: 400,
         message: 'Não é permitido alterar artista já vinculado',
       });
+    });
+
+    /**
+     * Deve permitir trocar o artista de uma versão já vinculada quando
+     * `allowArtistChange: true` é passado (caminho usado pelo controller para admins).
+     */
+    it('deve permitir alterar artista de versão existente quando allowArtistChange = true (admin)', async () => {
+      const versao = MOCK_ARTISTAS_MUSICAS[0];
+      /** MOCK_ARTISTAS[2] não possui versão para a música de MOCK_ARTISTAS_MUSICAS[0], evitando o 409 de duplicata. */
+      const novoArtistaId = MOCK_ARTISTAS[2].id;
+      const result = await musicasService.updateVersao(
+        versao.id,
+        { artista_id: novoArtistaId },
+        { allowArtistChange: true },
+      );
+      expect(result.artista).not.toBeNull();
+      expect(result.artista!.id).toBe(novoArtistaId);
     });
   });
 
