@@ -1,3 +1,4 @@
+import type React from "react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -72,6 +73,101 @@ export function isSafeUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Mapeamento de nomes técnicos de role para rótulos amigáveis em PT-BR.
+ *
+ * Centralizado aqui para evitar duplicação em componentes (UserMenu, badges,
+ * páginas administrativas). Roles desconhecidas caem para capitalização do
+ * próprio nome técnico via `formatRoleLabel`.
+ */
+export const ROLE_LABELS: Record<string, string> = {
+  "super-admin": "Super Admin",
+  admin: "Admin",
+  lider: "Líder",
+  integrante: "Integrante",
+};
+
+/**
+ * Formata o nome técnico de uma role para exibição em PT-BR.
+ *
+ * Procura primeiro em `ROLE_LABELS`; se não houver entrada, capitaliza a
+ * primeira letra do nome técnico como fallback determinístico.
+ *
+ * @param roleName - Nome técnico da role (ex: `"admin"`, `"lider"`).
+ * @returns Rótulo amigável para exibição.
+ */
+export function formatRoleLabel(roleName: string): string {
+  return (
+    ROLE_LABELS[roleName] ??
+    roleName.charAt(0).toUpperCase() + roleName.slice(1)
+  );
+}
+
+/** Abreviações de mês em PT-BR (3 letras, primeira maiúscula). */
+export const MESES_ABREV = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+] as const;
+
+/**
+ * Extrai dia e mês abreviado em PT-BR de uma data ISO 8601.
+ *
+ * Para timestamps com componente de hora (ex: `2026-03-21T10:00:00Z`) usa o
+ * timezone local do navegador, coerente com `toDatetimeLocalValue` e
+ * `localDatetimeToISO`. Para strings _date-only_ (`YYYY-MM-DD`), usa getters
+ * UTC para evitar deslocamento de um dia em fusos ocidentais (ex: Brasil
+ * mostraria 26 ao receber `2026-03-27`).
+ *
+ * Em caso de data inválida, retorna `{ dia: NaN, mes: "" }` para evitar
+ * `undefined` no DOM.
+ *
+ * @param iso - Data em formato ISO 8601 ou parsável pelo construtor `Date`.
+ * @returns Objeto com `dia` (1-31, ou `NaN` se inválida) e `mes` (3 letras).
+ */
+export function formatDateBlock(iso: string): { dia: number; mes: string } {
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return { dia: NaN, mes: "" };
+
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const dia = isDateOnly ? date.getUTCDate() : date.getDate();
+  const mesIndex = isDateOnly ? date.getUTCMonth() : date.getMonth();
+  return { dia, mes: MESES_ABREV[mesIndex] };
+}
+
+/**
+ * Helper de acessibilidade para elementos com `role="button"` que devem ser
+ * acionados por Enter ou Space (WCAG 2.1.4 — Keyboard accessible).
+ *
+ * Retorna um handler `onKeyDown` que invoca `action` ao detectar Enter ou
+ * Space, prevenindo o scroll padrão do navegador no caso do Space. Eventos
+ * com `event.repeat === true` (tecla mantida pressionada) são ignorados
+ * para evitar disparos múltiplos consecutivos da ação.
+ *
+ * @param action - Função a ser executada quando o usuário aciona via teclado.
+ * @returns Handler de evento `onKeyDown` para anexar ao elemento clicável.
+ */
+export function handleClickableKeyDown(
+  action: () => void,
+): (event: React.KeyboardEvent) => void {
+  return (event) => {
+    if (event.repeat) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      action();
+    }
+  };
 }
 
 /**

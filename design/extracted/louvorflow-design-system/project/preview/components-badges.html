@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .badge { display:inline-flex; align-items:center; padding: 3px 10px; border-radius:9999px; font-size:12px; font-weight:500; line-height:1.2 }
+  .default { background:hsl(38 80% 52%); color:hsl(30 15% 18%) }
+  .secondary { background:hsla(38,80%,52%,0.1); color:hsl(38 70% 38%) }
+  .outline { border:1px solid hsl(35 18% 87%); background:transparent; color:hsl(30 15% 18%) }
+  .destructive { background:hsl(0 84% 60%); color:#fff }
+  .tipo { background:hsl(38 80% 52%); color:hsl(30 15% 18%) }
+  .muted { background:hsl(35 20% 93%); color:hsl(30 12% 45%) }
+</style>
+</head>
+<body>
+<div class="card-root">
+  <div class="row" style="gap:8px;align-items:center">
+    <span class="badge default">Ativo</span>
+    <span class="badge secondary">Louvor</span>
+    <span class="badge secondary">Adoração</span>
+    <span class="badge outline">Rascunho</span>
+    <span class="badge destructive">Inativo</span>
+    <span class="badge tipo">Culto Domingo</span>
+    <span class="badge muted">128 BPM</span>
+  </div>
+  <div class="mono" style="margin-top:14px">rounded-full · px-2.5 py-0.5 · default / secondary (10% tint) / outline / destructive</div>
+</div>
+</body></html>

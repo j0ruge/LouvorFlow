@@ -19,6 +19,7 @@ paths:
 | react-hook-form + Zod  | Formulários e validação              |
 | Lucide React           | Ícones                               |
 | Recharts               | Gráficos e visualizações             |
+| Sora (Google Fonts)    | Tipografia oficial (display + body)  |
 
 ## Estrutura do Frontend
 

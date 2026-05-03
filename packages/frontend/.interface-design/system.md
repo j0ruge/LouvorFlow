@@ -121,16 +121,24 @@ Warm-tinted in light mode (brown shadows, not blue). Dark shadows in dark mode.
 
 ## Typography
 
-**Font:** System font stack (browser defaults). No custom fonts loaded.
+**Font:** [Sora](https://fonts.google.com/specimen/Sora) — geometric-humanist sans-serif, single family for display + body. Loaded via Google Fonts (`<link>` em `index.html`) com pesos 400/500/600/700/800. Mapeada em `tailwind.config.ts` como `fontFamily.sans` e `fontFamily.display`.
 
 | Level | Classes | Usage |
 |---|---|---|
-| Page title | `text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent` | Page headings (gradient text) |
+| Page title | `font-display text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent` | Page headings (gradient text amber→wine) |
+| Stat / KPI value | `font-display text-3xl font-bold leading-none tabular-nums` | Numerais grandes (Dashboard, KPIs) |
 | Section title | `text-lg font-medium` | Dialog titles, subsections |
-| Body | `text-base` (default) | General content |
+| Body | `text-base` (default — herda Sora via `font-sans`) | General content |
 | Secondary | `text-sm text-muted-foreground` | Descriptions, metadata |
 | Small | `text-xs text-muted-foreground` | Badges, timestamps |
-| Logo | `text-lg font-bold tracking-tight` | Sidebar brand |
+| Logo / brand | `font-display text-lg font-bold tracking-tight` | Sidebar brand |
+
+**Responsividade:** os tamanhos da tabela acima são o **baseline mobile** (alinhado a Galaxy S8 / 360px). Hero elements podem escalar com `sm:`/`md:` para ganhar presença no desktop sem prejudicar mobile. Padrões consolidados:
+
+- **Dashboard h1** (front-door): `text-2xl sm:text-3xl md:text-[34px]` — 24 → 30 → 34px.
+- **Sidebar wordmark**: `text-lg sm:text-[22px]` — 18 → 22px.
+
+Páginas internas (`Scales`, `Songs`, `Members`, `Reports`, `Profile`, `History`, `SongDetail`, `admin/*`) mantêm `text-2xl` flat — só a página de aterragem ultrapassa esse tamanho-canônico.
 
 ## Icon System
 

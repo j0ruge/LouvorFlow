@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .btn { height:40px; padding:0 16px; border-radius:10px; font-size:14px; font-weight:500; border:0; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:all 150ms; font-family:inherit }
+  .default { background:hsl(38 80% 52%); color:hsl(30 15% 18%) }
+  .gradient { background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); color:#fff; box-shadow:0 2px 15px -3px hsl(30 40% 30% / 0.08) }
+  .outline { background:hsl(38 40% 96%); color:hsl(30 15% 18%); border:1px solid hsl(35 18% 87%) }
+  .secondary { background:hsl(30 35% 45%); color:hsl(38 30% 99%) }
+  .ghost { background:transparent; color:hsl(30 15% 18%) }
+  .destructive { background:hsl(0 84% 60%); color:#fff }
+  .link { background:transparent; color:hsl(38 80% 52%); text-decoration:underline; text-underline-offset:3px; padding:0 4px }
+</style>
+</head>
+<body>
+<div class="card-root">
+  <div class="row" style="gap:10px;align-items:center">
+    <button class="btn gradient">+ Nova Música</button>
+    <button class="btn default">Salvar</button>
+    <button class="btn secondary">Cancelar</button>
+    <button class="btn outline">Detalhes</button>
+    <button class="btn ghost">Voltar</button>
+    <button class="btn destructive">Excluir</button>
+    <a class="btn link" style="height:auto">Esqueci minha senha</a>
+  </div>
+  <div class="mono" style="margin-top:14px">h-10 · rounded-md (10px) · hover: bg/90 or opacity-90 · 150ms transition-colors</div>
+</div>
+</body></html>

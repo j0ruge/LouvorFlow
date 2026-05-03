@@ -1,0 +1,1787 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LouvorFlow — UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css?v=sora">
+<style>
+/* LouvorFlow UI Kit — shell (mobile-first)
+ *
+ * Base: mobile portrait (≥ 360 px). Sidebar is a slide-in drawer.
+ * Breakpoints:
+ *   640  — sm  : bigger type, content gets breathing room
+ *   900  — md  : sidebar becomes collapsed rail (64 px)
+ *   1200 — lg  : sidebar becomes full (260 px)
+ * Consumes tokens from ../../colors_and_type.css
+ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* ── Layout shell (mobile-first) ─────────────────────────── */
+.app {
+  min-height: 100vh;
+  background: linear-gradient(180deg, hsl(var(--background)), hsl(35 35% 94%));
+  display: flex;
+  flex-direction: column;
+}
+.dark .app { background: linear-gradient(180deg, hsl(var(--background)), hsl(30 10% 14%)); }
+
+/* Sidebar is an off-canvas drawer on mobile. */
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(84vw, 280px);
+  z-index: 40;
+  background: hsl(var(--sidebar-background));
+  border-right: 1px solid hsl(var(--sidebar-border));
+  display: flex; flex-direction: column;
+  padding: 14px 10px;
+  gap: 4px;
+  transform: translateX(-100%);
+  transition: transform 220ms ease;
+  overflow: hidden;
+  box-shadow: 0 24px 60px -20px hsl(30 40% 10% / 0.35);
+}
+.app.drawer-open .sidebar { transform: translateX(0); }
+.scrim {
+  position: fixed; inset: 0; background: hsl(30 40% 10% / 0.4);
+  z-index: 30; opacity: 0; pointer-events: none;
+  transition: opacity 180ms ease;
+}
+.app.drawer-open .scrim { opacity: 1; pointer-events: auto; }
+
+/* Brand */
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px 14px;
+  border-bottom: 1px solid hsl(var(--sidebar-border));
+  margin-bottom: 8px;
+}
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: var(--gradient-primary);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; box-shadow: var(--shadow-soft);
+}
+.brand-mark svg { width: 20px; height: 20px; }
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+
+  color: hsl(var(--sidebar-foreground));
+  white-space: nowrap; overflow: hidden;
+}
+
+/* Nav */
+nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.nav-group-label {
+  font-size: 10.5px; font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 14px 10px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 10px;
+  border-radius: 8px;
+  font-size: 15px; font-weight: 500;
+  color: hsl(var(--sidebar-foreground));
+  text-decoration: none;
+  transition: background 150ms, color 150ms;
+  white-space: nowrap;
+  min-height: 44px; /* touch target */
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; color: hsl(var(--muted-foreground)); }
+.nav-item:hover { background: hsl(var(--sidebar-accent)); }
+.nav-item:hover svg { color: hsl(var(--foreground)); }
+.nav-item.active {
+  background: hsl(var(--sidebar-accent));
+  font-weight: 600; color: hsl(var(--foreground));
+}
+.nav-item.active svg { color: hsl(var(--primary)); }
+
+.sidebar-footer { border-top: 1px solid hsl(var(--sidebar-border)); padding-top: 10px; }
+.tenant { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; }
+.tenant-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: hsl(var(--muted));
+  display: flex; align-items: center; justify-content: center;
+  color: hsl(var(--muted-foreground)); flex-shrink: 0;
+}
+.tenant-mark svg { width: 16px; height: 16px; }
+.tenant-name { font-size: 13px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.2; }
+.tenant-role { font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+/* ── Main ────────────────────────────────────────────────── */
+.main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  height: 56px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  background: hsla(var(--background) / 0.85);
+  border-bottom: 1px solid hsl(var(--border));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: transparent; border: 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: hsl(var(--foreground));
+  transition: background 150ms;
+}
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn:hover { background: hsl(var(--muted)); }
+
+.topbar-brand {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+
+  color: hsl(var(--foreground));
+}
+.topbar-brand .brand-mark { width: 30px; height: 30px; border-radius: 8px; }
+.topbar-brand .brand-mark svg { width: 16px; height: 16px; }
+
+.crumbs { display: none; font-size: 13px; color: hsl(var(--muted-foreground)); font-weight: 500; }
+.spacer { flex: 1; }
+
+.user-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 6px 4px 4px;
+  background: transparent;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 150ms;
+  font-family: inherit;
+  min-height: 36px;
+}
+.user-chip:hover { background: hsl(var(--muted)); }
+.avatar {
+  width: 28px; height: 28px; border-radius: 9999px;
+  background: var(--gradient-primary);
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 0.02em;
+}
+.user-meta { display: none; text-align: left; line-height: 1.1; padding-right: 6px; }
+.user-name { font-size: 12.5px; font-weight: 700; color: hsl(var(--foreground)); }
+.user-role { font-size: 10.5px; color: hsl(var(--muted-foreground)); margin-top: 1px; }
+
+/* Content */
+.content { padding: 18px 16px 32px; flex: 1; min-width: 0; }
+
+/* Page head */
+.page-head {
+  margin-bottom: 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.page-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.page-title {
+  font-family: var(--font-display);
+  font-size: 28px; line-height: 1.05;
+  font-weight: 700; letter-spacing: -0.02em;
+
+  background: var(--gradient-primary);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin: 0;
+}
+.page-sub { margin: 4px 0 0; font-size: 14px; color: hsl(var(--muted-foreground)); }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 600;
+
+  color: hsl(var(--foreground));
+  margin: 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title svg { width: 18px; height: 18px; color: hsl(var(--primary)); }
+
+/* Primitives */
+.btn {
+  height: 44px; padding: 0 16px; border-radius: 10px;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  border: 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: opacity 150ms, background 150ms;
+  min-height: 44px; /* touch */
+}
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--gradient-primary); color: #fff; box-shadow: var(--shadow-soft); }
+.btn-primary:hover { opacity: 0.92; }
+.btn-outline { background: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); }
+.btn-outline:hover { background: hsl(var(--muted)); }
+.btn-sm { height: 38px; padding: 0 12px; font-size: 13px; border-radius: 8px; min-height: 38px; }
+.btn-icon-only { padding: 0; width: 44px; }
+
+.card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  padding: 16px;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px; }
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px 0 40px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  font-family: inherit; font-size: 15px;
+  color: hsl(var(--foreground));
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.input:focus { outline: none; border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsla(38,80%,52%,0.15); }
+.input-wrap { position: relative; flex: 1; min-width: 0; }
+.input-wrap > svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: hsl(var(--muted-foreground)); }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.2;
+}
+.badge-soft { background: hsla(38,80%,52%,0.12); color: hsl(38 70% 35%); }
+.dark .badge-soft { background: hsla(40,65%,55%,0.18); color: hsl(40 65% 72%); }
+.badge-outline { border: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); }
+
+/* ───────────────────────────────────────────────────────────
+   ≥ 640 px  (sm) — tablet portrait
+   ─────────────────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .content { padding: 24px 24px 40px; }
+  .card { padding: 20px 22px; }
+  .page-title { font-size: 32px; }
+  .user-meta { display: block; }
+}
+
+/* ───────────────────────────────────────────────────────────
+   ≥ 900 px  (md) — sidebar becomes permanent rail (64 px)
+   ─────────────────────────────────────────────────────────── */
+@media (min-width: 900px) {
+  .app { display: grid; grid-template-columns: 64px 1fr; }
+  .sidebar {
+    position: sticky; top: 0; height: 100vh;
+    width: auto;
+    transform: none !important;
+    box-shadow: none;
+  }
+  .scrim { display: none; }
+  .brand-name,
+  .nav-item span,
+  .nav-group-label,
+  .tenant-text { display: none; }
+  .nav-item { justify-content: center; padding: 11px; }
+  .topbar-brand { display: none; }
+  .crumbs { display: block; }
+  .icon-btn.menu-only { display: none; }
+  .topbar { padding: 0 24px; height: 64px; }
+}
+
+/* ───────────────────────────────────────────────────────────
+   ≥ 1200 px  (lg) — expanded sidebar
+   ─────────────────────────────────────────────────────────── */
+@media (min-width: 1200px) {
+  .app { grid-template-columns: 260px 1fr; }
+  .brand-name,
+  .nav-item span,
+  .nav-group-label,
+  .tenant-text { display: block; }
+  .nav-item { justify-content: flex-start; padding: 10px 12px; }
+  .content { padding: 28px 32px 48px; }
+  .page-title { font-size: 34px; }
+}
+
+/* ───────────────────────────────────────────────────────────
+   Views: grids & lists (mobile-first)
+   ─────────────────────────────────────────────────────────── */
+
+/* stat grid */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.stat {
+  position: relative; overflow: hidden;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: var(--shadow-soft);
+}
+.stat .tint {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+  opacity: 0.06; pointer-events: none;
+}
+.stat h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat .val {
+  font-family: var(--font-display);
+  font-size: 30px; font-weight: 700; line-height: 1;
+  color: hsl(var(--foreground));
+
+}
+.stat .foot { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+.stat .ic {
+  position: absolute; top: 12px; right: 12px;
+  width: 32px; height: 32px; border-radius: 8px;
+  background: hsla(38,80%,52%,0.12);
+  display: flex; align-items: center; justify-content: center;
+  color: hsl(var(--primary));
+}
+.stat .ic svg { width: 16px; height: 16px; }
+
+@media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; } .stat { padding: 18px; } }
+
+/* Dashboard: two-up on md+ */
+.dash-grid { display: grid; gap: 14px; grid-template-columns: 1fr; margin-top: 18px; }
+@media (min-width: 900px) { .dash-grid { grid-template-columns: 1fr 1fr; gap: 18px; } }
+
+/* Event row (inside dashboard upcoming card) */
+.event-row {
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px;
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(35 25% 97%));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+}
+.dark .event-row { background: linear-gradient(135deg, hsl(30 10% 15%), hsl(30 8% 17%)); }
+.event-date {
+  width: 52px; flex-shrink: 0; text-align: center;
+  padding: 6px 0;
+  border-radius: 10px;
+  background: hsla(38,80%,52%,0.1);
+  color: hsl(var(--primary));
+}
+.event-date .d { font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1; }
+.event-date .m { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.event-body { min-width: 0; flex: 1; }
+.event-title { font-size: 14px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.25; }
+.event-meta { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 3px; }
+.event-tag { margin-left: auto; flex-shrink: 0; }
+
+/* Team row */
+.member-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--card)); }
+.member-avatar { width: 36px; height: 36px; border-radius: 9999px; background: var(--gradient-primary); color:#fff; font-size: 12px; font-weight: 700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.member-name { font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); line-height: 1.25; }
+.member-role { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+/* ── Songs list (mobile-first card stack) ───────────────── */
+.songs-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.songs-toolbar .input-wrap { flex: 1 1 100%; }
+@media (min-width: 640px) { .songs-toolbar .input-wrap { flex: 1 1 auto; } }
+
+.song-list { display: flex; flex-direction: column; gap: 10px; }
+.song {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 4px 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, hsl(var(--card)), hsl(35 25% 97%));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  cursor: pointer;
+  transition: box-shadow 200ms, border-color 150ms;
+}
+.dark .song { background: linear-gradient(135deg, hsl(30 10% 15%), hsl(30 8% 17%)); }
+.song:hover { box-shadow: var(--shadow-medium); border-color: hsla(38,80%,52%,0.35); }
+.song-tile {
+  grid-row: 1 / 3;
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--gradient-primary);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+.song-tile svg { width: 20px; height: 20px; }
+.song-title { grid-column: 2 / 3; font-size: 15px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.2; overflow:hidden; text-overflow: ellipsis; white-space: nowrap; }
+.song-artist { grid-column: 2 / 3; font-size: 12.5px; color: hsl(var(--muted-foreground)); line-height: 1.2; }
+.song-key {
+  grid-row: 1 / 3; grid-column: 3 / 4;
+  align-self: center;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+}
+.song-key .k {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 18px; color: hsl(var(--foreground));
+
+  line-height: 1;
+}
+.song-key .bpm { font-size: 11px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+
+/* On ≥ 640 px give the row more horizontal affordance */
+@media (min-width: 640px) {
+  .song {
+    grid-template-columns: 48px 1fr auto auto auto;
+    grid-template-rows: auto;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 16px;
+  }
+  .song-tile { grid-row: auto; width: 48px; height: 48px; }
+  .song-title { grid-column: auto; white-space: nowrap; }
+  .song-artist {
+    grid-column: auto;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+  .song-title, .song-artist { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .song-artist { color: hsl(var(--muted-foreground)); }
+  .song-title::after { content: ""; }
+  /* Swap to flat 1-row layout */
+  .song {
+    grid-template-areas: "tile title artist meta key";
+  }
+  .song-tile { grid-area: tile; }
+  .song-title { grid-area: title; }
+  .song-artist { grid-area: artist; }
+  .song-meta { grid-area: meta; display: flex; gap: 12px; align-items: center; color: hsl(var(--muted-foreground)); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .song-key { grid-area: key; flex-direction: row; gap: 10px; align-items: center; }
+  .song-key .bpm { display: none; }
+}
+
+/* Section header (between page-head and grid) */
+.section-head { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 10px; }
+
+/* Tabs (used in dashboard "Próximas / Passadas") */
+.tabs { display: inline-flex; background: hsl(var(--muted)); padding: 3px; border-radius: 10px; margin-bottom: 10px; }
+.tab {
+  border: 0; background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  padding: 7px 14px; border-radius: 8px; cursor: pointer;
+  min-height: 36px;
+}
+.tab.active { background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: var(--shadow-soft); }
+
+/* ── Escalas (cards detalhados) ─────────────────────────── */
+.escala-list { display: flex; flex-direction: column; gap: 12px; }
+.escala {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-left: 4px solid hsl(var(--primary));
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+.escala.accent-wine { border-left-color: hsl(var(--accent)); }
+.escala.accent-brown { border-left-color: hsl(var(--secondary)); }
+.escala-head {
+  display: flex; gap: 12px; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.escala-date-block {
+  text-align: center; width: 56px; flex-shrink: 0;
+  padding: 6px 0; border-radius: 10px;
+  background: hsla(38,80%,52%,0.1); color: hsl(var(--primary));
+}
+.escala-date-block .d { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1; }
+.escala-date-block .m { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.escala-info { flex: 1; min-width: 0; }
+.escala-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.2; }
+.escala-when { font-size: 12.5px; color: hsl(var(--muted-foreground)); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+.escala-when span { display: inline-flex; align-items: center; gap: 4px; }
+.escala-when svg { width: 12px; height: 12px; }
+.escala-body { display: grid; grid-template-columns: 1fr; gap: 10px; padding-top: 10px; border-top: 1px dashed hsl(var(--border)); }
+@media (min-width: 640px) { .escala-body { grid-template-columns: 1fr 1fr; gap: 14px; } }
+.escala-section-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+.escala-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.esc-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 4px;
+  background: hsl(var(--muted));
+  border-radius: 9999px;
+  font-size: 12px; font-weight: 500;
+  color: hsl(var(--foreground));
+}
+.esc-chip .dot {
+  width: 20px; height: 20px; border-radius: 9999px;
+  background: var(--gradient-primary); color:#fff;
+  font-size: 9px; font-weight: 700;
+  display:flex; align-items:center; justify-content:center;
+}
+.esc-song { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: hsl(var(--muted)); border-radius: 8px; font-size: 12.5px; color: hsl(var(--foreground)); }
+.esc-song .k { font-family: var(--font-display); font-weight: 700; color: hsl(var(--primary)); min-width: 24px; }
+.esc-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed hsl(var(--border)); }
+
+/* ── Integrantes (cards) ────────────────────────────────── */
+.members-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 640px)  { .members-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1000px) { .members-grid { grid-template-columns: repeat(3, 1fr); } }
+.member-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px; padding: 18px 16px;
+  box-shadow: var(--shadow-soft);
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.member-card .lg-avatar {
+  width: 52px; height: 52px; border-radius: 9999px;
+  background: var(--gradient-primary); color:#fff;
+  font-size: 17px; font-weight: 700;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  box-shadow: var(--shadow-soft);
+}
+.member-card .mc-body { flex: 1; min-width: 0; }
+.member-card .mc-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.2; }
+.member-card .mc-role { font-size: 12.5px; color: hsl(var(--muted-foreground)); margin-top: 3px; }
+.member-card .mc-contacts { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
+.member-card .mc-contacts span { font-size: 12px; color: hsl(var(--muted-foreground)); display: inline-flex; align-items: center; gap: 6px; }
+.member-card .mc-contacts svg { width: 12px; height: 12px; }
+.member-card .mc-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+
+/* ── Histórico (timeline) ──────────────────────────────── */
+.timeline { position: relative; padding-left: 22px; }
+.timeline::before { content: ""; position: absolute; left: 6px; top: 6px; bottom: 6px; width: 2px; background: hsl(var(--border)); }
+.hist-item { position: relative; padding-bottom: 18px; }
+.hist-item::before {
+  content: ""; position: absolute; left: -22px; top: 14px;
+  width: 14px; height: 14px; border-radius: 9999px;
+  background: hsl(var(--primary)); box-shadow: 0 0 0 4px hsl(var(--background));
+}
+.hist-card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow-soft); }
+.hist-when { font-size: 11.5px; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.hist-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; color: hsl(var(--foreground)); margin-top: 2px; }
+.hist-meta { font-size: 12.5px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+
+/* ── Relatórios (KPIs + bar chart) ─────────────────────── */
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+@media (min-width: 640px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; } }
+.kpi {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 14px; box-shadow: var(--shadow-soft);
+}
+.kpi .lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.kpi .val { font-family: var(--font-display); font-size: 26px; font-weight: 700; line-height: 1.05; color: hsl(var(--foreground)); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.kpi .delta { font-size: 11.5px; font-weight: 600; margin-top: 4px; display: inline-flex; align-items: center; gap: 3px; }
+.kpi .delta.up { color: #2f8a4b; }
+.kpi .delta.down { color: hsl(var(--accent)); }
+.bars { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.bar-row { display: grid; grid-template-columns: 90px 1fr 54px; gap: 10px; align-items: center; font-size: 13px; }
+.bar-row .bn { color: hsl(var(--foreground)); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-row .bt {
+  height: 10px; background: hsl(var(--muted)); border-radius: 9999px; overflow: hidden; position: relative;
+}
+.bar-row .bt > span { display: block; height: 100%; background: var(--gradient-primary); border-radius: 9999px; }
+.bar-row .bv { text-align: right; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+
+/* ── Igreja ────────────────────────────────────────────── */
+.church-head {
+  display: flex; gap: 16px; padding: 18px; align-items: center;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 14px;
+  box-shadow: var(--shadow-soft); margin-bottom: 16px;
+}
+.church-mark {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: var(--gradient-primary); color: #fff;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.church-mark svg { width: 32px; height: 32px; }
+.church-name { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: hsl(var(--foreground)); line-height: 1.15; }
+.church-sub { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; }
+.ministry-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 640px) { .ministry-grid { grid-template-columns: 1fr 1fr; gap: 14px; } }
+.ministry {
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px;
+  padding: 14px; box-shadow: var(--shadow-soft);
+  display: flex; align-items: center; gap: 12px;
+}
+.ministry .mi-ic {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: hsla(38,80%,52%,0.12); color: hsl(var(--primary));
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.ministry .mi-ic svg { width: 18px; height: 18px; }
+.ministry .mi-name { font-weight: 700; font-size: 14px; color: hsl(var(--foreground)); line-height: 1.2; }
+.ministry .mi-meta { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+
+/* ── Configurações (settings) ─────────────────────────── */
+.settings-group { margin-bottom: 18px; }
+.settings-group h3 {
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 700; margin: 0 0 8px;
+  color: hsl(var(--foreground));
+  text-transform: none; letter-spacing: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.settings-group h3 svg { width: 16px; height: 16px; color: hsl(var(--primary)); }
+.settings-list { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-soft); }
+.settings-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  min-height: 52px;
+}
+.settings-row:last-child { border-bottom: 0; }
+.settings-row .s-info { flex: 1; min-width: 0; }
+.settings-row .s-name { font-size: 14px; font-weight: 600; color: hsl(var(--foreground)); }
+.settings-row .s-hint { font-size: 12px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+.settings-row .s-ctl { flex-shrink: 0; }
+.toggle {
+  --on: hsl(var(--primary));
+  position: relative; width: 42px; height: 24px; border-radius: 9999px;
+  background: hsl(var(--muted)); cursor: pointer; border: 0; padding: 0;
+  transition: background 150ms;
+}
+.toggle::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 9999px; background: #fff;
+  transition: transform 150ms;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+.toggle.on { background: hsl(var(--primary)); }
+.toggle.on::after { transform: translateX(18px); }
+.select-input {
+  height: 34px; padding: 0 28px 0 10px;
+  border: 1px solid hsl(var(--border)); border-radius: 8px;
+  background: hsl(var(--card)); color: hsl(var(--foreground));
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23888' stroke-width='1.5' d='M1 1l4 4 4-4'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+
+/* ── Modal (form dialogs) ─────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: hsl(30 40% 10% / 0.55);
+  z-index: 50;
+  display: none;
+  align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-backdrop.open { display: flex; }
+.dark .modal-backdrop { background: hsl(0 0% 0% / 0.7); }
+.modal {
+  background: hsl(var(--card));
+  width: 100%;
+  max-width: 640px;
+  max-height: 92vh;
+  border-radius: 18px 18px 0 0;
+  border: 1px solid hsl(var(--border));
+  border-bottom: 0;
+  box-shadow: 0 -20px 60px -20px hsl(30 40% 10% / 0.4);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: modal-in 220ms cubic-bezier(.2,.9,.3,1);
+}
+@keyframes modal-in { from { transform: translateY(12%); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.modal-head .mh-ic {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--gradient-primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; box-shadow: var(--shadow-soft);
+}
+.modal-head .mh-ic svg { width: 20px; height: 20px; }
+.modal-head h2 {
+  font-family: var(--font-display); font-size: 18px; font-weight: 700;
+  margin: 0; color: hsl(var(--foreground)); line-height: 1.2;
+}
+.modal-head .mh-sub { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 2px; }
+.modal-close {
+  margin-left: auto;
+  width: 36px; height: 36px; border-radius: 9px;
+  border: 0; background: transparent; cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.modal-close svg { width: 18px; height: 18px; }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-foot {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.3);
+}
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 520px) { .form-grid.two { grid-template-columns: 1fr 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: hsl(var(--muted-foreground)); }
+.field .hint { font-size: 11.5px; color: hsl(var(--muted-foreground)); }
+.field .input,
+.field textarea,
+.field select {
+  width: 100%; height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  font-family: inherit; font-size: 14px;
+  color: hsl(var(--foreground));
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.field textarea { height: auto; min-height: 80px; padding: 12px 14px; resize: vertical; font-family: inherit; }
+.field .input:focus,
+.field textarea:focus,
+.field select:focus { outline: none; border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsla(38,80%,52%,0.15); }
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%23888' stroke-width='1.5' d='M1 1l4 4 4-4'/></svg>");
+  background-repeat: no-repeat; background-position: right 14px center;
+  padding-right: 38px;
+}
+.chip-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-pick button {
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  padding: 7px 12px; border-radius: 9999px;
+  font-family: inherit; font-size: 12.5px; font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+.chip-pick button:hover { background: hsl(var(--muted)); }
+.chip-pick button.on {
+  background: var(--gradient-primary); border-color: transparent; color: #fff;
+}
+.picker-list {
+  max-height: 180px; overflow-y: auto;
+  border: 1px solid hsl(var(--border)); border-radius: 10px;
+  background: hsl(var(--card));
+}
+.picker-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid hsl(var(--border));
+  cursor: pointer;
+  font-size: 13.5px;
+}
+.picker-row:last-child { border-bottom: 0; }
+.picker-row:hover { background: hsl(var(--muted)); }
+.picker-row .chk {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid hsl(var(--border));
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: hsl(var(--card));
+}
+.picker-row .chk svg { width: 12px; height: 12px; color: #fff; display: none; }
+.picker-row.on .chk { background: hsl(var(--primary)); border-color: hsl(var(--primary)); }
+.picker-row.on .chk svg { display: block; }
+.picker-row .pn { flex: 1; font-weight: 500; color: hsl(var(--foreground)); }
+.picker-row .pm { color: hsl(var(--muted-foreground)); font-size: 12px; }
+
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; padding: 24px; }
+  .modal { border-radius: 18px; border-bottom: 1px solid hsl(var(--border)); max-height: 86vh; }
+  @keyframes modal-in { from { transform: translateY(12px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+}
+
+/* Empty / placeholder state */
+.empty {
+  text-align: center; padding: 60px 20px;
+  background: hsl(var(--card)); border: 1px dashed hsl(var(--border)); border-radius: 14px;
+}
+.empty-ic {
+  width: 48px; height: 48px; border-radius: 12px; margin: 0 auto 12px;
+  background: hsla(38,80%,52%,0.12); color: hsl(var(--primary));
+  display:flex; align-items:center; justify-content:center;
+}
+.empty-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: hsl(var(--foreground)); }
+.empty-sub { font-size: 13px; color: hsl(var(--muted-foreground)); margin-top: 4px; max-width: 42ch; margin-left: auto; margin-right: auto; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ── Sidebar ──────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <!-- Lucide: Music -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
+      <span class="brand-name">LouvorFlow</span>
+    </div>
+
+    <nav>
+      <div class="nav-group-label">Menu Principal</div>
+      <a class="nav-item" data-view="dashboard" href="#dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" data-view="songs" href="#songs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>Músicas</span>
+      </a>
+      <a class="nav-item" data-view="escalas" href="#escalas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>Escalas</span>
+      </a>
+      <a class="nav-item" data-view="integrantes" href="#integrantes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Integrantes</span>
+      </a>
+      <a class="nav-item" data-view="historico" href="#historico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        <span>Histórico</span>
+      </a>
+      <a class="nav-item" data-view="relatorios" href="#relatorios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Relatórios</span>
+      </a>
+
+      <div class="nav-group-label" style="margin-top:18px">Administração</div>
+      <a class="nav-item" data-view="igreja" href="#igreja">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M6 12H4a2 2 0 0 0-2 2v8h4"/><path d="M18 9h2a2 2 0 0 1 2 2v11h-4"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+        <span>Igreja</span>
+      </a>
+      <a class="nav-item" data-view="config" href="#config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="tenant">
+        <div class="tenant-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M10 6h4"/><path d="M10 14h4"/></svg></div>
+        <div class="tenant-text"><div class="tenant-name">Igreja Batista Central</div><div class="tenant-role">Ministério de Louvor</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn menu-only" aria-label="Alternar menu" id="toggle-sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-brand">
+        <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <span>LouvorFlow</span>
+      </div>
+      <div class="crumbs" id="crumbs">Dashboard</div>
+      <div class="spacer"></div>
+      <button class="icon-btn" aria-label="Alternar tema" id="toggle-theme">
+        <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="user-chip" aria-label="Menu do usuário">
+        <div class="avatar">JP</div>
+        <div class="user-meta"><div class="user-name">João Pedro</div><div class="user-role">Líder</div></div>
+      </button>
+    </header>
+
+    <div class="content" id="content">
+      <!-- views injected here -->
+    </div>
+  </main>
+</div>
+
+<!-- ── Modal host ─────────────────────────────────────────── -->
+<div class="modal-backdrop" id="modal-host" aria-hidden="true"></div>
+
+<script type="application/json" id="songs-data">
+[
+  {"nome":"Deus é Deus","artista":"Delino Marçal","tom":"G","bpm":84,"cat":"Adoração","duracao":"5:12"},
+  {"nome":"Lugar Secreto","artista":"Gabriela Rocha","tom":"D","bpm":72,"cat":"Intimidade","duracao":"6:04"},
+  {"nome":"Oceanos","artista":"Hillsong UNITED","tom":"B","bpm":68,"cat":"Adoração","duracao":"8:56"},
+  {"nome":"Nada Além do Sangue","artista":"Fernandinho","tom":"A","bpm":74,"cat":"Adoração","duracao":"4:28"},
+  {"nome":"Reckless Love","artista":"Cory Asbury","tom":"E","bpm":72,"cat":"Adoração","duracao":"5:42"},
+  {"nome":"Grande é o Senhor","artista":"Adhemar de Campos","tom":"C","bpm":118,"cat":"Celebração","duracao":"3:48"},
+  {"nome":"Ousado Amor","artista":"Isaías Saad","tom":"Bm","bpm":68,"cat":"Intimidade","duracao":"7:10"},
+  {"nome":"Santo Espírito","artista":"Laura Souguellis","tom":"F","bpm":70,"cat":"Adoração","duracao":"6:24"},
+  {"nome":"Em Teus Braços","artista":"Laura Souguellis","tom":"A","bpm":64,"cat":"Intimidade","duracao":"5:18"},
+  {"nome":"Teu Santo Nome","artista":"Gabriel Guedes","tom":"G","bpm":80,"cat":"Celebração","duracao":"4:56"},
+  {"nome":"Tu és Santo","artista":"Diante do Trono","tom":"D","bpm":92,"cat":"Celebração","duracao":"4:32"},
+  {"nome":"A Capela","artista":"Eli Soares","tom":"E","bpm":76,"cat":"Adoração","duracao":"5:08"}
+]
+</script>
+
+<script>
+/* LouvorFlow UI Kit — views (Dashboard + Músicas)
+ * Mobile-first rendering. Consumes shell.css primitives.
+ */
+
+(() => {
+  const content = document.getElementById("content");
+  const crumbs  = document.getElementById("crumbs");
+  const toggle  = document.getElementById("toggle-sidebar");
+  const theme   = document.getElementById("toggle-theme");
+  const sunIc   = theme.querySelector(".ic-sun");
+  const moonIc  = theme.querySelector(".ic-moon");
+  const app     = document.querySelector(".app");
+
+  /* inject scrim */
+  const scrim = document.createElement("div");
+  scrim.className = "scrim";
+  app.appendChild(scrim);
+  scrim.addEventListener("click", () => app.classList.remove("drawer-open"));
+
+  toggle.addEventListener("click", () => app.classList.toggle("drawer-open"));
+
+  /* theme */
+  const applyTheme = (dark) => {
+    document.documentElement.classList.toggle("dark", dark);
+    sunIc.style.display = dark ? "none" : "";
+    moonIc.style.display = dark ? "" : "none";
+    localStorage.setItem("lf-theme", dark ? "dark" : "light");
+  };
+  applyTheme(localStorage.getItem("lf-theme") === "dark");
+  theme.addEventListener("click", () => applyTheme(!document.documentElement.classList.contains("dark")));
+
+  /* Icons (Lucide minimal inline) */
+  const I = {
+    music:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+    users:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    trending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+    plus:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    search:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    filter:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
+    key:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
+    chevron:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
+    corner:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>'
+  };
+
+  /* Upcoming mock data */
+  const upcoming = [
+    { day: 20, month: "Abr", title: "Culto de Domingo — Manhã", meta: "5 músicas · 6 integrantes", tag: "Culto Domingo" },
+    { day: 24, month: "Abr", title: "Ensaio Geral",              meta: "Banda + Vocal",            tag: "Ensaio" },
+    { day: 27, month: "Abr", title: "Culto de Domingo — Noite",  meta: "6 músicas · 5 integrantes", tag: "Culto Domingo" },
+    { day:  1, month: "Mai", title: "Reunião de Oração",         meta: "3 músicas · 4 integrantes", tag: "Especial" }
+  ];
+  const team = [
+    { name: "Ana Martins",   role: "Vocal · Ministra" },
+    { name: "Bruno Lima",    role: "Violão · Guitarra" },
+    { name: "Carla Freitas", role: "Teclado" },
+    { name: "Daniel Ribeiro",role: "Bateria" },
+    { name: "Elisa Coelho",  role: "Vocal" }
+  ];
+  const initials = (s) => s.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+
+  /* ── Views ─────────────────────────────────────────────── */
+
+  function renderDashboard() {
+    crumbs.textContent = "Dashboard";
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-sub">Visão geral do ministério de louvor</p>
+          </div>
+          <button class="btn btn-primary btn-sm" data-open="escala">${I.plus}<span>Nova Escala</span></button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I.music}</div>
+          <h3>Músicas</h3><div class="val">247</div><div class="foot">No repertório</div>
+        </div>
+        <div class="stat"><div class="tint" style="background:linear-gradient(135deg,hsl(var(--secondary)),hsl(var(--accent)))"></div>
+          <div class="ic" style="background:hsla(350,45%,42%,0.12);color:hsl(var(--accent))">${I.calendar}</div>
+          <h3>Escalas</h3><div class="val">36</div><div class="foot">${upcoming.length} próximas</div>
+        </div>
+        <div class="stat"><div class="tint" style="background:linear-gradient(135deg,hsl(var(--accent)),hsl(var(--primary)))"></div>
+          <div class="ic">${I.users}</div>
+          <h3>Integrantes</h3><div class="val">18</div><div class="foot">Membros ativos</div>
+        </div>
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I.trending}</div>
+          <h3>Eventos</h3><div class="val">${upcoming.length}</div><div class="foot">Futuros agendados</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <section class="card">
+          <div class="card-head">
+            <h2 class="section-title">${I.calendar} Próximas Escalas</h2>
+            <button class="btn btn-outline btn-sm">Ver todas ${I.chevron}</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            ${upcoming.map(e => `
+              <div class="event-row">
+                <div class="event-date"><div class="d">${e.day}</div><div class="m">${e.month}</div></div>
+                <div class="event-body">
+                  <div class="event-title">${e.title}</div>
+                  <div class="event-meta">${e.meta}</div>
+                </div>
+                <span class="badge badge-soft event-tag">${e.tag}</span>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2 class="section-title">${I.users} Equipe do Ministério</h2>
+            <button class="btn btn-outline btn-sm">Ver integrantes ${I.chevron}</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            ${team.map(m => `
+              <div class="member-row">
+                <div class="member-avatar">${initials(m.name)}</div>
+                <div style="min-width:0">
+                  <div class="member-name">${m.name}</div>
+                  <div class="member-role">${m.role}</div>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  function renderSongs() {
+    crumbs.textContent = "Músicas";
+    const songs = JSON.parse(document.getElementById("songs-data").textContent);
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Músicas</h1>
+            <p class="page-sub">Gerencie o repertório do ministério</p>
+          </div>
+          <button class="btn btn-primary btn-sm" data-open="musica">${I.plus}<span>Nova Música</span></button>
+        </div>
+      </div>
+
+      <div class="songs-toolbar">
+        <div class="input-wrap">${I.search}<input class="input" placeholder="Buscar por nome ou artista..."/></div>
+        <button class="btn btn-outline btn-sm">${I.filter}<span>Filtrar</span></button>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active">Todas (${songs.length})</button>
+        <button class="tab">Adoração</button>
+        <button class="tab">Celebração</button>
+        <button class="tab">Intimidade</button>
+      </div>
+
+      <div class="song-list">
+        ${songs.map(s => `
+          <div class="song" role="button" tabindex="0">
+            <div class="song-tile">${I.music}</div>
+            <div class="song-title">${s.nome}</div>
+            <div class="song-artist">${s.artista}</div>
+            <div class="song-meta">
+              <span>${s.duracao}</span>
+              <span>${s.bpm} BPM</span>
+              <span class="badge badge-soft">${s.cat}</span>
+            </div>
+            <div class="song-key">
+              <span class="k">${s.tom}</span>
+              <span class="bpm">${s.bpm} BPM</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  /* ── Extra icons ──────────────────────────────────────── */
+  const I2 = {
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    pin:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    mail:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+    church:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 9V6l2-2 2 2v3"/><path d="M18 22V10l-6-4-6 4v12"/><path d="M10 14h4"/><path d="M10 18h4"/><path d="M12 2v2"/></svg>',
+    edit:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+    bell:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+    lock:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+    palette:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.7 1.5-1.5 0-.4-.15-.77-.4-1.04-.26-.28-.4-.63-.4-1.02 0-.83.67-1.5 1.5-1.5H16c3.3 0 6-2.7 6-6 0-4.97-4.48-9-10-9z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    up:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
+    down:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+    mic:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>'
+  };
+  const init = initials;
+
+  /* ── Escalas ─────────────────────────────────────────── */
+  const escalasData = [
+    { day:20, month:"Abr", title:"Culto de Domingo — Manhã", accent:"",
+      when:[["calendar","Dom, 20/Abr"],["clock","09h00"],["pin","Templo Principal"]],
+      band:["Ana Martins","Bruno Lima","Carla Freitas","Daniel Ribeiro","Elisa Coelho","Gabriel Souza"],
+      songs:[["G","Deus é Deus"],["D","Lugar Secreto"],["B","Oceanos"],["A","Nada Além do Sangue"],["C","Grande é o Senhor"]] },
+    { day:24, month:"Abr", title:"Ensaio Geral — Banda + Vocal", accent:"accent-wine",
+      when:[["calendar","Qui, 24/Abr"],["clock","20h00"],["pin","Sala de Ensaio"]],
+      band:["Ana Martins","Bruno Lima","Carla Freitas","Daniel Ribeiro"],
+      songs:[["G","Deus é Deus"],["D","Lugar Secreto"],["B","Oceanos"]] },
+    { day:27, month:"Abr", title:"Culto de Domingo — Noite", accent:"",
+      when:[["calendar","Dom, 27/Abr"],["clock","19h00"],["pin","Templo Principal"]],
+      band:["Rafael Ferraz","Marina Silva","Juliana Teles","Bruno Lima","Pedro Arruda"],
+      songs:[["E","Reckless Love"],["A","Em Teus Braços"],["Bm","Ousado Amor"],["F","Santo Espírito"],["G","Teu Santo Nome"],["D","Tu és Santo"]] },
+    { day: 1, month:"Mai", title:"Reunião de Oração", accent:"accent-brown",
+      when:[["calendar","Qui, 01/Mai"],["clock","19h30"],["pin","Anexo — Sala 2"]],
+      band:["Ana Martins","Carla Freitas","Elisa Coelho"],
+      songs:[["D","Lugar Secreto"],["F","Santo Espírito"],["A","Em Teus Braços"]] }
+  ];
+
+  function renderEscalas() {
+    crumbs.textContent = "Escalas";
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Escalas</h1>
+            <p class="page-sub">Planeje cultos, ensaios e eventos do ministério</p>
+          </div>
+          <button class="btn btn-primary btn-sm" data-open="escala">${I.plus}<span>Nova Escala</span></button>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active">Próximas (${escalasData.length})</button>
+        <button class="tab">Passadas</button>
+        <button class="tab">Rascunhos</button>
+      </div>
+
+      <div class="escala-list">
+        ${escalasData.map(e => `
+          <article class="escala ${e.accent}">
+            <div class="escala-head">
+              <div class="escala-date-block"><div class="d">${e.day}</div><div class="m">${e.month}</div></div>
+              <div class="escala-info">
+                <div class="escala-title">${e.title}</div>
+                <div class="escala-when">${e.when.map(([ic,t]) => `<span>${I2[ic]||""}${t}</span>`).join("")}</div>
+              </div>
+              <span class="badge badge-soft">${e.band.length} integrantes</span>
+            </div>
+            <div class="escala-body">
+              <div>
+                <div class="escala-section-label">Integrantes</div>
+                <div class="escala-chips">
+                  ${e.band.map(n => `<span class="esc-chip"><span class="dot">${init(n)}</span>${n}</span>`).join("")}
+                </div>
+              </div>
+              <div>
+                <div class="escala-section-label">Repertório (${e.songs.length})</div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  ${e.songs.map(([k,t]) => `<div class="esc-song"><span class="k">${k}</span>${t}</div>`).join("")}
+                </div>
+              </div>
+            </div>
+            <div class="esc-actions">
+              <button class="btn btn-outline btn-sm">${I2.edit}<span>Editar</span></button>
+              <button class="btn btn-outline btn-sm">${I2.share}<span>Compartilhar</span></button>
+              <button class="btn btn-outline btn-sm">${I2.bell}<span>Notificar</span></button>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  /* ── Integrantes ─────────────────────────────────────── */
+  const membrosData = [
+    { name:"Ana Martins",    role:"Ministra · Vocal",       email:"ana.martins@igreja.org",    phone:"(11) 99123-4501", tags:["Vocal","Líder"] },
+    { name:"Bruno Lima",     role:"Violão · Guitarra",      email:"bruno.lima@igreja.org",     phone:"(11) 99123-4502", tags:["Violão","Guitarra"] },
+    { name:"Carla Freitas",  role:"Teclado · Piano",        email:"carla.freitas@igreja.org",  phone:"(11) 99123-4503", tags:["Teclado"] },
+    { name:"Daniel Ribeiro", role:"Bateria",                email:"daniel.ribeiro@igreja.org", phone:"(11) 99123-4504", tags:["Bateria"] },
+    { name:"Elisa Coelho",   role:"Vocal",                  email:"elisa.coelho@igreja.org",   phone:"(11) 99123-4505", tags:["Vocal"] },
+    { name:"Gabriel Souza",  role:"Baixo",                  email:"gabriel.souza@igreja.org",  phone:"(11) 99123-4506", tags:["Baixo"] },
+    { name:"Rafael Ferraz",  role:"Ministro · Vocal",       email:"rafael.ferraz@igreja.org",  phone:"(11) 99123-4507", tags:["Vocal","Líder"] },
+    { name:"Marina Silva",   role:"Vocal",                  email:"marina.silva@igreja.org",   phone:"(11) 99123-4508", tags:["Vocal"] },
+    { name:"Juliana Teles",  role:"Vocal",                  email:"juliana.teles@igreja.org",  phone:"(11) 99123-4509", tags:["Vocal"] }
+  ];
+
+  function renderIntegrantes() {
+    crumbs.textContent = "Integrantes";
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Integrantes</h1>
+            <p class="page-sub">Membros ativos do ministério de louvor</p>
+          </div>
+          <button class="btn btn-primary btn-sm" data-open="integrante">${I.plus}<span>Novo Integrante</span></button>
+        </div>
+      </div>
+
+      <div class="songs-toolbar">
+        <div class="input-wrap">${I.search}<input class="input" placeholder="Buscar por nome, função ou instrumento..."/></div>
+        <button class="btn btn-outline btn-sm">${I.filter}<span>Filtrar</span></button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Todos (${membrosData.length})</button>
+        <button class="tab">Vocal</button>
+        <button class="tab">Instrumental</button>
+        <button class="tab">Líderes</button>
+      </div>
+
+      <div class="members-grid">
+        ${membrosData.map(m => `
+          <div class="member-card">
+            <div class="lg-avatar">${init(m.name)}</div>
+            <div class="mc-body">
+              <div class="mc-name">${m.name}</div>
+              <div class="mc-role">${m.role}</div>
+              <div class="mc-contacts">
+                <span>${I2.mail}${m.email}</span>
+                <span>${I2.phone}${m.phone}</span>
+              </div>
+              <div class="mc-tags">
+                ${m.tags.map(t => `<span class="badge badge-soft">${t}</span>`).join("")}
+              </div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  /* ── Histórico ───────────────────────────────────────── */
+  const historicoData = [
+    { when:"13 Abr · Domingo",  title:"Culto de Domingo — Manhã",     meta:"Ministra: Ana Martins · 5 músicas · 6 integrantes" },
+    { when:"10 Abr · Quinta",   title:"Ensaio Geral",                  meta:"Banda + Vocal · 4 músicas · 5 integrantes" },
+    { when:"06 Abr · Domingo",  title:"Culto de Domingo — Noite",      meta:"Ministro: Rafael Ferraz · 6 músicas · 5 integrantes" },
+    { when:"30 Mar · Domingo",  title:"Culto da Família",              meta:"Ministra: Ana Martins · 4 músicas · 7 integrantes" },
+    { when:"23 Mar · Domingo",  title:"Culto de Santa Ceia",           meta:"Ministro: Rafael Ferraz · 5 músicas · 6 integrantes" },
+    { when:"16 Mar · Domingo",  title:"Culto de Ação de Graças",       meta:"Ministra: Ana Martins · 6 músicas · 8 integrantes" }
+  ];
+
+  function renderHistorico() {
+    crumbs.textContent = "Histórico";
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Histórico</h1>
+            <p class="page-sub">Escalas e eventos anteriores do ministério</p>
+          </div>
+          <button class="btn btn-outline btn-sm">${I.filter}<span>Filtros</span></button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Últimos 30 dias</button>
+        <button class="tab">90 dias</button>
+        <button class="tab">Ano</button>
+      </div>
+
+      <div class="timeline">
+        ${historicoData.map(h => `
+          <div class="hist-item">
+            <div class="hist-card">
+              <div class="hist-when">${h.when}</div>
+              <div class="hist-title">${h.title}</div>
+              <div class="hist-meta">${h.meta}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  /* ── Relatórios ──────────────────────────────────────── */
+  function renderRelatorios() {
+    crumbs.textContent = "Relatórios";
+    const kpis = [
+      { lbl:"Cultos no mês",     val:"12",  delta:"+2",   up:true  },
+      { lbl:"Escalas geradas",   val:"36",  delta:"+4",   up:true  },
+      { lbl:"Músicas tocadas",   val:"84",  delta:"+11",  up:true  },
+      { lbl:"Faltas no mês",     val:"3",   delta:"-1",   up:false }
+    ];
+    const topSongs = [
+      { n:"Lugar Secreto",        v:18, pct:100 },
+      { n:"Oceanos",              v:14, pct:78  },
+      { n:"Deus é Deus",          v:12, pct:67  },
+      { n:"Reckless Love",        v:10, pct:56  },
+      { n:"Nada Além do Sangue",  v: 9, pct:50  },
+      { n:"Santo Espírito",       v: 7, pct:39  },
+      { n:"Em Teus Braços",       v: 6, pct:33  }
+    ];
+    const topMembers = [
+      { n:"Ana Martins",    v:14, pct:100 },
+      { n:"Bruno Lima",     v:12, pct:86  },
+      { n:"Carla Freitas",  v:11, pct:78  },
+      { n:"Daniel Ribeiro", v:10, pct:71  },
+      { n:"Elisa Coelho",   v: 9, pct:64  }
+    ];
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Relatórios</h1>
+            <p class="page-sub">Estatísticas e tendências do ministério</p>
+          </div>
+          <button class="btn btn-outline btn-sm">${I.filter}<span>Período: Abril</span></button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        ${kpis.map(k => `
+          <div class="kpi">
+            <div class="lbl">${k.lbl}</div>
+            <div class="val">${k.val}</div>
+            <span class="delta ${k.up?"up":"down"}">${k.up?I2.up:I2.down}${k.delta} vs. mar</span>
+          </div>
+        `).join("")}
+      </div>
+
+      <div class="dash-grid">
+        <section class="card">
+          <div class="card-head">
+            <h2 class="section-title">${I.music} Músicas mais tocadas</h2>
+            <button class="btn btn-outline btn-sm">Exportar ${I.chevron}</button>
+          </div>
+          <div class="bars">
+            ${topSongs.map(s => `
+              <div class="bar-row">
+                <div class="bn">${s.n}</div>
+                <div class="bt"><span style="width:${s.pct}%"></span></div>
+                <div class="bv">${s.v}×</div>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2 class="section-title">${I.users} Integrantes mais escalados</h2>
+            <button class="btn btn-outline btn-sm">Exportar ${I.chevron}</button>
+          </div>
+          <div class="bars">
+            ${topMembers.map(m => `
+              <div class="bar-row">
+                <div class="bn">${m.n}</div>
+                <div class="bt"><span style="width:${m.pct}%"></span></div>
+                <div class="bv">${m.v}×</div>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      </div>
+    `;
+  }
+
+  /* ── Igreja ──────────────────────────────────────────── */
+  function renderIgreja() {
+    crumbs.textContent = "Igreja";
+    const ministries = [
+      { ic:"mic",    n:"Ministério de Louvor",     meta:"18 membros · Ana Martins" },
+      { ic:"users",  n:"Ministério de Jovens",     meta:"42 membros · Paulo Dias" },
+      { ic:"users",  n:"Ministério Infantil",      meta:"28 membros · Tatiane Souza" },
+      { ic:"users",  n:"Ministério de Casais",     meta:"24 casais · Lucas & Renata" },
+      { ic:"users",  n:"Ministério de Intercessão",meta:"16 membros · Marta Campos" },
+      { ic:"users",  n:"Ministério de Mídia",      meta:"12 membros · Igor Farias" }
+    ];
+    content.innerHTML = `
+      <div class="page-head">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Igreja</h1>
+            <p class="page-sub">Informações gerais e ministérios</p>
+          </div>
+          <button class="btn btn-outline btn-sm">${I2.edit}<span>Editar</span></button>
+        </div>
+      </div>
+
+      <div class="church-head">
+        <div class="church-mark">${I2.church}</div>
+        <div>
+          <div class="church-name">Igreja Batista Central</div>
+          <div class="church-sub">Rua das Acácias, 432 — Vila Mariana, São Paulo/SP</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <span class="badge badge-soft">Fundada em 1978</span>
+            <span class="badge badge-outline">CNPJ 12.345.678/0001-90</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="margin-bottom:18px">
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I2.church}</div>
+          <h3>Cultos/semana</h3><div class="val">4</div><div class="foot">Dom, Qua, Sex</div>
+        </div>
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I.users}</div>
+          <h3>Membros</h3><div class="val">486</div><div class="foot">Ativos no sistema</div>
+        </div>
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I.users}</div>
+          <h3>Ministérios</h3><div class="val">${ministries.length}</div><div class="foot">Atendendo</div>
+        </div>
+        <div class="stat"><div class="tint"></div>
+          <div class="ic">${I2.mic}</div>
+          <h3>Equipes de Louvor</h3><div class="val">3</div><div class="foot">Rodízio semanal</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2 class="section-title">${I.users} Ministérios</h2>
+          <button class="btn btn-primary btn-sm">${I.plus}<span>Adicionar</span></button>
+        </div>
+        <div class="ministry-grid">
+          ${ministries.map(m => `
+            <div class="ministry">
+              <div class="mi-ic">${I2[m.ic] || I.users}</div>
+              <div style="min-width:0;flex:1">
+                <div class="mi-name">${m.n}</div>
+                <div class="mi-meta">${m.meta}</div>
+              </div>
+              <button class="btn btn-outline btn-sm">Abrir</button>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ── Configurações ───────────────────────────────────── */
+  function renderConfig() {
+    crumbs.textContent = "Configurações";
+    content.innerHTML = `
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-sub">Personalize a sua conta e o ministério</p>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Perfil</button>
+        <button class="tab">Ministério</button>
+        <button class="tab">Notificações</button>
+        <button class="tab">Segurança</button>
+      </div>
+
+      <div class="settings-group">
+        <h3>${I.users} Perfil do usuário</h3>
+        <div class="settings-list">
+          <div class="settings-row">
+            <div class="avatar" style="width:44px;height:44px;font-size:15px">JP</div>
+            <div class="s-info">
+              <div class="s-name">João Pedro</div>
+              <div class="s-hint">joao.pedro@igreja.org · Líder de Ministério</div>
+            </div>
+            <div class="s-ctl"><button class="btn btn-outline btn-sm">${I2.edit}<span>Editar</span></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Nome de exibição</div>
+              <div class="s-hint">Como o seu nome aparece nas escalas</div>
+            </div>
+            <div class="s-ctl"><button class="btn btn-outline btn-sm">Alterar</button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">E-mail de contato</div>
+              <div class="s-hint">joao.pedro@igreja.org</div>
+            </div>
+            <div class="s-ctl"><button class="btn btn-outline btn-sm">Alterar</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>${I2.bell} Notificações</h3>
+        <div class="settings-list">
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Nova escala atribuída</div>
+              <div class="s-hint">Receba um e-mail quando for escalado</div>
+            </div>
+            <div class="s-ctl"><button class="toggle on" aria-pressed="true"></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Lembrete 24h antes do culto</div>
+              <div class="s-hint">Notificação no dia anterior</div>
+            </div>
+            <div class="s-ctl"><button class="toggle on" aria-pressed="true"></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Mudanças no repertório</div>
+              <div class="s-hint">Quando músicas são adicionadas/removidas</div>
+            </div>
+            <div class="s-ctl"><button class="toggle" aria-pressed="false"></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Resumo semanal</div>
+              <div class="s-hint">Todo domingo de manhã</div>
+            </div>
+            <div class="s-ctl"><button class="toggle on" aria-pressed="true"></button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>${I2.palette} Aparência</h3>
+        <div class="settings-list">
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Tema</div>
+              <div class="s-hint">Claro, escuro ou automático</div>
+            </div>
+            <div class="s-ctl">
+              <select class="select-input"><option>Automático</option><option>Claro</option><option>Escuro</option></select>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Idioma</div>
+              <div class="s-hint">Interface e e-mails</div>
+            </div>
+            <div class="s-ctl">
+              <select class="select-input"><option>Português (BR)</option><option>English</option><option>Español</option></select>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Densidade</div>
+              <div class="s-hint">Compactar espaçamento das listas</div>
+            </div>
+            <div class="s-ctl"><button class="toggle" aria-pressed="false"></button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>${I2.lock} Segurança</h3>
+        <div class="settings-list">
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Alterar senha</div>
+              <div class="s-hint">Última alteração há 2 meses</div>
+            </div>
+            <div class="s-ctl"><button class="btn btn-outline btn-sm">Alterar</button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Autenticação em duas etapas</div>
+              <div class="s-hint">Proteção adicional no login</div>
+            </div>
+            <div class="s-ctl"><button class="toggle" aria-pressed="false"></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="s-info">
+              <div class="s-name">Sessões ativas</div>
+              <div class="s-hint">2 dispositivos conectados</div>
+            </div>
+            <div class="s-ctl"><button class="btn btn-outline btn-sm">Gerenciar</button></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    /* toggle interactions */
+    content.querySelectorAll(".toggle").forEach(t => {
+      t.addEventListener("click", () => {
+        t.classList.toggle("on");
+        t.setAttribute("aria-pressed", t.classList.contains("on"));
+      });
+    });
+  }
+
+  /* ── Modal host & openers ─────────────────────────────── */
+  const modalHost = document.getElementById("modal-host");
+  const closeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  function openModal(html) {
+    modalHost.innerHTML = html;
+    modalHost.classList.add("open");
+    document.body.style.overflow = "hidden";
+    modalHost.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeModal));
+  }
+  function closeModal() { modalHost.classList.remove("open"); modalHost.innerHTML = ""; document.body.style.overflow = ""; }
+  modalHost.addEventListener("click", (e) => { if (e.target === modalHost) closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+
+  function openNovaMusica() {
+    const tons = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B","Am","Bm","Cm","Dm","Em","Fm","Gm"];
+    const cats = ["Adoração","Celebração","Intimidade","Ofertório","Santa Ceia"];
+    openModal(`
+      <div class="modal" role="dialog">
+        <div class="modal-head">
+          <div class="mh-ic">${I.music}</div>
+          <div style="min-width:0;flex:1"><h2>Nova Música</h2><div class="mh-sub">Adicione ao repertório do ministério</div></div>
+          <button class="modal-close" data-close>${closeIcon}</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid two">
+            <div class="field"><label>Título</label><input class="input" placeholder="Ex.: Lugar Secreto"/></div>
+            <div class="field"><label>Artista / Autor</label><input class="input" placeholder="Gabriela Rocha"/></div>
+            <div class="field"><label>Tom original</label><select>${tons.map(t=>`<option>${t}</option>`).join("")}</select></div>
+            <div class="field"><label>Tom tocado</label><select>${tons.map(t=>`<option>${t}</option>`).join("")}</select></div>
+            <div class="field"><label>BPM</label><input class="input" type="number" placeholder="72"/></div>
+            <div class="field"><label>Duração</label><input class="input" placeholder="5:42"/></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Categoria</label>
+            <div class="chip-pick" data-single>${cats.map((c,i)=>`<button type="button" class="${i===0?"on":""}">${c}</button>`).join("")}</div>
+          </div>
+          <div class="form-grid two" style="margin-top:14px">
+            <div class="field"><label>Link (YouTube / Spotify)</label><input class="input" placeholder="https://..."/></div>
+            <div class="field"><label>Cifra / Letra</label><input class="input" placeholder="URL ou upload"/></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Observações</label>
+            <textarea placeholder="Arranjo, dicas para a banda, modulações..."></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline btn-sm" data-close>Cancelar</button>
+          <button class="btn btn-primary btn-sm">${I.plus}<span>Salvar música</span></button>
+        </div>
+      </div>`);
+  }
+
+  function openNovaEscala() {
+    const songs = JSON.parse(document.getElementById("songs-data").textContent);
+    openModal(`
+      <div class="modal" role="dialog">
+        <div class="modal-head">
+          <div class="mh-ic">${I.calendar}</div>
+          <div style="min-width:0;flex:1"><h2>Nova Escala</h2><div class="mh-sub">Planeje culto, ensaio ou evento</div></div>
+          <button class="modal-close" data-close>${closeIcon}</button>
+        </div>
+        <div class="modal-body">
+          <div class="field"><label>Título do evento</label><input class="input" placeholder="Culto de Domingo — Manhã"/></div>
+          <div class="form-grid two" style="margin-top:14px">
+            <div class="field"><label>Tipo</label><select><option>Culto Domingo</option><option>Ensaio</option><option>Reunião de Oração</option><option>Evento Especial</option></select></div>
+            <div class="field"><label>Local</label><input class="input" placeholder="Templo Principal"/></div>
+            <div class="field"><label>Data</label><input class="input" type="date"/></div>
+            <div class="field"><label>Horário</label><input class="input" type="time" value="09:00"/></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Integrantes</label><div class="hint">Quem tocará / cantará</div>
+            <div class="picker-list" data-multi>
+              ${membrosData.slice(0,8).map(m => `<div class="picker-row"><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="pn">${m.name}</div><div class="pm">${m.role}</div></div>`).join("")}
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Repertório</label><div class="hint">Músicas na ordem de execução</div>
+            <div class="picker-list" data-multi>
+              ${songs.slice(0,8).map(s => `<div class="picker-row"><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div><div class="pn">${s.nome}</div><div class="pm">${s.tom} · ${s.bpm} BPM</div></div>`).join("")}
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Notas para a equipe</label>
+            <textarea placeholder="Dicas para ensaio, observações litúrgicas..."></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline btn-sm" data-close>Cancelar</button>
+          <button class="btn btn-outline btn-sm">Salvar rascunho</button>
+          <button class="btn btn-primary btn-sm">${I.plus}<span>Criar escala</span></button>
+        </div>
+      </div>`);
+  }
+
+  function openNovoIntegrante() {
+    const funcoes = ["Vocal","Ministro(a)","Violão","Guitarra","Baixo","Teclado","Piano","Bateria","Percussão","Back-vocal"];
+    openModal(`
+      <div class="modal" role="dialog">
+        <div class="modal-head">
+          <div class="mh-ic">${I.users}</div>
+          <div style="min-width:0;flex:1"><h2>Novo Integrante</h2><div class="mh-sub">Adicione um membro ao ministério</div></div>
+          <button class="modal-close" data-close>${closeIcon}</button>
+        </div>
+        <div class="modal-body">
+          <div style="display:flex;gap:16px;align-items:center">
+            <div class="avatar" style="width:64px;height:64px;font-size:22px;border-radius:16px">??</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;color:hsl(var(--foreground))">Foto de perfil</div>
+              <div style="font-size:12px;color:hsl(var(--muted-foreground));margin-top:2px">PNG ou JPG até 2MB</div>
+              <button class="btn btn-outline btn-sm" style="margin-top:8px">Enviar foto</button>
+            </div>
+          </div>
+          <div class="form-grid two" style="margin-top:14px">
+            <div class="field"><label>Nome completo</label><input class="input" placeholder="Ana Martins"/></div>
+            <div class="field"><label>Como prefere ser chamado(a)</label><input class="input" placeholder="Ana"/></div>
+            <div class="field"><label>E-mail</label><input class="input" type="email" placeholder="ana@igreja.org"/></div>
+            <div class="field"><label>Telefone</label><input class="input" placeholder="(11) 99999-0000"/></div>
+            <div class="field"><label>Data de nascimento</label><input class="input" type="date"/></div>
+            <div class="field"><label>Data de ingresso</label><input class="input" type="date"/></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Funções no ministério</label><div class="hint">Selecione uma ou mais</div>
+            <div class="chip-pick" data-multi>${funcoes.map(f=>`<button type="button">${f}</button>`).join("")}</div>
+          </div>
+          <div class="form-grid two" style="margin-top:14px">
+            <div class="field"><label>Status</label><select><option>Ativo</option><option>Inativo</option><option>Em treinamento</option></select></div>
+            <div class="field"><label>Papel de acesso</label><select><option>Membro</option><option>Líder</option><option>Administrador</option></select></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label>Observações</label>
+            <textarea placeholder="Habilidades, experiência, disponibilidade..."></textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-outline btn-sm" data-close>Cancelar</button>
+          <button class="btn btn-primary btn-sm">${I.plus}<span>Salvar integrante</span></button>
+        </div>
+      </div>`);
+  }
+
+  /* Chip & picker interactions (delegated) */
+  modalHost.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip-pick button");
+    if (chip) {
+      const group = chip.parentElement;
+      if (group.hasAttribute("data-single")) {
+        group.querySelectorAll("button").forEach(b => b.classList.remove("on"));
+        chip.classList.add("on");
+      } else chip.classList.toggle("on");
+      return;
+    }
+    const row = e.target.closest(".picker-row");
+    if (row) row.classList.toggle("on");
+  });
+
+  /* Hook any [data-open] button on pages */
+  window.lfOpen = { musica: openNovaMusica, escala: openNovaEscala, integrante: openNovoIntegrante };
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-open]");
+    if (!b) return;
+    e.preventDefault();
+    const fn = window.lfOpen[b.dataset.open];
+    if (fn) fn();
+  });
+
+  /* ── Router ────────────────────────────────────────────── */
+  const routes = {
+    dashboard:   renderDashboard,
+    songs:       renderSongs,
+    escalas:     renderEscalas,
+    integrantes: renderIntegrantes,
+    historico:   renderHistorico,
+    relatorios:  renderRelatorios,
+    igreja:      renderIgreja,
+    config:      renderConfig
+  };
+  function go(view) {
+    if (!routes[view]) view = "dashboard";
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.view === view));
+    routes[view]();
+    localStorage.setItem("lf-view", view);
+    if (window.matchMedia("(max-width: 899px)").matches) app.classList.remove("drawer-open");
+    window.scrollTo({ top: 0 });
+  }
+
+  document.querySelectorAll(".nav-item[data-view]").forEach(n => {
+    n.addEventListener("click", (e) => { e.preventDefault(); go(n.dataset.view); });
+  });
+
+  go(localStorage.getItem("lf-view") || "dashboard");
+})();
+
+</script>
+</body>
+</html>

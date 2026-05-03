@@ -2,10 +2,11 @@
  * Barra lateral de navegação principal da aplicação.
  *
  * Renderiza o menu de navegação com itens de domínio (acessíveis a todos
- * os usuários autenticados), filtrando "Configurações" para usuários com
- * permissão `configuracoes.write`, e uma seção "Administração" condicional
- * (visível apenas para usuários com role "admin"). O item "Igrejas" é exibido
- * adicionalmente na seção admin, mas apenas para usuários com role "super-admin".
+ * os usuários autenticados) e uma seção "Administração" condicional
+ * (visível apenas para usuários com role "admin"). O item "Configurações"
+ * fica na seção Administração e é gateado por `configuracoes.write`. O item
+ * "Igrejas" é exibido adicionalmente apenas para usuários com role
+ * "super-admin". TenantSwitcher fica no rodapé como tile.
  */
 
 import { useEffect } from "react";
@@ -13,9 +14,9 @@ import {
   Music,
   Calendar,
   Users,
-  BarChart3,
+  BarChart2,
   History,
-  Home,
+  LayoutDashboard,
   Settings,
   Shield,
   UserCog,
@@ -31,6 +32,7 @@ import { TenantSwitcher } from "@/components/TenantSwitcher";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -43,30 +45,35 @@ import {
 
 /** Itens do menu de domínio (acessíveis a todos os autenticados). */
 const menuItems = [
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Músicas", url: "/musicas", icon: Music },
   { title: "Escalas", url: "/escalas", icon: Calendar },
   { title: "Integrantes", url: "/integrantes", icon: Users },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Histórico", url: "/historico", icon: History },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart2 },
 ];
 
-/** Itens do menu de administração (visíveis apenas para admins). */
+/** Itens base do menu de administração (visíveis apenas para admins). */
 const adminItems = [
   { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
   { title: "Roles", url: "/admin/roles", icon: Shield },
   { title: "Permissões", url: "/admin/permissoes", icon: Key },
 ];
 
+/** Classes compartilhadas dos items de navegação (estado base). */
+const navItemClass =
+  "flex items-center gap-3 rounded-lg px-2.5 py-2.5 min-h-11 text-[15px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent [&_svg]:text-muted-foreground hover:[&_svg]:text-foreground";
+
+/** Classes aplicadas ao item ativo (sobrescrevem o estado base com !important). */
+const navItemActiveClass =
+  "!bg-sidebar-accent font-semibold !text-foreground [&_svg]:!text-primary";
+
 /**
  * Componente da barra lateral de navegação.
  *
- * Renderiza menu de domínio para todos os autenticados, ocultando
- * "Configurações" para quem não tem `configuracoes.write`, e seção
- * "Administração" apenas para admins. O item "Igrejas" é exibido somente
- * para super-admins. Suporta colapso e fecha automaticamente em mobile
- * ao mudar de rota.
+ * Renderiza menu de domínio para todos os autenticados e seção "Administração"
+ * apenas para admins. Suporta colapso e fecha automaticamente em mobile ao
+ * mudar de rota. TenantSwitcher fica no rodapé.
  *
  * @returns Elemento React com a sidebar de navegação.
  */
@@ -79,8 +86,19 @@ export function AppSidebar() {
   const { can: canConfig } = useCan("configuracoes.write");
 
   /**
+   * Lista de items administrativos efetiva, incluindo Configurações condicional.
+   * Configurações só aparece para admins com permissão `configuracoes.write`.
+   */
+  const visibleAdminItems = [
+    ...adminItems,
+    ...(canConfig
+      ? [{ title: "Configurações", url: "/configuracoes", icon: Settings }]
+      : []),
+  ];
+
+  /**
    * Fecha o menu mobile (Sheet) automaticamente quando a rota muda.
-   * Evita que o overlay permaneça aberto após o usuário clicar em um item de navegação.
+   * Evita que o overlay permaneça aberto após o usuário clicar em um item.
    */
   useEffect(() => {
     if (isMobile) {
@@ -99,41 +117,40 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border px-4 h-16 flex items-center">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Music className="h-6 w-6 text-sidebar-foreground" />
-            <h2 className="text-lg font-bold text-sidebar-foreground">LouvorFlow</h2>
+      <SidebarHeader className="border-b border-sidebar-border px-3 h-16 flex items-center">
+        {!collapsed ? (
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-[10px] bg-gradient-primary shadow-soft flex items-center justify-center shrink-0">
+              <Music className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="font-display text-lg sm:text-[22px] font-bold tracking-tight text-sidebar-foreground leading-none">
+              LouvorFlow
+            </h2>
           </div>
-        )}
-        {collapsed && (
-          <Music className="h-6 w-6 text-sidebar-foreground mx-auto" />
+        ) : (
+          <div className="h-9 w-9 rounded-[10px] bg-gradient-primary shadow-soft flex items-center justify-center mx-auto">
+            <Music className="h-5 w-5 text-white" />
+          </div>
         )}
       </SidebarHeader>
 
-      {!collapsed && (
-        <div className="px-3 py-2 border-b border-sidebar-border">
-          <TenantSwitcher />
-        </div>
-      )}
-
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "text-center" : ""}>
+          <SidebarGroupLabel className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
             {!collapsed && "Menu Principal"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.filter((item) => item.url !== "/configuracoes" || canConfig).map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent font-medium"
+                      className={navItemClass}
+                      activeClassName={navItemActiveClass}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -145,20 +162,20 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={collapsed ? "text-center" : ""}>
+            <SidebarGroupLabel className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground/80 px-3 pt-3.5 pb-1.5">
               {!collapsed && "Administração"}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminItems.map((item) => (
+                {visibleAdminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <NavLink
                         to={item.url}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
-                        activeClassName="bg-sidebar-accent font-medium"
+                        className={navItemClass}
+                        activeClassName={navItemActiveClass}
                       >
-                        <item.icon className="h-5 w-5" />
+                        <item.icon className="h-[18px] w-[18px] shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
@@ -166,13 +183,16 @@ export function AppSidebar() {
                 ))}
                 {isSuperAdmin && (
                   <SidebarMenuItem key="Igrejas">
-                    <SidebarMenuButton asChild isActive={isActive("/admin/igrejas")}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive("/admin/igrejas")}
+                    >
                       <NavLink
                         to="/admin/igrejas"
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-sidebar-accent"
-                        activeClassName="bg-sidebar-accent font-medium"
+                        className={navItemClass}
+                        activeClassName={navItemActiveClass}
                       >
-                        <Building2 className="h-5 w-5" />
+                        <Building2 className="h-[18px] w-[18px] shrink-0" />
                         {!collapsed && <span>Igrejas</span>}
                       </NavLink>
                     </SidebarMenuButton>
@@ -183,6 +203,10 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-3">
+        <TenantSwitcher compact={collapsed} />
+      </SidebarFooter>
     </Sidebar>
   );
 }

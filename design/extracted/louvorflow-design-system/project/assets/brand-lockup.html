@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="../preview/_card.css">
+<style>
+  body { padding:28px }
+  .lockup { display:flex; align-items:center; gap:14px; padding:14px 18px; background:hsl(38 30% 99%); border:1px solid hsl(35 18% 87%); border-radius:12px; box-shadow:0 2px 15px -3px hsl(30 40% 30% / 0.08) }
+  .mark { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); display:flex;align-items:center;justify-content:center; flex-shrink:0 }
+  .mark svg { width:22px;height:22px;color:#fff }
+  .wordmark { font-family:"Sora",ui-sans-serif,system-ui,sans-serif; font-size:24px; font-weight:700; letter-spacing:-0.025em; line-height:1; color:hsl(30 15% 18%) }
+  .alt-dark { background:hsl(30 12% 12%); border-color:hsl(30 8% 22%) }
+  .alt-dark .wordmark { color:hsl(35 20% 88%) }
+  .alt-flat { background:transparent; border-color:transparent; box-shadow:none }
+  .alt-flat .mark { background:hsl(38 80% 52%) }
+  .alt-gradient-text .wordmark { background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); -webkit-background-clip:text; background-clip:text; color:transparent }
+  .caption { font-size:11px; color:hsl(30 12% 45%); font-family:var(--font-mono); margin-top:8px }
+</style>
+</head>
+<body>
+<div class="card-root" style="display:flex; flex-direction:column; gap:18px">
+  <div class="row" style="gap:14px;align-items:flex-start">
+    <div style="flex:1">
+      <div class="lockup">
+        <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <div class="wordmark">LouvorFlow</div>
+      </div>
+      <div class="caption">Primary · light surface</div>
+    </div>
+    <div style="flex:1">
+      <div class="lockup alt-dark">
+        <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <div class="wordmark">LouvorFlow</div>
+      </div>
+      <div class="caption">On dark sanctuary</div>
+    </div>
+  </div>
+  <div class="row" style="gap:14px;align-items:flex-start">
+    <div style="flex:1">
+      <div class="lockup alt-flat alt-gradient-text">
+        <div class="mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+        <div class="wordmark">LouvorFlow</div>
+      </div>
+      <div class="caption">Header inline — gradient wordmark</div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;gap:12px;padding-top:4px">
+      <div class="mark" style="width:56px;height:56px;border-radius:14px"><svg style="width:30px;height:30px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+      <div class="caption" style="margin-top:0">App icon · 56px · same mark</div>
+    </div>
+  </div>
+</div>
+</body></html>

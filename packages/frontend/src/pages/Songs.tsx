@@ -14,12 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Music, Plus, Search, Guitar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMusicas } from "@/hooks/use-musicas";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
 import { useCan } from "@/hooks/use-can";
+import { handleClickableKeyDown } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -107,7 +108,7 @@ const Songs = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="font-display text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Músicas
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -174,60 +175,69 @@ const Songs = () => {
           {!isLoading && !isError && filteredSongs.length > 0 && (
             <>
               <div className="space-y-4">
-                {filteredSongs.map((song) => (
+                {filteredSongs.map((song) => {
+                  /** Badges de categoria reutilizadas no layout desktop e mobile. */
+                  const categoriaBadges = song.categorias.map((categoria) => (
+                    <Badge
+                      key={categoria.id}
+                      variant="secondary"
+                      className="bg-primary/10 text-primary hover:bg-primary/20"
+                    >
+                      {categoria.nome}
+                    </Badge>
+                  ));
+                  return (
                   <div
                     key={song.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-medium hover:border-primary/30 transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
                     onClick={() => navigate(`/musicas/${song.id}`)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") navigate(`/musicas/${song.id}`);
-                    }}
+                    onKeyDown={handleClickableKeyDown(() =>
+                      navigate(`/musicas/${song.id}`),
+                    )}
                   >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 shadow-soft">
                         <Music className="h-6 w-6 text-white" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <h3 className="font-semibold text-foreground truncate">
                           {song.nome}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground truncate">
                           {song.versoes[0]?.artista?.nome ?? "Artista desconhecido"}
                         </p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
-                      {song.tonalidade && (
-                        <div className="flex items-center gap-2">
-                          <Guitar className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium text-foreground">
+                      <div className="flex flex-col items-end leading-none shrink-0 sm:hidden">
+                        {song.tonalidade && (
+                          <span className="font-display font-bold text-lg text-foreground">
                             {song.tonalidade.tom}
                           </span>
-                        </div>
+                        )}
+                        {song.versoes[0]?.bpm && (
+                          <span className="text-[11px] text-muted-foreground tabular-nums mt-0.5">
+                            {song.versoes[0].bpm} BPM
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-3 sm:gap-6 flex-wrap">
+                      {song.tonalidade && (
+                        <span className="font-display font-bold text-lg text-foreground leading-none">
+                          {song.tonalidade.tom}
+                        </span>
                       )}
                       {song.versoes[0]?.bpm && (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground tabular-nums">
                           {song.versoes[0].bpm} BPM
                         </div>
                       )}
-                      <div className="flex gap-2">
-                        {song.categorias.map((categoria) => (
-                          <Badge
-                            key={categoria.id}
-                            variant="secondary"
-                            className="bg-primary/10 text-primary hover:bg-primary/20"
-                          >
-                            {categoria.nome}
-                          </Badge>
-                        ))}
-                      </div>
+                      <div className="flex gap-2">{categoriaBadges}</div>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="hidden sm:inline-flex"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/musicas/${song.id}`);
@@ -236,8 +246,15 @@ const Songs = () => {
                         Detalhes
                       </Button>
                     </div>
+
+                    {song.categorias.length > 0 && (
+                      <div className="flex flex-wrap gap-2 sm:hidden">
+                        {categoriaBadges}
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {!isSearching && meta && meta.total_pages > 1 && (

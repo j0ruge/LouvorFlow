@@ -76,9 +76,24 @@ class MusicasController {
         res.status(201).json({ msg: "Versão adicionada com sucesso", versao });
     }
 
-    /** Atualiza uma versão existente. */
+    /**
+     * Atualiza uma versão existente.
+     *
+     * Detecta se o usuário autenticado possui role `admin` ou `super-admin` (já carregadas
+     * em `req.user.roles` pelo middleware `can(['musicas.write'])`) e propaga essa informação
+     * ao service via `allowArtistChange`. Admins podem corrigir o artista de uma versão já
+     * vinculada; usuários comuns continuam impedidos pela regra padrão do service.
+     */
     async updateVersao(req: Request<{ versaoId: string }>, res: Response): Promise<void> {
-        const versao = await musicasService.updateVersao(req.params.versaoId, req.body);
+        const isAdmin = req.user?.roles?.some(
+            (role) => role.name === "admin" || role.name === "super-admin",
+        ) ?? false;
+
+        const versao = await musicasService.updateVersao(
+            req.params.versaoId,
+            req.body,
+            { allowArtistChange: isAdmin },
+        );
         res.status(200).json({ msg: "Versão editada com sucesso", versao });
     }
 

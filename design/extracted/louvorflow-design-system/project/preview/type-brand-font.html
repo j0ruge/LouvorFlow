@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="_card.css">
+<style>
+  .spec { display:flex; flex-direction:column; gap:18px }
+  .hero { display:flex; align-items:baseline; gap:18px; flex-wrap:wrap }
+  .wordmark { font-family:"Sora",sans-serif; font-size:62px; line-height:0.95; letter-spacing:-0.025em; font-weight:700;
+    background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .role { font-family:"Sora",sans-serif; font-size:13px; color:hsl(30 12% 45%); font-weight:600; text-transform:uppercase; letter-spacing:0.1em }
+
+  .pair { display:grid; grid-template-columns: 1fr 1fr; gap:20px }
+  @media (max-width: 720px) { .pair { grid-template-columns: 1fr; } }
+  .card2 { padding:18px; border:1px solid hsl(35 18% 87%); border-radius:12px; background:hsl(38 30% 99%) }
+  .card2 .label { font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:hsl(30 12% 45%); font-family:var(--font-mono); margin-bottom:10px }
+
+  .big-sample { font-family:"Sora",sans-serif; font-size:30px; line-height:1.1; color:hsl(30 15% 18%); font-weight:700; letter-spacing:-0.02em }
+  .med-sample { font-family:"Sora",sans-serif; font-size:20px; line-height:1.25; color:hsl(30 15% 18%); font-weight:600; letter-spacing:-0.015em; margin-top:8px }
+  .body-sample { font-family:"Sora",sans-serif; font-size:15px; line-height:1.55; color:hsl(30 15% 18%); font-weight:400 }
+  .sm-sample { font-family:"Sora",sans-serif; font-size:13px; line-height:1.5; color:hsl(30 12% 45%); font-weight:500; margin-top:6px; font-variant-numeric:tabular-nums }
+
+  .weights { display:flex; gap:14px; margin-top:14px; flex-wrap:wrap }
+  .w { font-size:14px; color:hsl(30 15% 18%); font-family:"Sora",sans-serif }
+  .w small { display:block; font-family:var(--font-mono); font-size:10px; color:hsl(30 12% 45%); font-weight:400; margin-top:2px; letter-spacing:0.04em; text-transform:uppercase }
+
+  .why { font-family:"Sora",sans-serif; font-size:13px; color:hsl(30 12% 45%); line-height:1.6; padding:12px 14px; background:hsla(38,80%,52%,0.08); border-left:3px solid hsl(38 80% 52%); border-radius:8px }
+  .why strong { color:hsl(30 15% 18%); font-weight:700 }
+  .chars { font-family:"Sora",sans-serif; font-size:36px; font-weight:700; letter-spacing:-0.02em; color:hsl(30 15% 18%); margin-top:4px }
+  .chars-lbl { font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:hsl(30 12% 45%); font-family:var(--font-mono); margin-top:6px }
+</style>
+</head>
+<body>
+<div class="card-root spec">
+  <div class="hero">
+    <div class="wordmark">LouvorFlow</div>
+    <div class="role">Sora · família única</div>
+  </div>
+
+  <div class="pair">
+    <div class="card2">
+      <div class="label">Display · Sora 700/800</div>
+      <div class="big-sample">Próximas Escalas</div>
+      <div class="med-sample">Equipe do Ministério · Culto de Domingo</div>
+      <div class="weights">
+        <div class="w" style="font-weight:600">SemiBold<small>600 · h3</small></div>
+        <div class="w" style="font-weight:700">Bold<small>700 · h1/h2</small></div>
+        <div class="w" style="font-weight:800">ExtraBold<small>800 · stat big</small></div>
+      </div>
+    </div>
+
+    <div class="card2">
+      <div class="label">Body · Sora 400–600</div>
+      <div class="body-sample">Gerencie o repertório do ministério e as escalas de culto com serenidade e ritmo.</div>
+      <div class="sm-sample">Dó Ré Mi Fá Sol Lá Si · 128 BPM · G/Bm · 5 músicas</div>
+      <div class="weights">
+        <div class="w" style="font-weight:400">Regular<small>400 · body</small></div>
+        <div class="w" style="font-weight:500">Medium<small>500 · labels</small></div>
+        <div class="w" style="font-weight:600">SemiBold<small>600 · list</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card2">
+    <div class="label">Caráter · dígitos · acentuação PT-BR</div>
+    <div class="chars">Aa Bb Gg Kk Rr áãçéí &amp; 0123456789</div>
+    <div class="chars-lbl">Dígitos tabulares em Sora garantem alinhamento de BPM / tom / duração nas listas.</div>
+  </div>
+
+  <div class="why">
+    <strong>Por quê Sora:</strong> geométrica-humanista com personalidade moderna e jovem — o oposto do tom editorial de Fraunces.
+    Usar uma única família em display e corpo deixa a identidade coesa, o carregamento enxuto e a manutenção simples.
+    Pesos 400/500 no corpo e 700/800 em títulos dão hierarquia clara sem precisar de um segundo arquivo de fonte.
+  </div>
+</div>
+</body>
+</html>

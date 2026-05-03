@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { IntensidadeSelector } from "@/components/IntensidadeSelector";
 import { CreatableCombobox } from "@/components/CreatableCombobox";
 import { useArtistas, useCreateArtista } from "@/hooks/use-artistas";
+import { useAuth } from "@/hooks/use-auth";
 import {
   CreateVersaoFormSchema,
   type CreateVersaoForm,
@@ -65,6 +66,16 @@ export function VersaoForm({
   versao,
 }: VersaoFormProps) {
   const isEditing = !!versao;
+  const { isAdmin, isSuperAdmin } = useAuth();
+  /**
+   * Indica se o usuário pode trocar o artista de uma versão já vinculada.
+   * Por padrão o campo Artista fica imutável após cadastrado para evitar
+   * mudanças acidentais; admins/super-admins podem corrigir o vínculo.
+   */
+  const podeAlterarArtistaExistente = isAdmin || isSuperAdmin;
+  const artistaBloqueado = isEditing && !!versao?.artista && !podeAlterarArtistaExistente;
+  const exibirAvisoAlteracaoArtista =
+    isEditing && !!versao?.artista && podeAlterarArtistaExistente;
   const { data: artistas, isLoading: artistasLoading } = useArtistas();
   const createArtista = useCreateArtista();
 
@@ -177,9 +188,22 @@ export function VersaoForm({
                       placeholder="Não informado (opcional)"
                       searchPlaceholder="Buscar artista..."
                       isLoading={artistasLoading}
-                      disabled={isEditing && !!versao?.artista}
+                      disabled={artistaBloqueado}
+                      aria-describedby={
+                        exibirAvisoAlteracaoArtista
+                          ? "versao-artista-aviso"
+                          : undefined
+                      }
                     />
                   </FormControl>
+                  {exibirAvisoAlteracaoArtista && (
+                    <p
+                      id="versao-artista-aviso"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Alterar o artista move esta versão para outro artista. Use apenas para corrigir cadastros.
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

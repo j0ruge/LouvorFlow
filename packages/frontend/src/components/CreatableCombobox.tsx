@@ -63,6 +63,11 @@ interface CreatableComboboxProps {
   disabled?: boolean;
   /** Exibe indicador de carregamento no trigger. */
   isLoading?: boolean;
+  /**
+   * ID(s) de elemento(s) descritivos associados ao combobox para
+   * leitores de tela (encaminhado ao trigger via `aria-describedby`).
+   */
+  "aria-describedby"?: string;
 }
 
 /**
@@ -81,6 +86,7 @@ export function CreatableCombobox({
   createLabel = (input) => `Criar "${input}"`,
   disabled = false,
   isLoading = false,
+  "aria-describedby": ariaDescribedBy,
 }: CreatableComboboxProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -147,6 +153,7 @@ export function CreatableCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-describedby={ariaDescribedBy}
           className="w-full justify-between font-normal"
           disabled={disabled || isLoading}
         >
@@ -175,7 +182,7 @@ export function CreatableCombobox({
               {search.trim() && onCreate ? (
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm"
                   onClick={handleCreate}
                   disabled={creating}
                 >
