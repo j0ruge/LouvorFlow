@@ -123,13 +123,35 @@ export const addFuncaoBodySchema = z.object({
 
 // --- Query params ---
 
+/** Limite máximo de caracteres aceitos no termo de busca `q`. */
+const Q_MAX_LENGTH = 200;
+/** Limite máximo de IDs de categorias aceitos por requisição. */
+const CATEGORIAS_MAX_COUNT = 50;
+
+/**
+ * Escapa metacaracteres LIKE (`%` e `_`) num termo de busca para que
+ * sejam tratados como literais por Prisma `contains`/`startsWith`.
+ *
+ * Sem escape, `q=%` casaria todas as linhas (full table leak); `q=_`
+ * casaria qualquer single-char. Prisma não escapa esses metacaracteres
+ * automaticamente em `contains`.
+ *
+ * @param raw - Texto cru do termo de busca, já trimado.
+ * @returns Texto com `%` e `_` precedidos de `\`.
+ */
+function escapeLikeWildcards(raw: string): string {
+    return raw.replace(/[%_]/g, (m) => `\\${m}`);
+}
+
 /**
  * Schema de validação para query params de listagem de músicas (GET /api/musicas).
  *
  * - `page`: inteiro >=1 (default 1)
  * - `limit`: inteiro 1..100 (default 20)
- * - `categorias`: CSV de UUIDs (ex.: "id1,id2"). Vazio/ausente = sem filtro.
- * - `q`: substring case-insensitive para busca por nome. Vazio/ausente = sem busca.
+ * - `categorias`: CSV de UUIDs (ex.: "id1,id2"), no máximo 50. Vazio/ausente = sem filtro.
+ * - `q`: substring case-insensitive (até 200 chars) para busca por nome. Wildcards
+ *   LIKE (`%`, `_`) são escapados para impedir varredura total via filtro malicioso.
+ *   Vazio/ausente = sem busca.
  */
 export const listMusicasQuerySchema = z.object({
     page: z.coerce.number().int().min(1).optional().default(1),
@@ -138,11 +160,18 @@ export const listMusicasQuerySchema = z.object({
         if (!val) return undefined;
         const ids = val.split(',').map((s) => s.trim()).filter(Boolean);
         if (ids.length === 0) return undefined;
+        if (ids.length > CATEGORIAS_MAX_COUNT) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Máximo de ${CATEGORIAS_MAX_COUNT} categorias por filtro`,
+            });
+            return z.NEVER;
+        }
         const parsed = z.array(uuidSchema).safeParse(ids);
         if (!parsed.success) {
             for (const issue of parsed.error.issues) {
                 const idx = typeof issue.path[0] === 'number' ? issue.path[0] : -1;
-                const offender = idx >= 0 ? ids[idx] : '';
+                const offender = idx >= 0 ? ids[idx] : (issue.message ?? 'desconhecido');
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
                     message: `UUID inválido em categorias: ${offender}`,
@@ -152,9 +181,10 @@ export const listMusicasQuerySchema = z.object({
         }
         return parsed.data;
     }),
-    q: z.string().optional().transform((val) => {
+    q: z.string().max(Q_MAX_LENGTH, `Busca não pode exceder ${Q_MAX_LENGTH} caracteres`).optional().transform((val) => {
         if (typeof val !== 'string') return undefined;
         const trimmed = val.trim();
-        return trimmed.length > 0 ? trimmed : undefined;
+        if (trimmed.length === 0) return undefined;
+        return escapeLikeWildcards(trimmed);
     }),
 });

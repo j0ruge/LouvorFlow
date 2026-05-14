@@ -92,4 +92,63 @@ describe('listMusicasQuerySchema', () => {
         const result = listMusicasQuerySchema.parse({ q: '  agnus  ' });
         expect(result.q).toBe('agnus');
     });
+
+    /** Wildcards LIKE `%` são escapados para evitar varredura total. */
+    it('escapa percent (%) em q como literal LIKE', () => {
+        const result = listMusicasQuerySchema.parse({ q: '50%' });
+        expect(result.q).toBe('50\\%');
+    });
+
+    /** Wildcards LIKE `_` são escapados para evitar match de single-char. */
+    it('escapa underscore (_) em q como literal LIKE', () => {
+        const result = listMusicasQuerySchema.parse({ q: 'foo_bar' });
+        expect(result.q).toBe('foo\\_bar');
+    });
+
+    /** Acentos em português são preservados (busca case/diacritic decidida no backend). */
+    it('preserva diacríticos em q', () => {
+        const result = listMusicasQuerySchema.parse({ q: 'Ó Senhor' });
+        expect(result.q).toBe('Ó Senhor');
+    });
+
+    /** `q` excedendo o limite de 200 caracteres é rejeitado. */
+    it('rejeita q com mais de 200 caracteres', () => {
+        const longQ = 'a'.repeat(201);
+        const result = listMusicasQuerySchema.safeParse({ q: longQ });
+        expect(result.success).toBe(false);
+    });
+
+    /** `q` exatamente no limite (200 caracteres) é aceito. */
+    it('aceita q com exatamente 200 caracteres', () => {
+        const exactQ = 'a'.repeat(200);
+        const result = listMusicasQuerySchema.parse({ q: exactQ });
+        expect(result.q).toBe(exactQ);
+    });
+
+    /** `categorias` com mais de 50 IDs é rejeitado. */
+    it('rejeita categorias com mais de 50 IDs', () => {
+        const valid = '550e8400-e29b-41d4-a716-446655440000';
+        const csv = Array.from({ length: 51 }, () => valid).join(',');
+        const result = listMusicasQuerySchema.safeParse({ categorias: csv });
+        expect(result.success).toBe(false);
+    });
+
+    /** `categorias` com exatamente 50 IDs é aceito. */
+    it('aceita categorias com exatamente 50 IDs', () => {
+        const valid = '550e8400-e29b-41d4-a716-446655440000';
+        const csv = Array.from({ length: 50 }, () => valid).join(',');
+        const result = listMusicasQuerySchema.parse({ categorias: csv });
+        expect(result.categorias).toHaveLength(50);
+    });
+
+    /** `q` e `categorias` coexistem na mesma requisição. */
+    it('aceita q e categorias simultaneamente', () => {
+        const id = '550e8400-e29b-41d4-a716-446655440000';
+        const result = listMusicasQuerySchema.parse({
+            q: 'amor',
+            categorias: id,
+        });
+        expect(result.q).toBe('amor');
+        expect(result.categorias).toEqual([id]);
+    });
 });

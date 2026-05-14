@@ -62,6 +62,11 @@ export function createFakeMusicasRepository() {
    * Aplica filtros parciais (categoria_id `in` e nome `contains`) compatíveis com o
    * subset de `Prisma.MusicasWhereInput` usado por `MusicasService.listAll`.
    *
+   * NB: o campo `mode` (insensitive/default) é silenciosamente ignorado — o
+   * fake sempre se comporta como case-insensitive via `toLowerCase()`. Testes
+   * que dependem do contraste case-sensitive deverão usar o cliente real do
+   * Prisma em testes de integração.
+   *
    * @param where - Subset suportado: `{ Musicas_Categorias: { some: { categoria_id: { in } } }, nome: { contains, mode } }`.
    * @returns Lista de músicas filtradas.
    */
@@ -92,9 +97,11 @@ export function createFakeMusicasRepository() {
   return {
     // --- Base CRUD ---
 
+    /** Retorna músicas paginadas aplicando o subset de filtros suportado. */
     findAll: async (skip: number, take: number, where?: Record<string, unknown>) =>
       applyWhere(where).slice(skip, skip + take).map(buildMusicaRaw),
 
+    /** Conta músicas que satisfazem o filtro `where` (subset suportado). */
     count: async (where?: Record<string, unknown>) => applyWhere(where).length,
 
     findById: async (id: string) => {
