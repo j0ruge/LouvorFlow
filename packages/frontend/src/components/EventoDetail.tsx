@@ -200,11 +200,14 @@ export function EventoDetail() {
    * Evita um request a cada tecla pressionada enquanto o usuário digita.
    */
   const debouncedMusicaSearch = useDebouncedValue(musicaSearch, 300);
-  const { data: allMusicas, isFetching: isFetchingMusicas } = useMusicas({
-    page: 1,
-    limit: 100,
-    q: debouncedMusicaSearch.trim() || undefined,
-  });
+  const { data: allMusicas, isFetching: isFetchingMusicas } = useMusicas(
+    {
+      page: 1,
+      limit: 100,
+      q: debouncedMusicaSearch.trim() || undefined,
+    },
+    { staleTime: 60_000 },
+  );
   const { data: allIntegrantes } = useIntegrantes();
 
   const updateEvento = useUpdateEvento();
@@ -452,15 +455,15 @@ export function EventoDetail() {
                   value={selectedMusicaId || undefined}
                   onSelect={setSelectedMusicaId}
                   placeholder={
-                    (allMusicas?.items.length ?? 0) === 0 && !musicaSearch
+                    (allMusicas?.items.length ?? 0) === 0 && !debouncedMusicaSearch
                       ? "Nenhuma música cadastrada no sistema"
-                      : musicasDisponiveis.length === 0 && !musicaSearch
+                      : musicasDisponiveis.length === 0 && !debouncedMusicaSearch
                         ? "Todas as músicas já foram adicionadas"
                         : "Selecione uma música para adicionar"
                   }
                   searchPlaceholder="Buscar música..."
                   disabled={
-                    musicasDisponiveis.length === 0 && !musicaSearch && !isFetchingMusicas
+                    musicasDisponiveis.length === 0 && !debouncedMusicaSearch && !isFetchingMusicas
                   }
                   searchValue={musicaSearch}
                   onSearchChange={setMusicaSearch}
@@ -475,11 +478,8 @@ export function EventoDetail() {
               <Button
                 size="sm"
                 onClick={handleAddMusica}
-                disabled={
-                  !selectedMusicaId ||
-                  addMusica.isPending ||
-                  musicasDisponiveis.length === 0
-                }
+                disabled={!selectedMusicaId || addMusica.isPending}
+                aria-label="Adicionar música ao evento"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>

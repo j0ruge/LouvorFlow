@@ -39,6 +39,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CornerDownLeft, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   useCreateIntegrante,
   useIntegrante,
@@ -141,6 +142,11 @@ export function IntegranteForm({
    * que ainda não foi adicionada, adiciona primeiro via `addFuncao`
    * e só depois dispara o `updateMutation`, evitando race condition
    * e garantindo que o dialog só feche após ambas as operações.
+   *
+   * No modo criação, `CreateIntegranteFormSchema` garante senha
+   * obrigatória; o invariant em runtime serve apenas para narrowing
+   * de tipo e para surfaceá-lo (toast + console) caso o schema mude
+   * sem o `onSubmit` ser atualizado em conjunto.
    */
   async function onSubmit(dados: UpdateIntegranteForm) {
     if (isEditing && integranteId) {
@@ -170,9 +176,15 @@ export function IntegranteForm({
     } else {
       // Em modo criação, o resolver é `CreateIntegranteFormSchema` (senha
       // obrigatória ≥ 6 chars), então este guard nunca deveria disparar
-      // em runtime; ele existe para estreitar `senha?: string` → `string`
-      // para o `createMutation.mutate` sob `strictNullChecks`.
-      if (!dados.senha) return;
+      // em runtime; existe para estreitar `senha?: string` → `string` sob
+      // `strictNullChecks`. Se acionar, é invariant violation — surface.
+      if (!dados.senha) {
+        console.error(
+          "Invariant violation: senha obrigatória ausente em modo criação",
+        );
+        toast.error("Erro inesperado: senha obrigatória ausente.");
+        return;
+      }
       createMutation.mutate(
         { ...dados, senha: dados.senha },
         {
