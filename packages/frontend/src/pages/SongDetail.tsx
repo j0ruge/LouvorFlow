@@ -25,14 +25,26 @@ const SongDetail = () => {
   const location = useLocation();
 
   /**
+   * Extrai com narrowing explícito o campo `from` de `location.state` sem
+   * usar `as` para casting cego. Apenas aceita um objeto literal com
+   * propriedade string — qualquer outro formato cai no fallback.
+   */
+  const state = location.state;
+  const rawFrom =
+    state !== null &&
+    typeof state === "object" &&
+    "from" in state &&
+    typeof (state as Record<string, unknown>).from === "string"
+      ? (state as { from: string }).from
+      : undefined;
+  /**
    * URL para a qual o botão "Voltar" deve retornar (estado preservado vindo da lista).
    *
    * Aceita apenas paths internos (`/...`) e descarta `//host` (protocol-relative URLs) —
    * defesa em profundidade contra navegação manipulada via `location.state`.
    */
-  const rawFrom = (location.state as { from?: string } | null)?.from;
   const backTo =
-    typeof rawFrom === "string" && rawFrom.startsWith("/") && !rawFrom.startsWith("//")
+    rawFrom && rawFrom.startsWith("/") && !rawFrom.startsWith("//")
       ? rawFrom
       : "/musicas";
 
@@ -84,7 +96,7 @@ const SongDetail = () => {
 
       <MusicaDetail
         musica={musica}
-        onDeleted={() => navigate("/musicas")}
+        onDeleted={() => navigate(backTo)}
       />
     </div>
   );

@@ -65,17 +65,23 @@ const Songs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   /** Estado canônico vive na URL — derivado dos search params. */
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
   const q = searchParams.get("q") ?? "";
   const categoriasParam = searchParams.get("categorias") ?? "";
   const categoriaIds = categoriasParam
     ? categoriasParam.split(",").filter(Boolean)
     : [];
 
-  /** Input local para aplicar debounce antes de gravar `q` na URL. */
-  const [searchInput, setSearchInput] = useState(q);
+  /** Input local com inicialização preguiçosa a partir da URL. */
+  const [searchInput, setSearchInput] = useState(() => q);
 
-  /** Mantém `searchInput` sincronizado com `q` quando a URL muda externamente (voltar/avançar). */
+  /**
+   * Sincroniza `searchInput` com `q` em mudanças externas da URL
+   * (botão voltar/avançar do navegador via popstate, deep link).
+   * O guard `current === q` evita renders extras quando a mudança veio
+   * do próprio debounce — `setState` com o mesmo valor é no-op.
+   */
   useEffect(
     function syncSearchInputFromUrl() {
       setSearchInput((current) => (current === q ? current : q));
@@ -124,13 +130,16 @@ const Songs = () => {
     const set = new Set(categoriaIds);
     if (set.has(id)) set.delete(id);
     else set.add(id);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (set.size > 0) next.set("categorias", Array.from(set).join(","));
-      else next.delete("categorias");
-      next.set("page", "1");
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (set.size > 0) next.set("categorias", Array.from(set).join(","));
+        else next.delete("categorias");
+        next.set("page", "1");
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   /**
@@ -150,11 +159,14 @@ const Songs = () => {
    * @param newPage - Nova página a aplicar.
    */
   const setPage = (newPage: number) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("page", String(newPage));
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(newPage));
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const hasFilters = q.length > 0 || categoriaIds.length > 0;
@@ -174,9 +186,10 @@ const Songs = () => {
           <Button
             className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft flex-shrink-0"
             onClick={() => setFormOpen(true)}
+            aria-label="Nova Música"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Música
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Música</span>
           </Button>
         )}
       </div>
@@ -188,6 +201,7 @@ const Songs = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar músicas por nome..."
+                aria-label="Buscar músicas por nome"
                 className="pl-10 w-full"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -213,8 +227,8 @@ const Songs = () => {
                         ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "hover:bg-primary/10")
                     }
-                    role="checkbox"
-                    aria-checked={active}
+                    role="button"
+                    aria-pressed={active}
                     tabIndex={0}
                     onClick={() => toggleCategoria(cat.id)}
                     onKeyDown={handleClickableKeyDown(() =>
@@ -230,6 +244,14 @@ const Songs = () => {
         </CardHeader>
 
         <CardContent>
+          {/* Anuncia para leitores de tela a quantidade de resultados após filtrar. */}
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {!isLoading && !isError && (
+              hasFilters
+                ? `${songs.length} música${songs.length === 1 ? "" : "s"} encontrada${songs.length === 1 ? "" : "s"}.`
+                : ""
+            )}
+          </div>
           {isLoading && (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
