@@ -6,7 +6,12 @@
  * de cache e feedback via toast.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getMusicas,
@@ -35,16 +40,47 @@ import type {
 } from "@/schemas/musica";
 
 /**
+ * Opções extras aceitas por `useMusicas` além dos filtros de domínio.
+ *
+ * @property staleTime - Tempo (ms) em que o dado é considerado fresco e
+ *   nenhuma refetch é disparada. Default: 0 (sempre considera stale).
+ */
+export interface UseMusicasOptions {
+  staleTime?: number;
+}
+
+/**
  * Hook para buscar músicas com paginação e filtros opcionais.
  *
+ * Normaliza `categorias` e `q` antes de montar o `queryKey` e a chamada
+ * à API, garantindo que a chave do cache e os argumentos da request
+ * sejam estruturalmente equivalentes. Usa `keepPreviousData` para evitar
+ * skeleton flash ao trocar filtros/página (alinhado com o "Princípio de
+ * Elegância" do projeto — overlays/transições sobre content shift).
+ *
  * @param params - Parâmetros de paginação e filtros (categorias, q).
+ * @param options - Opções extras (staleTime).
  * @returns Resultado do useQuery com a resposta paginada de músicas.
  */
-export function useMusicas(params: GetMusicasParams = {}) {
-  const { page = 1, limit = 20, categorias, q } = params;
+export function useMusicas(
+  params: GetMusicasParams = {},
+  options: UseMusicasOptions = {},
+) {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 20;
+  const categorias = params.categorias ?? [];
+  const q = params.q ?? "";
+  const normalized: GetMusicasParams = {
+    page,
+    limit,
+    categorias: categorias.length > 0 ? categorias : undefined,
+    q: q.length > 0 ? q : undefined,
+  };
   return useQuery({
-    queryKey: ["musicas", page, limit, categorias ?? [], q ?? ""],
-    queryFn: () => getMusicas(params),
+    queryKey: ["musicas", page, limit, categorias, q],
+    queryFn: () => getMusicas(normalized),
+    placeholderData: keepPreviousData,
+    staleTime: options.staleTime,
   });
 }
 

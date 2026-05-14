@@ -49,7 +49,11 @@ export interface GetMusicasParams {
 /**
  * Busca músicas com paginação e filtros opcionais.
  *
- * Serializa `categorias` como CSV e `q` via `URLSearchParams` (encoding seguro).
+ * Serializa `categorias` como CSV (`uuid1,uuid2`) — escolha consciente vs
+ * params repetidos: o backend faz `split(',')` no validator e o OpenAPI
+ * documenta como `style: form, explode: false`. `URLSearchParams.set`
+ * encoda a vírgula como `%2C`, que o Express decodifica antes do parser
+ * — alinhado com o contrato em `packages/backend/docs/openapi.json`.
  *
  * @param params - Página, limite, lista de categorias e/ou busca textual.
  * @returns Resposta paginada de músicas parseada pelo schema Zod.

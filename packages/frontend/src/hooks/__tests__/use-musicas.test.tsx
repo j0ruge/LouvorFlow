@@ -143,8 +143,10 @@ describe("useMusicas — assinatura por objeto", () => {
   });
 
   /**
-   * Verifica que múltiplas categorias são serializadas como CSV
-   * (vírgula encodada como `%2C`).
+   * Verifica que múltiplas categorias são serializadas como CSV.
+   * O encoding `%2C` é gerado por `URLSearchParams` ao tratar a vírgula
+   * como caractere especial em valores; o backend decodifica antes de
+   * fazer `split(',')`.
    */
   it("deve serializar o parâmetro categorias como CSV", async () => {
     const { result } = renderHook(
@@ -168,5 +170,49 @@ describe("useMusicas — assinatura por objeto", () => {
     expect(path).toContain(
       "categorias=11111111-1111-1111-1111-111111111111%2C22222222-2222-2222-2222-222222222222",
     );
+  });
+
+  /**
+   * Verifica que `q` e `categorias` coexistem na mesma requisição
+   * — combinação esperada quando o usuário digita uma busca textual
+   * com chips de categoria já ativos.
+   */
+  it("deve serializar q e categorias simultaneamente", async () => {
+    const { result } = renderHook(
+      () =>
+        useMusicas({
+          page: 1,
+          limit: 20,
+          q: "amor",
+          categorias: ["11111111-1111-1111-1111-111111111111"],
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const path = lastFetchedPath();
+    expect(path).toContain("q=amor");
+    expect(path).toContain("categorias=11111111-1111-1111-1111-111111111111");
+  });
+
+  /**
+   * Verifica que `categorias` como array vazio não vira parâmetro na URL
+   * — equivalente a "sem filtro".
+   */
+  it("não deve enviar categorias quando o array é vazio", async () => {
+    const { result } = renderHook(
+      () => useMusicas({ page: 1, limit: 20, categorias: [] }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const path = lastFetchedPath();
+    expect(path).not.toContain("categorias=");
   });
 });
