@@ -75,6 +75,14 @@ const Songs = () => {
   /** Input local para aplicar debounce antes de gravar `q` na URL. */
   const [searchInput, setSearchInput] = useState(q);
 
+  /** Mantém `searchInput` sincronizado com `q` quando a URL muda externamente (voltar/avançar). */
+  useEffect(
+    function syncSearchInputFromUrl() {
+      setSearchInput((current) => (current === q ? current : q));
+    },
+    [q],
+  );
+
   /** Debounce: aplica `q` na URL após 300ms sem digitação, resetando para página 1. */
   useEffect(
     function debounceSearchToUrl() {
@@ -164,7 +172,7 @@ const Songs = () => {
         </div>
         {canWrite && (
           <Button
-            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft flex-shrink-0"
             onClick={() => setFormOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />

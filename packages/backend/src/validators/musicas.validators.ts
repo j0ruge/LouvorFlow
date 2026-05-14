@@ -137,13 +137,24 @@ export const listMusicasQuerySchema = z.object({
     categorias: z.string().optional().transform((val, ctx) => {
         if (!val) return undefined;
         const ids = val.split(',').map((s) => s.trim()).filter(Boolean);
-        for (const id of ids) {
-            if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: `UUID inválido em categorias: ${id}` });
-                return z.NEVER;
+        if (ids.length === 0) return undefined;
+        const parsed = z.array(uuidSchema).safeParse(ids);
+        if (!parsed.success) {
+            for (const issue of parsed.error.issues) {
+                const idx = typeof issue.path[0] === 'number' ? issue.path[0] : -1;
+                const offender = idx >= 0 ? ids[idx] : '';
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `UUID inválido em categorias: ${offender}`,
+                });
             }
+            return z.NEVER;
         }
-        return ids.length > 0 ? ids : undefined;
+        return parsed.data;
     }),
-    q: z.string().trim().min(1).optional(),
+    q: z.string().optional().transform((val) => {
+        if (typeof val !== 'string') return undefined;
+        const trimmed = val.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+    }),
 });

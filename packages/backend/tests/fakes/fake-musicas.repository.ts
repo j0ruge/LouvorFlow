@@ -58,13 +58,44 @@ export function createFakeMusicasRepository() {
     musicas_fk_tonalidade_fkey: getTonalidade(musica.fk_tonalidade),
   });
 
+  /**
+   * Aplica filtros parciais (categoria_id `in` e nome `contains`) compatíveis com o
+   * subset de `Prisma.MusicasWhereInput` usado por `MusicasService.listAll`.
+   *
+   * @param where - Subset suportado: `{ Musicas_Categorias: { some: { categoria_id: { in } } }, nome: { contains, mode } }`.
+   * @returns Lista de músicas filtradas.
+   */
+  const applyWhere = (where?: Record<string, unknown>) => {
+    if (!where) return musicasData;
+    let result = musicasData;
+
+    const catFilter = (where as { Musicas_Categorias?: { some?: { categoria_id?: { in?: string[] } } } })
+      .Musicas_Categorias?.some?.categoria_id?.in;
+    if (Array.isArray(catFilter) && catFilter.length > 0) {
+      const matchingMusicaIds = new Set(
+        categoriasData
+          .filter(t => catFilter.includes(t.categoria_id))
+          .map(t => t.musica_id),
+      );
+      result = result.filter(m => matchingMusicaIds.has(m.id));
+    }
+
+    const nomeFilter = (where as { nome?: { contains?: string } }).nome?.contains;
+    if (typeof nomeFilter === 'string' && nomeFilter.length > 0) {
+      const needle = nomeFilter.toLowerCase();
+      result = result.filter(m => m.nome.toLowerCase().includes(needle));
+    }
+
+    return result;
+  };
+
   return {
     // --- Base CRUD ---
 
-    findAll: async (skip: number, take: number) =>
-      musicasData.slice(skip, skip + take).map(buildMusicaRaw),
+    findAll: async (skip: number, take: number, where?: Record<string, unknown>) =>
+      applyWhere(where).slice(skip, skip + take).map(buildMusicaRaw),
 
-    count: async () => musicasData.length,
+    count: async (where?: Record<string, unknown>) => applyWhere(where).length,
 
     findById: async (id: string) => {
       const musica = musicasData.find(m => m.id === id);

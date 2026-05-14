@@ -41,8 +41,9 @@ import type {
  * @returns Resultado do useQuery com a resposta paginada de músicas.
  */
 export function useMusicas(params: GetMusicasParams = {}) {
+  const { page = 1, limit = 20, categorias, q } = params;
   return useQuery({
-    queryKey: ["musicas", params],
+    queryKey: ["musicas", page, limit, categorias ?? [], q ?? ""],
     queryFn: () => getMusicas(params),
   });
 }

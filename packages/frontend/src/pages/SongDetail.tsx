@@ -24,9 +24,17 @@ const SongDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /** URL para a qual o botão "Voltar" deve retornar (estado preservado vindo da lista). */
+  /**
+   * URL para a qual o botão "Voltar" deve retornar (estado preservado vindo da lista).
+   *
+   * Aceita apenas paths internos (`/...`) e descarta `//host` (protocol-relative URLs) —
+   * defesa em profundidade contra navegação manipulada via `location.state`.
+   */
+  const rawFrom = (location.state as { from?: string } | null)?.from;
   const backTo =
-    (location.state as { from?: string } | null)?.from ?? "/musicas";
+    typeof rawFrom === "string" && rawFrom.startsWith("/") && !rawFrom.startsWith("//")
+      ? rawFrom
+      : "/musicas";
 
   const {
     data: musica,

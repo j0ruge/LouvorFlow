@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import musicasService from '../services/musicas.service.js';
 import { listMusicasQuerySchema } from '../validators/musicas.validators.js';
+
+type ListMusicasQuery = z.infer<typeof listMusicasQuerySchema>;
 
 class MusicasController {
     // --- Base CRUD ---
@@ -8,13 +11,11 @@ class MusicasController {
     /**
      * Lista músicas paginadas com filtros opcionais por categorias e busca textual.
      *
-     * O middleware `validateRequest({ query: listMusicasQuerySchema })` já garante 400
-     * em entradas inválidas. Aqui re-parseamos `req.query` para obter os valores com
-     * coerção/transformação (page/limit numéricos, `categorias` como `string[]`) — o
-     * Express 5 mantém `req.query` como `ParsedQs` read-only, então não há reatribuição.
+     * O middleware `validateRequest({ query: listMusicasQuerySchema })` valida `req.query`
+     * e expõe o resultado coercido/transformado em `res.locals.query` — evitando re-parse.
      */
-    async index(req: Request, res: Response): Promise<void> {
-        const { page, limit, categorias, q } = listMusicasQuerySchema.parse(req.query);
+    async index(_req: Request, res: Response): Promise<void> {
+        const { page, limit, categorias, q } = res.locals.query as ListMusicasQuery;
         const result = await musicasService.listAll({ page, limit, categoriaIds: categorias, q });
         res.status(200).json(result);
     }
