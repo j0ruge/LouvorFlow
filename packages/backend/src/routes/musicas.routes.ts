@@ -25,12 +25,13 @@ import {
     updateVersaoBodySchema,
     addCategoriaBodySchema,
     addFuncaoBodySchema,
+    listMusicasQuerySchema,
 } from '../validators/musicas.validators.js';
 
 const router: Router = Router();
 
 // Base CRUD
-router.get('/', ensureAuthenticated, ensureTenantContext, musicasController.index);
+router.get('/', ensureAuthenticated, ensureTenantContext, validateRequest({ query: listMusicasQuerySchema }), musicasController.index);
 router.post('/complete', ensureAuthenticated, ensureTenantContext, can(['musicas.write']), validateRequest({ body: createMusicaCompleteBodySchema }), musicasController.createComplete);
 router.get('/:id', ensureAuthenticated, ensureTenantContext, validateRequest({ params: musicaIdParamsSchema }), musicasController.show);
 router.post('/', ensureAuthenticated, ensureTenantContext, can(['musicas.write']), validateRequest({ body: createMusicaBodySchema }), musicasController.create);

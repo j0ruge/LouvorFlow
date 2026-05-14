@@ -23,17 +23,32 @@ function asJunction(delegate: PrismaDelegate): JunctionDelegate {
 }
 
 class MusicasRepository {
-    async findAll(skip: number, take: number) {
+    /**
+     * Busca músicas paginadas, com filtro opcional via `where` do Prisma.
+     *
+     * @param skip - Offset para paginação
+     * @param take - Quantidade máxima de itens a retornar
+     * @param where - Filtros opcionais (Prisma.MusicasWhereInput) — categorias, busca textual, etc.
+     * @returns Array de músicas com `MUSICA_SELECT` ordenadas por nome ascendente
+     */
+    async findAll(skip: number, take: number, where?: Prisma.MusicasWhereInput) {
         return getPrisma().musicas.findMany({
             select: MUSICA_SELECT,
+            where,
             skip,
             take,
             orderBy: { nome: 'asc' }
         });
     }
 
-    async count() {
-        return getPrisma().musicas.count();
+    /**
+     * Conta total de músicas, com filtro opcional via `where` do Prisma.
+     *
+     * @param where - Filtros opcionais (Prisma.MusicasWhereInput)
+     * @returns Quantidade total de músicas que casam com o filtro
+     */
+    async count(where?: Prisma.MusicasWhereInput) {
+        return getPrisma().musicas.count({ where });
     }
 
     async findById(id: string) {

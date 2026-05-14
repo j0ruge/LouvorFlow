@@ -1,14 +1,21 @@
 import { Request, Response } from 'express';
 import musicasService from '../services/musicas.service.js';
+import { listMusicasQuerySchema } from '../validators/musicas.validators.js';
 
 class MusicasController {
     // --- Base CRUD ---
 
-    /** Lista músicas paginadas. */
+    /**
+     * Lista músicas paginadas com filtros opcionais por categorias e busca textual.
+     *
+     * O middleware `validateRequest({ query: listMusicasQuerySchema })` já garante 400
+     * em entradas inválidas. Aqui re-parseamos `req.query` para obter os valores com
+     * coerção/transformação (page/limit numéricos, `categorias` como `string[]`) — o
+     * Express 5 mantém `req.query` como `ParsedQs` read-only, então não há reatribuição.
+     */
     async index(req: Request, res: Response): Promise<void> {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const result = await musicasService.listAll(page, limit);
+        const { page, limit, categorias, q } = listMusicasQuerySchema.parse(req.query);
+        const result = await musicasService.listAll({ page, limit, categoriaIds: categorias, q });
         res.status(200).json(result);
     }
 
