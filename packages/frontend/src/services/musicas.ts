@@ -32,19 +32,42 @@ import type {
 import type { IdNome } from "@/schemas/shared";
 
 /**
- * Busca músicas com paginação.
+ * Parâmetros aceitos por `getMusicas`.
  *
- * @param page - Número da página (default: 1).
- * @param limit - Quantidade por página (default: 20).
+ * @property page - Número da página (default 1, >=1).
+ * @property limit - Itens por página (default 20, 1..100).
+ * @property categorias - UUIDs de categorias a filtrar (OR entre elas).
+ * @property q - Substring case-insensitive para busca por nome.
+ */
+export interface GetMusicasParams {
+  page?: number;
+  limit?: number;
+  categorias?: string[];
+  q?: string;
+}
+
+/**
+ * Busca músicas com paginação e filtros opcionais.
+ *
+ * Serializa `categorias` como CSV e `q` via `URLSearchParams` (encoding seguro).
+ *
+ * @param params - Página, limite, lista de categorias e/ou busca textual.
  * @returns Resposta paginada de músicas parseada pelo schema Zod.
  */
 export async function getMusicas(
-  page = 1,
-  limit = 20,
+  params: GetMusicasParams = {},
 ): Promise<MusicasPaginadas> {
-  const data = await apiFetch<unknown>(
-    `/musicas?page=${page}&limit=${limit}`,
-  );
+  const { page = 1, limit = 20, categorias, q } = params;
+  const search = new URLSearchParams();
+  search.set("page", String(page));
+  search.set("limit", String(limit));
+  if (categorias && categorias.length > 0) {
+    search.set("categorias", categorias.join(","));
+  }
+  if (q) {
+    search.set("q", q);
+  }
+  const data = await apiFetch<unknown>(`/musicas?${search.toString()}`);
   return MusicasPaginadasSchema.parse(data);
 }
 

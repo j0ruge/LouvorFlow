@@ -24,6 +24,7 @@ import {
   addFuncaoMusica,
   removeFuncaoMusica,
 } from "@/services/musicas";
+import type { GetMusicasParams } from "@/services/musicas";
 import type {
   CreateMusicaForm,
   UpdateMusicaForm,
@@ -34,16 +35,15 @@ import type {
 } from "@/schemas/musica";
 
 /**
- * Hook para buscar músicas com paginação.
+ * Hook para buscar músicas com paginação e filtros opcionais.
  *
- * @param page - Número da página atual.
- * @param limit - Quantidade de itens por página.
+ * @param params - Parâmetros de paginação e filtros (categorias, q).
  * @returns Resultado do useQuery com a resposta paginada de músicas.
  */
-export function useMusicas(page = 1, limit = 20) {
+export function useMusicas(params: GetMusicasParams = {}) {
   return useQuery({
-    queryKey: ["musicas", page, limit],
-    queryFn: () => getMusicas(page, limit),
+    queryKey: ["musicas", params],
+    queryFn: () => getMusicas(params),
   });
 }
 

@@ -6,7 +6,7 @@
  * versões, categorias e funções. Redireciona para `/musicas` após exclusão.
  */
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
@@ -22,6 +22,11 @@ import { ErrorState } from "@/components/ErrorState";
 const SongDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  /** URL para a qual o botão "Voltar" deve retornar (estado preservado vindo da lista). */
+  const backTo =
+    (location.state as { from?: string } | null)?.from ?? "/musicas";
 
   const {
     data: musica,
@@ -57,7 +62,7 @@ const SongDetail = () => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate("/musicas")}
+          onClick={() => navigate(backTo)}
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           Voltar
