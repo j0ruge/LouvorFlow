@@ -6,6 +6,14 @@
     "paths": {
       "@/*": ["./src/*"]
     },
+
+    // === Strictness incremental ===
+    // O projeto está em migração gradual para `strict: true`. Hoje rodamos
+    // `strictNullChecks` (já estabilizado) e mantemos `noImplicitAny: false`
+    // e os "noUnused*" desligados até que o passivo seja zerado.
+    // Os mesmos flags são duplicados em `tsconfig.app.json` porque ele é o
+    // arquivo consumido pelo Vite/typecheck (este aqui é solution file para
+    // o IDE/Project References).
     "noImplicitAny": false,
     "noUnusedParameters": false,
     "skipLibCheck": true,
