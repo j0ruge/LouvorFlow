@@ -33,8 +33,12 @@ describe('MusicasService', () => {
 
   // ─── listAll (paginação) ────────────────────────────────
   describe('listAll', () => {
+    /** Deve retornar músicas paginadas com meta usando defaults (page=1, limit=20). */
     it('deve retornar músicas paginadas com meta (defaults page=1, limit=20)', async () => {
-      const result = await musicasService.listAll(undefined as unknown as number, undefined as unknown as number);
+      const result = await musicasService.listAll({
+        page: undefined as unknown as number,
+        limit: undefined as unknown as number,
+      });
       expect(result.items).toHaveLength(20);
       expect(result.meta.total).toBe(25);
       expect(result.meta.page).toBe(1);
@@ -42,19 +46,22 @@ describe('MusicasService', () => {
       expect(result.meta.total_pages).toBe(2);
     });
 
+    /** Deve retornar a segunda página com base no skip/limit informados. */
     it('deve retornar segunda página corretamente', async () => {
-      const result = await musicasService.listAll(2, 20);
+      const result = await musicasService.listAll({ page: 2, limit: 20 });
       expect(result.items).toHaveLength(5);
       expect(result.meta.page).toBe(2);
     });
 
+    /** Deve limitar `limit` ao teto de 100 mesmo quando solicitado valor maior. */
     it('deve limitar limit a 100', async () => {
-      const result = await musicasService.listAll(1, 200);
+      const result = await musicasService.listAll({ page: 1, limit: 200 });
       expect(result.meta.per_page).toBe(100);
     });
 
+    /** Deve formatar cada música retornada com a estrutura pública esperada. */
     it('deve formatar cada música com campos esperados', async () => {
-      const result = await musicasService.listAll(1, 5);
+      const result = await musicasService.listAll({ page: 1, limit: 5 });
       const musica = result.items[0];
       expect(musica).toHaveProperty('id');
       expect(musica).toHaveProperty('nome');
@@ -62,6 +69,72 @@ describe('MusicasService', () => {
       expect(musica).toHaveProperty('categorias');
       expect(musica).toHaveProperty('versoes');
       expect(musica).toHaveProperty('funcoes');
+    });
+  });
+
+  // ─── listAll com filtros (categorias / q) ─────────────────
+  describe('listAll com filtros', () => {
+    /** Sem filtros explícitos, repositório deve ser chamado com `where` vazio. */
+    it('passa where vazio quando sem filtros', async () => {
+      const findAllSpy = vi.spyOn(fakeRepo, 'findAll');
+      const countSpy = vi.spyOn(fakeRepo, 'count');
+      await musicasService.listAll({ page: 1, limit: 20 });
+      expect(findAllSpy).toHaveBeenCalledWith(0, 20, {});
+      expect(countSpy).toHaveBeenCalledWith({});
+      findAllSpy.mockRestore();
+      countSpy.mockRestore();
+    });
+
+    /** Com 1 categoria, deve montar where com Musicas_Categorias.some.categoria_id.in. */
+    it('passa where com categoria_id quando categoriaIds tem 1 item', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, categoriaIds: ['cat-1'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Musicas_Categorias: { some: { categoria_id: { in: ['cat-1'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
+    /** Com múltiplas categorias, deve usar `in` (semântica OR entre categorias). */
+    it('usa `in` com múltiplos ids de categoria', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, categoriaIds: ['cat-1', 'cat-2'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Musicas_Categorias: { some: { categoria_id: { in: ['cat-1', 'cat-2'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
+    /** Com `q`, deve aplicar busca case-insensitive em `nome`. */
+    it('aplica busca case-insensitive em nome quando q presente', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, q: 'agnus' });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({ nome: { contains: 'agnus', mode: 'insensitive' } }),
+      );
+      spy.mockRestore();
+    });
+
+    /** Com categoria + busca, deve combinar ambos os filtros no mesmo `where`. */
+    it('combina filtros de categoria e busca', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, categoriaIds: ['cat-1'], q: 'rei' });
+      const callWhere = spy.mock.calls[0][2];
+      expect(callWhere).toHaveProperty('Musicas_Categorias', {
+        some: { categoria_id: { in: ['cat-1'] } },
+      });
+      expect(callWhere).toHaveProperty('nome', { contains: 'rei', mode: 'insensitive' });
+      spy.mockRestore();
     });
   });
 
