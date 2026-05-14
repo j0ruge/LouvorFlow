@@ -168,12 +168,20 @@ export function IntegranteForm({
         },
       );
     } else {
-      createMutation.mutate(dados, {
-        onSuccess: () => {
-          form.reset();
-          onOpenChange(false);
+      // Em modo criação, o resolver é `CreateIntegranteFormSchema` (senha
+      // obrigatória ≥ 6 chars), então este guard nunca deveria disparar
+      // em runtime; ele existe para estreitar `senha?: string` → `string`
+      // para o `createMutation.mutate` sob `strictNullChecks`.
+      if (!dados.senha) return;
+      createMutation.mutate(
+        { ...dados, senha: dados.senha },
+        {
+          onSuccess: () => {
+            form.reset();
+            onOpenChange(false);
+          },
         },
-      });
+      );
     }
   }
 

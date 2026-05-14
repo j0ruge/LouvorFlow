@@ -68,6 +68,34 @@ interface CreatableComboboxProps {
    * leitores de tela (encaminhado ao trigger via `aria-describedby`).
    */
   "aria-describedby"?: string;
+  /**
+   * Valor controlado do campo de busca interno.
+   *
+   * Quando informado em conjunto com `onSearchChange`, ativa o modo
+   * de busca externa (server-side): o filtro client-side do `cmdk` é
+   * desligado e `options` é exibido como veio do parent, que é
+   * responsável por filtrar/buscar.
+   */
+  searchValue?: string;
+  /**
+   * Callback executado a cada alteração no campo de busca. Quando
+   * informado, ativa o modo de busca externa: o consumidor controla o
+   * texto e pode disparar consultas ao servidor com debounce.
+   *
+   * @param value - Texto atual digitado.
+   */
+  onSearchChange?: (value: string) => void;
+  /**
+   * Quando `true`, indica que uma busca externa está em andamento e
+   * renderiza um item de loading na lista. Só faz sentido em modo
+   * controlled-search.
+   */
+  isSearching?: boolean;
+  /**
+   * Mensagem exibida quando não há opções e nenhuma busca está em
+   * andamento. Padrão: "Nenhum resultado encontrado.".
+   */
+  emptyMessage?: string;
 }
 
 /**
@@ -87,10 +115,32 @@ export function CreatableCombobox({
   disabled = false,
   isLoading = false,
   "aria-describedby": ariaDescribedBy,
+  searchValue,
+  onSearchChange,
+  isSearching = false,
+  emptyMessage = "Nenhum resultado encontrado.",
 }: CreatableComboboxProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  /** Estado interno de busca usado apenas no modo client-side. */
+  const [internalSearch, setInternalSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  /** Indica se o combobox opera em modo de busca externa (server-side). */
+  const isExternalSearch = onSearchChange !== undefined;
+  /** Texto efetivo de busca: vem do parent quando controlado. */
+  const search = isExternalSearch ? (searchValue ?? "") : internalSearch;
+  /**
+   * Encaminha o texto digitado para o parent (modo externo) ou para o
+   * estado interno (modo client-side).
+   *
+   * @param value - Novo valor do campo de busca.
+   */
+  const handleSearchChange = (value: string) => {
+    if (isExternalSearch) {
+      onSearchChange(value);
+    } else {
+      setInternalSearch(value);
+    }
+  };
   /** Opção criada localmente, exibida até o refetch das options externas. */
   const [optimistic, setOptimistic] = useState<ComboboxOption | null>(null);
 
@@ -127,7 +177,7 @@ export function CreatableCombobox({
       if (newValue) {
         setOptimistic({ value: newValue, label });
         onSelect(newValue);
-        setSearch("");
+        handleSearchChange("");
         setOpen(false);
       }
     } finally {
@@ -142,7 +192,7 @@ export function CreatableCombobox({
    */
   function handleSelect(selectedValue: string) {
     onSelect(selectedValue);
-    setSearch("");
+    handleSearchChange("");
     setOpen(false);
   }
 
@@ -171,15 +221,21 @@ export function CreatableCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={true}>
+        <Command shouldFilter={!isExternalSearch}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}
-            onValueChange={setSearch}
+            onValueChange={handleSearchChange}
           />
           <CommandList>
+            {isExternalSearch && isSearching && (
+              <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Buscando...
+              </div>
+            )}
             <CommandEmpty>
-              {search.trim() && onCreate ? (
+              {isExternalSearch && isSearching ? null : search.trim() && onCreate ? (
                 <button
                   type="button"
                   className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm"
@@ -194,7 +250,7 @@ export function CreatableCombobox({
                   {creating ? "Criando..." : createLabel(search.trim())}
                 </button>
               ) : (
-                "Nenhum resultado encontrado."
+                emptyMessage
               )}
             </CommandEmpty>
             <CommandGroup>

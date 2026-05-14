@@ -65,14 +65,14 @@ const IgrejaUsers = () => {
     isError: isErrorIgreja,
     error: errorIgreja,
     refetch: refetchIgreja,
-  } = useIgreja(id ?? null);
+  } = useIgreja(id ?? undefined);
   const {
     data: igrejaUsers,
     isLoading: isLoadingUsers,
     isError: isErrorUsers,
     error: errorUsers,
     refetch: refetchUsers,
-  } = useIgrejaUsers(id ?? null);
+  } = useIgrejaUsers(id ?? undefined);
   const {
     data: allUsers,
     isLoading: isLoadingAllUsers,
@@ -84,7 +84,10 @@ const IgrejaUsers = () => {
   const removeMutation = useRemoveUserFromIgreja();
 
   const isLoading = isLoadingIgreja || isLoadingUsers;
-  const isError = isErrorIgreja || isErrorUsers || isErrorAllUsers;
+  // Falha em `useUsers()` não bloqueia a página: o estado de erro é
+  // tratado defensivamente dentro do dialog "Vincular Usuário", já que
+  // a listagem só é necessária ao abrir esse fluxo.
+  const isError = isErrorIgreja || isErrorUsers;
 
   /**
    * Calcula os usuários disponíveis para vinculação (não vinculados ainda).
@@ -179,13 +182,11 @@ const IgrejaUsers = () => {
           message={
             errorIgreja?.message
             ?? errorUsers?.message
-            ?? errorAllUsers?.message
             ?? "Erro ao carregar dados da igreja."
           }
           onRetry={() => {
             refetchIgreja();
             refetchUsers();
-            refetchAllUsers();
           }}
         />
       </div>
