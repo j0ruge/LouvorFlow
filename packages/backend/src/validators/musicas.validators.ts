@@ -120,3 +120,30 @@ export const addCategoriaBodySchema = z.object({
 export const addFuncaoBodySchema = z.object({
     funcao_id: z.string({ required_error: 'ID da função é obrigatório' }).uuid('ID da função deve ser um UUID válido'),
 });
+
+// --- Query params ---
+
+/**
+ * Schema de validação para query params de listagem de músicas (GET /api/musicas).
+ *
+ * - `page`: inteiro >=1 (default 1)
+ * - `limit`: inteiro 1..100 (default 20)
+ * - `categorias`: CSV de UUIDs (ex.: "id1,id2"). Vazio/ausente = sem filtro.
+ * - `q`: substring case-insensitive para busca por nome. Vazio/ausente = sem busca.
+ */
+export const listMusicasQuerySchema = z.object({
+    page: z.coerce.number().int().min(1).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    categorias: z.string().optional().transform((val, ctx) => {
+        if (!val) return undefined;
+        const ids = val.split(',').map((s) => s.trim()).filter(Boolean);
+        for (const id of ids) {
+            if (!/^[0-9a-fA-F-]{36}$/.test(id)) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: `UUID inválido em categorias: ${id}` });
+                return z.NEVER;
+            }
+        }
+        return ids.length > 0 ? ids : undefined;
+    }),
+    q: z.string().trim().min(1).optional(),
+});
