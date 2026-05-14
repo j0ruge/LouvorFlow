@@ -8,9 +8,9 @@
  * Quando `onCreate` é omitido, funciona como um select com busca puro.
  */
 
-import { useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Check, ChevronsUpDown, Plus, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, normalizeForSearch } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -34,8 +34,8 @@ export interface ComboboxOption {
   label: string;
 }
 
-/** Propriedades do componente CreatableCombobox. */
-interface CreatableComboboxProps {
+/** Propriedades comuns a qualquer modo de operação do combobox. */
+interface CreatableComboboxBaseProps {
   /** Lista de opções disponíveis para seleção. */
   options: ComboboxOption[];
   /** Valor atualmente selecionado (UUID). */
@@ -69,34 +69,45 @@ interface CreatableComboboxProps {
    */
   "aria-describedby"?: string;
   /**
-   * Valor controlado do campo de busca interno.
-   *
-   * Quando informado em conjunto com `onSearchChange`, ativa o modo
-   * de busca externa (server-side): o filtro client-side do `cmdk` é
-   * desligado e `options` é exibido como veio do parent, que é
-   * responsável por filtrar/buscar.
-   */
-  searchValue?: string;
-  /**
-   * Callback executado a cada alteração no campo de busca. Quando
-   * informado, ativa o modo de busca externa: o consumidor controla o
-   * texto e pode disparar consultas ao servidor com debounce.
-   *
-   * @param value - Texto atual digitado.
-   */
-  onSearchChange?: (value: string) => void;
-  /**
-   * Quando `true`, indica que uma busca externa está em andamento e
-   * renderiza um item de loading na lista. Só faz sentido em modo
-   * controlled-search.
-   */
-  isSearching?: boolean;
-  /**
    * Mensagem exibida quando não há opções e nenhuma busca está em
    * andamento. Padrão: "Nenhum resultado encontrado.".
    */
   emptyMessage?: string;
 }
+
+/** Modo padrão: filtro client-side via cmdk. */
+interface CreatableComboboxInternalSearchProps extends CreatableComboboxBaseProps {
+  /** Em modo interno, `searchValue` não é aceito. */
+  searchValue?: undefined;
+  /** Em modo interno, `onSearchChange` não é aceito. */
+  onSearchChange?: undefined;
+  /** Em modo interno, `isSearching` não faz sentido. */
+  isSearching?: undefined;
+}
+
+/**
+ * Modo de busca externa (server-side): consumidor controla o texto
+ * e dispara consultas ao servidor com debounce. `searchValue` e
+ * `onSearchChange` DEVEM ser passados juntos para ativar este modo.
+ */
+interface CreatableComboboxExternalSearchProps extends CreatableComboboxBaseProps {
+  /** Valor controlado do campo de busca. */
+  searchValue: string;
+  /** Callback executado a cada alteração no campo de busca. */
+  onSearchChange: (value: string) => void;
+  /** Indica que uma busca externa está em andamento (renderiza loading). */
+  isSearching?: boolean;
+}
+
+/**
+ * Props do combobox — união discriminada que força o consumidor a
+ * passar `searchValue` + `onSearchChange` juntos (modo externo) ou
+ * nenhum dos dois (modo interno). Previne uso incorreto detectável
+ * em tempo de compilação.
+ */
+type CreatableComboboxProps =
+  | CreatableComboboxInternalSearchProps
+  | CreatableComboboxExternalSearchProps;
 
 /**
  * Combobox com busca e criação inline de novos itens.
@@ -124,6 +135,8 @@ export function CreatableCombobox({
   /** Estado interno de busca usado apenas no modo client-side. */
   const [internalSearch, setInternalSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  /** ID único do listbox para wiring de `aria-controls` no trigger. */
+  const listboxId = useId();
   /** Indica se o combobox opera em modo de busca externa (server-side). */
   const isExternalSearch = onSearchChange !== undefined;
   /** Texto efetivo de busca: vem do parent quando controlado. */
@@ -146,22 +159,29 @@ export function CreatableCombobox({
 
   /**
    * Opções mescladas: inclui a opção otimista enquanto ela ainda não
-   * aparece nas options vindas do React Query.
+   * aparece nas options vindas do React Query. Memoizado para evitar
+   * recriação do array a cada render quando `optimistic` está ativo.
    */
-  const mergedOptions = optimistic && !options.some((o) => o.value === optimistic.value)
-    ? [...options, optimistic]
-    : options;
+  const mergedOptions = useMemo(
+    () =>
+      optimistic && !options.some((o) => o.value === optimistic.value)
+        ? [...options, optimistic]
+        : options,
+    [options, optimistic],
+  );
 
   /** Label da opção selecionada para exibir no trigger. */
   const selectedLabel = mergedOptions.find((opt) => opt.value === value)?.label;
 
   /**
-   * Verifica se o texto de busca tem correspondência exata nas opções.
-   * Usado para decidir se exibe o botão "Criar X".
+   * Verifica se o texto de busca tem correspondência exata nas opções,
+   * ignorando caso e diacríticos. "Adoração" e "adoracao" comparam iguais.
    */
-  const hasExactMatch = mergedOptions.some(
-    (opt) => opt.label.toLowerCase() === search.toLowerCase(),
-  );
+  const hasExactMatch = useMemo(() => {
+    if (!search.trim()) return false;
+    const needle = normalizeForSearch(search);
+    return mergedOptions.some((opt) => normalizeForSearch(opt.label) === needle);
+  }, [mergedOptions, search]);
 
   /**
    * Cria um novo item inline e seleciona-o automaticamente.
@@ -203,6 +223,8 @@ export function CreatableCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-haspopup="listbox"
+          aria-controls={listboxId}
           aria-describedby={ariaDescribedBy}
           className="w-full justify-between font-normal"
           disabled={disabled || isLoading}
@@ -227,32 +249,22 @@ export function CreatableCombobox({
             value={search}
             onValueChange={handleSearchChange}
           />
-          <CommandList>
+          <CommandList id={listboxId}>
             {isExternalSearch && isSearching && (
               <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Buscando...
               </div>
             )}
-            <CommandEmpty>
-              {isExternalSearch && isSearching ? null : search.trim() && onCreate ? (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm"
-                  onClick={handleCreate}
-                  disabled={creating}
-                >
-                  {creating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  {creating ? "Criando..." : createLabel(search.trim())}
-                </button>
-              ) : (
-                emptyMessage
+            {/*
+              CommandEmpty só é renderizado quando NÃO há opção "Criar"
+              disponível — evita gap em branco abaixo do spinner e duplicação
+              com o CommandItem forceMount de criação abaixo.
+            */}
+            {!(isExternalSearch && isSearching) &&
+              !(onCreate && search.trim() && !hasExactMatch) && (
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
               )}
-            </CommandEmpty>
             <CommandGroup>
               {mergedOptions.map((option) => (
                 <CommandItem
@@ -270,24 +282,32 @@ export function CreatableCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
-            {/* Botão "Criar" exibido abaixo das opções filtradas quando não há match exato */}
-            {onCreate && search.trim() && !hasExactMatch && mergedOptions.length > 0 && (
-              <CommandGroup>
-                <CommandItem
-                  value={`__create__${search.trim()}`}
-                  onSelect={handleCreate}
-                  disabled={creating}
-                  className="text-primary"
-                >
-                  {creating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="mr-2 h-4 w-4" />
-                  )}
-                  {creating ? "Criando..." : createLabel(search.trim())}
-                </CommandItem>
-              </CommandGroup>
-            )}
+            {/*
+              Botão "Criar" como CommandItem com forceMount — keyboard-accessível
+              via setas/Enter mesmo quando a lista filtrada está vazia.
+              O `value` usa um sentinel improvável de colidir com labels reais.
+            */}
+            {onCreate &&
+              search.trim() &&
+              !hasExactMatch &&
+              !(isExternalSearch && isSearching) && (
+                <CommandGroup forceMount>
+                  <CommandItem
+                    forceMount
+                    value={` create ${search.trim()}`}
+                    onSelect={handleCreate}
+                    disabled={creating}
+                    className="text-primary"
+                  >
+                    {creating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="mr-2 h-4 w-4" />
+                    )}
+                    {creating ? "Criando..." : createLabel(search.trim())}
+                  </CommandItem>
+                </CommandGroup>
+              )}
           </CommandList>
         </Command>
       </PopoverContent>

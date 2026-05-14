@@ -147,6 +147,24 @@ export function formatDateBlock(iso: string): { dia: number; mes: string } {
 }
 
 /**
+ * Normaliza uma string removendo acentos/diacríticos e baixando o caso
+ * para permitir comparação insensível em PT-BR.
+ *
+ * Usa decomposição Unicode NFD para separar letras e diacríticos, então
+ * filtra a faixa combining marks (`U+0300`–`U+036F`). Resultado: `"Adoração"`
+ * e `"adoracao"` comparam iguais.
+ *
+ * @param value - Texto a normalizar.
+ * @returns Texto sem acentos, em minúsculas.
+ */
+export function normalizeForSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+/**
  * Helper de acessibilidade para elementos com `role="button"` que devem ser
  * acionados por Enter ou Space (WCAG 2.1.4 — Keyboard accessible).
  *
