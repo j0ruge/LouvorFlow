@@ -409,6 +409,25 @@
               "maximum": 100
             },
             "example": 10
+          },
+          {
+            "name": "categorias",
+            "in": "query",
+            "required": false,
+            "description": "UUIDs de categorias separados por vírgula. Retorna músicas com pelo menos uma das categorias informadas.",
+            "schema": {
+              "type": "string",
+              "example": "uuid1,uuid2"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Substring case-insensitive para busca por nome.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
