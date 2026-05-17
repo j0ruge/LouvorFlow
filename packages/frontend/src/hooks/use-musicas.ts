@@ -6,7 +6,12 @@
  * de cache e feedback via toast.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   getMusicas,
@@ -24,6 +29,7 @@ import {
   addFuncaoMusica,
   removeFuncaoMusica,
 } from "@/services/musicas";
+import type { GetMusicasParams } from "@/services/musicas";
 import type {
   CreateMusicaForm,
   UpdateMusicaForm,
@@ -34,16 +40,54 @@ import type {
 } from "@/schemas/musica";
 
 /**
- * Hook para buscar músicas com paginação.
+ * Opções extras aceitas por `useMusicas` além dos filtros de domínio.
  *
- * @param page - Número da página atual.
- * @param limit - Quantidade de itens por página.
+ * @property staleTime - Tempo (ms) em que o dado é considerado fresco e
+ *   nenhuma refetch é disparada. Default: 0 (sempre considera stale).
+ */
+export interface UseMusicasOptions {
+  staleTime?: number;
+}
+
+/**
+ * Hook para buscar músicas com paginação e filtros opcionais.
+ *
+ * Normaliza `categorias` e `q` antes de montar o `queryKey` e a chamada
+ * à API, garantindo que a chave do cache e os argumentos da request
+ * sejam estruturalmente equivalentes. Usa `keepPreviousData` para evitar
+ * skeleton flash ao trocar filtros/página (alinhado com o "Princípio de
+ * Elegância" do projeto — overlays/transições sobre content shift).
+ *
+ * @param params - Parâmetros de paginação e filtros (categorias, q).
+ * @param options - Opções extras (staleTime).
  * @returns Resultado do useQuery com a resposta paginada de músicas.
  */
-export function useMusicas(page = 1, limit = 20) {
+export function useMusicas(
+  params: GetMusicasParams = {},
+  options: UseMusicasOptions = {},
+) {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 20;
+  /**
+   * `categorias` é ordenado e `q` é trimado antes de compor o `queryKey`
+   * e o `normalized` para garantir equivalência estrutural do cache.
+   * Sem isso, a mesma seleção em ordens distintas (ex.: `[B, A]` vs
+   * `[A, B]`) ou um `q="amor "` vs `q="amor"` gerariam chaves de cache
+   * diferentes e refetches desnecessários.
+   */
+  const sortedCategorias = (params.categorias ?? []).slice().sort();
+  const trimmedQ = (params.q ?? "").trim();
+  const normalized: GetMusicasParams = {
+    page,
+    limit,
+    categorias: sortedCategorias.length > 0 ? sortedCategorias : undefined,
+    q: trimmedQ.length > 0 ? trimmedQ : undefined,
+  };
   return useQuery({
-    queryKey: ["musicas", page, limit],
-    queryFn: () => getMusicas(page, limit),
+    queryKey: ["musicas", page, limit, sortedCategorias, trimmedQ],
+    queryFn: () => getMusicas(normalized),
+    placeholderData: keepPreviousData,
+    staleTime: options.staleTime,
   });
 }
 

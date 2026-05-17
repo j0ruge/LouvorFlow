@@ -13,6 +13,7 @@ dist-ssr
 *.local
 
 .env
+.env.*.local
 
 # Editor directories and files
 .vscode/*
@@ -37,3 +38,6 @@ dist-ssr
 
 # MCP server config (contém credenciais locais)
 .mcp.json
+
+# Dump local do cluster Postgres (contém hashes SCRAM de senhas)
+infra/postgres/louvorflow.sql

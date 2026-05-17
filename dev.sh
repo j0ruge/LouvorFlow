@@ -373,28 +373,40 @@ seed_admin() {
 }
 
 # =============================================================================
-# Kill stale processes on service ports
+# Discover free ports for backend and frontend
 # =============================================================================
 
-kill_stale_ports() {
-    log_step "Verificando processos órfãos nas portas de serviço..."
+# Se a porta padrão de um serviço estiver ocupada por outro processo,
+# procura a próxima porta livre e atualiza a variável correspondente.
+# Não mata processos alheios — apenas se desvia para uma porta disponível.
+discover_free_ports() {
+    log_step "Procurando portas disponíveis para os serviços..."
 
-    local ports=("$BACKEND_PORT" "$FRONTEND_PORT")
+    # Backend
+    if ss -tlnp 2>/dev/null | grep -q ":${BACKEND_PORT} "; then
+        log_warn "Porta ${BACKEND_PORT} (backend) ocupada — procurando alternativa..."
+        local new_back
+        new_back=$(find_available_port "$((BACKEND_PORT + 1))") || {
+            log_error "Sem porta livre para o backend a partir de $((BACKEND_PORT + 1))."
+            exit 1
+        }
+        log_warn "Backend usará porta alternativa: ${new_back}"
+        BACKEND_PORT="$new_back"
+    fi
 
-    for port in "${ports[@]}"; do
-        local pid
-        pid=$(ss -tlnp "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1 || true)
+    # Frontend
+    if ss -tlnp 2>/dev/null | grep -q ":${FRONTEND_PORT} "; then
+        log_warn "Porta ${FRONTEND_PORT} (frontend) ocupada — procurando alternativa..."
+        local new_front
+        new_front=$(find_available_port "$((FRONTEND_PORT + 1))") || {
+            log_error "Sem porta livre para o frontend a partir de $((FRONTEND_PORT + 1))."
+            exit 1
+        }
+        log_warn "Frontend usará porta alternativa: ${new_front}"
+        FRONTEND_PORT="$new_front"
+    fi
 
-        if [[ -n "$pid" ]]; then
-            log_warn "Porta $port em uso pelo PID $pid — encerrando..."
-            kill "$pid" 2>/dev/null || true
-            sleep 1
-            if kill -0 "$pid" 2>/dev/null; then
-                kill -9 "$pid" 2>/dev/null || true
-            fi
-            log_info "Porta $port liberada."
-        fi
-    done
+    log_info "Backend → ${BACKEND_PORT} | Frontend → ${FRONTEND_PORT}"
 }
 
 # =============================================================================
@@ -406,12 +418,19 @@ start_services() {
 
     echo ""
 
-    # Backend
-    (cd "$BACKEND_DIR" && yarn dev 2>&1 | sed -u "s/^/$(echo -e "$PREFIX_BACK") /") &
+    # Backend — recebe sua porta e o APP_WEB_URL atualizado para o CORS.
+    # PORT e APP_WEB_URL são injetados aqui (têm prioridade sobre o .env carregado pelo dotenv).
+    (cd "$BACKEND_DIR" && \
+        PORT="$BACKEND_PORT" \
+        APP_WEB_URL="http://localhost:$FRONTEND_PORT" \
+        yarn dev 2>&1 | sed -u "s/^/$(echo -e "$PREFIX_BACK") /") &
     PIDS+=($!)
 
-    # Frontend
-    (cd "$FRONTEND_DIR" && yarn dev 2>&1 | sed -u "s/^/$(echo -e "$PREFIX_FRONT") /") &
+    # Frontend — recebe sua porta (PORT) e a porta do backend para o proxy Vite (API_PORT).
+    (cd "$FRONTEND_DIR" && \
+        PORT="$FRONTEND_PORT" \
+        API_PORT="$BACKEND_PORT" \
+        yarn dev 2>&1 | sed -u "s/^/$(echo -e "$PREFIX_FRONT") /") &
     PIDS+=($!)
 }
 
@@ -466,7 +485,7 @@ main() {
     fi
 
     seed_admin
-    kill_stale_ports
+    discover_free_ports
     print_summary
     start_services
 

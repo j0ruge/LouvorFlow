@@ -35,7 +35,10 @@ import {
  */
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { data: musicasData, isLoading: musicasLoading } = useMusicas(1, 1);
+  const { data: musicasData, isLoading: musicasLoading } = useMusicas({
+    page: 1,
+    limit: 1,
+  });
   const { data: eventos, isLoading: eventosLoading } = useEventos();
   const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
 

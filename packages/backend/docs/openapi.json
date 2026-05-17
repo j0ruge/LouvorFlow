@@ -409,6 +409,36 @@
               "maximum": 100
             },
             "example": 10
+          },
+          {
+            "name": "categorias",
+            "in": "query",
+            "required": false,
+            "description": "UUIDs de categorias (até 50). Retorna músicas com pelo menos uma das categorias informadas. No fio é serializado como CSV (`form` + `explode=false`).",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "example": [
+              "550e8400-e29b-41d4-a716-446655440000",
+              "c0a80101-0000-4000-8000-000000000001"
+            ]
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Substring case-insensitive para busca por nome (até 200 caracteres). Wildcards LIKE são escapados.",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
           }
         ],
         "responses": {

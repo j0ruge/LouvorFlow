@@ -32,19 +32,53 @@ import type {
 import type { IdNome } from "@/schemas/shared";
 
 /**
- * Busca músicas com paginação.
+ * Parâmetros aceitos por `getMusicas`.
  *
- * @param page - Número da página (default: 1).
- * @param limit - Quantidade por página (default: 20).
+ * @property page - Número da página (default 1, >=1).
+ * @property limit - Itens por página (default 20, 1..100).
+ * @property categorias - UUIDs de categorias a filtrar (OR entre elas).
+ * @property q - Substring case-insensitive para busca por nome.
+ */
+export interface GetMusicasParams {
+  page?: number;
+  limit?: number;
+  categorias?: string[];
+  q?: string;
+}
+
+/**
+ * Busca músicas com paginação e filtros opcionais.
+ *
+ * Serializa `categorias` como CSV (`uuid1,uuid2`) — escolha consciente vs
+ * params repetidos: o backend faz `split(',')` no validator e o OpenAPI
+ * documenta como `style: form, explode: false`. `URLSearchParams.set`
+ * encoda a vírgula como `%2C`, que o Express decodifica antes do parser
+ * — alinhado com o contrato em `packages/backend/docs/openapi.json`.
+ *
+ * @param params - Página, limite, lista de categorias e/ou busca textual.
  * @returns Resposta paginada de músicas parseada pelo schema Zod.
  */
 export async function getMusicas(
-  page = 1,
-  limit = 20,
+  params: GetMusicasParams = {},
 ): Promise<MusicasPaginadas> {
-  const data = await apiFetch<unknown>(
-    `/musicas?page=${page}&limit=${limit}`,
-  );
+  const { page = 1, limit = 20, categorias, q } = params;
+  const search = new URLSearchParams();
+  search.set("page", String(page));
+  search.set("limit", String(limit));
+  if (categorias && categorias.length > 0) {
+    search.set("categorias", categorias.join(","));
+  }
+  /**
+   * `q` é trimado antes de ser enviado para alinhar a UI com o backend,
+   * que normaliza strings whitespace-only para `undefined` no validator
+   * Zod. Sem o trim, `q="   "` viraria `?q=%20%20%20` na URL e geraria
+   * uma chamada com query string inútil que ocupa cache sem efeito real.
+   */
+  const trimmedQ = q?.trim();
+  if (trimmedQ) {
+    search.set("q", trimmedQ);
+  }
+  const data = await apiFetch<unknown>(`/musicas?${search.toString()}`);
   return MusicasPaginadasSchema.parse(data);
 }
 

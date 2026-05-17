@@ -1,14 +1,22 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import musicasService from '../services/musicas.service.js';
+import { listMusicasQuerySchema } from '../validators/musicas.validators.js';
+
+type ListMusicasQuery = z.infer<typeof listMusicasQuerySchema>;
 
 class MusicasController {
     // --- Base CRUD ---
 
-    /** Lista músicas paginadas. */
-    async index(req: Request, res: Response): Promise<void> {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-        const result = await musicasService.listAll(page, limit);
+    /**
+     * Lista músicas paginadas com filtros opcionais por categorias e busca textual.
+     *
+     * O middleware `validateRequest({ query: listMusicasQuerySchema })` valida `req.query`
+     * e expõe o resultado coercido/transformado em `res.locals.query` — evitando re-parse.
+     */
+    async index(_req: Request, res: Response): Promise<void> {
+        const { page, limit, categorias, q } = res.locals.query as ListMusicasQuery;
+        const result = await musicasService.listAll({ page, limit, categoriaIds: categorias, q });
         res.status(200).json(result);
     }
 

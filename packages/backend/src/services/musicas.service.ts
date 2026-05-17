@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import musicasRepository from '../repositories/musicas.repository.js';
 import tonalidadesRepository from '../repositories/tonalidades.repository.js';
@@ -31,14 +32,31 @@ function formatMusica(m: MusicaRaw): Musica {
 class MusicasService {
     // --- Base CRUD ---
 
-    async listAll(page: number, limit: number) {
-        page = Math.max(1, page || 1);
-        limit = Math.min(100, Math.max(1, limit || 20));
+    /**
+     * Lista músicas paginadas, opcionalmente filtradas por categorias e/ou busca textual.
+     *
+     * @param params.page - Página (>=1)
+     * @param params.limit - Itens por página (1..100)
+     * @param params.categoriaIds - UUIDs de categorias; retorna músicas com AO MENOS UMA delas
+     * @param params.q - Substring case-insensitive a buscar no nome
+     * @returns Objeto paginado com `items` (músicas formatadas) e `meta` (total, page, per_page, total_pages)
+     */
+    async listAll(params: { page: number; limit: number; categoriaIds?: string[]; q?: string }) {
+        const page = Math.max(1, params.page || 1);
+        const limit = Math.min(100, Math.max(1, params.limit || 20));
         const skip = (page - 1) * limit;
 
+        const where: Prisma.MusicasWhereInput = {};
+        if (params.categoriaIds && params.categoriaIds.length > 0) {
+            where.Musicas_Categorias = { some: { categoria_id: { in: params.categoriaIds } } };
+        }
+        if (params.q) {
+            where.nome = { contains: params.q, mode: 'insensitive' };
+        }
+
         const [musicas, total] = await Promise.all([
-            musicasRepository.findAll(skip, limit),
-            musicasRepository.count()
+            musicasRepository.findAll(skip, limit, where),
+            musicasRepository.count(where)
         ]);
 
         return {

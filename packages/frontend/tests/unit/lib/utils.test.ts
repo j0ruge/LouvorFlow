@@ -17,6 +17,7 @@ import {
   isSafeRedirect,
   isSafeUrl,
   MESES_ABREV,
+  normalizeForSearch,
 } from "@/lib/utils";
 
 describe("formatDateBlock", () => {
@@ -180,5 +181,36 @@ describe("isSafeUrl", () => {
   it("rejeita strings que não são URLs", () => {
     expect(isSafeUrl("not a url")).toBe(false);
     expect(isSafeUrl("")).toBe(false);
+  });
+});
+
+/**
+ * Suíte de normalização para busca textual em PT-BR (remoção de
+ * diacríticos + lowercase), garantindo que termos com acentuação
+ * comparam iguais a suas versões sem acento, em qualquer caso.
+ */
+describe("normalizeForSearch", () => {
+  /** Remove diacríticos comuns do português. */
+  it("remove acentos comuns em PT-BR", () => {
+    expect(normalizeForSearch("Adoração")).toBe("adoracao");
+    expect(normalizeForSearch("Espírito Santo")).toBe("espirito santo");
+    expect(normalizeForSearch("Ó Senhor")).toBe("o senhor");
+  });
+
+  /** É equivalente entre versão com acento e sem. */
+  it("compara igual versões acentuada e não-acentuada", () => {
+    expect(normalizeForSearch("Adoração")).toBe(normalizeForSearch("adoracao"));
+    expect(normalizeForSearch("Coração")).toBe(normalizeForSearch("CORACAO"));
+  });
+
+  /** Preserva texto sem acentos. */
+  it("preserva texto sem acentos", () => {
+    expect(normalizeForSearch("amor")).toBe("amor");
+    expect(normalizeForSearch("hello world")).toBe("hello world");
+  });
+
+  /** String vazia retorna vazia. */
+  it("aceita string vazia", () => {
+    expect(normalizeForSearch("")).toBe("");
   });
 });

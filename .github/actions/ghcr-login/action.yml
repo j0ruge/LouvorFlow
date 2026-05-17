@@ -1,0 +1,63 @@
+name: 'GHCR Login with retry'
+description: >-
+  Faz login no GitHub Container Registry com retry exponencial e backoff.
+  Resiliente a TLS handshake timeout intermitente em self-hosted runners
+  (causa raiz típica: MTU reduzido em VPN/overlay). Centraliza o snippet
+  antes duplicado em 4 workflows de CD (DRY).
+
+inputs:
+  token:
+    description: 'Token de autenticação para o GHCR (geralmente secrets.GITHUB_TOKEN).'
+    required: true
+  username:
+    description: 'Usuário do GHCR (geralmente github.actor).'
+    required: true
+  registry:
+    description: 'Endpoint do registry. Default: ghcr.io.'
+    required: false
+    default: 'ghcr.io'
+  attempts:
+    description: 'Número total de tentativas de login. Default: 3.'
+    required: false
+    default: '3'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Login to ${{ inputs.registry }} (with retry on TLS handshake timeout)
+      shell: bash
+      env:
+        GHCR_TOKEN: ${{ inputs.token }}
+        GHCR_USER: ${{ inputs.username }}
+        GHCR_REGISTRY: ${{ inputs.registry }}
+        GHCR_ATTEMPTS: ${{ inputs.attempts }}
+      run: |
+        set -uo pipefail
+        rc=0
+        # Timeout por tentativa para impedir que uma chamada travada em TLS
+        # handshake pendure o loop indefinidamente (anula o retry/backoff).
+        # `timeout(1)` retorna 124 quando dispara — tratamos como falha
+        # transitória e seguimos para o próximo attempt.
+        per_attempt_timeout=30s
+        for attempt in $(seq 1 "$GHCR_ATTEMPTS"); do
+          echo "::group::Login attempt $attempt/$GHCR_ATTEMPTS"
+          rc=0
+          echo "$GHCR_TOKEN" | timeout "$per_attempt_timeout" docker login "$GHCR_REGISTRY" -u "$GHCR_USER" --password-stdin || rc=$?
+          echo "::endgroup::"
+          if [ "$rc" -eq 0 ]; then
+            echo "Login succeeded on attempt $attempt"
+            exit 0
+          fi
+          if [ "$rc" -eq 124 ]; then
+            echo "::warning::Login attempt $attempt timed out after $per_attempt_timeout"
+          else
+            echo "Login attempt $attempt failed (exit $rc)"
+          fi
+          if [ "$attempt" -lt "$GHCR_ATTEMPTS" ]; then
+            backoff=$((attempt * 10))
+            echo "Retrying in ${backoff}s..."
+            sleep "$backoff"
+          fi
+        done
+        echo "::error::GHCR login failed after $GHCR_ATTEMPTS attempts"
+        exit 1

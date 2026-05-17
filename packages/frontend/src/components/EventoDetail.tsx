@@ -52,6 +52,7 @@ import {
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
 import { useMusicas } from "@/hooks/use-musicas";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
   CreatableCombobox,
   type ComboboxOption,
@@ -192,7 +193,21 @@ export function EventoDetail() {
     refetch,
   } = useEvento(id ?? "");
 
-  const { data: allMusicas } = useMusicas(1, 100);
+  /** Texto digitado no campo de busca do combobox de músicas. */
+  const [musicaSearch, setMusicaSearch] = useState("");
+  /**
+   * Texto debounceado (300ms) usado para consultar a API.
+   * Evita um request a cada tecla pressionada enquanto o usuário digita.
+   */
+  const debouncedMusicaSearch = useDebouncedValue(musicaSearch, 300);
+  const { data: allMusicas, isFetching: isFetchingMusicas } = useMusicas(
+    {
+      page: 1,
+      limit: 100,
+      q: debouncedMusicaSearch.trim() || undefined,
+    },
+    { staleTime: 60_000 },
+  );
   const { data: allIntegrantes } = useIntegrantes();
 
   const updateEvento = useUpdateEvento();
@@ -440,24 +455,42 @@ export function EventoDetail() {
                   value={selectedMusicaId || undefined}
                   onSelect={setSelectedMusicaId}
                   placeholder={
-                    (allMusicas?.items.length ?? 0) === 0
+                    /**
+                     * Gates baseados em `meta.total` (e não em `items.length`)
+                     * porque a primeira página pode estar cheia (limit=100) e
+                     * ainda existirem músicas em páginas seguintes acessíveis
+                     * via busca textual. O combobox deve permanecer habilitado
+                     * sempre que houver qualquer música no catálogo do tenant.
+                     */
+                    (allMusicas?.meta.total ?? 0) === 0 && !debouncedMusicaSearch
                       ? "Nenhuma música cadastrada no sistema"
-                      : musicasDisponiveis.length === 0
+                      : musicasDisponiveis.length === 0 &&
+                          (allMusicas?.meta.total ?? 0) === evento.musicas.length &&
+                          !debouncedMusicaSearch
                         ? "Todas as músicas já foram adicionadas"
                         : "Selecione uma música para adicionar"
                   }
                   searchPlaceholder="Buscar música..."
-                  disabled={musicasDisponiveis.length === 0}
+                  disabled={
+                    (allMusicas?.meta.total ?? 0) === 0 &&
+                    !debouncedMusicaSearch &&
+                    !isFetchingMusicas
+                  }
+                  searchValue={musicaSearch}
+                  onSearchChange={setMusicaSearch}
+                  isSearching={isFetchingMusicas}
+                  emptyMessage={
+                    debouncedMusicaSearch.trim()
+                      ? "Nenhuma música encontrada para esta busca."
+                      : "Nenhum resultado encontrado."
+                  }
                 />
               </div>
               <Button
                 size="sm"
                 onClick={handleAddMusica}
-                disabled={
-                  !selectedMusicaId ||
-                  addMusica.isPending ||
-                  musicasDisponiveis.length === 0
-                }
+                disabled={!selectedMusicaId || addMusica.isPending}
+                aria-label="Adicionar música ao evento"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>

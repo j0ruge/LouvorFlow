@@ -1,14 +1,13 @@
 /**
  * Página de gerenciamento do catálogo de músicas.
  *
- * Carrega dados reais paginados da API via React Query, exibe estados de
- * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
- * permite criar novas músicas via formulário em dialog, e implementa
- * filtragem client-side com debounce de 300ms.
+ * Estado da lista (page, busca, categorias) sincronizado com a URL via
+ * `useSearchParams`. Filtros por categoria via chips multi-seleção.
+ * Busca textual e filtro por categoria executados no backend.
  */
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Music, Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMusicas } from "@/hooks/use-musicas";
+import { useCategorias } from "@/hooks/use-categorias";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
@@ -49,60 +49,171 @@ function SongSkeleton() {
 }
 
 /**
- * Componente da página de músicas do ministério.
+ * Componente da página de músicas do ministério com filtros sincronizados na URL.
  *
- * Gerencia busca com debounce, paginação e abertura do formulário
- * de criação. Cada item da lista navega para `/musicas/:id`.
+ * Gerencia busca com debounce (300ms), filtro multi-categoria por chips e
+ * paginação — tudo refletido na URL para permitir compartilhamento e
+ * restauração de estado ao voltar do detalhe.
  *
  * @returns Elemento JSX com a página de músicas.
  */
 const Songs = () => {
   const { can: canWrite } = useCan("musicas.write");
   const [formOpen, setFormOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedTerm, setDebouncedTerm] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  /** Debounce de 300ms para o termo de busca. */
+  /** Estado canônico vive na URL — derivado dos search params. */
+  const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
+  const page = Number.isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+  const q = searchParams.get("q") ?? "";
+  /**
+   * `q` normalizado (trimado) é usado em comparações, no cálculo de
+   * `hasFilters` e no envio para o backend. Mantemos `q` cru para
+   * sincronizar o input visualmente quando a URL é alterada
+   * externamente (popstate, deep link), evitando flicker do campo.
+   */
+  const normalizedQ = q.trim();
+  const categoriasParam = searchParams.get("categorias") ?? "";
+  const categoriaIds = categoriasParam
+    ? categoriasParam.split(",").filter(Boolean)
+    : [];
+
+  /** Input local com inicialização preguiçosa a partir da URL. */
+  const [searchInput, setSearchInput] = useState(() => q);
+
+  /**
+   * Sincroniza `searchInput` com `q` em mudanças externas da URL
+   * (botão voltar/avançar do navegador via popstate, deep link).
+   * O guard `current === q` evita renders extras quando a mudança veio
+   * do próprio debounce — `setState` com o mesmo valor é no-op.
+   */
   useEffect(
-    function debounceSearchTerm() {
-      const timer = setTimeout(() => setDebouncedTerm(searchTerm), 300);
+    function syncSearchInputFromUrl() {
+      setSearchInput((current) => (current === q ? current : q));
+    },
+    [q],
+  );
+
+  /**
+   * Debounce: aplica `q` na URL após 300ms sem digitação, resetando para página 1.
+   *
+   * Compara e persiste a versão trimada de `searchInput` para manter a UI
+   * consistente com a normalização do backend — busca whitespace-only não
+   * é considerada filtro ativo nem persiste na URL.
+   */
+  useEffect(
+    function debounceSearchToUrl() {
+      const timer = setTimeout(() => {
+        const trimmedInput = searchInput.trim();
+        if (trimmedInput === normalizedQ) return;
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            if (trimmedInput) next.set("q", trimmedInput);
+            else next.delete("q");
+            next.set("page", "1");
+            return next;
+          },
+          { replace: true },
+        );
+      }, 300);
       return () => clearTimeout(timer);
     },
-    [searchTerm],
+    [searchInput, normalizedQ, setSearchParams],
   );
 
-  const isSearching = debouncedTerm.length > 0;
-
-  /** Armazena o total de registros conhecido para uso como limite na busca. */
-  const lastKnownTotal = useRef(9999);
-
-  /** Quando buscando, carrega todos os registros; caso contrário, usa paginação. */
-  const { data, isLoading, isError, error, refetch } = useMusicas(
-    isSearching ? 1 : page,
-    isSearching ? lastKnownTotal.current : ITEMS_PER_PAGE,
-  );
+  const { data: categoriasList } = useCategorias();
+  const { data, isLoading, isError, error, refetch } = useMusicas({
+    page,
+    limit: ITEMS_PER_PAGE,
+    categorias: categoriaIds.length > 0 ? categoriaIds : undefined,
+    q: normalizedQ || undefined,
+  });
 
   const meta = data?.meta;
+  const songs = data?.items ?? [];
 
-  /** Atualiza o total conhecido quando a paginação retorna metadados. */
+  /**
+   * Normaliza `page` quando a URL pede uma página fora do range válido
+   * retornado pela API. Sem isso, `?page=999` cairia em empty-state
+   * mesmo com dados disponíveis em páginas válidas (1..total_pages).
+   * Replace silencioso no histórico para evitar entradas extras de
+   * navegação ao recuperar do estado inválido.
+   */
   useEffect(
-    function updateLastKnownTotal() {
-      if (!isSearching && meta?.total) {
-        lastKnownTotal.current = meta.total;
-      }
+    function clampPageToMeta() {
+      if (!meta || meta.total_pages < 1) return;
+      if (page <= meta.total_pages) return;
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(meta.total_pages));
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [isSearching, meta?.total],
+    [meta?.total_pages, meta, page, setSearchParams],
   );
 
-  /** Aplica filtragem client-side por nome (case-insensitive). */
-  const filteredSongs = useMemo(() => {
-    const songs = data?.items ?? [];
-    if (!isSearching) return songs;
-    const term = debouncedTerm.toLowerCase();
-    return songs.filter((song) => song.nome.toLowerCase().includes(term));
-  }, [data?.items, debouncedTerm, isSearching]);
+  /**
+   * Alterna uma categoria no filtro, resetando para a página 1.
+   *
+   * @param id - UUID da categoria a alternar.
+   */
+  const toggleCategoria = (id: string) => {
+    const set = new Set(categoriaIds);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        /**
+         * `sort()` canoniza a ordem dos IDs antes de serializar. A ordem
+         * de iteração do `Set` segue inserção, então sem o sort a mesma
+         * seleção em ordens diferentes geraria URLs distintas e
+         * `queryKey`s diferentes — provocando refetch desnecessário.
+         */
+        if (set.size > 0)
+          next.set("categorias", Array.from(set).sort().join(","));
+        else next.delete("categorias");
+        next.set("page", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  /**
+   * Navega ao detalhe preservando a URL atual em `location.state.from`.
+   *
+   * @param id - UUID da música a abrir.
+   */
+  const goToSong = (id: string) => {
+    navigate(`/musicas/${id}`, {
+      state: { from: location.pathname + location.search },
+    });
+  };
+
+  /**
+   * Atualiza a página atual na URL, preservando demais parâmetros.
+   *
+   * @param newPage - Nova página a aplicar.
+   */
+  const setPage = (newPage: number) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(newPage));
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  const hasFilters = normalizedQ.length > 0 || categoriaIds.length > 0;
 
   return (
     <div className="space-y-6">
@@ -117,30 +228,74 @@ const Songs = () => {
         </div>
         {canWrite && (
           <Button
-            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft flex-shrink-0"
             onClick={() => setFormOpen(true)}
+            aria-label="Nova Música"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Música
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Música</span>
           </Button>
         )}
       </div>
 
       <Card className="shadow-soft border-0">
-        <CardHeader>
+        <CardHeader className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar músicas por nome..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Buscar músicas por nome"
+                className="pl-10 w-full"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
           </div>
+
+          {categoriasList && categoriasList.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por categoria"
+            >
+              {categoriasList.map((cat) => {
+                const active = categoriaIds.includes(cat.id);
+                return (
+                  <Badge
+                    key={cat.id}
+                    variant={active ? "default" : "outline"}
+                    className={
+                      "cursor-pointer select-none transition-colors " +
+                      (active
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-primary/10")
+                    }
+                    role="button"
+                    aria-pressed={active}
+                    tabIndex={0}
+                    onClick={() => toggleCategoria(cat.id)}
+                    onKeyDown={handleClickableKeyDown(() =>
+                      toggleCategoria(cat.id),
+                    )}
+                  >
+                    {cat.nome}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
         </CardHeader>
+
         <CardContent>
+          {/* Anuncia para leitores de tela a quantidade de resultados após filtrar. */}
+          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+            {!isLoading && !isError && (
+              hasFilters
+                ? `${songs.length} música${songs.length === 1 ? "" : "s"} encontrada${songs.length === 1 ? "" : "s"}.`
+                : ""
+            )}
+          </div>
           {isLoading && (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -156,26 +311,27 @@ const Songs = () => {
             />
           )}
 
-          {!isLoading && !isError && filteredSongs.length === 0 && !isSearching && (
+          {!isLoading && !isError && songs.length === 0 && (
             <EmptyState
-              title="Nenhuma música cadastrada"
-              description="Comece adicionando músicas ao catálogo do ministério."
-              actionLabel="Nova Música"
-              onAction={() => setFormOpen(true)}
+              title={
+                hasFilters
+                  ? "Nenhum resultado encontrado"
+                  : "Nenhuma música cadastrada"
+              }
+              description={
+                hasFilters
+                  ? "Tente remover filtros ou ajustar a busca."
+                  : "Comece adicionando músicas ao catálogo do ministério."
+              }
+              actionLabel={!hasFilters ? "Nova Música" : undefined}
+              onAction={!hasFilters ? () => setFormOpen(true) : undefined}
             />
           )}
 
-          {!isLoading && !isError && filteredSongs.length === 0 && isSearching && (
-            <EmptyState
-              title="Nenhum resultado encontrado"
-              description={`Nenhuma música encontrada para "${debouncedTerm}".`}
-            />
-          )}
-
-          {!isLoading && !isError && filteredSongs.length > 0 && (
+          {!isLoading && !isError && songs.length > 0 && (
             <>
               <div className="space-y-4">
-                {filteredSongs.map((song) => {
+                {songs.map((song) => {
                   /** Badges de categoria reutilizadas no layout desktop e mobile. */
                   const categoriaBadges = song.categorias.map((categoria) => (
                     <Badge
@@ -187,82 +343,81 @@ const Songs = () => {
                     </Badge>
                   ));
                   return (
-                  <div
-                    key={song.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-medium hover:border-primary/30 transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
-                    onClick={() => navigate(`/musicas/${song.id}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={handleClickableKeyDown(() =>
-                      navigate(`/musicas/${song.id}`),
-                    )}
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                      <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 shadow-soft">
-                        <Music className="h-6 w-6 text-white" />
+                    <div
+                      key={song.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg bg-gradient-card border border-border hover:shadow-medium hover:border-primary/30 transition-all duration-300 cursor-pointer gap-3 sm:gap-4"
+                      onClick={() => goToSong(song.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={handleClickableKeyDown(() => goToSong(song.id))}
+                    >
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0 shadow-soft">
+                          <Music className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-foreground truncate">
+                            {song.nome}
+                          </h3>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {song.versoes[0]?.artista?.nome ??
+                              "Artista desconhecido"}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end leading-none shrink-0 sm:hidden">
+                          {song.tonalidade && (
+                            <span className="font-display font-bold text-lg text-foreground">
+                              {song.tonalidade.tom}
+                            </span>
+                          )}
+                          {song.versoes[0]?.bpm && (
+                            <span className="text-[11px] text-muted-foreground tabular-nums mt-0.5">
+                              {song.versoes[0].bpm} BPM
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-foreground truncate">
-                          {song.nome}
-                        </h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {song.versoes[0]?.artista?.nome ?? "Artista desconhecido"}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end leading-none shrink-0 sm:hidden">
+
+                      <div className="hidden sm:flex items-center gap-3 sm:gap-6 flex-wrap">
                         {song.tonalidade && (
-                          <span className="font-display font-bold text-lg text-foreground">
+                          <span className="font-display font-bold text-lg text-foreground leading-none">
                             {song.tonalidade.tom}
                           </span>
                         )}
                         {song.versoes[0]?.bpm && (
-                          <span className="text-[11px] text-muted-foreground tabular-nums mt-0.5">
+                          <div className="text-sm text-muted-foreground tabular-nums">
                             {song.versoes[0].bpm} BPM
-                          </span>
+                          </div>
                         )}
+                        <div className="flex gap-2">{categoriaBadges}</div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goToSong(song.id);
+                          }}
+                        >
+                          Detalhes
+                        </Button>
                       </div>
-                    </div>
 
-                    <div className="hidden sm:flex items-center gap-3 sm:gap-6 flex-wrap">
-                      {song.tonalidade && (
-                        <span className="font-display font-bold text-lg text-foreground leading-none">
-                          {song.tonalidade.tom}
-                        </span>
-                      )}
-                      {song.versoes[0]?.bpm && (
-                        <div className="text-sm text-muted-foreground tabular-nums">
-                          {song.versoes[0].bpm} BPM
+                      {song.categorias.length > 0 && (
+                        <div className="flex flex-wrap gap-2 sm:hidden">
+                          {categoriaBadges}
                         </div>
                       )}
-                      <div className="flex gap-2">{categoriaBadges}</div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/musicas/${song.id}`);
-                        }}
-                      >
-                        Detalhes
-                      </Button>
                     </div>
-
-                    {song.categorias.length > 0 && (
-                      <div className="flex flex-wrap gap-2 sm:hidden">
-                        {categoriaBadges}
-                      </div>
-                    )}
-                  </div>
                   );
                 })}
               </div>
 
-              {!isSearching && meta && meta.total_pages > 1 && (
+              {meta && meta.total_pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page <= 1}
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
@@ -274,7 +429,9 @@ const Songs = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.min(meta.total_pages, p + 1))}
+                    onClick={() =>
+                      setPage(Math.min(meta.total_pages, page + 1))
+                    }
                     disabled={page >= meta.total_pages}
                   >
                     Próxima

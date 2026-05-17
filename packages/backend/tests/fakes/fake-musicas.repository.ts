@@ -58,13 +58,63 @@ export function createFakeMusicasRepository() {
     musicas_fk_tonalidade_fkey: getTonalidade(musica.fk_tonalidade),
   });
 
+  /**
+   * Aplica filtros parciais (categoria_id `in` e nome `contains`) compatíveis com o
+   * subset de `Prisma.MusicasWhereInput` usado por `MusicasService.listAll`.
+   *
+   * NB: o campo `mode` (insensitive/default) é silenciosamente ignorado — o
+   * fake sempre se comporta como case-insensitive via `toLowerCase()`. Testes
+   * que dependem do contraste case-sensitive deverão usar o cliente real do
+   * Prisma em testes de integração.
+   *
+   * @param where - Subset suportado: `{ Musicas_Categorias: { some: { categoria_id: { in } } }, nome: { contains, mode } }`.
+   * @returns Lista de músicas filtradas.
+   */
+  const applyWhere = (where?: Record<string, unknown>) => {
+    if (!where) return musicasData;
+    let result = musicasData;
+
+    const catFilter = (where as { Musicas_Categorias?: { some?: { categoria_id?: { in?: string[] } } } })
+      .Musicas_Categorias?.some?.categoria_id?.in;
+    if (Array.isArray(catFilter) && catFilter.length > 0) {
+      const matchingMusicaIds = new Set(
+        categoriasData
+          .filter(t => catFilter.includes(t.categoria_id))
+          .map(t => t.musica_id),
+      );
+      result = result.filter(m => matchingMusicaIds.has(m.id));
+    }
+
+    const nomeFilter = (where as { nome?: { contains?: string } }).nome?.contains;
+    if (typeof nomeFilter === 'string' && nomeFilter.length > 0) {
+      /**
+       * Inverte o escape de wildcards LIKE feito pelo validator do backend
+       * (`\\` → `\`, `\%` → `%`, `\_` → `_`) para que o fake compare
+       * literais reais. Sem isso, um `q` contendo `%` ou `_` cairia em
+       * falso negativo neste fake, divergindo do comportamento real do
+       * Prisma `contains` em PostgreSQL (que trata os escapes via LIKE).
+       *
+       * O padrão `\\(.)` faz uma única passada da esquerda para a direita
+       * consumindo `\` + caractere subsequente, o que evita o problema de
+       * passes sucessivas que poderiam confundir `\\%` (literal `\` +
+       * literal `%`) com `\%` (literal `%`).
+       */
+      const needle = nomeFilter.replace(/\\(.)/g, '$1').toLowerCase();
+      result = result.filter(m => m.nome.toLowerCase().includes(needle));
+    }
+
+    return result;
+  };
+
   return {
     // --- Base CRUD ---
 
-    findAll: async (skip: number, take: number) =>
-      musicasData.slice(skip, skip + take).map(buildMusicaRaw),
+    /** Retorna músicas paginadas aplicando o subset de filtros suportado. */
+    findAll: async (skip: number, take: number, where?: Record<string, unknown>) =>
+      applyWhere(where).slice(skip, skip + take).map(buildMusicaRaw),
 
-    count: async () => musicasData.length,
+    /** Conta músicas que satisfazem o filtro `where` (subset suportado). */
+    count: async (where?: Record<string, unknown>) => applyWhere(where).length,
 
     findById: async (id: string) => {
       const musica = musicasData.find(m => m.id === id);
