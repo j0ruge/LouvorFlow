@@ -294,7 +294,7 @@ export function CreatableCombobox({
                 <CommandGroup forceMount>
                   <CommandItem
                     forceMount
-                    value={` create ${search.trim()}`}
+                    value={`__create__:${search.trim()}`}
                     onSelect={handleCreate}
                     disabled={creating}
                     className="text-primary"
