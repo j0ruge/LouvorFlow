@@ -15,9 +15,9 @@
     "jsx": "react-jsx",
 
     /* Linting — migração incremental para `strict: true`.
-       Ordem alvo: noImplicitAny → noUnusedLocals/Parameters → strict: true.
+       Ordem alvo: strictNullChecks → noImplicitAny → noUnusedLocals/Parameters → strict: true.
        Mantém em sintonia com `tsconfig.json` (raiz). Não habilitar `strict`
-       sem zerar antes os flags individuais abaixo (`noImplicitAny`, etc). */
+       sem antes resolver os erros dos flags individuais abaixo (`noImplicitAny`, etc). */
     "strict": false,
     "strictNullChecks": true,
     "noUnusedLocals": false,

@@ -3,7 +3,13 @@
  *
  * Renderizada na rota `/musicas/:id`. Carrega os dados da música
  * via `useMusica(id)`, exibe o componente MusicaDetail com edição,
- * versões, categorias e funções. Redireciona para `/musicas` após exclusão.
+ * versões, categorias e funções.
+ *
+ * Navegação:
+ * - **Voltar** respeita `location.state.from` (preserva filtros/página).
+ * - **Excluir** sempre redireciona para `/musicas` (sem filtros) para
+ *   evitar empty-state quando a música deletada era a única visível na
+ *   página filtrada de origem.
  */
 
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -96,7 +102,7 @@ const SongDetail = () => {
 
       <MusicaDetail
         musica={musica}
-        onDeleted={() => navigate(backTo)}
+        onDeleted={() => navigate("/musicas")}
       />
     </div>
   );

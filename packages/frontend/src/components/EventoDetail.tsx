@@ -455,15 +455,26 @@ export function EventoDetail() {
                   value={selectedMusicaId || undefined}
                   onSelect={setSelectedMusicaId}
                   placeholder={
-                    (allMusicas?.items.length ?? 0) === 0 && !debouncedMusicaSearch
+                    /**
+                     * Gates baseados em `meta.total` (e não em `items.length`)
+                     * porque a primeira página pode estar cheia (limit=100) e
+                     * ainda existirem músicas em páginas seguintes acessíveis
+                     * via busca textual. O combobox deve permanecer habilitado
+                     * sempre que houver qualquer música no catálogo do tenant.
+                     */
+                    (allMusicas?.meta.total ?? 0) === 0 && !debouncedMusicaSearch
                       ? "Nenhuma música cadastrada no sistema"
-                      : musicasDisponiveis.length === 0 && !debouncedMusicaSearch
+                      : musicasDisponiveis.length === 0 &&
+                          (allMusicas?.meta.total ?? 0) === evento.musicas.length &&
+                          !debouncedMusicaSearch
                         ? "Todas as músicas já foram adicionadas"
                         : "Selecione uma música para adicionar"
                   }
                   searchPlaceholder="Buscar música..."
                   disabled={
-                    musicasDisponiveis.length === 0 && !debouncedMusicaSearch && !isFetchingMusicas
+                    (allMusicas?.meta.total ?? 0) === 0 &&
+                    !debouncedMusicaSearch &&
+                    !isFetchingMusicas
                   }
                   searchValue={musicaSearch}
                   onSearchChange={setMusicaSearch}

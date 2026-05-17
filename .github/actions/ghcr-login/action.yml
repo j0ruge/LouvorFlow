@@ -34,16 +34,25 @@ runs:
       run: |
         set -uo pipefail
         rc=0
+        # Timeout por tentativa para impedir que uma chamada travada em TLS
+        # handshake pendure o loop indefinidamente (anula o retry/backoff).
+        # `timeout(1)` retorna 124 quando dispara — tratamos como falha
+        # transitória e seguimos para o próximo attempt.
+        per_attempt_timeout=30s
         for attempt in $(seq 1 "$GHCR_ATTEMPTS"); do
           echo "::group::Login attempt $attempt/$GHCR_ATTEMPTS"
           rc=0
-          echo "$GHCR_TOKEN" | docker login "$GHCR_REGISTRY" -u "$GHCR_USER" --password-stdin || rc=$?
+          echo "$GHCR_TOKEN" | timeout "$per_attempt_timeout" docker login "$GHCR_REGISTRY" -u "$GHCR_USER" --password-stdin || rc=$?
           echo "::endgroup::"
           if [ "$rc" -eq 0 ]; then
             echo "Login succeeded on attempt $attempt"
             exit 0
           fi
-          echo "Login attempt $attempt failed (exit $rc)"
+          if [ "$rc" -eq 124 ]; then
+            echo "::warning::Login attempt $attempt timed out after $per_attempt_timeout"
+          else
+            echo "Login attempt $attempt failed (exit $rc)"
+          fi
           if [ "$attempt" -lt "$GHCR_ATTEMPTS" ]; then
             backoff=$((attempt * 10))
             echo "Retrying in ${backoff}s..."

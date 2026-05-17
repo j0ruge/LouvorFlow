@@ -68,6 +68,13 @@ const Songs = () => {
   const rawPage = parseInt(searchParams.get("page") ?? "1", 10);
   const page = Number.isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
   const q = searchParams.get("q") ?? "";
+  /**
+   * `q` normalizado (trimado) é usado em comparações, no cálculo de
+   * `hasFilters` e no envio para o backend. Mantemos `q` cru para
+   * sincronizar o input visualmente quando a URL é alterada
+   * externamente (popstate, deep link), evitando flicker do campo.
+   */
+  const normalizedQ = q.trim();
   const categoriasParam = searchParams.get("categorias") ?? "";
   const categoriaIds = categoriasParam
     ? categoriasParam.split(",").filter(Boolean)
@@ -89,15 +96,22 @@ const Songs = () => {
     [q],
   );
 
-  /** Debounce: aplica `q` na URL após 300ms sem digitação, resetando para página 1. */
+  /**
+   * Debounce: aplica `q` na URL após 300ms sem digitação, resetando para página 1.
+   *
+   * Compara e persiste a versão trimada de `searchInput` para manter a UI
+   * consistente com a normalização do backend — busca whitespace-only não
+   * é considerada filtro ativo nem persiste na URL.
+   */
   useEffect(
     function debounceSearchToUrl() {
       const timer = setTimeout(() => {
-        if (searchInput === q) return;
+        const trimmedInput = searchInput.trim();
+        if (trimmedInput === normalizedQ) return;
         setSearchParams(
           (prev) => {
             const next = new URLSearchParams(prev);
-            if (searchInput) next.set("q", searchInput);
+            if (trimmedInput) next.set("q", trimmedInput);
             else next.delete("q");
             next.set("page", "1");
             return next;
@@ -107,7 +121,7 @@ const Songs = () => {
       }, 300);
       return () => clearTimeout(timer);
     },
-    [searchInput, q, setSearchParams],
+    [searchInput, normalizedQ, setSearchParams],
   );
 
   const { data: categoriasList } = useCategorias();
@@ -115,11 +129,34 @@ const Songs = () => {
     page,
     limit: ITEMS_PER_PAGE,
     categorias: categoriaIds.length > 0 ? categoriaIds : undefined,
-    q: q || undefined,
+    q: normalizedQ || undefined,
   });
 
   const meta = data?.meta;
   const songs = data?.items ?? [];
+
+  /**
+   * Normaliza `page` quando a URL pede uma página fora do range válido
+   * retornado pela API. Sem isso, `?page=999` cairia em empty-state
+   * mesmo com dados disponíveis em páginas válidas (1..total_pages).
+   * Replace silencioso no histórico para evitar entradas extras de
+   * navegação ao recuperar do estado inválido.
+   */
+  useEffect(
+    function clampPageToMeta() {
+      if (!meta || meta.total_pages < 1) return;
+      if (page <= meta.total_pages) return;
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(meta.total_pages));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [meta?.total_pages, meta, page, setSearchParams],
+  );
 
   /**
    * Alterna uma categoria no filtro, resetando para a página 1.
@@ -133,7 +170,14 @@ const Songs = () => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        if (set.size > 0) next.set("categorias", Array.from(set).join(","));
+        /**
+         * `sort()` canoniza a ordem dos IDs antes de serializar. A ordem
+         * de iteração do `Set` segue inserção, então sem o sort a mesma
+         * seleção em ordens diferentes geraria URLs distintas e
+         * `queryKey`s diferentes — provocando refetch desnecessário.
+         */
+        if (set.size > 0)
+          next.set("categorias", Array.from(set).sort().join(","));
         else next.delete("categorias");
         next.set("page", "1");
         return next;
@@ -169,7 +213,7 @@ const Songs = () => {
     );
   };
 
-  const hasFilters = q.length > 0 || categoriaIds.length > 0;
+  const hasFilters = normalizedQ.length > 0 || categoriaIds.length > 0;
 
   return (
     <div className="space-y-6">

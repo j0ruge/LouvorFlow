@@ -184,6 +184,11 @@ describe("isSafeUrl", () => {
   });
 });
 
+/**
+ * Suíte de normalização para busca textual em PT-BR (remoção de
+ * diacríticos + lowercase), garantindo que termos com acentuação
+ * comparam iguais a suas versões sem acento, em qualquer caso.
+ */
 describe("normalizeForSearch", () => {
   /** Remove diacríticos comuns do português. */
   it("remove acentos comuns em PT-BR", () => {

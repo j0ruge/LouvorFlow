@@ -68,16 +68,23 @@ export function useMusicas(
 ) {
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
-  const categorias = params.categorias ?? [];
-  const q = params.q ?? "";
+  /**
+   * `categorias` é ordenado e `q` é trimado antes de compor o `queryKey`
+   * e o `normalized` para garantir equivalência estrutural do cache.
+   * Sem isso, a mesma seleção em ordens distintas (ex.: `[B, A]` vs
+   * `[A, B]`) ou um `q="amor "` vs `q="amor"` gerariam chaves de cache
+   * diferentes e refetches desnecessários.
+   */
+  const sortedCategorias = (params.categorias ?? []).slice().sort();
+  const trimmedQ = (params.q ?? "").trim();
   const normalized: GetMusicasParams = {
     page,
     limit,
-    categorias: categorias.length > 0 ? categorias : undefined,
-    q: q.length > 0 ? q : undefined,
+    categorias: sortedCategorias.length > 0 ? sortedCategorias : undefined,
+    q: trimmedQ.length > 0 ? trimmedQ : undefined,
   };
   return useQuery({
-    queryKey: ["musicas", page, limit, categorias, q],
+    queryKey: ["musicas", page, limit, sortedCategorias, trimmedQ],
     queryFn: () => getMusicas(normalized),
     placeholderData: keepPreviousData,
     staleTime: options.staleTime,

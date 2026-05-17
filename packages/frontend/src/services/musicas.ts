@@ -68,8 +68,15 @@ export async function getMusicas(
   if (categorias && categorias.length > 0) {
     search.set("categorias", categorias.join(","));
   }
-  if (q) {
-    search.set("q", q);
+  /**
+   * `q` é trimado antes de ser enviado para alinhar a UI com o backend,
+   * que normaliza strings whitespace-only para `undefined` no validator
+   * Zod. Sem o trim, `q="   "` viraria `?q=%20%20%20` na URL e geraria
+   * uma chamada com query string inútil que ocupa cache sem efeito real.
+   */
+  const trimmedQ = q?.trim();
+  if (trimmedQ) {
+    search.set("q", trimmedQ);
   }
   const data = await apiFetch<unknown>(`/musicas?${search.toString()}`);
   return MusicasPaginadasSchema.parse(data);

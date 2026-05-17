@@ -8,7 +8,7 @@
 
 **Tech Stack:** Express 5 + Zod + Prisma 6 (backend); React 18 + react-router-dom 6 + TanStack Query 5 + shadcn/ui (frontend); Vitest.
 
-**Spec de referência:** `C:\Users\pc_admin\.claude\plans\velvety-imagining-toast.md`
+**Spec de referência:** _(plano interno do autor — `velvety-imagining-toast.md`, não versionado neste repositório)_
 
 ---
 

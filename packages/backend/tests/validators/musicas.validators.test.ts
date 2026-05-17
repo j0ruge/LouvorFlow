@@ -7,6 +7,12 @@
 
 import { listMusicasQuerySchema } from '../../src/validators/musicas.validators.js';
 
+/**
+ * Valida o schema Zod de query params da listagem de músicas
+ * (`GET /api/musicas`): coerção de `page`/`limit`, parsing de
+ * `categorias` como CSV de UUIDs, trim/escape de `q` e limites de
+ * tamanho.
+ */
 describe('listMusicasQuerySchema', () => {
     /** Sem nenhum query param, aplica defaults page=1 e limit=20. */
     it('aplica defaults quando nenhum parâmetro é informado', () => {
@@ -103,6 +109,18 @@ describe('listMusicasQuerySchema', () => {
     it('escapa underscore (_) em q como literal LIKE', () => {
         const result = listMusicasQuerySchema.parse({ q: 'foo_bar' });
         expect(result.q).toBe('foo\\_bar');
+    });
+
+    /** Backslash `\` é escapado para alinhar com o escape default do Postgres LIKE/ILIKE. */
+    it('escapa backslash (\\) em q como literal LIKE', () => {
+        const result = listMusicasQuerySchema.parse({ q: 'foo\\bar' });
+        expect(result.q).toBe('foo\\\\bar');
+    });
+
+    /** `\` precedendo outro metacaractere também é escapado individualmente. */
+    it('escapa backslash seguido de % preservando ordem', () => {
+        const result = listMusicasQuerySchema.parse({ q: '\\%' });
+        expect(result.q).toBe('\\\\\\%');
     });
 
     /** Acentos em português são preservados (busca case/diacritic decidida no backend). */

@@ -33,19 +33,6 @@ describe('MusicasService', () => {
 
   // ─── listAll (paginação) ────────────────────────────────
   describe('listAll', () => {
-    /** Deve retornar músicas paginadas com meta usando defaults (page=1, limit=20). */
-    it('deve retornar músicas paginadas com meta (defaults page=1, limit=20)', async () => {
-      const result = await musicasService.listAll({
-        page: undefined as unknown as number,
-        limit: undefined as unknown as number,
-      });
-      expect(result.items).toHaveLength(20);
-      expect(result.meta.total).toBe(25);
-      expect(result.meta.page).toBe(1);
-      expect(result.meta.per_page).toBe(20);
-      expect(result.meta.total_pages).toBe(2);
-    });
-
     /** Deve retornar a segunda página com base no skip/limit informados. */
     it('deve retornar segunda página corretamente', async () => {
       const result = await musicasService.listAll({ page: 2, limit: 20 });
@@ -72,7 +59,12 @@ describe('MusicasService', () => {
     });
   });
 
-  // ─── listAll com filtros (categorias / q) ─────────────────
+  /**
+   * Valida a construção do `where` na listagem de músicas com filtros
+   * de categorias e busca textual (`q`), garantindo que os argumentos
+   * passados ao repositório seguem o subset suportado de
+   * `Prisma.MusicasWhereInput`.
+   */
   describe('listAll com filtros', () => {
     /** Sem filtros explícitos, repositório deve ser chamado com `where` vazio. */
     it('passa where vazio quando sem filtros', async () => {

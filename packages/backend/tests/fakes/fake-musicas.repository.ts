@@ -87,7 +87,19 @@ export function createFakeMusicasRepository() {
 
     const nomeFilter = (where as { nome?: { contains?: string } }).nome?.contains;
     if (typeof nomeFilter === 'string' && nomeFilter.length > 0) {
-      const needle = nomeFilter.toLowerCase();
+      /**
+       * Inverte o escape de wildcards LIKE feito pelo validator do backend
+       * (`\\` → `\`, `\%` → `%`, `\_` → `_`) para que o fake compare
+       * literais reais. Sem isso, um `q` contendo `%` ou `_` cairia em
+       * falso negativo neste fake, divergindo do comportamento real do
+       * Prisma `contains` em PostgreSQL (que trata os escapes via LIKE).
+       *
+       * O padrão `\\(.)` faz uma única passada da esquerda para a direita
+       * consumindo `\` + caractere subsequente, o que evita o problema de
+       * passes sucessivas que poderiam confundir `\\%` (literal `\` +
+       * literal `%`) com `\%` (literal `%`).
+       */
+      const needle = nomeFilter.replace(/\\(.)/g, '$1').toLowerCase();
       result = result.filter(m => m.nome.toLowerCase().includes(needle));
     }
 

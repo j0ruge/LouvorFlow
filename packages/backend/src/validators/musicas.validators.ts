@@ -129,18 +129,22 @@ const Q_MAX_LENGTH = 200;
 const CATEGORIAS_MAX_COUNT = 50;
 
 /**
- * Escapa metacaracteres LIKE (`%` e `_`) num termo de busca para que
- * sejam tratados como literais por Prisma `contains`/`startsWith`.
+ * Escapa metacaracteres LIKE (`%`, `_`) e o próprio caractere de escape `\`
+ * num termo de busca para que sejam tratados como literais por Prisma
+ * `contains`/`startsWith` (ILIKE no PostgreSQL).
  *
  * Sem escape, `q=%` casaria todas as linhas (full table leak); `q=_`
- * casaria qualquer single-char. Prisma não escapa esses metacaracteres
- * automaticamente em `contains`.
+ * casaria qualquer single-char. Um `\` literal no final do termo (ou
+ * antes de outro metacaractere) poderia gerar pattern inválido no
+ * PostgreSQL, cujo caractere de escape default em LIKE é exatamente
+ * `\`. Prisma não escapa esses metacaracteres automaticamente em
+ * `contains`, então é responsabilidade do validator.
  *
  * @param raw - Texto cru do termo de busca, já trimado.
- * @returns Texto com `%` e `_` precedidos de `\`.
+ * @returns Texto com `\`, `%` e `_` precedidos de `\`.
  */
 function escapeLikeWildcards(raw: string): string {
-    return raw.replace(/[%_]/g, (m) => `\\${m}`);
+    return raw.replace(/[\\%_]/g, (m) => `\\${m}`);
 }
 
 /**

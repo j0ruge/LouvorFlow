@@ -75,6 +75,11 @@ function lastFetchedPath(): string {
   return call[0] as string;
 }
 
+/**
+ * Suíte que valida a serialização de parâmetros do hook `useMusicas`
+ * (page, limit, categorias, q) na query string enviada à API via
+ * `apiFetch`, garantindo defaults e a coexistência de filtros.
+ */
 describe("useMusicas — assinatura por objeto", () => {
   /**
    * Reseta o mock antes de cada caso e prepara uma resposta paginada
