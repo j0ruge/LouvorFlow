@@ -19,6 +19,7 @@ import {
   setMusicaVersao,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
+  getCifraclubPlaylist,
 } from "@/services/eventos";
 import type { CreateEventoForm, UpdateEventoForm, EventoShow } from "@/schemas/evento";
 
@@ -45,6 +46,20 @@ export function useEvento(id: string) {
     queryKey: ["eventos", id],
     queryFn: () => getEvento(id),
     enabled: !!id,
+  });
+}
+
+/**
+ * Hook para buscar a playlist CifraClub de um evento.
+ *
+ * @param eventoId - UUID do evento.
+ * @returns Resultado do useQuery com a playlist CifraClub.
+ */
+export function useCifraclubPlaylist(eventoId: string) {
+  return useQuery({
+    queryKey: ["eventos", eventoId, "cifraclub-playlist"],
+    queryFn: () => getCifraclubPlaylist(eventoId),
+    enabled: !!eventoId,
   });
 }
 

@@ -74,6 +74,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
       data: "",
       fk_tipo_evento: "",
       descricao: "",
+      cifraclub_list_url: null,
     },
   });
 
@@ -97,12 +98,14 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
           data: toDatetimeLocalValue(evento.data),
           fk_tipo_evento: evento.tipoEvento?.id ?? "",
           descricao: evento.descricao,
+          cifraclub_list_url: evento.cifraclub_list_url ?? null,
         });
       } else {
         form.reset({
           data: "",
           fk_tipo_evento: "",
           descricao: "",
+          cifraclub_list_url: null,
         });
       }
     },
@@ -132,6 +135,7 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
             data: payload.data,
             fk_tipo_evento: payload.fk_tipo_evento,
             descricao: payload.descricao,
+            cifraclub_list_url: payload.cifraclub_list_url || null,
           },
         },
         {
@@ -232,6 +236,25 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
                     <Input
                       placeholder="Descrição do evento"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cifraclub_list_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lista no CifraClub (opcional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://www.cifraclub.com.br/musico/.../repertorio/.../"
+                      className="w-full"
+                      value={field.value ?? ""}
+                      onChange={(e) => field.onChange(e.target.value || null)}
                     />
                   </FormControl>
                   <FormMessage />

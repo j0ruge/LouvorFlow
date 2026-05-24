@@ -125,7 +125,7 @@ class MusicasRepository {
                 },
             });
 
-            const temCamposVersao = data.artista_id || data.bpm || data.cifras || data.lyrics || data.link_versao || data.intensidade;
+            const temCamposVersao = data.artista_id !== undefined || data.bpm !== undefined || data.cifras !== undefined || data.lyrics !== undefined || data.link_versao !== undefined || data.cifraclub_url !== undefined || data.intensidade !== undefined;
             if (temCamposVersao) {
                 await tx.artistas_Musicas.create({
                     data: {
@@ -135,6 +135,7 @@ class MusicasRepository {
                         cifras: data.cifras ?? null,
                         lyrics: data.lyrics ?? null,
                         link_versao: data.link_versao ?? null,
+                        cifraclub_url: data.cifraclub_url ?? null,
                         intensidade: data.intensidade ?? null,
                         tenant_id: tenantId,
                     },
@@ -188,6 +189,7 @@ class MusicasRepository {
                 if (data.cifras !== undefined) versaoUpdate.cifras = data.cifras;
                 if (data.lyrics !== undefined) versaoUpdate.lyrics = data.lyrics;
                 if (data.link_versao !== undefined) versaoUpdate.link_versao = data.link_versao;
+                if (data.cifraclub_url !== undefined) versaoUpdate.cifraclub_url = data.cifraclub_url;
                 if (data.intensidade !== undefined) versaoUpdate.intensidade = data.intensidade;
 
                 if (Object.keys(versaoUpdate).length > 0) {
@@ -232,6 +234,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                cifraclub_url: true,
                 intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
@@ -251,7 +254,7 @@ class MusicasRepository {
      * @param tenantId - ID do tenant proprietário
      * @returns Versão criada com dados do artista (ou null se sem artista)
      */
-    async createVersao(data: { artista_id: string | null; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
+    async createVersao(data: { artista_id: string | null; musica_id: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; cifraclub_url?: string; intensidade?: string }, tenantId: string) {
         return getPrisma().artistas_Musicas.create({
             data: {
                 musica_id: data.musica_id,
@@ -260,6 +263,7 @@ class MusicasRepository {
                 cifras: data.cifras ?? null,
                 lyrics: data.lyrics ?? null,
                 link_versao: data.link_versao ?? null,
+                cifraclub_url: data.cifraclub_url ?? null,
                 intensidade: data.intensidade ?? null,
                 tenant_id: tenantId,
             },
@@ -269,6 +273,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                cifraclub_url: true,
                 intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }
@@ -287,6 +292,7 @@ class MusicasRepository {
                 cifras: true,
                 lyrics: true,
                 link_versao: true,
+                cifraclub_url: true,
                 intensidade: true,
                 artistas_musicas_artista_id_fkey: {
                     select: { id: true, nome: true }

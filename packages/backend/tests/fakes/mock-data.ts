@@ -152,6 +152,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'G D Em C',
     lyrics: 'Rendido estou, rendido estou...',
     link_versao: 'https://exemplo.com/rendido-aline',
+    cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
   },
   {
     id: 'jjj00002-0000-0000-0000-000000000002',
@@ -161,6 +162,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'G D Em C',
     lyrics: 'Rendido estou, rendido estou...',
     link_versao: 'https://exemplo.com/rendido-fernandinho',
+    cifraclub_url: null,
   },
   {
     id: 'jjj00002-0000-0000-0000-000000000003',
@@ -170,6 +172,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'D A Bm G',
     lyrics: 'Grande é o Senhor...',
     link_versao: null,
+    cifraclub_url: null,
   },
   /** Versão sem artista vinculado para testes de artista opcional (spec 024). */
   {
@@ -180,6 +183,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'Am F C G',
     lyrics: 'Nada além do sangue...',
     link_versao: null,
+    cifraclub_url: null,
   },
 ];
 

@@ -36,9 +36,12 @@ import {
   X,
   ArrowLeft,
   Guitar,
+  ListMusic,
   Pencil,
   Trash2,
   GripVertical,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import {
   useEvento,
@@ -63,7 +66,10 @@ import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
 import { MusicaVersaoPicker } from "@/components/MusicaVersaoPicker";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EscalaShareActions } from "@/components/EscalaShareActions";
+import { CifraclubPlaylistDialog } from "@/components/CifraclubPlaylistDialog";
+import { isSafeUrl } from "@/lib/utils";
 import { useCan } from "@/hooks/use-can";
 import type { IntegranteComFuncoes } from "@/schemas/integrante";
 import type { MusicaEvento } from "@/schemas/evento";
@@ -399,6 +405,24 @@ export function EventoDetail() {
             </Button>
           )}
           <EscalaShareActions evento={evento} />
+          <CifraclubPlaylistDialog eventoId={evento.id} />
+          {evento.cifraclub_list_url && isSafeUrl(evento.cifraclub_list_url) && (
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <a
+                href={evento.cifraclub_list_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Abrir lista no CifraClub"
+              >
+                <ListMusic className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Abrir lista</span>
+              </a>
+            </Button>
+          )}
           {canWrite && (
             <Button
               variant="destructive"
@@ -412,6 +436,24 @@ export function EventoDetail() {
           )}
         </div>
       </div>
+
+      {evento.cifraclub_list_url_stale && evento.cifraclub_list_url && isSafeUrl(evento.cifraclub_list_url) && (
+        <Alert variant="default" className="border-amber-200 bg-amber-50 dark:bg-amber-950/30">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-sm">
+            Lista possivelmente desatualizada — músicas foram editadas após o cadastro da URL.{" "}
+            <a
+              href={evento.cifraclub_list_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+            >
+              Atualizar no CifraClub
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="shadow-soft border-0">
         <CardHeader>

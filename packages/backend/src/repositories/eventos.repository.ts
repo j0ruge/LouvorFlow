@@ -31,13 +31,15 @@ class EventosRepository {
      * @param tenantId - ID do tenant ao qual o evento pertence
      * @returns Evento criado com tipo de evento populado
      */
-    async create(data: { data: Date; fk_tipo_evento: string; descricao: string }, tenantId: string) {
+    async create(data: { data: Date; fk_tipo_evento: string; descricao: string; cifraclub_list_url?: string | null; cifraclub_list_url_updated_at?: Date | null }, tenantId: string) {
         return getPrisma().eventos.create({
             data: { ...data, tenant_id: tenantId },
             select: {
                 id: true,
                 data: true,
                 descricao: true,
+                cifraclub_list_url: true,
+                cifraclub_list_url_updated_at: true,
                 eventos_fk_tipo_evento_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -54,6 +56,8 @@ class EventosRepository {
                 id: true,
                 data: true,
                 descricao: true,
+                cifraclub_list_url: true,
+                cifraclub_list_url_updated_at: true,
                 eventos_fk_tipo_evento_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -258,13 +262,11 @@ class EventosRepository {
                         musicas_fk_tonalidade_fkey: {
                             select: { id: true, tom: true }
                         },
-                        // Nested: versões disponíveis da música.
-                        // Tenant safety: Artistas_Musicas compartilha tenant_id com Musicas
-                        // via FK musica_id, então o escopo tenant é implícito pela cadeia.
                         Artistas_Musicas: {
                             select: {
                                 id: true,
                                 link_versao: true,
+                                cifraclub_url: true,
                                 artistas_musicas_artista_id_fkey: {
                                     select: { id: true, nome: true }
                                 }
@@ -277,6 +279,7 @@ class EventosRepository {
                     select: {
                         id: true,
                         link_versao: true,
+                        cifraclub_url: true,
                         artistas_musicas_artista_id_fkey: {
                             select: { id: true, nome: true }
                         }

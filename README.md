@@ -46,6 +46,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
 - **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
+- **Integração CifraClub** — Playlist exportável com transposição automática de tom (`#key=N`), link de lista pública por escala, compartilhamento via WhatsApp com links que abrem a cifra já no tom correto.
 - **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos.
 - **Histórico de escalas** — Consulta de escalas anteriores.
 - **Autenticação e RBAC** — Login com JWT (access + refresh token), recuperação de senha por e-mail, gestão de usuários, papéis (roles) e permissões. Painel administrativo com controle de acesso baseado em roles.

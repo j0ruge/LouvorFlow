@@ -23,6 +23,7 @@ function formatMusica(m: MusicaRaw): Musica {
             cifras: v.cifras,
             lyrics: v.lyrics,
             link_versao: v.link_versao,
+            cifraclub_url: v.cifraclub_url,
             intensidade: v.intensidade
         })),
         funcoes: m.Musicas_Funcoes.map(f => f.musicas_funcoes_funcao_id_fkey)
@@ -155,7 +156,7 @@ class MusicasService {
      * @throws {AppError} 400 se nome ausente; 404 se tonalidade/artista/categoria/função não existir
      */
     async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
-        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, intensidade, categoria_ids, funcao_ids } = body;
+        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 
@@ -215,6 +216,12 @@ class MusicasService {
 
     // --- Versoes ---
 
+    /**
+     * Lista todas as versões disponíveis para uma música.
+     *
+     * @param musicaId - ID da música
+     * @returns Array de versões com artista, bpm, cifras, lyrics, links e intensidade
+     */
     async listVersoes(musicaId: string) {
         const versoes = await musicasRepository.findVersoes(musicaId);
         return versoes.map(v => ({
@@ -224,6 +231,7 @@ class MusicasService {
             cifras: v.cifras,
             lyrics: v.lyrics,
             link_versao: v.link_versao,
+            cifraclub_url: v.cifraclub_url,
             intensidade: v.intensidade
         }));
     }
@@ -239,10 +247,10 @@ class MusicasService {
      * @returns Versão criada com dados do artista (ou null se sem artista)
      * @throws {AppError} 404 se música ou artista não existir; 409 se duplicado
      */
-    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
-        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
+    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; cifraclub_url?: string; intensidade?: string }, tenantId: string) {
+        const { artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade } = body;
 
-        const temAlgumCampo = artista_id || bpm !== undefined || cifras || lyrics || link_versao || intensidade;
+        const temAlgumCampo = artista_id !== undefined || bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined || cifraclub_url !== undefined || intensidade !== undefined;
         if (!temAlgumCampo) throw new AppError("Informe ao menos um campo da versão", 400);
 
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
@@ -260,7 +268,7 @@ class MusicasService {
         }
 
         const versao = await musicasRepository.createVersao({
-            artista_id: artista_id ?? null, musica_id: musicaId, bpm, cifras, lyrics, link_versao, intensidade
+            artista_id: artista_id ?? null, musica_id: musicaId, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade
         }, tenantId);
 
         return {
@@ -270,6 +278,7 @@ class MusicasService {
             cifras: versao.cifras,
             lyrics: versao.lyrics,
             link_versao: versao.link_versao,
+            cifraclub_url: versao.cifraclub_url,
             intensidade: versao.intensidade
         };
     }
@@ -290,13 +299,13 @@ class MusicasService {
      */
     async updateVersao(
         versaoId: string,
-        body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string },
+        body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; cifraclub_url?: string; intensidade?: string },
         options: { allowArtistChange?: boolean } = {},
     ) {
         const existente = await musicasRepository.findVersaoById(versaoId);
         if (!existente) throw new AppError("Versão não encontrada", 404);
 
-        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
+        const { artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade } = body;
         const updateData: Record<string, unknown> = {};
 
         if (artista_id !== undefined) {
@@ -320,6 +329,7 @@ class MusicasService {
         if (cifras !== undefined) updateData.cifras = cifras;
         if (lyrics !== undefined) updateData.lyrics = lyrics;
         if (link_versao !== undefined) updateData.link_versao = link_versao;
+        if (cifraclub_url !== undefined) updateData.cifraclub_url = cifraclub_url;
         if (intensidade !== undefined) updateData.intensidade = intensidade;
 
         if (Object.keys(updateData).length === 0) {
@@ -335,6 +345,7 @@ class MusicasService {
             cifras: versao.cifras,
             lyrics: versao.lyrics,
             link_versao: versao.link_versao,
+            cifraclub_url: versao.cifraclub_url,
             intensidade: versao.intensidade
         };
     }

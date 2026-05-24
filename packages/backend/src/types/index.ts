@@ -65,6 +65,8 @@ export interface CreateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** URL da cifra no CifraClub (opcional). */
+    cifraclub_url?: string;
     /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
     intensidade?: string;
     /** IDs de categorias a associar à música (opcional). */
@@ -92,6 +94,8 @@ export interface UpdateMusicaCompleteInput {
     cifras?: string;
     lyrics?: string;
     link_versao?: string;
+    /** URL da cifra no CifraClub (opcional). */
+    cifraclub_url?: string;
     /** Intensidade da versão: "calma", "media" ou "agitada" (opcional). */
     intensidade?: string;
     /** IDs de categorias desejadas (se presente, sincroniza; se ausente, mantém). */
@@ -174,6 +178,8 @@ export interface VersaoRaw {
     cifras: string | null;
     lyrics: string | null;
     link_versao: string | null;
+    /** URL da cifra no CifraClub ou `null` */
+    cifraclub_url: string | null;
     intensidade: string | null;
     artistas_musicas_artista_id_fkey: IdNome | null;
 }
@@ -219,6 +225,7 @@ export interface Musica {
         cifras: string | null;
         lyrics: string | null;
         link_versao: string | null;
+        cifraclub_url: string | null;
         intensidade: string | null;
     }[];
     funcoes: IdNome[];
@@ -238,6 +245,8 @@ export interface EventoIndexRaw {
     id: string;
     data: Date;
     descricao: string;
+    /** URL de lista pública CifraClub cadastrada ou `null` */
+    cifraclub_list_url: string | null;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
     Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
@@ -253,6 +262,8 @@ export interface EventoIndexRaw {
 export interface VersaoMusicaShowRaw {
     id: string;
     link_versao: string | null;
+    /** URL da cifra no CifraClub ou `null` */
+    cifraclub_url: string | null;
     artistas_musicas_artista_id_fkey: IdNome | null;
 }
 
@@ -274,6 +285,8 @@ export interface VersaoMusicaEvento {
     id: string;
     artista_nome: string | null;
     link_versao: string | null;
+    /** URL da cifra no CifraClub ou `null` */
+    cifraclub_url: string | null;
 }
 
 /**
@@ -336,10 +349,15 @@ export interface EventoShowRaw {
     id: string;
     data: Date;
     descricao: string;
+    /** URL de lista pública CifraClub cadastrada ou `null` */
+    cifraclub_list_url: string | null;
+    /** Timestamp do último set/change da URL ou `null` */
+    cifraclub_list_url_updated_at: Date | null;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: {
         id: string;
         ordem: number;
+        updated_at: Date;
         eventos_musicas_musicas_id_fkey: EventoShowMusica;
         eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
     }[];
@@ -377,6 +395,7 @@ export const MUSICA_SELECT = {
             cifras: true,
             lyrics: true,
             link_versao: true,
+            cifraclub_url: true,
             intensidade: true,
             artistas_musicas_artista_id_fkey: {
                 select: { id: true, nome: true }
@@ -397,6 +416,7 @@ export const EVENTO_INDEX_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    cifraclub_list_url: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -432,6 +452,8 @@ export const EVENTO_SHOW_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    cifraclub_list_url: true,
+    cifraclub_list_url_updated_at: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -439,6 +461,7 @@ export const EVENTO_SHOW_SELECT = {
         select: {
             id: true,
             ordem: true,
+            updated_at: true,
             eventos_musicas_musicas_id_fkey: {
                 select: {
                     id: true,
@@ -450,6 +473,7 @@ export const EVENTO_SHOW_SELECT = {
                         select: {
                             id: true,
                             link_versao: true,
+                            cifraclub_url: true,
                             artistas_musicas_artista_id_fkey: {
                                 select: { id: true, nome: true }
                             }
@@ -462,6 +486,7 @@ export const EVENTO_SHOW_SELECT = {
                 select: {
                     id: true,
                     link_versao: true,
+                    cifraclub_url: true,
                     artistas_musicas_artista_id_fkey: {
                         select: { id: true, nome: true }
                     }
@@ -488,3 +513,38 @@ export const EVENTO_SHOW_SELECT = {
         }
     }
 } as const;
+
+/**
+ * Item da playlist CifraClub retornado pelo endpoint de playlist.
+ * Cada item representa uma música da escala com link CifraClub (ou null) e dados de transposição.
+ */
+export interface CifraclubPlaylistItem {
+    ordem: number;
+    musica_id: string;
+    nome: string;
+    tom: string | null;
+    /** Grafia canônica CifraClub do tom (A, Bb, B, C, Db, D, Eb, E, F, F#, G, Ab) ou null */
+    tom_final: string | null;
+    /** Se o fragmento #key=N foi efetivamente calculado e anexado à URL */
+    tom_ajustado: boolean;
+    artista_nome: string;
+    /** URL com #key=N aplicado (se cifraclub.com.br + tom válido), ou URL original, ou null */
+    cifraclub_url: string | null;
+}
+
+/**
+ * Resposta do endpoint GET /api/eventos/:id/cifraclub-playlist.
+ * Contém a playlist ordenada, stats de cobertura, e a URL de lista pública do evento.
+ */
+export interface CifraclubPlaylistResponse {
+    evento: {
+        id: string;
+        data: string;
+        descricao: string;
+        tipo_evento: string;
+    };
+    playlist: CifraclubPlaylistItem[];
+    stats: { total: number; com_link: number; sem_link: number };
+    /** URL de lista pública CifraClub cadastrada para este evento ou null */
+    cifraclub_list_url: string | null;
+}

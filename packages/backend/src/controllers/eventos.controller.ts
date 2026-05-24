@@ -38,6 +38,12 @@ class EventosController {
         res.status(200).json({ msg: "Evento deletado com sucesso", evento });
     }
 
+    /** Retorna a playlist CifraClub do evento com URLs enriquecidas (#key=N). */
+    async getCifraclubPlaylist(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
+        const playlist = await eventosService.getCifraclubPlaylist(req.params.eventoId);
+        res.status(200).json(playlist);
+    }
+
     // --- Junction: Musicas ---
 
     /** Lista as músicas vinculadas a um evento. */

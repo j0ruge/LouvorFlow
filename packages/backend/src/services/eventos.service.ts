@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
+import { applyKeyFragment, computeKeyFragment } from '../lib/cifraclub-key-mapping.js';
 import type {
     EventoIndexRaw,
     EventoShowRaw,
@@ -8,6 +9,8 @@ import type {
     MusicaEvento,
     VersaoMusicaShowRaw,
     VersaoMusicaEvento,
+    CifraclubPlaylistItem,
+    CifraclubPlaylistResponse,
 } from '../types/index.js';
 
 /**
@@ -22,6 +25,7 @@ function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | nu
         id: raw.id,
         artista_nome: raw.artistas_musicas_artista_id_fkey?.nome ?? null,
         link_versao: raw.link_versao,
+        cifraclub_url: raw.cifraclub_url,
     };
 }
 
@@ -54,6 +58,7 @@ function formatEventoIndex(e: EventoIndexRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        cifraclub_list_url: e.cifraclub_list_url,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
         integrantes: e.Eventos_Users.map(i => {
@@ -70,13 +75,28 @@ function formatEventoIndex(e: EventoIndexRaw) {
  * não mais de `Users_Funcoes` (funções globais).
  *
  * @param e - Registro bruto do evento (EventoShowRaw)
- * @returns Objeto formatado com músicas e integrantes com funções do evento
+ * @returns Objeto formatado com músicas, integrantes com funções do evento, e `cifraclub_list_url_stale` (true quando alguma música foi editada após o cadastro da URL)
  */
 function formatEventoShow(e: EventoShowRaw) {
+    let cifraclubListUrlStale = false;
+    if (e.cifraclub_list_url && e.cifraclub_list_url_updated_at && e.Eventos_Musicas.length > 0) {
+        const latestMusicaUpdatedAt = e.Eventos_Musicas.reduce<Date | null>((latest, em) => {
+            if (!latest || em.updated_at > latest) return em.updated_at;
+            return latest;
+        }, null);
+
+        if (latestMusicaUpdatedAt && latestMusicaUpdatedAt > e.cifraclub_list_url_updated_at) {
+            cifraclubListUrlStale = true;
+        }
+    }
+
     return {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        cifraclub_list_url: e.cifraclub_list_url,
+        cifraclub_list_url_updated_at: e.cifraclub_list_url_updated_at,
+        cifraclub_list_url_stale: cifraclubListUrlStale,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => {
             const musica = m.eventos_musicas_musicas_id_fkey;
@@ -122,12 +142,12 @@ class EventosService {
     /**
      * Cria um novo evento vinculado ao tenant informado.
      *
-     * @param body - Dados do evento (data, fk_tipo_evento, descricao)
+     * @param body - Dados do evento (data, fk_tipo_evento, descricao, cifraclub_list_url)
      * @param tenantId - ID do tenant ao qual o evento pertence
      * @returns Evento criado com tipo de evento populado
      */
-    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
-        const { data, fk_tipo_evento, descricao } = body;
+    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string; cifraclub_list_url?: string | null }, tenantId: string) {
+        const { data, fk_tipo_evento, descricao, cifraclub_list_url } = body;
         const errors: string[] = [];
 
         if (!data) errors.push("Data do evento é obrigatória");
@@ -151,25 +171,31 @@ class EventosService {
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
-            descricao: descricao ?? ""
+            descricao: descricao ?? "",
+            ...(cifraclub_list_url != null ? {
+                cifraclub_list_url,
+                cifraclub_list_url_updated_at: new Date(),
+            } : {}),
         }, tenantId);
 
         return {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            cifraclub_list_url: evento.cifraclub_list_url,
+            cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
 
     /** Atualiza um evento existente pelo ID com os campos informados. */
-    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
+    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string; cifraclub_list_url?: string | null }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
         const existente = await eventosRepository.findByIdSimple(id);
         if (!existente) throw new AppError("O evento não foi encontrado ou não existe", 404);
 
-        const { data, fk_tipo_evento, descricao } = body;
+        const { data, fk_tipo_evento, descricao, cifraclub_list_url } = body;
 
         if (data !== undefined && isNaN(Date.parse(String(data)))) {
             throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
@@ -187,6 +213,16 @@ class EventosService {
         if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
         if (descricao !== undefined) updateData.descricao = descricao;
 
+        if (cifraclub_list_url !== undefined) {
+            if (cifraclub_list_url === null) {
+                updateData.cifraclub_list_url = null;
+                updateData.cifraclub_list_url_updated_at = null;
+            } else if (cifraclub_list_url !== existente.cifraclub_list_url) {
+                updateData.cifraclub_list_url = cifraclub_list_url;
+                updateData.cifraclub_list_url_updated_at = new Date();
+            }
+        }
+
         if (Object.keys(updateData).length === 0) {
             throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
         }
@@ -197,6 +233,8 @@ class EventosService {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            cifraclub_list_url: evento.cifraclub_list_url,
+            cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -210,6 +248,96 @@ class EventosService {
 
         await eventosRepository.delete(id);
         return evento;
+    }
+
+    // --- CifraClub Playlist ---
+
+    /**
+     * Monta a playlist CifraClub de um evento com URLs enriquecidas com #key=N.
+     * Resolve a versão de cada música (selecionada → fallback primeira com cifraclub_url → null).
+     * Aplica transposição automática para URLs do CifraClub.
+     *
+     * @param eventoId - UUID do evento
+     * @returns Playlist ordenada com stats e URL de lista do evento
+     * @throws {AppError} 404 se o evento não existir
+     */
+    async getCifraclubPlaylist(eventoId: string): Promise<CifraclubPlaylistResponse> {
+        if (!eventoId) throw new AppError("ID de evento não enviado", 400);
+
+        const evento = await eventosRepository.findById(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const playlist: CifraclubPlaylistItem[] = evento.Eventos_Musicas.map(em => {
+            const musica = em.eventos_musicas_musicas_id_fkey;
+            const tom = musica.musicas_fk_tonalidade_fkey?.tom ?? null;
+
+            let cifraclubUrl: string | null = null;
+            let artistaNome = '';
+
+            const versaoSelecionada = em.eventos_musicas_artistas_musicas_fkey;
+            if (versaoSelecionada?.cifraclub_url) {
+                cifraclubUrl = versaoSelecionada.cifraclub_url;
+                artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+            } else {
+                const fallback = musica.Artistas_Musicas.find(v => v.cifraclub_url);
+                if (fallback) {
+                    cifraclubUrl = fallback.cifraclub_url;
+                    artistaNome = fallback.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (versaoSelecionada) {
+                    artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (musica.Artistas_Musicas.length > 0) {
+                    artistaNome = musica.Artistas_Musicas[0].artistas_musicas_artista_id_fkey?.nome ?? '';
+                }
+            }
+
+            let tomFinal: string | null = null;
+            let tomAjustado = false;
+            let urlFinal = cifraclubUrl;
+
+            if (cifraclubUrl) {
+                const keyResult = computeKeyFragment(tom);
+                if (keyResult) {
+                    tomFinal = keyResult.tomFinal;
+                }
+                const applied = applyKeyFragment(cifraclubUrl, tom);
+                urlFinal = applied.url;
+                tomAjustado = applied.tomAjustado;
+            } else {
+                const keyResult = computeKeyFragment(tom);
+                if (keyResult) {
+                    tomFinal = keyResult.tomFinal;
+                }
+            }
+
+            return {
+                ordem: em.ordem,
+                musica_id: musica.id,
+                nome: musica.nome,
+                tom,
+                tom_final: tomFinal,
+                tom_ajustado: tomAjustado,
+                artista_nome: artistaNome,
+                cifraclub_url: urlFinal,
+            };
+        });
+
+        const comLink = playlist.filter(p => p.cifraclub_url !== null).length;
+
+        return {
+            evento: {
+                id: evento.id,
+                data: evento.data.toISOString(),
+                descricao: evento.descricao,
+                tipo_evento: evento.eventos_fk_tipo_evento_fkey?.nome ?? '',
+            },
+            playlist,
+            stats: {
+                total: playlist.length,
+                com_link: comLink,
+                sem_link: playlist.length - comLink,
+            },
+            cifraclub_list_url: evento.cifraclub_list_url,
+        };
     }
 
     // --- Musicas ---

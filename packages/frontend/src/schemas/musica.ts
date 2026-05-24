@@ -22,6 +22,11 @@ export const VersaoSchema = z.object({
       "URL deve usar protocolo http ou https",
     )
     .nullable(),
+  /** URL da cifra no CifraClub. Nulo quando não informado. */
+  cifraclub_url: z.string().refine(
+    (val) => val === "" || /^https?:\/\//i.test(val),
+    "URL deve usar protocolo http ou https",
+  ).nullable().default(null),
   intensidade: z.enum(["calma", "media", "agitada"]).nullable(),
 });
 
@@ -99,6 +104,7 @@ export const CreateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
@@ -112,6 +118,7 @@ export const UpdateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
@@ -131,6 +138,7 @@ export const CreateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
@@ -151,6 +159,7 @@ export const UpdateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
