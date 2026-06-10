@@ -20,6 +20,8 @@ interface AppLayoutProps {
  * Componente de layout que estrutura sidebar, header e área de conteúdo.
  *
  * O header inclui o trigger do sidebar, toggle de tema e menu do usuário.
+ * A área de conteúdo é o container de rolagem da aplicação (marcado com
+ * `data-scroll-root`) — o scroll vive nele, não na janela.
  *
  * @param children - Conteúdo da página renderizado na área principal.
  * @returns Elemento React com o layout completo.
@@ -36,7 +38,13 @@ export function AppLayout({ children }: AppLayoutProps) {
             <ThemeToggle />
             <UserMenu />
           </header>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-overlay p-4 sm:p-6">
+          {/* Container de rolagem da aplicação (data-scroll-root): o scroll
+              vive aqui, não na janela. Os hooks de rolagem o localizam por
+              este atributo — ver hooks/use-scroll-restoration.ts. */}
+          <div
+            data-scroll-root
+            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-overlay p-4 sm:p-6"
+          >
             {children}
           </div>
         </main>
