@@ -19,6 +19,7 @@ import { ArrowLeft } from "lucide-react";
 import { useMusica } from "@/hooks/use-musicas";
 import { MusicaDetail } from "@/components/MusicaDetail";
 import { ErrorState } from "@/components/ErrorState";
+import { useScrollToTopOnMount } from "@/hooks/use-scroll-restoration";
 
 /**
  * Componente da página de detalhes da música.
@@ -29,6 +30,9 @@ const SongDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // O container de rolagem é compartilhado entre páginas: garante abrir no topo.
+  useScrollToTopOnMount();
 
   /**
    * Extrai com narrowing explícito o campo `from` de `location.state` sem
