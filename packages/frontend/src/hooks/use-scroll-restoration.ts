@@ -5,7 +5,7 @@
  * interno e compartilhado entre páginas. Estes hooks salvam/restauram a posição
  * de rolagem (back/forward na SPA) e permitem abrir uma página no topo.
  */
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 /** Posições de rolagem em memória, keyed por chave de página. */
 const scrollPositions = new Map<string, number>();
@@ -22,9 +22,12 @@ function getScrollRoot(): HTMLElement | null {
 /**
  * Salva e restaura a posição de rolagem do container interno.
  *
- * - Enquanto montado, salva `scrollTop` (throttle via rAF) e também ao desmontar.
  * - Ao montar: com posição salva e `ready=true`, restaura; sem posição salva,
  *   leva ao topo (corrige o carry-over do container compartilhado).
+ * - Ao sair: salva `scrollTop` no cleanup de um `useLayoutEffect`. Isso roda na
+ *   fase de mutação do commit — **antes** de a página seguinte (ex.: `SongDetail`
+ *   com `useScrollToTopOnMount`) zerar o container compartilhado —, garantindo
+ *   que a posição salva seja a real, e não 0.
  *
  * @param key - Chave única da página (ex.: `escala:<id>`).
  * @param ready - Indica que o conteúdo carregou (altura disponível p/ restaurar).
@@ -47,20 +50,10 @@ export function useScrollRestoration(key: string, ready: boolean): void {
     restoredRef.current = true;
   }, [key, ready]);
 
-  useEffect(() => {
-    const el = getScrollRoot();
-    if (!el) return;
-    let raf = 0;
-    /** Persiste a posição atual de forma throttled (uma vez por frame). */
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => scrollPositions.set(key, el.scrollTop));
-    };
-    el.addEventListener("scroll", onScroll, { passive: true });
+  useLayoutEffect(() => {
     return () => {
-      el.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-      scrollPositions.set(key, el.scrollTop); // captura o valor final
+      const el = getScrollRoot();
+      if (el) scrollPositions.set(key, el.scrollTop);
     };
   }, [key]);
 }
