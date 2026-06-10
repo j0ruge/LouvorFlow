@@ -83,17 +83,18 @@ class UserRefreshTokenService {
             }
         }
 
-        const existingToken =
-            await refreshTokensRepository.findByUserIdAndRefreshToken(
-                sub,
-                token,
-            );
+        /**
+         * Consome o refresh token de forma atômica: a contagem de linhas removidas
+         * funciona como trava otimista. Se nada foi removido, o token já foi
+         * rotacionado por uma requisição concorrente ou não existe — o que bloqueia
+         * o double-spend (duas sessões emitidas a partir de um único refresh token).
+         */
+        const { count: consumedTokens } =
+            await refreshTokensRepository.deleteByUserIdAndRefreshToken(sub, token);
 
-        if (!existingToken) {
+        if (consumedTokens === 0) {
             throw new AppError('Refresh token não encontrado', 400);
         }
-
-        await refreshTokensRepository.deleteById(existingToken.id);
 
         // Preserva tenantId no payload do novo access token
         const accessTokenPayload: Record<string, unknown> = {};

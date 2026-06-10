@@ -24,7 +24,7 @@ class IntegrantesController {
      * Retorna um integrante (user) pelo ID com funções.
      */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
-        const integrante = await integrantesService.getById(req.params.id);
+        const integrante = await integrantesService.getById(req.params.id, req.user?.tenantId);
         res.status(200).json(integrante);
     }
 

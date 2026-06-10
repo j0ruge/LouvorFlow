@@ -263,6 +263,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     (selectedUser: AuthUser, token: string, refreshTokenValue: string, tenants?: Tenant[]) => {
       setAccessToken(token);
       setRefreshToken(refreshTokenValue);
+      /** Consome o selection_token: foi usado uma única vez e não deve persistir. */
+      sessionStorage.removeItem('selection_token');
       setUser(selectedUser);
       setCurrentTenant(selectedUser.tenant ?? null);
       if (selectedUser.tenant) {

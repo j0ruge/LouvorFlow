@@ -4869,7 +4869,7 @@
     "/convites/{token}/validate": {
       "get": {
         "summary": "Validar token de convite",
-        "description": "Valida o estado de um token de convite e retorna nome do tenant. Rota pública.",
+        "description": "Valida o estado de um token de convite e retorna nome do tenant. Rota pública com limite de taxa (30 requisições por IP a cada 15 minutos).",
         "tags": ["Convites"],
         "parameters": [
           {
@@ -4918,6 +4918,15 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "erro": "Muitas requisições. Tente novamente em alguns minutos.", "codigo": 429 }
               }
             }
           }
@@ -5003,7 +5012,7 @@
     "/convites/{token}/accept": {
       "post": {
         "summary": "Aceitar convite",
-        "description": "Aceita um convite e cria conta ou vincula conta existente ao tenant. Rota pública.",
+        "description": "Aceita um convite e cria conta ou vincula conta existente ao tenant. Rota pública com limite de taxa (10 requisições por IP a cada 15 minutos) para proteger a verificação de senha.",
         "tags": ["Convites"],
         "parameters": [
           {
@@ -5089,6 +5098,15 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ErrorResponse" },
                 "example": { "erro": "Você já pertence a este grupo.", "codigo": 409 }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "erro": "Muitas tentativas de aceitar convite. Tente novamente em alguns minutos.", "codigo": 429 }
               }
             }
           }

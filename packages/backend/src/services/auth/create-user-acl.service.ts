@@ -15,6 +15,7 @@ import rolesRepository from '../../repositories/auth/roles.repository.js';
 import permissionsRepository from '../../repositories/auth/permissions.repository.js';
 import type { ICreateUserAccessControlListDTO } from '../../types/auth.types.js';
 import { PROTECTED_ROLE_NAMES, PROTECTED_PERMISSION_NAMES } from '../../config/rbac.js';
+import prisma from '../../../prisma/cliente.js';
 
 /** DTO estendido com contexto do caller para validação de privilégios. */
 interface ICreateUserACLWithCallerDTO extends ICreateUserAccessControlListDTO {
@@ -57,6 +58,21 @@ class CreateUserAccessControlListService {
 
         if (!user) {
             throw new AppError('Usuário não encontrado', 404);
+        }
+
+        /**
+         * Isolamento de tenant: o usuário-alvo precisa pertencer ao tenant onde a ACL
+         * será aplicada. Sem esta verificação, um admin do tenant A poderia atribuir
+         * roles/permissões (escopadas ao tenant A) a um usuário de outro tenant,
+         * concedendo acesso indevido. Vale inclusive para super-admins, pois a ACL
+         * sempre opera sobre membros do tenant ativo.
+         */
+        const tenantLink = await prisma.tenantUsers.findFirst({
+            where: { user_id: userId, tenant_id: tenantId },
+            select: { id: true },
+        });
+        if (!tenantLink) {
+            throw new AppError('Usuário não pertence a esta igreja', 403);
         }
 
         const foundRoles = await rolesRepository.findByIds(roles);

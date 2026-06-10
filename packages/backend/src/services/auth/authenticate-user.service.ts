@@ -8,6 +8,7 @@
  * - 2+ tenants ativos: retorna selection_token e lista de tenants para seleção.
  */
 
+import { randomUUID } from 'node:crypto';
 import { AppError } from '../../errors/AppError.js';
 import usersRepository from '../../repositories/auth/users.repository.js';
 import hashProvider from '../../providers/hash.provider.js';
@@ -107,10 +108,11 @@ class AuthenticateUserService {
             throw new AppError('Usuário não vinculado a nenhuma igreja ativa', 401);
         }
 
-        // Fluxo de múltiplos tenants: emite selection_token para seleção no frontend
+        // Fluxo de múltiplos tenants: emite selection_token para seleção no frontend.
+        // O `jti` (identificador único) permite ao SelectTenantService garantir uso único.
         if (activeTenants.length > 1) {
             const selection_token = tokenProvider.sign(
-                { purpose: 'tenant_selection' },
+                { purpose: 'tenant_selection', jti: randomUUID() },
                 authConfig.selectionToken.secret,
                 {
                     subject: user.id,

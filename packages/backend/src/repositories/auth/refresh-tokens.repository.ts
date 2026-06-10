@@ -48,6 +48,27 @@ class RefreshTokensRepository {
     }
 
     /**
+     * Remove atomicamente o refresh token correspondente ao par (user_id, token).
+     *
+     * Usa `deleteMany`, cuja contagem de linhas afetadas atua como trava otimista:
+     * em chamadas concorrentes com o mesmo token apenas uma obtém `count === 1`
+     * (a linha é removida uma única vez pelo lock de linha do Postgres), evitando
+     * a emissão dupla de sessões durante a rotação de tokens.
+     *
+     * @param userId - UUID do usuário dono do token.
+     * @param token - Valor do refresh token a ser consumido.
+     * @returns Objeto com a contagem de registros removidos (`count`).
+     */
+    async deleteByUserIdAndRefreshToken(
+        userId: string,
+        token: string,
+    ): Promise<{ count: number }> {
+        return prisma.usersRefreshTokens.deleteMany({
+            where: { user_id: userId, refresh_token: token },
+        });
+    }
+
+    /**
      * Remove todos os refresh tokens de um usuário.
      * Utilizado em operações de logout completo ou revogação de sessões.
      *

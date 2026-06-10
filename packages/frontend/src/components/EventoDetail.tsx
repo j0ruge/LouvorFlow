@@ -615,6 +615,7 @@ export function EventoDetail() {
           id: evento.id,
           data: evento.data,
           descricao: evento.descricao,
+          cifraclub_list_url: evento.cifraclub_list_url,
           tipoEvento: evento.tipoEvento,
           musicas: evento.musicas.map((m) => ({ id: m.id, nome: m.nome })),
           integrantes: evento.integrantes.map((i) => ({ id: i.id, nome: i.nome })),
@@ -694,6 +695,7 @@ export function EventoDetail() {
                   addIntegrante.isPending ||
                   integrantesDisponiveis.length === 0
                 }
+                aria-label="Adicionar integrante ao evento"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>

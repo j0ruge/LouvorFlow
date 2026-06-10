@@ -68,6 +68,23 @@ class FakeRefreshTokensRepository {
     }
 
     /**
+     * Remove atomicamente o refresh token pelo par (user_id, token), simulando o
+     * `deleteMany` do Prisma: retorna a contagem de registros removidos, usada como
+     * trava otimista na rotação de tokens.
+     *
+     * @param userId - UUID do usuário dono do token.
+     * @param token - Valor do refresh token a ser consumido.
+     * @returns Objeto com a contagem de registros removidos (`count`).
+     */
+    async deleteByUserIdAndRefreshToken(userId: string, token: string): Promise<{ count: number }> {
+        const before = this.tokens.length;
+        this.tokens = this.tokens.filter(
+            (t) => !(t.user_id === userId && t.refresh_token === token),
+        );
+        return { count: before - this.tokens.length };
+    }
+
+    /**
      * Remove todos os refresh tokens de um usuário.
      *
      * @param userId - UUID do usuário
