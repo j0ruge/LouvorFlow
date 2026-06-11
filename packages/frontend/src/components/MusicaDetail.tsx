@@ -142,6 +142,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
             cifras: dados.cifras,
             lyrics: dados.lyrics,
             link_versao: dados.link_versao,
+            cifraclub_url: dados.cifraclub_url,
             intensidade: dados.intensidade,
           },
         },
