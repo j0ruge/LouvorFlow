@@ -240,7 +240,7 @@ start_postgres() {
 
     # Read container name from .env
     local container_name
-    container_name=$(grep -E "^CONTAINER_NAME=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+    container_name=$(grep -E "^CONTAINER_NAME=" "$env_file" 2>/dev/null | cut -d'=' -f2 | tr -d '\r')
     container_name="${container_name:-louvorflow_db}"
 
     # Check if our container is already running (identity-based, not port-based)
@@ -251,7 +251,7 @@ start_postgres() {
 
     # Read configured port
     local pg_port
-    pg_port=$(grep -E "^POSTGRES_LOCAL_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+    pg_port=$(grep -E "^POSTGRES_LOCAL_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2 | tr -d '\r')
     pg_port="${pg_port:-35432}"
 
     # Check if port is occupied by another process
@@ -285,15 +285,15 @@ healthcheck_postgres() {
     local env_file="$INFRA_DIR/.env"
 
     local container_name
-    container_name=$(grep -E "^CONTAINER_NAME=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+    container_name=$(grep -E "^CONTAINER_NAME=" "$env_file" 2>/dev/null | cut -d'=' -f2 | tr -d '\r')
     container_name="${container_name:-louvorflow_db}"
 
     local db_user
-    db_user=$(grep -E "^POSTGRES_USERNAME=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+    db_user=$(grep -E "^POSTGRES_USERNAME=" "$env_file" 2>/dev/null | cut -d'=' -f2 | tr -d '\r')
     db_user="${db_user:-admin}"
 
     local pg_port
-    pg_port=$(grep -E "^POSTGRES_LOCAL_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2)
+    pg_port=$(grep -E "^POSTGRES_LOCAL_PORT=" "$env_file" 2>/dev/null | cut -d'=' -f2 | tr -d '\r')
     pg_port="${pg_port:-35432}"
 
     local max_attempts=30
