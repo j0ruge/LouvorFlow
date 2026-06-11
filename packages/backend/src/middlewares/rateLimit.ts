@@ -43,6 +43,11 @@ const SWEEP_THRESHOLD = 10_000;
 export function rateLimit({ windowMs, max, message }: RateLimitOptions) {
     /** Contagens por IP, indexadas pelo endereço do cliente. */
     const hits = new Map<string, HitEntry>();
+    /**
+     * Timestamp (ms) da última varredura de limpeza. Inicia em 0 para permitir
+     * uma primeira varredura imediata assim que o limite de chaves for ultrapassado.
+     */
+    let lastSweep = 0;
 
     /**
      * Middleware que contabiliza a requisição do IP e bloqueia ao exceder o limite.
@@ -56,8 +61,15 @@ export function rateLimit({ windowMs, max, message }: RateLimitOptions) {
         const now = Date.now();
         const key = req.ip ?? req.socket.remoteAddress ?? 'unknown';
 
-        /** Limpeza preguiçosa para evitar crescimento ilimitado do mapa. */
-        if (hits.size > SWEEP_THRESHOLD) {
+        /**
+         * Limpeza preguiçosa e espaçada (no máximo uma vez por minuto) para evitar
+         * o crescimento ilimitado do mapa sem varrer todas as entradas a cada
+         * requisição. Sem o throttle, sob carga com mais de `SWEEP_THRESHOLD` IPs
+         * ativos o `Map` permaneceria acima do limite e o loop rodaria em toda
+         * requisição, bloqueando o event loop e abrindo espaço para DoS auto-infligido.
+         */
+        if (hits.size > SWEEP_THRESHOLD && now - lastSweep > 60_000) {
+            lastSweep = now;
             for (const [k, v] of hits) {
                 if (v.resetAt <= now) hits.delete(k);
             }

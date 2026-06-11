@@ -28,12 +28,25 @@ function getScrollRoot(): HTMLElement | null {
  *   fase de mutação do commit — **antes** de a página seguinte (ex.: `SongDetail`
  *   com `useScrollToTopOnMount`) zerar o container compartilhado —, garantindo
  *   que a posição salva seja a real, e não 0.
+ * - Ao trocar de `key` sem desmontar (ex.: o React Router reaproveita a instância
+ *   ao navegar de `/escalas/1` para `/escalas/2`): o flag de "já restaurado" é
+ *   resetado no render para que a nova página seja restaurada/zerada corretamente.
  *
  * @param key - Chave única da página (ex.: `escala:<id>`).
  * @param ready - Indica que o conteúdo carregou (altura disponível p/ restaurar).
  */
 export function useScrollRestoration(key: string, ready: boolean): void {
   const restoredRef = useRef(false);
+  /** Última `key` processada; ao mudar, reseta o flag para tratar a nova página. */
+  const lastKeyRef = useRef(key);
+
+  // Reset síncrono durante o render: se a `key` mudou sem o componente
+  // desmontar, `restoredRef` ainda estaria `true` da página anterior e o efeito
+  // de restauração sairia cedo, deixando a nova página com o scroll herdado.
+  if (lastKeyRef.current !== key) {
+    lastKeyRef.current = key;
+    restoredRef.current = false;
+  }
 
   useLayoutEffect(() => {
     if (restoredRef.current) return;

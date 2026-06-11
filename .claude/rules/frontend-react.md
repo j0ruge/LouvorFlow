@@ -208,15 +208,24 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
   - `useScrollRestoration(key, ready)` (`hooks/use-scroll-restoration.ts`): salva/restaura
     a posição ao voltar. Usar em páginas-lista/detalhe onde o usuário deve retomar
     "onde estava" (ex.: `EventoDetail` com `key = \`escala:${id}\``; `ready = !isLoading && !!data`).
+    Reseta o flag interno de "já restaurado" no render quando a `key` muda, para tratar
+    o caso de o React Router reaproveitar a instância ao navegar entre detalhes
+    (ex.: `/escalas/1` → `/escalas/2`) sem desmontar o componente.
   - `useScrollToTopOnMount()`: chamar em páginas de detalhe para abrir no topo,
     evitando herdar o `scrollTop` da página anterior (ex.: `SongDetail`).
 - **Card clicável que navega ao detalhe** (padrão de `Songs.tsx`/`EventoDetail.tsx`):
   card inteiro com `role="button"`, `tabIndex={0}`, `onClick` e
   `onKeyDown={handleClickableKeyDown(...)}` (de `@/lib/utils`), `cursor-pointer` +
-  `hover:shadow-medium hover:border-primary/30`. Controles internos (botões, grip de
-  arraste, popovers como o seletor de versão) devem chamar `e.stopPropagation()` para
-  não disparar a navegação. Navegar preservando a origem em
+  `hover:shadow-medium hover:border-primary/30`. Navegar preservando a origem em
   `navigate(path, { state: { from: location.pathname } })`.
+  - **Isolamento de controles internos** (botões, grip de arraste, popovers como o
+    seletor de versão): no **clique**, cada controle interno chama `e.stopPropagation()`
+    no seu `onClick`. No **teclado**, como o `keydown` faz bubble até o card, prefira um
+    **guard de `currentTarget`** no `onKeyDown` do card —
+    `if (e.target === e.currentTarget) handleClickableKeyDown(onOpen)(e)` — em vez de
+    `stopPropagation` por controle: uma única guarda cobre grip, picker e botão de
+    remover de uma vez (DRY) e evita navegação inesperada ao acionar Enter/Espaço num
+    controle interno (a11y). Ver `EventoDetail.tsx` (`SortableMusicaCard`).
 
 ## Convenções de Código
 

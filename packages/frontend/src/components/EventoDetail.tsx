@@ -116,7 +116,15 @@ export function SortableMusicaCard({
       ref={setNodeRef}
       style={style}
       onClick={() => onOpen(musica.id)}
-      onKeyDown={handleClickableKeyDown(() => onOpen(musica.id))}
+      onKeyDown={(e) => {
+        // Só navega quando o foco está no próprio card. Enter/Espaço disparados
+        // em controles internos (grip de arraste, seletor de versão, botão de
+        // remover) fazem bubble do keydown até aqui; o guard de currentTarget
+        // evita a navegação inesperada para todos eles de uma só vez.
+        if (e.target === e.currentTarget) {
+          handleClickableKeyDown(() => onOpen(musica.id))(e);
+        }
+      }}
       role="button"
       tabIndex={0}
       aria-label={`Abrir detalhes da música ${musica.nome}`}

@@ -80,4 +80,23 @@ describe("SortableMusicaCard", () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
     expect(onOpen).not.toHaveBeenCalled();
   });
+
+  /**
+   * Enter/Espaço em controles internos (grip de arraste, botão de remover) NÃO
+   * deve navegar: o keydown faz bubble até o card, mas o guard de `currentTarget`
+   * no `onKeyDown` do card ignora eventos cujo alvo não seja o próprio card.
+   */
+  it("teclado em controle interno não navega (guard de currentTarget)", () => {
+    const onOpen = vi.fn();
+    renderCard({ onOpen, onRemove: vi.fn() });
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: /arrastar para reordenar/i }),
+      { key: "Enter" },
+    );
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: /remover música/i }),
+      { key: " " },
+    );
+    expect(onOpen).not.toHaveBeenCalled();
+  });
 });
