@@ -69,6 +69,7 @@ describe('EventosService', () => {
         id: 'jjj00002-0000-0000-0000-000000000001',
         artista_nome: 'Aline Barros',
         link_versao: 'https://exemplo.com/rendido-aline',
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
       });
     });
 
@@ -111,6 +112,7 @@ describe('EventosService', () => {
         id: 'jjj00002-0000-0000-0000-000000000004',
         artista_nome: null,
         link_versao: null,
+        cifraclub_url: null,
       });
     });
   });
@@ -205,6 +207,71 @@ describe('EventosService', () => {
       await expect(eventosService.update(MOCK_EVENTOS[0].id, {})).rejects.toMatchObject({
         statusCode: 400,
         message: 'Ao menos um campo deve ser enviado para atualização',
+      });
+    });
+
+    /** Constante de URL de lista CifraClub válida reutilizada nos testes. */
+    const LISTA_URL = 'https://www.cifraclub.com.br/musico/123/repertorio/456/';
+
+    /** Deve definir a cifraclub_list_url e registrar o timestamp de atualização. */
+    it('deve definir cifraclub_list_url e registrar o timestamp', async () => {
+      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
+      expect(result.cifraclub_list_url).toBe(LISTA_URL);
+      expect(result.cifraclub_list_url_updated_at).toBeInstanceOf(Date);
+    });
+
+    /**
+     * Regressão M3: reenviar a MESMA cifraclub_list_url (sem outros campos) é um
+     * no-op idempotente — não deve lançar "Ao menos um campo deve ser enviado".
+     */
+    it('não lança 400 ao reenviar a mesma cifraclub_list_url (no-op idempotente)', async () => {
+      await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
+      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
+      expect(result.cifraclub_list_url).toBe(LISTA_URL);
+    });
+
+    /** Deve limpar a cifraclub_list_url e o timestamp quando null é enviado. */
+    it('deve limpar cifraclub_list_url e timestamp quando null é enviado', async () => {
+      await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
+      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: null });
+      expect(result.cifraclub_list_url).toBeNull();
+      expect(result.cifraclub_list_url_updated_at).toBeNull();
+    });
+  });
+
+  // ─── getCifraclubPlaylist ───────────────────────────────
+  describe('getCifraclubPlaylist', () => {
+    /** Deve montar a playlist com stats coerentes (total = com_link + sem_link). */
+    it('deve montar a playlist com stats coerentes', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      expect(result).toHaveProperty('evento');
+      expect(result).toHaveProperty('playlist');
+      expect(result).toHaveProperty('stats');
+      expect(result.stats.total).toBe(result.playlist.length);
+      expect(result.stats.com_link + result.stats.sem_link).toBe(result.stats.total);
+      expect(typeof result.evento.data).toBe('string');
+    });
+
+    /** Deve enriquecer com cifraclub_url a música cuja versão selecionada possui link. */
+    it('inclui cifraclub_url nas músicas com versão com link', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const comLink = result.playlist.filter(p => p.cifraclub_url !== null);
+      expect(comLink.length).toBe(result.stats.com_link);
+      expect(comLink.length).toBeGreaterThan(0);
+      expect(comLink[0].cifraclub_url).toContain('cifraclub.com.br');
+    });
+
+    it('deve lançar AppError 400 quando id não é enviado', async () => {
+      await expect(eventosService.getCifraclubPlaylist('')).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'ID de evento não enviado',
+      });
+    });
+
+    it('deve lançar AppError 404 quando evento não existe', async () => {
+      await expect(eventosService.getCifraclubPlaylist(NON_EXISTENT_ID)).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
       });
     });
   });
@@ -311,6 +378,7 @@ describe('EventosService', () => {
         id: versaoId,
         artista_nome: 'Aline Barros',
         link_versao: 'https://exemplo.com/rendido-aline',
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
       });
     });
 
@@ -442,6 +510,7 @@ describe('EventosService', () => {
         id: versaoId,
         artista_nome: 'Gabriela Rocha',
         link_versao: null,
+        cifraclub_url: null,
       });
     });
 
@@ -520,6 +589,7 @@ describe('EventosService', () => {
           id: versaoId,
           artista_nome: 'Fernandinho',
           link_versao: 'https://exemplo.com/rendido-fernandinho',
+          cifraclub_url: null,
         },
         versoes_disponiveis: expect.any(Array),
       }));

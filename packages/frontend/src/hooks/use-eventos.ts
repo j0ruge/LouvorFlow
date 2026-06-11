@@ -52,14 +52,19 @@ export function useEvento(id: string) {
 /**
  * Hook para buscar a playlist CifraClub de um evento.
  *
+ * O parâmetro `enabled` permite carregamento preguiçoso: o consumidor deve passar
+ * `false` enquanto o diálogo está fechado para evitar uma requisição em toda
+ * visualização do detalhe do evento (a busca só dispara quando o diálogo abre).
+ *
  * @param eventoId - UUID do evento.
+ * @param enabled - Se a query deve ser executada (padrão: true).
  * @returns Resultado do useQuery com a playlist CifraClub.
  */
-export function useCifraclubPlaylist(eventoId: string) {
+export function useCifraclubPlaylist(eventoId: string, enabled = true) {
   return useQuery({
     queryKey: ["eventos", eventoId, "cifraclub-playlist"],
     queryFn: () => getCifraclubPlaylist(eventoId),
-    enabled: !!eventoId,
+    enabled: !!eventoId && enabled,
   });
 }
 

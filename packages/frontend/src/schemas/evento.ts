@@ -8,6 +8,30 @@
 import { z } from "zod";
 import { IdNomeSchema, TonalidadeSchema } from "@/schemas/shared";
 
+/**
+ * Refine de URL para RESPOSTAS da API: aceita vazio ("") ou protocolo http/https.
+ * Camada de defesa em profundidade contra protocolos perigosos (`javascript:`,
+ * `data:`); a renderização ainda deve usar `isSafeUrl()` antes de aplicar a URL
+ * em `href`. É intencionalmente lenient (não usa `.url()`) para não quebrar o
+ * parse de toda a resposta caso o backend retorne uma URL ligeiramente fora do
+ * padrão — apenas protocolos inseguros são rejeitados aqui.
+ */
+const httpUrlOrEmpty = (val: string) => val === "" || /^https?:\/\//i.test(val);
+
+/**
+ * Campo de URL de lista CifraClub para FORMULÁRIOS (entrada do usuário).
+ * Estrito: `.url()` exige URL estruturalmente válida com host (rejeita "https://")
+ * e o refine garante protocolo http/https. Aceita "", null ou ausente como
+ * "não informado".
+ */
+const cifraclubListUrlFormField = z
+  .string()
+  .url("URL inválida")
+  .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
+  .or(z.literal(""))
+  .nullable()
+  .optional();
+
 /** Schema de versão de música (artista + link) no contexto de evento. */
 export const VersaoMusicaSchema = z.object({
   id: z.string().uuid(),
@@ -15,7 +39,7 @@ export const VersaoMusicaSchema = z.object({
   link_versao: z.string().nullable(),
   /** URL da cifra no CifraClub. Nulo quando não informado. */
   cifraclub_url: z.string().refine(
-    (val) => val === "" || /^https?:\/\//i.test(val),
+    httpUrlOrEmpty,
     "URL deve usar protocolo http ou https",
   ).nullable().default(null),
 });
@@ -51,7 +75,12 @@ export const EventoIndexSchema = z.object({
   id: z.string().uuid(),
   data: z.string(),
   descricao: z.string(),
-  cifraclub_list_url: z.string().nullable().default(null),
+  /** URL da lista do repertório no CifraClub. Nula quando não configurada. */
+  cifraclub_list_url: z
+    .string()
+    .refine(httpUrlOrEmpty, "URL deve usar protocolo http ou https")
+    .nullable()
+    .default(null),
   tipoEvento: IdNomeSchema.nullable(),
   musicas: z.array(IdNomeSchema),
   integrantes: z.array(IdNomeSchema),
@@ -65,8 +94,15 @@ export const EventoShowSchema = z.object({
   id: z.string().uuid(),
   data: z.string(),
   descricao: z.string(),
-  cifraclub_list_url: z.string().nullable().default(null),
+  /** URL da lista do repertório no CifraClub. Nula quando não configurada. */
+  cifraclub_list_url: z
+    .string()
+    .refine(httpUrlOrEmpty, "URL deve usar protocolo http ou https")
+    .nullable()
+    .default(null),
+  /** Data/hora (ISO) da última sincronização da lista CifraClub. */
   cifraclub_list_url_updated_at: z.string().nullable().default(null),
+  /** Heurística best-effort: true quando a lista pode estar desatualizada em relação às músicas. */
   cifraclub_list_url_stale: z.boolean().default(false),
   tipoEvento: IdNomeSchema.nullable(),
   musicas: z.array(MusicaEventoSchema),
@@ -81,7 +117,13 @@ const EventoResponseBaseSchema = z.object({
   id: z.string().uuid(),
   data: z.string(),
   descricao: z.string(),
-  cifraclub_list_url: z.string().nullable().default(null),
+  /** URL da lista do repertório no CifraClub. Nula quando não configurada. */
+  cifraclub_list_url: z
+    .string()
+    .refine(httpUrlOrEmpty, "URL deve usar protocolo http ou https")
+    .nullable()
+    .default(null),
+  /** Data/hora (ISO) da última sincronização da lista CifraClub. */
   cifraclub_list_url_updated_at: z.string().nullable().default(null),
   tipoEvento: IdNomeSchema.nullable(),
 });
@@ -115,10 +157,7 @@ export const CreateEventoFormSchema = z.object({
   ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento"),
   descricao: z.string().optional().default(""),
-  cifraclub_list_url: z.string().refine(
-    (val) => val === "" || /^https?:\/\//i.test(val),
-    "URL deve usar protocolo http ou https",
-  ).nullable().optional().default(null),
+  cifraclub_list_url: cifraclubListUrlFormField.default(null),
 });
 
 /** Tipo inferido dos dados do formulário de criação de evento. */
@@ -136,10 +175,7 @@ export const UpdateEventoFormSchema = z.object({
   ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento").optional(),
   descricao: z.string().optional(),
-  cifraclub_list_url: z.string().refine(
-    (val) => val === "" || /^https?:\/\//i.test(val),
-    "URL deve usar protocolo http ou https",
-  ).nullable().optional(),
+  cifraclub_list_url: cifraclubListUrlFormField,
 });
 
 /** Tipo inferido dos dados do formulário de edição de evento. */

@@ -4,7 +4,8 @@
  * Usa react-hook-form com resolver Zod para validação,
  * popula o select de tipos de evento via hook `useTiposEventos`,
  * e redireciona para a página de detalhe após sucesso na criação.
- * Suporta modo edição via prop `evento`.
+ * Suporta modo edição via prop `evento`. Inclui o campo opcional de URL da lista
+ * CifraClub (`cifraclub_list_url`), normalizado para `null` quando vazio.
  */
 
 import { useEffect } from "react";
@@ -251,10 +252,10 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
                   <FormControl>
                     <Input
                       type="url"
-                      placeholder="https://www.cifraclub.com.br/musico/.../repertorio/.../"
+                      placeholder="https://www.cifraclub.com.br/musico/.../repertorio/..."
                       className="w-full"
                       value={field.value ?? ""}
-                      onChange={(e) => field.onChange(e.target.value || null)}
+                      onChange={(e) => field.onChange(e.target.value.trim() || null)}
                     />
                   </FormControl>
                   <FormMessage />

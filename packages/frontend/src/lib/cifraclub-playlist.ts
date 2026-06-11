@@ -4,7 +4,7 @@
  */
 
 /** Item da playlist CifraClub. */
-interface PlaylistItem {
+export interface PlaylistItem {
   ordem: number;
   nome: string;
   tom_final: string | null;
@@ -12,15 +12,20 @@ interface PlaylistItem {
   cifraclub_url: string | null;
 }
 
-/** Stats da playlist. */
-interface PlaylistStats {
+/** Estatísticas de cobertura da playlist (contrato do backend). */
+export interface PlaylistStats {
   total: number;
   com_link: number;
+  /**
+   * Quantidade de músicas sem cifra cadastrada. Faz parte do contrato de stats
+   * retornado pelo backend; o formatador deriva a cobertura de `com_link`/`total`,
+   * portanto este campo é mantido por fidelidade ao contrato (não é renderizado).
+   */
   sem_link: number;
 }
 
 /** Dados do evento para formatação. */
-interface EventoInfo {
+export interface EventoInfo {
   data: string;
   descricao: string;
   tipo_evento: string;

@@ -5,7 +5,7 @@
  */
 
 /** Tabela cromática absoluta: nota canônica CifraClub → índice 0..11 */
-export const CHROMATIC_MAP: Record<string, number> = {
+export const CHROMATIC_MAP: Readonly<Record<string, number>> = {
   A: 0,
   Bb: 1,
   B: 2,
@@ -21,7 +21,7 @@ export const CHROMATIC_MAP: Record<string, number> = {
 }
 
 /** Mapeamento de enarmônicos para a grafia canônica do CifraClub */
-export const ENHARMONIC_MAP: Record<string, string> = {
+export const ENHARMONIC_MAP: Readonly<Record<string, string>> = {
   'A#': 'Bb',
   'C#': 'Db',
   'D#': 'Eb',
@@ -41,7 +41,7 @@ export function computeKeyFragment(
 ): { N: number; tomFinal: string } | null {
   if (!tom || tom.trim() === '') return null
 
-  let normalized = tom.trim().replace(/♭/g, 'b').replace(/♯/g, '#')
+  const normalized = tom.trim().replace(/♭/g, 'b').replace(/♯/g, '#')
 
   const match = normalized.match(/^([A-Ga-g][#b]?)/)
   if (!match) return null
@@ -73,7 +73,14 @@ export function applyKeyFragment(
 ): { url: string; tomAjustado: boolean } {
   if (!url) return { url, tomAjustado: false }
 
-  const isCifraClub = url.toLowerCase().includes('cifraclub.com.br')
+  // Valida o host real (não substring): `includes('cifraclub.com.br')` aceitaria
+  // URLs como `https://evil.com?x=cifraclub.com.br`. URLs malformadas são ignoradas.
+  let isCifraClub = false
+  try {
+    isCifraClub = new URL(url).hostname.toLowerCase().endsWith('cifraclub.com.br')
+  } catch {
+    return { url, tomAjustado: false }
+  }
   if (!isCifraClub) return { url, tomAjustado: false }
 
   const result = computeKeyFragment(tom)

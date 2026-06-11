@@ -225,6 +225,13 @@ class MusicasRepository {
 
     // --- Versoes (artistas_musicas) ---
 
+    /**
+     * Lista todas as versões (artistas_musicas) de uma música, projetando os
+     * campos de versão incluindo `cifraclub_url` e o artista vinculado.
+     *
+     * @param musicaId - UUID da música.
+     * @returns Lista de versões com bpm, cifras, lyrics, links e artista.
+     */
     async findVersoes(musicaId: string) {
         return getPrisma().artistas_Musicas.findMany({
             where: { musica_id: musicaId },

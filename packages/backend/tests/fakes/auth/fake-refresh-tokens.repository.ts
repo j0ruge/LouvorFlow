@@ -97,6 +97,42 @@ class FakeRefreshTokensRepository {
     }
 
     /**
+     * Rotaciona atomicamente o token (simula a transação do Prisma): consome o
+     * token antigo via trava otimista e, se removido, cria o novo.
+     *
+     * @param userId - UUID do usuário dono do token.
+     * @param oldToken - Refresh token a ser consumido.
+     * @param newData - Dados do novo refresh token a persistir.
+     * @returns Objeto com a contagem de registros removidos (`count`).
+     */
+    async rotateAtomic(
+        userId: string,
+        oldToken: string,
+        newData: { user_id: string; expires_date: Date; refresh_token: string },
+    ): Promise<{ count: number }> {
+        const { count } = await this.deleteByUserIdAndRefreshToken(userId, oldToken);
+        if (count === 0) return { count: 0 };
+        await this.create(newData);
+        return { count };
+    }
+
+    /**
+     * Substitui atomicamente todos os tokens do usuário por um novo (simula a
+     * transação do Prisma): remove todos e cria o novo.
+     *
+     * @param userId - UUID do usuário.
+     * @param newData - Dados do novo refresh token a persistir.
+     * @returns Registro de refresh token criado.
+     */
+    async replaceAllByUserId(
+        userId: string,
+        newData: { user_id: string; expires_date: Date; refresh_token: string },
+    ) {
+        await this.deleteAllByUserId(userId);
+        return this.create(newData);
+    }
+
+    /**
      * Reinicia o array de tokens em memória.
      * Utilizado entre testes para garantir isolamento.
      */

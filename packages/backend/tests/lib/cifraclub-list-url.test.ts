@@ -115,5 +115,23 @@ describe('cifraclub-list-url', () => {
         validateCifraclubListUrl('https://www.cifraclub.com.br/musico/abc/repertorio/456/').valid,
       ).toBe(false)
     })
+
+    /**
+     * Regressão do bug do regex `(\\?[^#]*)?` (backslash opcional em vez de `?`
+     * literal): lixo no final da URL, sem `?` iniciando query string, NÃO pode
+     * ser aceito. Antes da correção, `.../456/junkdata` validava como verdadeiro.
+     */
+    it('rejeita lixo no final da URL (sem query string)', () => {
+      expect(
+        validateCifraclubListUrl(
+          'https://www.cifraclub.com.br/musico/123/repertorio/456/junkdata',
+        ).valid,
+      ).toBe(false)
+      expect(
+        validateCifraclubListUrl(
+          'https://www.cifraclub.com.br/musico/123/repertorio/456junk',
+        ).valid,
+      ).toBe(false)
+    })
   })
 })

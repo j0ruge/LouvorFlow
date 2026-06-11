@@ -56,8 +56,13 @@ export function is(roles: string[]) {
             req.user.roles = await usersRepository.getUserRoles(req.user.id, req.user.tenantId);
         }
 
+        /**
+         * Comparação case-insensitive: normaliza ambos os lados para evitar que
+         * uma role gravada como "Admin" falhe contra um guard `is(['admin'])`.
+         */
+        const requiredRoles = roles.map((role) => role.toLowerCase());
         const hasRole = req.user.roles.some((userRole) =>
-            roles.includes(userRole.name),
+            requiredRoles.includes(userRole.name.toLowerCase()),
         );
 
         if (!hasRole) {

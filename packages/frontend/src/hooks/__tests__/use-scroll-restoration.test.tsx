@@ -10,6 +10,7 @@ import { renderHook } from "@testing-library/react";
 import {
   useScrollRestoration,
   useScrollToTopOnMount,
+  clearScrollPositions,
 } from "@/hooks/use-scroll-restoration";
 
 /**
@@ -29,6 +30,25 @@ function mockScrollRoot() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  // O Map de posições é global ao módulo; limpa entre testes para isolamento.
+  clearScrollPositions();
+});
+
+/** Verifica que clearScrollPositions descarta posições salvas anteriormente. */
+describe("clearScrollPositions", () => {
+  /** Após limpar, a chave antes salva volta a levar o container ao topo. */
+  it("descarta posições salvas", () => {
+    const { el } = mockScrollRoot();
+    const a = renderHook(() => useScrollRestoration("escala:clear", true));
+    el.scrollTop = 400;
+    a.unmount(); // salva 400 para "escala:clear"
+
+    clearScrollPositions();
+
+    el.scrollTop = 0;
+    renderHook(() => useScrollRestoration("escala:clear", true));
+    expect(el.scrollTop).toBe(0); // sem posição salva → topo
+  });
 });
 
 describe("useScrollRestoration", () => {

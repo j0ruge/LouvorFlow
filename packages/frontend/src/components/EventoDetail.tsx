@@ -80,6 +80,14 @@ import type { MusicaEvento } from "@/schemas/evento";
  * Exibe badge de posição, grip handle (para usuários com permissão) e botão de remoção.
  * O card inteiro é clicável e navega ao detalhe da música via `onOpen`; o grip,
  * o botão de remoção e o seletor de versão usam `stopPropagation` para não navegar.
+ *
+ * @param musica - Música do evento (com versão selecionada e disponíveis).
+ * @param canWrite - Se o usuário tem permissão de escrita (exibe grip/remoção).
+ * @param onRemove - Callback para remover a música do evento.
+ * @param isPending - Se há uma mutação em andamento (desabilita ações).
+ * @param eventoId - UUID do evento ao qual a música pertence.
+ * @param onOpen - Callback invocado com o ID da música ao ativar o card (clique/Enter),
+ *   navegando para a página de detalhe da música.
  */
 export function SortableMusicaCard({
   musica,

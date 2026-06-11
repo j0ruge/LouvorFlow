@@ -218,13 +218,13 @@ class AuthenticateUserService {
         );
 
         /**
-         * Invalida TODOS os refresh tokens do usuário (todos os dispositivos/sessões).
-         * Comportamento intencional: ao logar, selecionar tenant ou trocar tenant,
-         * todas as sessões anteriores são encerradas por segurança.
+         * Invalida TODOS os refresh tokens do usuário (todos os dispositivos/sessões)
+         * e cria a nova sessão atomicamente. Comportamento intencional: ao logar,
+         * selecionar tenant ou trocar tenant, todas as sessões anteriores são
+         * encerradas por segurança. A operação é atômica para que uma falha ao criar
+         * o novo token não deixe o usuário sem nenhuma sessão válida (rollback).
          */
-        await refreshTokensRepository.deleteAllByUserId(user.id);
-
-        await refreshTokensRepository.create({
+        await refreshTokensRepository.replaceAllByUserId(user.id, {
             user_id: user.id,
             refresh_token,
             expires_date,

@@ -24,7 +24,16 @@ class IntegrantesController {
      * Retorna um integrante (user) pelo ID com funções.
      */
     async show(req: Request<{ id: string }>, res: Response): Promise<void> {
-        const integrante = await integrantesService.getById(req.params.id, req.user?.tenantId);
+        /**
+         * Garante o tenant ativo antes de buscar. Sem essa guarda, um `tenantId`
+         * ausente faria o repositório aplicar `where: undefined` em Users_Funcoes,
+         * retornando funções de todos os tenants (vazamento cross-tenant). Espelha
+         * a guarda de `index()`.
+         */
+        if (!req.user?.tenantId) {
+            throw new AppError('Contexto de tenant ausente', 403);
+        }
+        const integrante = await integrantesService.getById(req.params.id, req.user.tenantId);
         res.status(200).json(integrante);
     }
 

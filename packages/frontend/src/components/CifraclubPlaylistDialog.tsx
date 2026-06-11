@@ -32,6 +32,43 @@ import { isSafeUrl } from "@/lib/utils";
 /** Limite seguro para URLs wa.me (evita truncamento). */
 const WHATSAPP_URL_SAFE_LIMIT = 3800;
 
+/**
+ * Copia um texto para a área de transferência tratando rejeições da Clipboard API
+ * (contexto inseguro, permissão negada no mobile). Exibe toast de erro em falha.
+ *
+ * @param text - Texto a copiar.
+ * @returns `true` se a cópia foi concluída, `false` caso contrário.
+ */
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    toast.error("Não foi possível copiar. Tente novamente ou copie manualmente.");
+    return false;
+  }
+}
+
+/**
+ * Compartilha um texto via WhatsApp (wa.me). Se a URL ultrapassar o limite seguro,
+ * copia o texto para a área de transferência como fallback. Usa `noopener,noreferrer`
+ * para isolar a janela aberta.
+ *
+ * @param text - Texto da mensagem a compartilhar.
+ */
+async function shareViaWhatsApp(text: string): Promise<void> {
+  const encoded = encodeURIComponent(text);
+  if (encoded.length > WHATSAPP_URL_SAFE_LIMIT) {
+    if (await copyToClipboard(text)) {
+      toast.error(
+        "Mensagem muito longa para o WhatsApp. O texto foi copiado para a área de transferência.",
+      );
+    }
+    return;
+  }
+  window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener,noreferrer");
+}
+
 /** Propriedades do componente CifraclubPlaylistDialog. */
 interface CifraclubPlaylistDialogProps {
   /** UUID do evento. */
@@ -49,16 +86,19 @@ interface CifraclubPlaylistDialogProps {
 export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { data, isLoading } = useCifraclubPlaylist(eventoId);
+  // Carregamento preguiçoso: só busca a playlist quando o diálogo está aberto,
+  // evitando uma requisição em toda visualização do detalhe do evento.
+  const { data, isLoading } = useCifraclubPlaylist(eventoId, open);
 
-  /** Copia a playlist formatada para o clipboard. */
+  /** Copia a playlist formatada para o clipboard, tratando falhas da Clipboard API. */
   async function handleCopy() {
     if (!data) return;
     const text = formatCifraclubPlaylist(data.evento, data.playlist, data.stats);
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast.success("Playlist copiada para a área de transferência");
-    setTimeout(() => setCopied(false), 3000);
+    if (await copyToClipboard(text)) {
+      setCopied(true);
+      toast.success("Playlist copiada para a área de transferência");
+      setTimeout(() => setCopied(false), 3000);
+    }
   }
 
   /** Compartilha o link único da lista CifraClub via WhatsApp. */
@@ -69,30 +109,14 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
       data: data.evento.data,
       cifraclub_list_url: data.cifraclub_list_url,
     });
-    const encoded = encodeURIComponent(text);
-
-    if (encoded.length > WHATSAPP_URL_SAFE_LIMIT) {
-      navigator.clipboard.writeText(text);
-      toast.error("Mensagem muito longa para o WhatsApp. O texto foi copiado para a área de transferência.");
-      return;
-    }
-
-    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+    void shareViaWhatsApp(text);
   }
 
   /** Compartilha a playlist via WhatsApp. */
   function handleWhatsApp() {
     if (!data) return;
     const text = formatCifraclubPlaylist(data.evento, data.playlist, data.stats);
-    const encoded = encodeURIComponent(text);
-
-    if (encoded.length > WHATSAPP_URL_SAFE_LIMIT) {
-      navigator.clipboard.writeText(text);
-      toast.error("Mensagem muito longa para o WhatsApp. O texto foi copiado para a área de transferência.");
-      return;
-    }
-
-    window.open(`https://wa.me/?text=${encoded}`, "_blank");
+    void shareViaWhatsApp(text);
   }
 
   const dataFormatada = data
@@ -144,8 +168,8 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
                     {item.ordem}.
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-medium truncate">{item.nome}</span>
+                    <div className="flex min-w-0 items-center gap-1.5 flex-wrap">
+                      <span className="font-medium truncate min-w-0">{item.nome}</span>
                       {item.tom_final && (
                         <Badge variant="outline" className="text-xs flex-shrink-0">
                           {item.tom_final}
@@ -186,6 +210,7 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
             size="sm"
             onClick={handleCopy}
             disabled={actionsDisabled}
+            aria-label={copied ? "Links copiados" : "Copiar links das cifras"}
           >
             {copied ? <Check className="h-4 w-4 sm:mr-1" /> : <Copy className="h-4 w-4 sm:mr-1" />}
             <span className="hidden sm:inline">
@@ -197,15 +222,17 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
             size="sm"
             onClick={handleWhatsApp}
             disabled={actionsDisabled}
+            aria-label="Compartilhar playlist via WhatsApp"
           >
             <span className="hidden sm:inline">WhatsApp</span>
-            <span className="sm:hidden">WA</span>
+            <span className="sm:hidden" aria-hidden="true">WA</span>
           </Button>
           {data?.cifraclub_list_url ? (
             <Button
               variant="outline"
               size="sm"
               onClick={handleListShare}
+              aria-label="Compartilhar lista no CifraClub via WhatsApp"
             >
               <ListMusic className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Lista no CifraClub</span>
@@ -219,6 +246,7 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
             variant="ghost"
             size="sm"
             onClick={() => setOpen(false)}
+            aria-label="Fechar diálogo"
           >
             <X className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Fechar</span>

@@ -11,6 +11,18 @@ import { useLayoutEffect, useRef } from "react";
 const scrollPositions = new Map<string, number>();
 
 /**
+ * Limpa todas as posições de rolagem salvas.
+ *
+ * Deve ser chamada no logout e na troca de tenant: o `Map` é global ao processo
+ * e keyed apenas pela chave da página (ex.: `escala:1`), então sem a limpeza uma
+ * página de mesmo id em outro tenant poderia restaurar a rolagem do tenant
+ * anterior. Também evita o crescimento ilimitado do `Map` ao longo da sessão.
+ */
+export function clearScrollPositions(): void {
+  scrollPositions.clear();
+}
+
+/**
  * Localiza o container de rolagem interno (`<div data-scroll-root>` do AppLayout).
  *
  * @returns O elemento de rolagem, ou null se ainda não montado.

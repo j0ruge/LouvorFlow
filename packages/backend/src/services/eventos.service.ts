@@ -78,6 +78,12 @@ function formatEventoIndex(e: EventoIndexRaw) {
  * @returns Objeto formatado com músicas, integrantes com funções do evento, e `cifraclub_list_url_stale` (true quando alguma música foi editada após o cadastro da URL)
  */
 function formatEventoShow(e: EventoShowRaw) {
+    // `cifraclub_list_url_stale` é uma heurística best-effort: compara o
+    // `updated_at` das linhas de `Eventos_Musicas` com o timestamp da URL.
+    // Pode gerar falso-positivo (reordenar ou trocar a versão selecionada também
+    // bumpa `Eventos_Musicas.updated_at`) e falso-negativo (alterar
+    // `Musicas.tonalidade`, que afeta o fragmento `#key=`, não bumpa esse
+    // timestamp). Serve apenas como aviso visual de "talvez desatualizada".
     let cifraclubListUrlStale = false;
     if (e.cifraclub_list_url && e.cifraclub_list_url_updated_at && e.Eventos_Musicas.length > 0) {
         const latestMusicaUpdatedAt = e.Eventos_Musicas.reduce<Date | null>((latest, em) => {
@@ -188,7 +194,17 @@ class EventosService {
         };
     }
 
-    /** Atualiza um evento existente pelo ID com os campos informados. */
+    /**
+     * Atualiza um evento existente pelo ID com os campos informados.
+     *
+     * @param id - UUID do evento a atualizar
+     * @param body - Campos a atualizar. `cifraclub_list_url` aceita string (define/atualiza),
+     *   `null` (limpa a URL e o timestamp) ou ausência (mantém o valor atual). Enviar a
+     *   mesma URL atual é um no-op idempotente (não bumpa o timestamp e não gera erro 400).
+     * @returns Evento atualizado com tipo de evento populado
+     * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
+     * @throws {AppError} 404 se o evento não existir
+     */
     async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string; cifraclub_list_url?: string | null }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -217,9 +233,15 @@ class EventosService {
             if (cifraclub_list_url === null) {
                 updateData.cifraclub_list_url = null;
                 updateData.cifraclub_list_url_updated_at = null;
-            } else if (cifraclub_list_url !== existente.cifraclub_list_url) {
+            } else {
+                // Sempre grava a URL (write idempotente do Prisma) para que enviar a
+                // mesma URL não caia no erro "nenhum campo enviado". O timestamp só é
+                // bumpado quando o valor realmente muda, preservando a semântica de
+                // "stale" (uma URL inalterada não deve parecer recém-sincronizada).
                 updateData.cifraclub_list_url = cifraclub_list_url;
-                updateData.cifraclub_list_url_updated_at = new Date();
+                if (cifraclub_list_url !== existente.cifraclub_list_url) {
+                    updateData.cifraclub_list_url_updated_at = new Date();
+                }
             }
         }
 
@@ -290,23 +312,17 @@ class EventosService {
                 }
             }
 
-            let tomFinal: string | null = null;
+            // O tom final independe de haver URL; calcula uma única vez.
+            const keyResult = computeKeyFragment(tom);
+            const tomFinal: string | null = keyResult ? keyResult.tomFinal : null;
+
             let tomAjustado = false;
             let urlFinal = cifraclubUrl;
 
             if (cifraclubUrl) {
-                const keyResult = computeKeyFragment(tom);
-                if (keyResult) {
-                    tomFinal = keyResult.tomFinal;
-                }
                 const applied = applyKeyFragment(cifraclubUrl, tom);
                 urlFinal = applied.url;
                 tomAjustado = applied.tomAjustado;
-            } else {
-                const keyResult = computeKeyFragment(tom);
-                if (keyResult) {
-                    tomFinal = keyResult.tomFinal;
-                }
             }
 
             return {

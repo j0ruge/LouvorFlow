@@ -47,7 +47,15 @@ class EventosRepository {
         });
     }
 
-    /** Atualiza um evento existente pelo ID. */
+    /**
+     * Atualiza um evento existente pelo ID.
+     *
+     * @param id - UUID do evento a atualizar.
+     * @param data - Campos a atualizar (inclui `cifraclub_list_url` e
+     *   `cifraclub_list_url_updated_at`, opcionais).
+     * @returns Evento atualizado com id, data, descrição, campos de lista
+     *   CifraClub e tipo de evento populado.
+     */
     async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
         return getPrisma().eventos.update({
             where: { id },

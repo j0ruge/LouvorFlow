@@ -25,6 +25,7 @@ function buildVersaoShow(versaoId: string | null | undefined) {
   return {
     id: versao.id,
     link_versao: versao.link_versao,
+    cifraclub_url: versao.cifraclub_url ?? null,
     artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
   };
 }
@@ -48,7 +49,11 @@ interface EventoUserFuncao {
 
 /** Cria fake repository para Eventos com dados em memória (inclui sub-recursos músicas e integrantes). */
 export function createFakeEventosRepository() {
-  let eventosData = MOCK_EVENTOS.map(e => ({ ...e }));
+  let eventosData = MOCK_EVENTOS.map(e => ({
+    ...e,
+    cifraclub_list_url: null as string | null,
+    cifraclub_list_url_updated_at: null as Date | null,
+  }));
   let eventosMusicas = MOCK_EVENTOS_MUSICAS.map(em => ({ ...em }));
   let eventosIntegrantes = MOCK_EVENTOS_INTEGRANTES.map(ei => ({ ...ei }));
   let eventosUsersFuncoes: EventoUserFuncao[] = buildInitialEventoUserFuncoes();
@@ -117,6 +122,8 @@ export function createFakeEventosRepository() {
     id: evento.id,
     data: evento.data,
     descricao: evento.descricao,
+    cifraclub_list_url: evento.cifraclub_list_url,
+    cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
@@ -127,6 +134,7 @@ export function createFakeEventosRepository() {
         return {
           id: em.id,
           ordem: em.ordem,
+          updated_at: new Date(0),
           eventos_musicas_musicas_id_fkey: {
             id: musica.id,
             nome: musica.nome,
@@ -167,13 +175,20 @@ export function createFakeEventosRepository() {
     findByIdSimple: async (id: string) => eventosData.find(e => e.id === id) ?? null,
 
     /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
-    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
-      const evento = { id: randomUUID(), ...data };
+    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string; cifraclub_list_url?: string | null; cifraclub_list_url_updated_at?: Date | null }, _tenantId?: string) => {
+      const evento = {
+        id: randomUUID(),
+        cifraclub_list_url: null as string | null,
+        cifraclub_list_url_updated_at: null as Date | null,
+        ...data,
+      };
       eventosData.push(evento);
       return {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        cifraclub_list_url: evento.cifraclub_list_url,
+        cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
       };
     },
@@ -186,6 +201,8 @@ export function createFakeEventosRepository() {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        cifraclub_list_url: evento.cifraclub_list_url,
+        cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
       };
     },
@@ -424,7 +441,11 @@ export function createFakeEventosRepository() {
       MOCK_INTEGRANTES.find(i => i.id === userId) ?? null,
 
     reset: () => {
-      eventosData = MOCK_EVENTOS.map(e => ({ ...e }));
+      eventosData = MOCK_EVENTOS.map(e => ({
+        ...e,
+        cifraclub_list_url: null as string | null,
+        cifraclub_list_url_updated_at: null as Date | null,
+      }));
       eventosMusicas = MOCK_EVENTOS_MUSICAS.map(em => ({ ...em }));
       eventosIntegrantes = MOCK_EVENTOS_INTEGRANTES.map(ei => ({ ...ei }));
       eventosUsersFuncoes = buildInitialEventoUserFuncoes();

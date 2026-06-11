@@ -213,6 +213,10 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
     (ex.: `/escalas/1` → `/escalas/2`) sem desmontar o componente.
   - `useScrollToTopOnMount()`: chamar em páginas de detalhe para abrir no topo,
     evitando herdar o `scrollTop` da página anterior (ex.: `SongDetail`).
+  - `clearScrollPositions()`: limpa o `Map` global de posições (keyed só pela
+    chave da página). Chamado no `signOut`, no `onAuthFailure` e no `switchTenant`
+    (`AuthContext`) para evitar que uma página de mesmo id em outro tenant restaure
+    a rolagem do tenant anterior, além de limitar o crescimento do `Map`.
 - **Card clicável que navega ao detalhe** (padrão de `Songs.tsx`/`EventoDetail.tsx`):
   card inteiro com `role="button"`, `tabIndex={0}`, `onClick` e
   `onKeyDown={handleClickableKeyDown(...)}` (de `@/lib/utils`), `cursor-pointer` +

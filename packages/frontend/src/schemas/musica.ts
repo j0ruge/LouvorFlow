@@ -89,7 +89,18 @@ export type UpdateMusicaForm = z.infer<typeof UpdateMusicaFormSchema>;
 /** Schema do campo BPM para formulários de versão. */
 const bpmFormField = z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal(""));
 
-/** Schema do campo link_versao para formulários de versão. */
+/**
+ * Schema do campo link_versao / cifraclub_url para formulários de versão.
+ *
+ * Ponte intencional null↔"": a API responde `string | null` (ver `VersaoSchema`),
+ * mas o formulário trabalha com `string | ""` — o componente carrega
+ * `versao.cifraclub_url ?? ""` e, no submit, envia "" para campos vazios. O
+ * backend trata "" como "não informado" (preprocess em `safeUrlSchema` converte
+ * "" → undefined), mantendo a semântica de limpeza/ausência do valor.
+ *
+ * Estrito: `.url()` rejeita URLs sem host (ex.: "https://"); o refine garante
+ * protocolo http/https.
+ */
 const linkVersaoFormField = z
   .string()
   .url("URL inválida")

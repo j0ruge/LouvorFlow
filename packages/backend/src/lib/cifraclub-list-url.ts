@@ -5,9 +5,15 @@
  * query strings opcionais e fragmentos.
  */
 
-/** Regex de validação para URLs de lista pública do CifraClub */
+/**
+ * Regex de validação para URLs de lista pública do CifraClub.
+ *
+ * O grupo `(\?[^#]*)?` casa uma query string opcional iniciada por `?` literal
+ * (não um `\?` opcional — esse era o bug anterior `(\\?[^#]*)?`, que aceitava
+ * qualquer lixo no final da URL sem exigir o `?`). O fragmento `(#.*)?` é opcional.
+ */
 export const CIFRACLUB_LIST_URL_REGEX =
-  /^https:\/\/www\.cifraclub\.com\.br\/musico\/(\d+)\/repertorio\/(\d+|favoritas|consegui-tocar|ainda-vou-tocar)\/?(\\?[^#]*)?(#.*)?$/i
+  /^https:\/\/www\.cifraclub\.com\.br\/musico\/(\d+)\/repertorio\/(\d+|favoritas|consegui-tocar|ainda-vou-tocar)\/?(\?[^#]*)?(#.*)?$/i
 
 const SYSTEM_LIST_SLUGS = new Set([
   'favoritas',

@@ -2,11 +2,13 @@
  * Mapeamento cromático para transposição de tom no CifraClub.
  * Converte nota musical (A..G com modificadores) para o índice `#key=N`
  * usado pelo CifraClub para abrir cifras já transpostas.
- * Cópia 1:1 da lógica pura do backend (sem dependências).
+ *
+ * Porto fiel da lógica pura do backend (`packages/backend/src/lib/cifraclub-key-mapping.ts`),
+ * sem dependências — manter sincronizado ao alterar o backend.
  */
 
 /** Tabela cromática absoluta: nota canônica CifraClub → índice 0..11 */
-export const CHROMATIC_MAP: Record<string, number> = {
+export const CHROMATIC_MAP: Readonly<Record<string, number>> = {
   A: 0,
   Bb: 1,
   B: 2,
@@ -22,7 +24,7 @@ export const CHROMATIC_MAP: Record<string, number> = {
 }
 
 /** Mapeamento de enarmônicos para a grafia canônica do CifraClub */
-export const ENHARMONIC_MAP: Record<string, string> = {
+export const ENHARMONIC_MAP: Readonly<Record<string, string>> = {
   'A#': 'Bb',
   'C#': 'Db',
   'D#': 'Eb',
@@ -70,7 +72,14 @@ export function applyKeyFragment(
 ): { url: string; tomAjustado: boolean } {
   if (!url) return { url, tomAjustado: false }
 
-  const isCifraClub = url.toLowerCase().includes('cifraclub.com.br')
+  // Valida o host real (não substring): `includes('cifraclub.com.br')` aceitaria
+  // URLs como `https://evil.com?x=cifraclub.com.br`. URLs malformadas são ignoradas.
+  let isCifraClub = false
+  try {
+    isCifraClub = new URL(url).hostname.toLowerCase().endsWith('cifraclub.com.br')
+  } catch {
+    return { url, tomAjustado: false }
+  }
   if (!isCifraClub) return { url, tomAjustado: false }
 
   const result = computeKeyFragment(tom)

@@ -216,7 +216,21 @@ export function CreatableMultiCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={true}>
+        <Command
+          /**
+           * Filtro explícito: o item de criação (sentinel `__create__:`) sempre
+           * pontua 1 (sempre visível, independente da versão do cmdk — `forceMount`
+           * sozinho não garante visibilidade contra o score). Demais itens usam
+           * match por substring normalizada (ignora caso e diacríticos), coerente
+           * com `hasExactMatch`.
+           */
+          filter={(value, searchTerm) => {
+            if (value.startsWith("__create__:")) return 1;
+            return normalizeForSearch(value).includes(normalizeForSearch(searchTerm))
+              ? 1
+              : 0;
+          }}
+        >
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}
