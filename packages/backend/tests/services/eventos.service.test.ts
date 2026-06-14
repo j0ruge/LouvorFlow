@@ -209,34 +209,6 @@ describe('EventosService', () => {
         message: 'Ao menos um campo deve ser enviado para atualização',
       });
     });
-
-    /** Constante de URL de lista CifraClub válida reutilizada nos testes. */
-    const LISTA_URL = 'https://www.cifraclub.com.br/musico/123/repertorio/456/';
-
-    /** Deve definir a cifraclub_list_url e registrar o timestamp de atualização. */
-    it('deve definir cifraclub_list_url e registrar o timestamp', async () => {
-      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
-      expect(result.cifraclub_list_url).toBe(LISTA_URL);
-      expect(result.cifraclub_list_url_updated_at).toBeInstanceOf(Date);
-    });
-
-    /**
-     * Regressão M3: reenviar a MESMA cifraclub_list_url (sem outros campos) é um
-     * no-op idempotente — não deve lançar "Ao menos um campo deve ser enviado".
-     */
-    it('não lança 400 ao reenviar a mesma cifraclub_list_url (no-op idempotente)', async () => {
-      await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
-      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
-      expect(result.cifraclub_list_url).toBe(LISTA_URL);
-    });
-
-    /** Deve limpar a cifraclub_list_url e o timestamp quando null é enviado. */
-    it('deve limpar cifraclub_list_url e timestamp quando null é enviado', async () => {
-      await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: LISTA_URL });
-      const result = await eventosService.update(MOCK_EVENTOS[0].id, { cifraclub_list_url: null });
-      expect(result.cifraclub_list_url).toBeNull();
-      expect(result.cifraclub_list_url_updated_at).toBeNull();
-    });
   });
 
   // ─── getCifraclubPlaylist ───────────────────────────────

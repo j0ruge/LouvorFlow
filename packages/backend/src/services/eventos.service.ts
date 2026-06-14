@@ -58,7 +58,6 @@ function formatEventoIndex(e: EventoIndexRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
-        cifraclub_list_url: e.cifraclub_list_url,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
         integrantes: e.Eventos_Users.map(i => {
@@ -75,34 +74,13 @@ function formatEventoIndex(e: EventoIndexRaw) {
  * não mais de `Users_Funcoes` (funções globais).
  *
  * @param e - Registro bruto do evento (EventoShowRaw)
- * @returns Objeto formatado com músicas, integrantes com funções do evento, e `cifraclub_list_url_stale` (true quando alguma música foi editada após o cadastro da URL)
+ * @returns Objeto formatado com músicas e integrantes com funções do evento
  */
 function formatEventoShow(e: EventoShowRaw) {
-    // `cifraclub_list_url_stale` é uma heurística best-effort: compara o
-    // `updated_at` das linhas de `Eventos_Musicas` com o timestamp da URL.
-    // Pode gerar falso-positivo (reordenar ou trocar a versão selecionada também
-    // bumpa `Eventos_Musicas.updated_at`) e falso-negativo (alterar
-    // `Musicas.tonalidade`, que afeta o fragmento `#key=`, não bumpa esse
-    // timestamp). Serve apenas como aviso visual de "talvez desatualizada".
-    let cifraclubListUrlStale = false;
-    if (e.cifraclub_list_url && e.cifraclub_list_url_updated_at && e.Eventos_Musicas.length > 0) {
-        const latestMusicaUpdatedAt = e.Eventos_Musicas.reduce<Date | null>((latest, em) => {
-            if (!latest || em.updated_at > latest) return em.updated_at;
-            return latest;
-        }, null);
-
-        if (latestMusicaUpdatedAt && latestMusicaUpdatedAt > e.cifraclub_list_url_updated_at) {
-            cifraclubListUrlStale = true;
-        }
-    }
-
     return {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
-        cifraclub_list_url: e.cifraclub_list_url,
-        cifraclub_list_url_updated_at: e.cifraclub_list_url_updated_at,
-        cifraclub_list_url_stale: cifraclubListUrlStale,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => {
             const musica = m.eventos_musicas_musicas_id_fkey;
@@ -148,12 +126,12 @@ class EventosService {
     /**
      * Cria um novo evento vinculado ao tenant informado.
      *
-     * @param body - Dados do evento (data, fk_tipo_evento, descricao, cifraclub_list_url)
+     * @param body - Dados do evento (data, fk_tipo_evento, descricao)
      * @param tenantId - ID do tenant ao qual o evento pertence
      * @returns Evento criado com tipo de evento populado
      */
-    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string; cifraclub_list_url?: string | null }, tenantId: string) {
-        const { data, fk_tipo_evento, descricao, cifraclub_list_url } = body;
+    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
+        const { data, fk_tipo_evento, descricao } = body;
         const errors: string[] = [];
 
         if (!data) errors.push("Data do evento é obrigatória");
@@ -178,18 +156,12 @@ class EventosService {
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
             descricao: descricao ?? "",
-            ...(cifraclub_list_url != null ? {
-                cifraclub_list_url,
-                cifraclub_list_url_updated_at: new Date(),
-            } : {}),
         }, tenantId);
 
         return {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
-            cifraclub_list_url: evento.cifraclub_list_url,
-            cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -198,20 +170,18 @@ class EventosService {
      * Atualiza um evento existente pelo ID com os campos informados.
      *
      * @param id - UUID do evento a atualizar
-     * @param body - Campos a atualizar. `cifraclub_list_url` aceita string (define/atualiza),
-     *   `null` (limpa a URL e o timestamp) ou ausência (mantém o valor atual). Enviar a
-     *   mesma URL atual é um no-op idempotente (não bumpa o timestamp e não gera erro 400).
+     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`); ausência mantém o valor atual.
      * @returns Evento atualizado com tipo de evento populado
      * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
      * @throws {AppError} 404 se o evento não existir
      */
-    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string; cifraclub_list_url?: string | null }) {
+    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
         const existente = await eventosRepository.findByIdSimple(id);
         if (!existente) throw new AppError("O evento não foi encontrado ou não existe", 404);
 
-        const { data, fk_tipo_evento, descricao, cifraclub_list_url } = body;
+        const { data, fk_tipo_evento, descricao } = body;
 
         if (data !== undefined && isNaN(Date.parse(String(data)))) {
             throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
@@ -229,22 +199,6 @@ class EventosService {
         if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
         if (descricao !== undefined) updateData.descricao = descricao;
 
-        if (cifraclub_list_url !== undefined) {
-            if (cifraclub_list_url === null) {
-                updateData.cifraclub_list_url = null;
-                updateData.cifraclub_list_url_updated_at = null;
-            } else {
-                // Sempre grava a URL (write idempotente do Prisma) para que enviar a
-                // mesma URL não caia no erro "nenhum campo enviado". O timestamp só é
-                // bumpado quando o valor realmente muda, preservando a semântica de
-                // "stale" (uma URL inalterada não deve parecer recém-sincronizada).
-                updateData.cifraclub_list_url = cifraclub_list_url;
-                if (cifraclub_list_url !== existente.cifraclub_list_url) {
-                    updateData.cifraclub_list_url_updated_at = new Date();
-                }
-            }
-        }
-
         if (Object.keys(updateData).length === 0) {
             throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
         }
@@ -255,8 +209,6 @@ class EventosService {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
-            cifraclub_list_url: evento.cifraclub_list_url,
-            cifraclub_list_url_updated_at: evento.cifraclub_list_url_updated_at,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -352,7 +304,6 @@ class EventosService {
                 com_link: comLink,
                 sem_link: playlist.length - comLink,
             },
-            cifraclub_list_url: evento.cifraclub_list_url,
         };
     }
 

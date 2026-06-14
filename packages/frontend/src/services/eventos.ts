@@ -129,11 +129,6 @@ const CifraclubPlaylistResponseSchema = z.object({
     com_link: z.number(),
     sem_link: z.number(),
   }),
-  /** URL da lista CifraClub vinculada ao evento. */
-  cifraclub_list_url: z.string().refine(
-    (val) => val === "" || /^https?:\/\//i.test(val),
-    "URL deve usar protocolo http ou https",
-  ).nullable(),
 });
 
 /** Tipo inferido da resposta da playlist CifraClub. */

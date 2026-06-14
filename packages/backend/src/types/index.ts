@@ -245,8 +245,6 @@ export interface EventoIndexRaw {
     id: string;
     data: Date;
     descricao: string;
-    /** URL de lista pública CifraClub cadastrada ou `null` */
-    cifraclub_list_url: string | null;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
     Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
@@ -349,15 +347,10 @@ export interface EventoShowRaw {
     id: string;
     data: Date;
     descricao: string;
-    /** URL de lista pública CifraClub cadastrada ou `null` */
-    cifraclub_list_url: string | null;
-    /** Timestamp do último set/change da URL ou `null` */
-    cifraclub_list_url_updated_at: Date | null;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: {
         id: string;
         ordem: number;
-        updated_at: Date;
         eventos_musicas_musicas_id_fkey: EventoShowMusica;
         eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
     }[];
@@ -416,7 +409,6 @@ export const EVENTO_INDEX_SELECT = {
     id: true,
     data: true,
     descricao: true,
-    cifraclub_list_url: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -452,8 +444,6 @@ export const EVENTO_SHOW_SELECT = {
     id: true,
     data: true,
     descricao: true,
-    cifraclub_list_url: true,
-    cifraclub_list_url_updated_at: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -461,7 +451,6 @@ export const EVENTO_SHOW_SELECT = {
         select: {
             id: true,
             ordem: true,
-            updated_at: true,
             eventos_musicas_musicas_id_fkey: {
                 select: {
                     id: true,
@@ -545,6 +534,4 @@ export interface CifraclubPlaylistResponse {
     };
     playlist: CifraclubPlaylistItem[];
     stats: { total: number; com_link: number; sem_link: number };
-    /** URL de lista pública CifraClub cadastrada para este evento ou null */
-    cifraclub_list_url: string | null;
 }

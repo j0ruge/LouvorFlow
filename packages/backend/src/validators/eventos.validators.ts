@@ -3,7 +3,6 @@
  */
 
 import { z } from 'zod';
-import { CIFRACLUB_LIST_URL_REGEX } from '../lib/cifraclub-list-url.js';
 
 /**
  * Schema de validação do body para adição de integrante a um evento.
@@ -71,28 +70,11 @@ export const reorderMusicasBodySchema = z.object({
     }),
 });
 
-/**
- * Schema de URL de lista CifraClub. Normaliza string vazia `""` → `null` (limpa a URL)
- * ANTES de validar — via `z.preprocess`, pois a `.regex()` rodaria antes de qualquer
- * `.transform()` e rejeitaria `""` (a transformação nunca seria alcançada). Aceita
- * também `null` (limpa a URL) e `undefined` (omite o campo).
- */
-const cifraclubListUrlSchema = z.preprocess(
-    (val) => (val === '' ? null : val),
-    z.string()
-        .regex(CIFRACLUB_LIST_URL_REGEX, {
-            message: 'URL deve seguir o padrão https://www.cifraclub.com.br/musico/{userId}/repertorio/{listId}/',
-        })
-        .nullable()
-        .optional(),
-);
-
 /** Schema de validação do body para criação de evento (POST /api/eventos). */
 export const createEventoBodySchema = z.object({
     data: z.string({ required_error: 'Data do evento é obrigatória' }),
     fk_tipo_evento: z.string({ required_error: 'Tipo de evento é obrigatório' }).uuid('fk_tipo_evento deve ser um UUID válido'),
     descricao: z.string().optional().default(''),
-    cifraclub_list_url: cifraclubListUrlSchema,
 });
 
 /** Schema de validação do body para atualização de evento (PUT /api/eventos/:id). */
@@ -100,5 +82,4 @@ export const updateEventoBodySchema = z.object({
     data: z.string().optional(),
     fk_tipo_evento: z.string().uuid('fk_tipo_evento deve ser um UUID válido').optional(),
     descricao: z.string().optional(),
-    cifraclub_list_url: cifraclubListUrlSchema,
 });

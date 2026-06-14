@@ -4986,8 +4986,7 @@
                     "total": 2,
                     "com_link": 1,
                     "sem_link": 1
-                  },
-                  "cifraclub_list_url": null
+                  }
                 }
               }
             }
@@ -5734,11 +5733,6 @@
             "items": {
               "$ref": "#/components/schemas/IdNome"
             }
-          },
-          "cifraclub_list_url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL da lista/songbook do CifraClub associada ao evento"
           }
         },
         "required": [
@@ -5782,21 +5776,6 @@
             "items": {
               "$ref": "#/components/schemas/IntegranteEvento"
             }
-          },
-          "cifraclub_list_url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL da lista/songbook do CifraClub associada ao evento"
-          },
-          "cifraclub_list_url_updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Data/hora da última atualização da URL da lista CifraClub"
-          },
-          "cifraclub_list_url_stale": {
-            "type": "boolean",
-            "description": "Indica se a URL da lista CifraClub está desatualizada em relação às músicas do evento"
           }
         },
         "required": [
@@ -5821,17 +5800,6 @@
           "descricao": {
             "type": "string",
             "minLength": 1
-          },
-          "cifraclub_list_url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL da lista/songbook do CifraClub a ser associada ao evento"
-          },
-          "cifraclub_list_url_updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Data/hora da última atualização da URL da lista CifraClub"
           }
         },
         "required": [
@@ -5853,17 +5821,6 @@
           },
           "descricao": {
             "type": "string"
-          },
-          "cifraclub_list_url": {
-            "type": "string",
-            "nullable": true,
-            "description": "URL da lista/songbook do CifraClub a ser associada ao evento"
-          },
-          "cifraclub_list_url_updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Data/hora da última atualização da URL da lista CifraClub"
           }
         }
       },
@@ -5889,17 +5846,6 @@
               },
               "tipoEvento": {
                 "$ref": "#/components/schemas/IdNome"
-              },
-              "cifraclub_list_url": {
-                "type": "string",
-                "nullable": true,
-                "description": "URL da lista CifraClub vinculada ao evento."
-              },
-              "cifraclub_list_url_updated_at": {
-                "type": "string",
-                "format": "date-time",
-                "nullable": true,
-                "description": "Data/hora da última atualização da URL da lista CifraClub."
               }
             }
           }
@@ -6506,13 +6452,9 @@
               }
             },
             "required": ["total", "com_link", "sem_link"]
-          },
-          "cifraclub_list_url": {
-            "type": ["string", "null"],
-            "description": "URL da lista/songbook do CifraClub associada ao evento"
           }
         },
-        "required": ["evento", "playlist", "stats", "cifraclub_list_url"]
+        "required": ["evento", "playlist", "stats"]
       }
     },
     "parameters": {

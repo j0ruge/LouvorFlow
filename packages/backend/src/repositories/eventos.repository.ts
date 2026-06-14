@@ -31,15 +31,13 @@ class EventosRepository {
      * @param tenantId - ID do tenant ao qual o evento pertence
      * @returns Evento criado com tipo de evento populado
      */
-    async create(data: { data: Date; fk_tipo_evento: string; descricao: string; cifraclub_list_url?: string | null; cifraclub_list_url_updated_at?: Date | null }, tenantId: string) {
+    async create(data: { data: Date; fk_tipo_evento: string; descricao: string }, tenantId: string) {
         return getPrisma().eventos.create({
             data: { ...data, tenant_id: tenantId },
             select: {
                 id: true,
                 data: true,
                 descricao: true,
-                cifraclub_list_url: true,
-                cifraclub_list_url_updated_at: true,
                 eventos_fk_tipo_evento_fkey: {
                     select: { id: true, nome: true }
                 }
@@ -51,10 +49,8 @@ class EventosRepository {
      * Atualiza um evento existente pelo ID.
      *
      * @param id - UUID do evento a atualizar.
-     * @param data - Campos a atualizar (inclui `cifraclub_list_url` e
-     *   `cifraclub_list_url_updated_at`, opcionais).
-     * @returns Evento atualizado com id, data, descrição, campos de lista
-     *   CifraClub e tipo de evento populado.
+     * @param data - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`).
+     * @returns Evento atualizado com id, data, descrição e tipo de evento populado.
      */
     async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
         return getPrisma().eventos.update({
@@ -64,8 +60,6 @@ class EventosRepository {
                 id: true,
                 data: true,
                 descricao: true,
-                cifraclub_list_url: true,
-                cifraclub_list_url_updated_at: true,
                 eventos_fk_tipo_evento_fkey: {
                     select: { id: true, nome: true }
                 }

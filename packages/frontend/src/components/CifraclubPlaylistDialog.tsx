@@ -23,10 +23,8 @@ import {
   Check,
   X,
 } from "lucide-react";
-import { ListMusic } from "lucide-react";
 import { useCifraclubPlaylist } from "@/hooks/use-eventos";
 import { formatCifraclubPlaylist } from "@/lib/cifraclub-playlist";
-import { formatCifraclubListShare } from "@/lib/cifraclub-list-share";
 import { isSafeUrl } from "@/lib/utils";
 
 /** Limite seguro para URLs wa.me (evita truncamento). */
@@ -99,17 +97,6 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
       toast.success("Playlist copiada para a área de transferência");
       setTimeout(() => setCopied(false), 3000);
     }
-  }
-
-  /** Compartilha o link único da lista CifraClub via WhatsApp. */
-  function handleListShare() {
-    if (!data?.cifraclub_list_url) return;
-    const text = formatCifraclubListShare({
-      tipo_evento: data.evento.tipo_evento,
-      data: data.evento.data,
-      cifraclub_list_url: data.cifraclub_list_url,
-    });
-    void shareViaWhatsApp(text);
   }
 
   /** Compartilha a playlist via WhatsApp. */
@@ -227,21 +214,6 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
             <span className="hidden sm:inline">WhatsApp</span>
             <span className="sm:hidden" aria-hidden="true">WA</span>
           </Button>
-          {data?.cifraclub_list_url ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleListShare}
-              aria-label="Compartilhar lista no CifraClub via WhatsApp"
-            >
-              <ListMusic className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Lista no CifraClub</span>
-            </Button>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">
-              Cadastrar URL da lista no formulário de edição
-            </p>
-          )}
           <Button
             variant="ghost"
             size="sm"

@@ -1,5 +1,13 @@
 # Feature Specification: Integração CifraClub — Playlist, Transposição e Lista por Evento
 
+> **Atualização (2026-06-14):** a funcionalidade de **lista por evento**
+> (`cifraclub_list_url`) e o preview da lista (tarefa **T035**) foram **removidos**.
+> Na prática, cadastrar uma lista CifraClub por escala era trabalhoso e a lista não
+> era reaproveitada. A integração mantida é o **link da cifra por música**
+> (`cifraclub_url`) + a **playlist da escala** com transposição (`#key=N`), que
+> reaproveita o cadastro da música em todas as escalas. As seções abaixo sobre a
+> "lista por evento" são históricas.
+
 **Feature Branch**: `027-cifraclub-list-link`
 **Created**: 2026-05-24
 **Status**: Draft

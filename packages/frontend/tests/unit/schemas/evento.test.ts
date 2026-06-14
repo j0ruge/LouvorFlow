@@ -10,8 +10,6 @@ import { describe, it, expect } from 'vitest';
 import {
   VersaoMusicaSchema,
   MusicaEventoSchema,
-  CreateEventoFormSchema,
-  UpdateEventoFormSchema,
 } from '@/schemas/evento';
 
 /** UUID válido para testes. */
@@ -153,53 +151,5 @@ describe('MusicaEventoSchema', () => {
       ],
     });
     expect(result.success).toBe(true);
-  });
-});
-
-/**
- * Suite de validação do campo `cifraclub_list_url` nos schemas de formulário:
- * exige URL estruturalmente válida com host (M8) e aceita vazio/null/ausente.
- */
-describe('cifraclub_list_url nos formulários de evento', () => {
-  /** Base de campos obrigatórios para o formulário de criação. */
-  const baseCreate = {
-    data: '2026-06-14T19:30',
-    fk_tipo_evento: VALID_UUID,
-  };
-
-  /** Deve aceitar uma URL de lista CifraClub válida. */
-  it('aceita URL válida', () => {
-    const result = CreateEventoFormSchema.safeParse({
-      ...baseCreate,
-      cifraclub_list_url: 'https://www.cifraclub.com.br/musico/123/repertorio/456/',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  /** Deve aceitar string vazia, null e ausência (campo opcional). */
-  it('aceita vazio, null e ausente', () => {
-    expect(CreateEventoFormSchema.safeParse({ ...baseCreate, cifraclub_list_url: '' }).success).toBe(true);
-    expect(CreateEventoFormSchema.safeParse({ ...baseCreate, cifraclub_list_url: null }).success).toBe(true);
-    expect(CreateEventoFormSchema.safeParse({ ...baseCreate }).success).toBe(true);
-  });
-
-  /**
-   * Regressão M8: "https://" (sem host) deve ser rejeitado — antes passava por
-   * usar apenas refine de protocolo sem `.url()`.
-   */
-  it('rejeita URL sem host ("https://")', () => {
-    const result = CreateEventoFormSchema.safeParse({
-      ...baseCreate,
-      cifraclub_list_url: 'https://',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  /** Deve rejeitar protocolo não-http (ex.: javascript:). */
-  it('rejeita protocolo inseguro', () => {
-    const result = UpdateEventoFormSchema.safeParse({
-      cifraclub_list_url: 'javascript:alert(1)',
-    });
-    expect(result.success).toBe(false);
   });
 });
