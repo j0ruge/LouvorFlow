@@ -71,14 +71,21 @@ export const reorderMusicasBodySchema = z.object({
     }),
 });
 
-/** Schema de URL de lista CifraClub. Aceita `null` (limpa a URL) e `undefined` (omite o campo). String vazia é rejeitada pelo regex. */
-const cifraclubListUrlSchema = z.string()
-    .regex(CIFRACLUB_LIST_URL_REGEX, {
-        message: 'URL deve seguir o padrão https://www.cifraclub.com.br/musico/{userId}/repertorio/{listId}/',
-    })
-    .nullable()
-    .optional()
-    .transform(v => (v === '' ? null : v));
+/**
+ * Schema de URL de lista CifraClub. Normaliza string vazia `""` → `null` (limpa a URL)
+ * ANTES de validar — via `z.preprocess`, pois a `.regex()` rodaria antes de qualquer
+ * `.transform()` e rejeitaria `""` (a transformação nunca seria alcançada). Aceita
+ * também `null` (limpa a URL) e `undefined` (omite o campo).
+ */
+const cifraclubListUrlSchema = z.preprocess(
+    (val) => (val === '' ? null : val),
+    z.string()
+        .regex(CIFRACLUB_LIST_URL_REGEX, {
+            message: 'URL deve seguir o padrão https://www.cifraclub.com.br/musico/{userId}/repertorio/{listId}/',
+        })
+        .nullable()
+        .optional(),
+);
 
 /** Schema de validação do body para criação de evento (POST /api/eventos). */
 export const createEventoBodySchema = z.object({

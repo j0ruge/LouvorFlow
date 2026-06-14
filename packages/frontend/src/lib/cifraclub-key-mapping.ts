@@ -72,11 +72,14 @@ export function applyKeyFragment(
 ): { url: string; tomAjustado: boolean } {
   if (!url) return { url, tomAjustado: false }
 
-  // Valida o host real (não substring): `includes('cifraclub.com.br')` aceitaria
-  // URLs como `https://evil.com?x=cifraclub.com.br`. URLs malformadas são ignoradas.
+  // Valida o host real (não substring): aceita apenas o domínio oficial
+  // `cifraclub.com.br` ou seus subdomínios (`.cifraclub.com.br`). Rejeita bypasses
+  // por prefixo (`fakecifraclub.com.br`) e substring (`evil.com?x=cifraclub.com.br`).
+  // URLs malformadas são ignoradas.
   let isCifraClub = false
   try {
-    isCifraClub = new URL(url).hostname.toLowerCase().endsWith('cifraclub.com.br')
+    const hostname = new URL(url).hostname.toLowerCase()
+    isCifraClub = hostname === 'cifraclub.com.br' || hostname.endsWith('.cifraclub.com.br')
   } catch {
     return { url, tomAjustado: false }
   }

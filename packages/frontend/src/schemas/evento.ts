@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { IdNomeSchema, TonalidadeSchema } from "@/schemas/shared";
+import { CIFRACLUB_LIST_URL_REGEX } from "@/lib/cifraclub-list-url";
 
 /**
  * Refine de URL para RESPOSTAS da API: aceita vazio ("") ou protocolo http/https.
@@ -20,14 +21,18 @@ const httpUrlOrEmpty = (val: string) => val === "" || /^https?:\/\//i.test(val);
 
 /**
  * Campo de URL de lista CifraClub para FORMULÁRIOS (entrada do usuário).
- * Estrito: `.url()` exige URL estruturalmente válida com host (rejeita "https://")
- * e o refine garante protocolo http/https. Aceita "", null ou ausente como
- * "não informado".
+ * Estrito: exige o formato exato de lista CifraClub via `CIFRACLUB_LIST_URL_REGEX`
+ * (mesmo contrato do backend — falha cedo no cliente para links fora do padrão,
+ * como YouTube, em vez de só rejeitar após a submissão). O regex já exige `https://`
+ * com host, então cobre os casos de protocolo inseguro e URL sem host. Aceita "",
+ * null ou ausente como "não informado".
  */
 const cifraclubListUrlFormField = z
   .string()
-  .url("URL inválida")
-  .refine((val) => /^https?:\/\//i.test(val), "URL deve usar protocolo http ou https")
+  .regex(
+    CIFRACLUB_LIST_URL_REGEX,
+    "URL deve seguir o padrão https://www.cifraclub.com.br/musico/{userId}/repertorio/{listId}/",
+  )
   .or(z.literal(""))
   .nullable()
   .optional();
