@@ -21,7 +21,7 @@ describe("cifraclub-playlist", () => {
       {
         ordem: 1,
         nome: "Oceanos",
-        tom_final: "D",
+        tom: "D",
         artista_nome: "Hillsong",
         cifraclub_url:
           "https://www.cifraclub.com.br/hillsong/oceanos/#key=D",
@@ -44,7 +44,7 @@ describe("cifraclub-playlist", () => {
       {
         ordem: 1,
         nome: "Música Sem Link",
-        tom_final: null,
+        tom: null,
         artista_nome: "",
         cifraclub_url: null,
       },
@@ -64,7 +64,7 @@ describe("cifraclub-playlist", () => {
       {
         ordem: 2,
         nome: "Hino",
-        tom_final: "G",
+        tom: "G",
         artista_nome: "",
         cifraclub_url: "https://www.cifraclub.com.br/x/hino/",
       },
@@ -75,5 +75,29 @@ describe("cifraclub-playlist", () => {
 
     expect(texto).toContain("2. Hino (G)");
     expect(texto).not.toContain("Hino (G) —");
+  });
+
+  /**
+   * Deve preservar o sufixo modal da tonalidade escolhida (regressão do bug
+   * "Em" exibido como "E"): o formatador usa o tom escolhido pela líder, não a
+   * raiz canônica usada apenas para o fragmento #key=N da URL.
+   */
+  it("preserva o sufixo modal do tom (Em não vira E)", () => {
+    const playlist: PlaylistItem[] = [
+      {
+        ordem: 1,
+        nome: "A Ele a Glória",
+        tom: "Em",
+        artista_nome: "Diante do Trono",
+        cifraclub_url:
+          "https://www.cifraclub.com.br/diante-do-trono/a-ele-a-gloria/#key=7",
+      },
+    ];
+    const stats: PlaylistStats = { total: 1, com_link: 1, sem_link: 0 };
+
+    const texto = formatCifraclubPlaylist(evento, playlist, stats);
+
+    expect(texto).toContain("1. A Ele a Glória (Em) — Diante do Trono");
+    expect(texto).not.toContain("(E)");
   });
 });

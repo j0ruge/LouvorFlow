@@ -157,9 +157,9 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5 flex-wrap">
                       <span className="font-medium truncate min-w-0">{item.nome}</span>
-                      {item.tom_final && (
+                      {item.tom && (
                         <Badge variant="outline" className="text-xs flex-shrink-0">
-                          {item.tom_final}
+                          {item.tom}
                         </Badge>
                       )}
                       {item.cifraclub_url && !item.tom_ajustado && (

@@ -7,7 +7,8 @@
 export interface PlaylistItem {
   ordem: number;
   nome: string;
-  tom_final: string | null;
+  /** Tonalidade escolhida pela líder (ex.: "Em", "C#m") — exibida como está. */
+  tom: string | null;
   artista_nome: string;
   cifraclub_url: string | null;
 }
@@ -56,7 +57,7 @@ export function formatCifraclubPlaylist(
   lines.push('');
 
   for (const item of playlist) {
-    const tomPart = item.tom_final ? ` (${item.tom_final})` : '';
+    const tomPart = item.tom ? ` (${item.tom})` : '';
     const artistaPart = item.artista_nome ? ` — ${item.artista_nome}` : '';
 
     if (item.cifraclub_url) {
