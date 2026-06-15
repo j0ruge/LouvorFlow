@@ -8,11 +8,26 @@
 import { z } from "zod";
 import { IdNomeSchema, TonalidadeSchema } from "@/schemas/shared";
 
+/**
+ * Refine de URL para RESPOSTAS da API: aceita vazio ("") ou protocolo http/https.
+ * Camada de defesa em profundidade contra protocolos perigosos (`javascript:`,
+ * `data:`); a renderização ainda deve usar `isSafeUrl()` antes de aplicar a URL
+ * em `href`. É intencionalmente lenient (não usa `.url()`) para não quebrar o
+ * parse de toda a resposta caso o backend retorne uma URL ligeiramente fora do
+ * padrão — apenas protocolos inseguros são rejeitados aqui.
+ */
+const httpUrlOrEmpty = (val: string) => val === "" || /^https?:\/\//i.test(val);
+
 /** Schema de versão de música (artista + link) no contexto de evento. */
 export const VersaoMusicaSchema = z.object({
   id: z.string().uuid(),
   artista_nome: z.string().nullable(),
   link_versao: z.string().nullable(),
+  /** URL da cifra no CifraClub. Nulo quando não informado. */
+  cifraclub_url: z.string().refine(
+    httpUrlOrEmpty,
+    "URL deve usar protocolo http ou https",
+  ).nullable().default(null),
 });
 
 /** Tipo inferido de versão de música. */

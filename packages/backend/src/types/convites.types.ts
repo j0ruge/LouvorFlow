@@ -31,7 +31,7 @@ export interface InviteResponse {
     created_at: Date;
     status: InviteStatus;
     used_at?: Date | null;
-    created_by?: InviteUserRef;
+    created_by?: InviteUserRef | null;
     used_by?: InviteUserRef | null;
 }
 

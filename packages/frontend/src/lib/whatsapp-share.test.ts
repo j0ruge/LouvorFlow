@@ -35,12 +35,14 @@ function makeFullEvento(): EventoShow {
           id: "v1",
           artista_nome: "Gabriela Rocha",
           link_versao: "https://youtu.be/abc123",
+          cifraclub_url: null,
         },
         versoes_disponiveis: [
           {
             id: "v1",
             artista_nome: "Gabriela Rocha",
             link_versao: "https://youtu.be/abc123",
+            cifraclub_url: null,
           },
         ],
       },
@@ -53,12 +55,14 @@ function makeFullEvento(): EventoShow {
           id: "v2",
           artista_nome: "Adhemar de Campos",
           link_versao: "https://youtu.be/def456",
+          cifraclub_url: null,
         },
         versoes_disponiveis: [
           {
             id: "v2",
             artista_nome: "Adhemar de Campos",
             link_versao: "https://youtu.be/def456",
+            cifraclub_url: null,
           },
         ],
       },
@@ -71,12 +75,14 @@ function makeFullEvento(): EventoShow {
           id: "v3",
           artista_nome: "Fernandinho",
           link_versao: "https://youtu.be/ghi789",
+          cifraclub_url: null,
         },
         versoes_disponiveis: [
           {
             id: "v3",
             artista_nome: "Fernandinho",
             link_versao: "https://youtu.be/ghi789",
+            cifraclub_url: null,
           },
         ],
       },
@@ -208,6 +214,7 @@ describe("formatEscalaWhatsApp", () => {
           id: "v1",
           artista_nome: "Gabriela Rocha",
           link_versao: null,
+          cifraclub_url: null,
         },
         versoes_disponiveis: [],
       },

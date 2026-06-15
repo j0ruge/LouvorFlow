@@ -45,7 +45,13 @@ class EventosRepository {
         });
     }
 
-    /** Atualiza um evento existente pelo ID. */
+    /**
+     * Atualiza um evento existente pelo ID.
+     *
+     * @param id - UUID do evento a atualizar.
+     * @param data - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`).
+     * @returns Evento atualizado com id, data, descrição e tipo de evento populado.
+     */
     async update(id: string, data: Prisma.EventosUncheckedUpdateInput) {
         return getPrisma().eventos.update({
             where: { id },
@@ -258,13 +264,11 @@ class EventosRepository {
                         musicas_fk_tonalidade_fkey: {
                             select: { id: true, tom: true }
                         },
-                        // Nested: versões disponíveis da música.
-                        // Tenant safety: Artistas_Musicas compartilha tenant_id com Musicas
-                        // via FK musica_id, então o escopo tenant é implícito pela cadeia.
                         Artistas_Musicas: {
                             select: {
                                 id: true,
                                 link_versao: true,
+                                cifraclub_url: true,
                                 artistas_musicas_artista_id_fkey: {
                                     select: { id: true, nome: true }
                                 }
@@ -277,6 +281,7 @@ class EventosRepository {
                     select: {
                         id: true,
                         link_versao: true,
+                        cifraclub_url: true,
                         artistas_musicas_artista_id_fkey: {
                             select: { id: true, nome: true }
                         }

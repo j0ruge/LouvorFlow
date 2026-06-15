@@ -69,3 +69,17 @@ export const reorderMusicasBodySchema = z.object({
         message: 'IDs de músicas duplicados não são permitidos',
     }),
 });
+
+/** Schema de validação do body para criação de evento (POST /api/eventos). */
+export const createEventoBodySchema = z.object({
+    data: z.string({ required_error: 'Data do evento é obrigatória' }),
+    fk_tipo_evento: z.string({ required_error: 'Tipo de evento é obrigatório' }).uuid('fk_tipo_evento deve ser um UUID válido'),
+    descricao: z.string().optional().default(''),
+});
+
+/** Schema de validação do body para atualização de evento (PUT /api/eventos/:id). */
+export const updateEventoBodySchema = z.object({
+    data: z.string().optional(),
+    fk_tipo_evento: z.string().uuid('fk_tipo_evento deve ser um UUID válido').optional(),
+    descricao: z.string().optional(),
+});

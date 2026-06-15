@@ -53,6 +53,7 @@ packages/frontend/src/
 │   ├── use-profile.ts   # React Query hooks para perfil
 │   ├── use-admin.ts     # React Query hooks para CRUD admin
 │   ├── use-igrejas.ts   # React Query hooks para igrejas
+│   ├── use-scroll-restoration.ts # Salva/restaura rolagem do container interno; abre páginas no topo
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
@@ -187,7 +188,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 |---|---|
 | `MusicaDetail.tsx` | Edit overflow + truncate + flex-wrap + responsive gaps |
 | `AppLayout.tsx` | Padding responsivo `p-4 sm:p-6` + overflow-x-hidden |
-| `EventoDetail.tsx` | Layout 2 linhas em cards (nome+ação / metadata), icon-only buttons, items-start com line-clamp-2 |
+| `EventoDetail.tsx` | Layout 2 linhas em cards (nome+ação / metadata), icon-only buttons, items-start com line-clamp-2; card de música clicável (navega ao detalhe) |
 | `EscalaShareActions.tsx` | Labels com `hidden sm:inline` para icon-only no mobile |
 | `CreatableCombobox.tsx` | `truncate` no span do placeholder para evitar overflow sobre botão adjacente |
 | `ConfigCrudSection.tsx` | flex-wrap form + gap + truncate nomes |
@@ -197,6 +198,38 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `Scales.tsx` | Header justify-between com prefixo sm: |
 | `IntegranteForm.tsx` | flex-wrap no select+button de funções |
 | `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
+
+## Navegação e Rolagem
+
+- **Rolagem é do container interno, não da janela.** Em `AppLayout` o scroll vive
+  num `<div data-scroll-root>` (o `<main>` é `h-screen overflow-hidden`). Por isso a
+  restauração nativa de back/forward do navegador não se aplica e o container é
+  compartilhado entre páginas.
+  - `useScrollRestoration(key, ready)` (`hooks/use-scroll-restoration.ts`): salva/restaura
+    a posição ao voltar. Usar em páginas-lista/detalhe onde o usuário deve retomar
+    "onde estava" (ex.: `EventoDetail` com `key = \`escala:${id}\``; `ready = !isLoading && !!data`).
+    Reseta o flag interno de "já restaurado" no render quando a `key` muda, para tratar
+    o caso de o React Router reaproveitar a instância ao navegar entre detalhes
+    (ex.: `/escalas/1` → `/escalas/2`) sem desmontar o componente.
+  - `useScrollToTopOnMount()`: chamar em páginas de detalhe para abrir no topo,
+    evitando herdar o `scrollTop` da página anterior (ex.: `SongDetail`).
+  - `clearScrollPositions()`: limpa o `Map` global de posições (keyed só pela
+    chave da página). Chamado no `signOut`, no `onAuthFailure` e no `switchTenant`
+    (`AuthContext`) para evitar que uma página de mesmo id em outro tenant restaure
+    a rolagem do tenant anterior, além de limitar o crescimento do `Map`.
+- **Card clicável que navega ao detalhe** (padrão de `Songs.tsx`/`EventoDetail.tsx`):
+  card inteiro com `role="button"`, `tabIndex={0}`, `onClick` e
+  `onKeyDown={handleClickableKeyDown(...)}` (de `@/lib/utils`), `cursor-pointer` +
+  `hover:shadow-medium hover:border-primary/30`. Navegar preservando a origem em
+  `navigate(path, { state: { from: location.pathname } })`.
+  - **Isolamento de controles internos** (botões, grip de arraste, popovers como o
+    seletor de versão): no **clique**, cada controle interno chama `e.stopPropagation()`
+    no seu `onClick`. No **teclado**, como o `keydown` faz bubble até o card, prefira um
+    **guard de `currentTarget`** no `onKeyDown` do card —
+    `if (e.target === e.currentTarget) handleClickableKeyDown(onOpen)(e)` — em vez de
+    `stopPropagation` por controle: uma única guarda cobre grip, picker e botão de
+    remover de uma vez (DRY) e evita navegação inesperada ao acionar Enter/Espaço num
+    controle interno (a11y). Ver `EventoDetail.tsx` (`SortableMusicaCard`).
 
 ## Convenções de Código
 

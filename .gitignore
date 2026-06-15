@@ -35,6 +35,13 @@ dist-ssr
 .claude/skills
 .windsurf
 .playwright-mcp
+.playwright-cli
+
+# Compozy runtime data (logs de execucoes locais)
+.compozy/runs/
+
+# Snapshots avulsos do Playwright na raiz
+/cifraclub-list-page.yml
 
 # MCP server config (contém credenciais locais)
 .mcp.json

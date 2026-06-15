@@ -63,6 +63,7 @@ const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
   cifras: "",
   lyrics: "",
   link_versao: "",
+  cifraclub_url: "",
   intensidade: "",
   categoria_ids: [],
   funcao_ids: [],
@@ -173,6 +174,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           cifras: versaoDefault?.cifras ?? "",
           lyrics: versaoDefault?.lyrics ?? "",
           link_versao: versaoDefault?.link_versao ?? "",
+          cifraclub_url: versaoDefault?.cifraclub_url ?? "",
           intensidade: versaoDefault?.intensidade ?? "",
           categoria_ids: musica.categorias.map((c) => c.id),
           funcao_ids: musica.funcoes.map((f) => f.id),
@@ -472,6 +474,26 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                       <Input
                         type="url"
                         placeholder="https://..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Link CifraClub */}
+              <FormField
+                control={form.control}
+                name="cifraclub_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link CifraClub (opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://www.cifraclub.com.br/artista/musica/"
+                        className="w-full"
                         {...field}
                       />
                     </FormControl>

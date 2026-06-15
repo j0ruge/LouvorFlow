@@ -26,8 +26,8 @@ packages/backend/
 │   ├── repositories/    # Acesso a dados (Prisma ORM)
 │   │   └── auth/        # Repositories de auth
 │   ├── context/          # AsyncLocalStorage para tenant context por request
-│   ├── middlewares/      # Middlewares Express (ensureAuthenticated, ensureTenantContext, ensureSuperAdmin, is, can, validateRequest)
-│   ├── providers/        # Singletons com interface (HashProvider, TokenProvider, DateProvider, MailProvider)
+│   ├── middlewares/      # Middlewares Express (ensureAuthenticated, ensureTenantContext, ensureSuperAdmin, is, ensureHasRole, can, validateRequest, rateLimit)
+│   ├── providers/        # Singletons com interface (HashProvider, TokenProvider, DateProvider, MailProvider) + selection-token-store (uso único do selection_token)
 │   ├── config/           # Configurações (auth.ts com requireSecret())
 │   ├── validators/       # Schemas Zod (auth.validators.ts)
 │   ├── errors/          # AppError (erro padronizado)
@@ -89,9 +89,13 @@ ensureAuthenticated → ensureTenantContext → can(permissions) → validateReq
 - **`ensureAuthenticated`**: Verifica JWT no header `Authorization: Bearer <token>`, injeta `req.user.id` e `req.user.tenantId`. Se o token contém `tenantId`, valida que o tenant está ativo, cria Prisma scoped via `forTenant()` em `req.prisma`, e configura AsyncLocalStorage para `getPrisma()`. Retorna `401` se token inválido/ausente ou tenant inativo.
 - **`ensureTenantContext`**: Verifica que `req.user.tenantId` está presente. Retorna `403` se ausente. **Obrigatório em todas as rotas de domínio.**
 - **`ensureSuperAdmin`**: Verifica role `super-admin` via tenant sentinela (SYSTEM_TENANT_ID). Anexa `basePrisma` ao request. Usado em rotas `/api/igrejas`.
-- **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (filtradas por tenant ativo). Retorna `403` se não autorizado.
-- **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (filtradas por tenant ativo). Retorna `403` se não autorizado.
-- **`validateRequest({ body?, params? })`**: Factory de middleware que valida request body/params contra schemas Zod. Retorna `400` com detalhes de validação.
+- **`is(roles: string[])`**: Verifica se o usuário possui alguma das roles especificadas (filtradas por tenant ativo). Retorna `403` se não autorizado. **Exige `req.user.tenantId`** — retorna `403` se ausente (sem tenant, `getUserRoles` omitiria o filtro e retornaria roles de todos os tenants). Use sempre após `ensureTenantContext`.
+- **`ensureHasRole`**: Garante que o usuário possui ao menos uma role no tenant ativo. Também exige `req.user.tenantId` (`403` se ausente).
+- **`can(permissions: string[])`**: Verifica permissões diretas do usuário + permissões via roles (filtradas por tenant ativo). Retorna `403` se não autorizado (inclui guarda de `tenantId` ausente).
+- **`validateRequest({ body?, params?, query? })`**: Factory de middleware que valida request body/params/query contra schemas Zod. Retorna `400` com detalhes de validação. Para `query`, o resultado validado é exposto em `res.locals.query` (Express 5 torna `req.query` imutável).
+- **`rateLimit({ windowMs, max, message? })`** (`src/middlewares/rateLimit.ts`): Factory de rate limiting em memória, sem dependências externas. Limita requisições por IP numa janela fixa e retorna `429` ao exceder. Usado nas rotas públicas de convites (`/:token/validate`: 30/15min; `/:token/accept`: 10/15min) para proteger a verificação de senha (`bcrypt`) contra brute force, enumeração e exaustão de CPU. Estado por processo (um limiter distribuído seria necessário em deploy multi-instância). **Requer `app.set('trust proxy', 1)`** (configurado em `app.ts`) para que `req.ip` reflita o IP real do cliente atrás do proxy reverso (nginx/Docker); sem isso todos os clientes colapsariam em um único bucket. O valor `1` evita confiar em `X-Forwarded-For` forjado por clientes.
+
+**Isolamento de tenant em rotas de auth (users/roles/permissions)**: além de `is(['admin','super-admin'])`, todas usam `ensureTenantContext`. A guarda de `tenantId` em `is`/`can`/`ensureHasRole` é defesa em profundidade — o vazamento cross-tenant de roles é impedido mesmo se a ordem dos middlewares for alterada.
 
 ### Proteção de rotas de domínio
 
@@ -131,11 +135,15 @@ Singletons em `src/providers/` com interfaces definidas em `src/types/auth/`:
 
 ### Config
 
-`src/config/auth.ts` — Configurações de JWT (secret, expiração). Usa `requireSecret()` que lança erro em produção se a variável não estiver definida. Secrets configurados:
+`src/config/auth.ts` — Configurações de JWT (secret, expiração). Usa `requireSecret(envVar)` que: em produção, lança erro se a variável não estiver definida; em desenvolvimento, quando ausente, **gera um segredo aleatório efêmero por processo** (`crypto.randomBytes`) — nunca um fallback fixo no código-fonte (que permitiria forjar tokens). Como o segredo gerado muda a cada reinício, os tokens de dev são invalidados ao reiniciar. Secrets configurados:
 
 - `APP_SECRET` — access token
 - `APP_SECRET_REFRESH_TOKEN` — refresh token
 - `APP_SECRET_SELECTION_TOKEN` — selection token para fluxo multi-tenant de seleção de igreja (expiração: 5min)
+
+**Rotação segura de refresh token**: `refresh-token.service` chama `refreshTokensRepository.rotateAtomic`, que remove o token antigo e cria o novo dentro de uma única transação Prisma (`$transaction`). O `deleteMany` mantém a trava otimista (a contagem de linhas removidas; em requisições concorrentes apenas uma obtém `count === 1`, impedindo double-spend) e a atomicidade garante que uma falha ao persistir o novo token faça rollback, preservando o antigo (o usuário não fica deslogado por um erro transitório). A emissão de nova sessão completa (`authenticate-user._generateSession`, reutilizada por select/switch-tenant) usa `replaceAllByUserId`, que remove todos os tokens do usuário e cria o novo na mesma transação.
+
+**Selection token de uso único**: o `selection_token` carrega um `jti`; `select-tenant.service` o consome uma única vez via `selection-token-store.provider` (store em memória, por processo) imediatamente antes de emitir a sessão, bloqueando replay dentro da validade de 5 min.
 
 ### Seeds
 

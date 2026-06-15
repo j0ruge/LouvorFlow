@@ -7,7 +7,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
@@ -64,6 +64,9 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
 import { MusicaVersaoPicker } from "@/components/MusicaVersaoPicker";
 import { EscalaShareActions } from "@/components/EscalaShareActions";
+import { CifraclubPlaylistDialog } from "@/components/CifraclubPlaylistDialog";
+import { handleClickableKeyDown } from "@/lib/utils";
+import { useScrollRestoration } from "@/hooks/use-scroll-restoration";
 import { useCan } from "@/hooks/use-can";
 import type { IntegranteComFuncoes } from "@/schemas/integrante";
 import type { MusicaEvento } from "@/schemas/evento";
@@ -71,19 +74,31 @@ import type { MusicaEvento } from "@/schemas/evento";
 /**
  * Card de música ordenável via drag-and-drop.
  * Exibe badge de posição, grip handle (para usuários com permissão) e botão de remoção.
+ * O card inteiro é clicável e navega ao detalhe da música via `onOpen`; o grip,
+ * o botão de remoção e o seletor de versão usam `stopPropagation` para não navegar.
+ *
+ * @param musica - Música do evento (com versão selecionada e disponíveis).
+ * @param canWrite - Se o usuário tem permissão de escrita (exibe grip/remoção).
+ * @param onRemove - Callback para remover a música do evento.
+ * @param isPending - Se há uma mutação em andamento (desabilita ações).
+ * @param eventoId - UUID do evento ao qual a música pertence.
+ * @param onOpen - Callback invocado com o ID da música ao ativar o card (clique/Enter),
+ *   navegando para a página de detalhe da música.
  */
-function SortableMusicaCard({
+export function SortableMusicaCard({
   musica,
   canWrite,
   onRemove,
   isPending,
   eventoId,
+  onOpen,
 }: {
   musica: MusicaEvento;
   canWrite: boolean;
   onRemove: () => void;
   isPending: boolean;
   eventoId: string;
+  onOpen: (musicaId: string) => void;
 }) {
   const setVersao = useSetMusicaVersao(eventoId);
   const {
@@ -104,7 +119,20 @@ function SortableMusicaCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`p-3 rounded-lg border border-border ${
+      onClick={() => onOpen(musica.id)}
+      onKeyDown={(e) => {
+        // Só navega quando o foco está no próprio card. Enter/Espaço disparados
+        // em controles internos (grip de arraste, seletor de versão, botão de
+        // remover) fazem bubble do keydown até aqui; o guard de currentTarget
+        // evita a navegação inesperada para todos eles de uma só vez.
+        if (e.target === e.currentTarget) {
+          handleClickableKeyDown(() => onOpen(musica.id))(e);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir detalhes da música ${musica.nome}`}
+      className={`p-3 rounded-lg border border-border cursor-pointer transition-all hover:shadow-medium hover:border-primary/30 ${
         isDragging ? "shadow-lg opacity-75 bg-muted/50 z-10" : ""
       }`}
     >
@@ -114,6 +142,7 @@ function SortableMusicaCard({
             <button
               {...attributes}
               {...listeners}
+              onClick={(e) => e.stopPropagation()}
               className="flex-shrink-0 w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
               aria-label="Arrastar para reordenar"
             >
@@ -130,7 +159,10 @@ function SortableMusicaCard({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onRemove}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
             disabled={isPending}
             className="flex-shrink-0"
             aria-label="Remover música"
@@ -147,20 +179,24 @@ function SortableMusicaCard({
             {musica.tonalidade.tom}
           </Badge>
         )}
-        <MusicaVersaoPicker
-          musicaId={musica.id}
-          versaoSelecionada={musica.versao_selecionada}
-          versoesDisponiveis={musica.versoes_disponiveis}
-          onSelect={(artistasMusicasId, options) =>
-            setVersao.mutate({
-              musicaId: musica.id,
-              artistasMusicasId,
-              silent: options?.silent,
-            })
-          }
-          isPending={setVersao.isPending}
-          readOnly={!canWrite}
-        />
+        {/* display:contents não afeta o layout; a propagação de evento segue a
+            árvore DOM, então o stopPropagation evita navegar ao mexer na versão. */}
+        <span className="contents" onClick={(e) => e.stopPropagation()}>
+          <MusicaVersaoPicker
+            musicaId={musica.id}
+            versaoSelecionada={musica.versao_selecionada}
+            versoesDisponiveis={musica.versoes_disponiveis}
+            onSelect={(artistasMusicasId, options) =>
+              setVersao.mutate({
+                musicaId: musica.id,
+                artistasMusicasId,
+                silent: options?.silent,
+              })
+            }
+            isPending={setVersao.isPending}
+            readOnly={!canWrite}
+          />
+        </span>
       </div>
     </div>
   );
@@ -177,6 +213,7 @@ function SortableMusicaCard({
 export function EventoDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedMusicaId, setSelectedMusicaId] = useState("");
   const [selectedIntegranteId, setSelectedIntegranteId] = useState("");
   const [removingMusicaId, setRemovingMusicaId] = useState<string | null>(null);
@@ -218,6 +255,10 @@ export function EventoDetail() {
   const addIntegrante = useAddIntegranteToEvento(id ?? "");
   const removeIntegrante = useRemoveIntegranteFromEvento(id ?? "");
   const { can: canWrite } = useCan("escalas.write");
+
+  // Restaura a posição de rolagem ao voltar para esta escala (ver use-scroll-restoration).
+  // `ready` aguarda os dados para que a altura do conteúdo já exista na restauração.
+  useScrollRestoration(`escala:${id ?? ""}`, !isLoading && !!evento);
 
   /** Sensores de drag-and-drop: PointerSensor para desktop, TouchSensor com long press para mobile. */
   const pointerSensor = useSensor(PointerSensor, {
@@ -314,6 +355,16 @@ export function EventoDetail() {
   }
 
   /**
+   * Navega ao detalhe da música preservando a URL atual em `location.state.from`,
+   * para que o botão "Voltar" da página da música retorne a esta escala.
+   *
+   * @param musicaId - UUID da música a abrir.
+   */
+  function handleOpenMusica(musicaId: string) {
+    navigate(`/musicas/${musicaId}`, { state: { from: location.pathname } });
+  }
+
+  /**
    * Adiciona a música selecionada ao evento.
    */
   function handleAddMusica() {
@@ -399,6 +450,7 @@ export function EventoDetail() {
             </Button>
           )}
           <EscalaShareActions evento={evento} />
+          <CifraclubPlaylistDialog eventoId={evento.id} />
           {canWrite && (
             <Button
               variant="destructive"
@@ -515,6 +567,7 @@ export function EventoDetail() {
                       musica={musica}
                       canWrite={canWrite}
                       eventoId={evento.id}
+                      onOpen={handleOpenMusica}
                       onRemove={() => {
                         setRemovingMusicaId(musica.id);
                         removeMusica.mutate(musica.id, {
@@ -618,6 +671,7 @@ export function EventoDetail() {
                   addIntegrante.isPending ||
                   integrantesDisponiveis.length === 0
                 }
+                aria-label="Adicionar integrante ao evento"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>

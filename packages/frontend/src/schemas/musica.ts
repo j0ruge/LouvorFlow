@@ -22,6 +22,11 @@ export const VersaoSchema = z.object({
       "URL deve usar protocolo http ou https",
     )
     .nullable(),
+  /** URL da cifra no CifraClub. Nulo quando não informado. */
+  cifraclub_url: z.string().refine(
+    (val) => val === "" || /^https?:\/\//i.test(val),
+    "URL deve usar protocolo http ou https",
+  ).nullable().default(null),
   intensidade: z.enum(["calma", "media", "agitada"]).nullable(),
 });
 
@@ -84,7 +89,18 @@ export type UpdateMusicaForm = z.infer<typeof UpdateMusicaFormSchema>;
 /** Schema do campo BPM para formulários de versão. */
 const bpmFormField = z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal(""));
 
-/** Schema do campo link_versao para formulários de versão. */
+/**
+ * Schema do campo link_versao / cifraclub_url para formulários de versão.
+ *
+ * Ponte intencional null↔"": a API responde `string | null` (ver `VersaoSchema`),
+ * mas o formulário trabalha com `string | ""` — o componente carrega
+ * `versao.cifraclub_url ?? ""` e, no submit, envia "" para campos vazios. O
+ * backend trata "" como "não informado" (preprocess em `safeUrlSchema` converte
+ * "" → undefined), mantendo a semântica de limpeza/ausência do valor.
+ *
+ * Estrito: `.url()` rejeita URLs sem host (ex.: "https://"); o refine garante
+ * protocolo http/https.
+ */
 const linkVersaoFormField = z
   .string()
   .url("URL inválida")
@@ -99,6 +115,7 @@ export const CreateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
@@ -112,6 +129,7 @@ export const UpdateVersaoFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
 });
 
@@ -131,6 +149,7 @@ export const CreateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),
@@ -151,6 +170,7 @@ export const UpdateMusicaCompleteFormSchema = z.object({
   cifras: z.string().optional(),
   lyrics: z.string().optional(),
   link_versao: linkVersaoFormField,
+  cifraclub_url: linkVersaoFormField,
   intensidade: z.enum(["calma", "media", "agitada"]).optional().or(z.literal("")),
   categoria_ids: z.array(z.string().uuid()).optional().default([]),
   funcao_ids: z.array(z.string().uuid()).optional().default([]),

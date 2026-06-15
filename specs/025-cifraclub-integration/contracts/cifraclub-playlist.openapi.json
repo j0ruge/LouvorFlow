@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenAPI Patch — Integração CifraClub (feature 025-unified)",
+  "description": "Delta para packages/backend/docs/openapi.json. Adiciona: (1) cifraclub_url em versões, (2) novo endpoint cifraclub-playlist, (3) cifraclub_list_url em eventos.",
+  "endpointsAffected": [
+    "POST /api/musicas/:musicaId/versoes",
+    "PUT /api/musicas/:musicaId/versoes/:versaoId",
+    "POST /api/musicas/complete",
+    "PUT /api/musicas/:id/complete",
+    "GET /api/eventos/:id/cifraclub-playlist",
+    "GET /api/eventos/:id",
+    "GET /api/eventos",
+    "POST /api/eventos",
+    "PUT /api/eventos/:id"
+  ],
+  "schemaPatches": {
+    "components": {
+      "schemas": {
+        "VersaoCreateBody": {
+          "properties": {
+            "cifraclub_url": {
+              "type": ["string", "null"],
+              "format": "uri",
+              "description": "[NOVO] URL da cifra no CifraClub. Aceita qualquer http/https."
+            }
+          }
+        },
+        "VersaoResponse": {
+          "properties": {
+            "cifraclub_url": {
+              "type": ["string", "null"],
+              "description": "[NOVO] URL cadastrada ou null."
+            }
+          }
+        },
+        "CifraclubPlaylistResponse": {
+          "type": "object",
+          "properties": {
+            "evento": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "data": { "type": "string", "format": "date-time" },
+                "descricao": { "type": "string" },
+                "tipo_evento": { "type": "string" }
+              }
+            },
+            "playlist": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "ordem": { "type": "integer" },
+                  "musica_id": { "type": "string", "format": "uuid" },
+                  "nome": { "type": "string" },
+                  "tom": { "type": ["string", "null"] },
+                  "tom_final": { "type": ["string", "null"], "description": "Grafia canônica CifraClub (A, Bb, B, C, Db, D, Eb, E, F, F#, G, Ab)" },
+                  "tom_ajustado": { "type": "boolean", "description": "true se #key=N foi calculado e anexado" },
+                  "artista_nome": { "type": "string" },
+                  "cifraclub_url": { "type": ["string", "null"], "description": "URL com #key=N se aplicável" }
+                }
+              }
+            },
+            "stats": {
+              "type": "object",
+              "properties": {
+                "total": { "type": "integer" },
+                "com_link": { "type": "integer" },
+                "sem_link": { "type": "integer" }
+              }
+            },
+            "cifraclub_list_url": {
+              "type": ["string", "null"],
+              "description": "URL de lista pública do CifraClub cadastrada para este evento"
+            }
+          }
+        },
+        "EventoCreateBody": {
+          "properties": {
+            "cifraclub_list_url": {
+              "type": ["string", "null"],
+              "pattern": "^https://www\\.cifraclub\\.com\\.br/musico/\\d+/repertorio/(\\d+|favoritas|consegui-tocar|ainda-vou-tocar)/?(\\?[^#]*)?(#.*)?$",
+              "description": "[NOVO] URL de lista pública CifraClub. Null = não cadastrada."
+            }
+          }
+        },
+        "EventoUpdateBody": {
+          "properties": {
+            "cifraclub_list_url": {
+              "type": ["string", "null"],
+              "pattern": "^https://www\\.cifraclub\\.com\\.br/musico/\\d+/repertorio/(\\d+|favoritas|consegui-tocar|ainda-vou-tocar)/?(\\?[^#]*)?(#.*)?$",
+              "description": "[NOVO] Mesma semântica do EventoCreateBody. Enviar null para remover."
+            }
+          }
+        },
+        "EventoShow": {
+          "properties": {
+            "cifraclub_list_url": { "type": ["string", "null"] },
+            "cifraclub_list_url_updated_at": { "type": ["string", "null"], "format": "date-time" },
+            "cifraclub_list_url_stale": { "type": "boolean", "description": "Derivado: MAX(eventos_musicas.updated_at) > cifraclub_list_url_updated_at" }
+          }
+        },
+        "EventoListItem": {
+          "properties": {
+            "cifraclub_list_url": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  },
+  "newEndpoints": {
+    "GET /api/eventos/:id/cifraclub-playlist": {
+      "description": "Retorna playlist CifraClub ordenada com URLs enriquecidas (#key=N) para a escala.",
+      "auth": "Bearer token + tenant ativo (ensureAuthenticated + ensureTenantContext)",
+      "responses": {
+        "200": { "$ref": "#/schemaPatches/components/schemas/CifraclubPlaylistResponse" },
+        "404": { "description": "Evento não encontrado", "example": { "erro": "Evento não encontrado", "codigo": 404 } }
+      }
+    }
+  }
+}

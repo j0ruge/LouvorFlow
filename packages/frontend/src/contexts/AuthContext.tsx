@@ -32,6 +32,7 @@ import {
   setOnAuthFailure,
 } from "@/lib/api";
 import { login as loginService, refreshToken as refreshTokenService, logout as logoutService, getProfile, switchTenant as switchTenantService } from "@/services/auth";
+import { clearScrollPositions } from "@/hooks/use-scroll-restoration";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser, LoginForm, Tenant } from "@/schemas/auth";
 import { TenantSchema } from "@/schemas/auth";
@@ -139,6 +140,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   /**
    * Encerra a sessão: revoga tokens no backend, limpa estado local
+   * (incluindo o `selection_token` efêmero e as posições de rolagem em memória)
    * e redireciona ao login.
    */
   const signOut = useCallback(async () => {
@@ -149,6 +151,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     clearTokens();
     localStorage.removeItem(TENANTS_STORAGE_KEY);
+    sessionStorage.removeItem("selection_token");
+    clearScrollPositions();
     setUser(null);
     setCurrentTenant(null);
     setAvailableTenants([]);
@@ -164,6 +168,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setOnAuthFailure(() => {
       clearTokens();
       localStorage.removeItem(TENANTS_STORAGE_KEY);
+      sessionStorage.removeItem("selection_token");
+      clearScrollPositions();
       setUser(null);
       setCurrentTenant(null);
       setAvailableTenants([]);
@@ -263,6 +269,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     (selectedUser: AuthUser, token: string, refreshTokenValue: string, tenants?: Tenant[]) => {
       setAccessToken(token);
       setRefreshToken(refreshTokenValue);
+      /** Consome o selection_token: foi usado uma única vez e não deve persistir. */
+      sessionStorage.removeItem('selection_token');
       setUser(selectedUser);
       setCurrentTenant(selectedUser.tenant ?? null);
       if (selectedUser.tenant) {
@@ -292,6 +300,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setRefreshToken(response.refresh_token);
       setUser(response.user);
       setCurrentTenant(response.user.tenant ?? null);
+      // Posições de rolagem do tenant anterior não valem para o novo tenant.
+      clearScrollPositions();
       queryClient.invalidateQueries();
     } catch (err) {
       /** Exibe toast de erro ao falhar na troca de tenant. */

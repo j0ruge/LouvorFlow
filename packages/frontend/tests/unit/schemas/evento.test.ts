@@ -7,7 +7,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { VersaoMusicaSchema, MusicaEventoSchema } from '@/schemas/evento';
+import {
+  VersaoMusicaSchema,
+  MusicaEventoSchema,
+} from '@/schemas/evento';
 
 /** UUID válido para testes. */
 const VALID_UUID = 'aaa00001-0000-0000-0000-000000000001';

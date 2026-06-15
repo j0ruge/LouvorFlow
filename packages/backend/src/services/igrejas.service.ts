@@ -87,12 +87,19 @@ class IgrejasService {
       }
     }
 
-    /** Invalida cache se o status foi alterado para garantir efeito imediato. */
+    const atualizado = await igrejasRepository.update(id, data);
+
+    /**
+     * Invalida o cache de status APÓS a escrita no banco. Invalidar antes da escrita
+     * abriria uma janela TOCTOU: uma requisição concorrente que leu o status antigo
+     * poderia re-popular o cache logo após a invalidação, deixando o status obsoleto
+     * em cache até o TTL expirar. (Mesma ordem usada em `deactivate`.)
+     */
     if (data.status !== undefined) {
       invalidateTenantCache(id);
     }
 
-    return igrejasRepository.update(id, data);
+    return atualizado;
   }
 
   /**

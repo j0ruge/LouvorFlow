@@ -19,6 +19,24 @@ import { ArrowLeft } from "lucide-react";
 import { useMusica } from "@/hooks/use-musicas";
 import { MusicaDetail } from "@/components/MusicaDetail";
 import { ErrorState } from "@/components/ErrorState";
+import { useScrollToTopOnMount } from "@/hooks/use-scroll-restoration";
+
+/**
+ * Type guard: confirma que `location.state` é um objeto com `from` string.
+ * Permite narrowing verificado pelo compilador, evitando casting cego (`as`)
+ * no acesso ao valor.
+ *
+ * @param state - Valor de `location.state` (desconhecido).
+ * @returns `true` se `state` possui a propriedade `from` do tipo string.
+ */
+function hasStringFrom(state: unknown): state is { from: string } {
+  return (
+    state !== null &&
+    typeof state === "object" &&
+    "from" in state &&
+    typeof (state as Record<string, unknown>).from === "string"
+  );
+}
 
 /**
  * Componente da página de detalhes da música.
@@ -30,19 +48,14 @@ const SongDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // O container de rolagem é compartilhado entre páginas: garante abrir no topo.
+  useScrollToTopOnMount();
+
   /**
-   * Extrai com narrowing explícito o campo `from` de `location.state` sem
-   * usar `as` para casting cego. Apenas aceita um objeto literal com
-   * propriedade string — qualquer outro formato cai no fallback.
+   * Extrai o campo `from` de `location.state` com narrowing verificado pelo
+   * compilador (via `hasStringFrom`). Qualquer outro formato cai no fallback.
    */
-  const state = location.state;
-  const rawFrom =
-    state !== null &&
-    typeof state === "object" &&
-    "from" in state &&
-    typeof (state as Record<string, unknown>).from === "string"
-      ? (state as { from: string }).from
-      : undefined;
+  const rawFrom = hasStringFrom(location.state) ? location.state.from : undefined;
   /**
    * URL para a qual o botão "Voltar" deve retornar (estado preservado vindo da lista).
    *

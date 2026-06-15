@@ -13,6 +13,8 @@ import {
     MOCK_INVITE_EXPIRED,
     MOCK_INVITE_USED,
     MOCK_INVITE_REVOKED,
+    SENHA_TESTE,
+    HASH_TESTE,
 } from '../../fakes/mock-data.js';
 
 /** Mocks hoisted para uso nas factories de vi.mock. */
@@ -102,8 +104,8 @@ describe('AcceptInviteService', () => {
     const validInput = {
         nome: 'Maria Silva',
         email: 'maria@test.com',
-        senha: 'senha123',
-        senha_confirmacao: 'senha123',
+        senha: SENHA_TESTE,
+        senha_confirmacao: SENHA_TESTE,
     };
 
     /** Verifica que novo usuário é criado e vinculado ao tenant (201). */
@@ -114,7 +116,7 @@ describe('AcceptInviteService', () => {
 
         expect(result.statusCode).toBe(201);
         expect(result.msg).toContain('Conta criada');
-        expect(mockHash).toHaveBeenCalledWith('senha123', 12);
+        expect(mockHash).toHaveBeenCalledWith(SENHA_TESTE, 12);
         expect(mockUsersCreate).toHaveBeenCalled();
         expect(mockTenantUsersCreate).toHaveBeenCalled();
     });
@@ -124,14 +126,14 @@ describe('AcceptInviteService', () => {
         fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
         mockFindByEmail.mockResolvedValue({ id: 'existing-user-id' });
         mockTenantUsersFindUnique.mockResolvedValue(null);
-        mockUsersFindUnique.mockResolvedValue({ password: 'hashed-existing' });
+        mockUsersFindUnique.mockResolvedValue({ password: HASH_TESTE });
         mockCompare.mockResolvedValue(true);
 
         const result = await service.execute(MOCK_INVITE_ACTIVE.token, validInput);
 
         expect(result.statusCode).toBe(200);
         expect(result.msg).toContain('adicionado');
-        expect(mockCompare).toHaveBeenCalledWith('senha123', 'hashed-existing');
+        expect(mockCompare).toHaveBeenCalledWith(SENHA_TESTE, HASH_TESTE);
     });
 
     /** Verifica que senha incorreta para conta existente lança 401. */
@@ -139,7 +141,7 @@ describe('AcceptInviteService', () => {
         fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
         mockFindByEmail.mockResolvedValue({ id: 'existing-user-id' });
         mockTenantUsersFindUnique.mockResolvedValue(null);
-        mockUsersFindUnique.mockResolvedValue({ password: 'hashed-existing' });
+        mockUsersFindUnique.mockResolvedValue({ password: HASH_TESTE });
         mockCompare.mockResolvedValue(false);
 
         await expect(
@@ -154,7 +156,7 @@ describe('AcceptInviteService', () => {
     it('deve lançar erro 409 se usuário já pertence ao tenant', async () => {
         fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
         mockFindByEmail.mockResolvedValue({ id: 'existing-user-id' });
-        mockUsersFindUnique.mockResolvedValue({ password: 'hashed-existing' });
+        mockUsersFindUnique.mockResolvedValue({ password: HASH_TESTE });
         mockCompare.mockResolvedValue(true);
         mockTenantUsersFindUnique.mockResolvedValue({ id: 'link-id' });
 

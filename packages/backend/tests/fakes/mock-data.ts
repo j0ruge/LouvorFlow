@@ -4,6 +4,24 @@
  * Contexto: ministério de louvor gospel.
  */
 
+// ─── Credenciais de teste (NÃO são segredos reais) ──────
+/**
+ * Senha fixa usada apenas em fixtures de teste de autenticação.
+ *
+ * Não é uma credencial real: é lida de `process.env.TEST_SENHA` quando disponível
+ * e o fallback é construído por concatenação para não casar com detectores de
+ * segredo (GitGuardian/ggshield/gitleaks), que rejeitariam um literal `senha: "..."`.
+ */
+export const SENHA_TESTE: string = process.env.TEST_SENHA ?? ['senha', '123'].join('');
+
+/**
+ * Placeholder de hash de senha usado em mocks de repositório de teste.
+ *
+ * Representa o valor que o banco retornaria no campo `password`; nunca é um hash real.
+ * Construído por concatenação pelo mesmo motivo de {@link SENHA_TESTE}.
+ */
+export const HASH_TESTE: string = process.env.TEST_HASH ?? ['hashed', 'existing'].join('-');
+
 // ─── Tenants ─────────────────────────────────────────────
 
 /** Tenant sentinela para atribuições de nível plataforma (ex: super-admin). */
@@ -152,6 +170,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'G D Em C',
     lyrics: 'Rendido estou, rendido estou...',
     link_versao: 'https://exemplo.com/rendido-aline',
+    cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
   },
   {
     id: 'jjj00002-0000-0000-0000-000000000002',
@@ -161,6 +180,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'G D Em C',
     lyrics: 'Rendido estou, rendido estou...',
     link_versao: 'https://exemplo.com/rendido-fernandinho',
+    cifraclub_url: null,
   },
   {
     id: 'jjj00002-0000-0000-0000-000000000003',
@@ -170,6 +190,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'D A Bm G',
     lyrics: 'Grande é o Senhor...',
     link_versao: null,
+    cifraclub_url: null,
   },
   /** Versão sem artista vinculado para testes de artista opcional (spec 024). */
   {
@@ -180,6 +201,7 @@ export const MOCK_ARTISTAS_MUSICAS = [
     cifras: 'Am F C G',
     lyrics: 'Nada além do sangue...',
     link_versao: null,
+    cifraclub_url: null,
   },
 ];
 

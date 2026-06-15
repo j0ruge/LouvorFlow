@@ -93,6 +93,7 @@ export function VersaoForm({
       cifras: "",
       lyrics: "",
       link_versao: "",
+      cifraclub_url: "",
       intensidade: "",
     },
   });
@@ -113,6 +114,7 @@ export function VersaoForm({
           cifras: versao.cifras ?? "",
           lyrics: versao.lyrics ?? "",
           link_versao: versao.link_versao ?? "",
+          cifraclub_url: versao.cifraclub_url ?? "",
           intensidade: versao.intensidade ?? "",
         });
       } else {
@@ -122,6 +124,7 @@ export function VersaoForm({
           cifras: "",
           lyrics: "",
           link_versao: "",
+          cifraclub_url: "",
           intensidade: "",
         });
       }
@@ -285,6 +288,24 @@ export function VersaoForm({
                     <Input
                       type="url"
                       placeholder="https://youtube.com/..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="cifraclub_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link CifraClub (opcional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://www.cifraclub.com.br/artista/musica/"
+                      className="w-full"
                       {...field}
                     />
                   </FormControl>

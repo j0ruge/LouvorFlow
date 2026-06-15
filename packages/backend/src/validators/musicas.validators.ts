@@ -11,12 +11,16 @@ import { z } from 'zod';
 /** Padrão UUID v4 para validação de identificadores. */
 const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
 
-/** Schema de URL restrito a protocolos seguros (http/https). Previne XSS via javascript:/data:. */
+/**
+ * Schema de URL restrito a protocolos seguros (http/https). Previne XSS via
+ * javascript:/data:. Reutilizado por `link_versao` e `cifraclub_url`, portanto as
+ * mensagens são agnósticas ao campo (não citam "link da versão").
+ */
 const safeUrlSchema = z.string()
-    .url('Link da versão deve ser uma URL válida')
+    .url('URL inválida')
     .refine(
         (url) => /^https?:\/\//i.test(url),
-        { message: 'Link da versão deve usar protocolo http ou https' },
+        { message: 'URL deve usar protocolo http ou https' },
     );
 
 // --- Params ---
@@ -72,6 +76,7 @@ export const createMusicaCompleteBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
@@ -86,6 +91,7 @@ export const updateMusicaCompleteBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
@@ -98,6 +104,7 @@ export const addVersaoBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 
@@ -108,6 +115,7 @@ export const updateVersaoBodySchema = z.object({
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
 });
 

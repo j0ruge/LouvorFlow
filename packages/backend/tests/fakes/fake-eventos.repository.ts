@@ -25,6 +25,7 @@ function buildVersaoShow(versaoId: string | null | undefined) {
   return {
     id: versao.id,
     link_versao: versao.link_versao,
+    cifraclub_url: versao.cifraclub_url ?? null,
     artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
   };
 }
@@ -168,7 +169,10 @@ export function createFakeEventosRepository() {
 
     /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
     create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
-      const evento = { id: randomUUID(), ...data };
+      const evento = {
+        id: randomUUID(),
+        ...data,
+      };
       eventosData.push(evento);
       return {
         id: evento.id,

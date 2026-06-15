@@ -16,7 +16,14 @@ class IntegrantesRepository {
     /**
      * Lista todos os users com suas funções musicais associadas.
      *
-     * @returns Lista de users com seleção pública e funções aninhadas
+     * A relação aninhada `Users_Funcoes` é explicitamente filtrada por `tenant_id`
+     * quando `tenantId` é fornecido. Como a query roda no client base (`users` é
+     * global), o `$extends` de tenant NÃO é aplicado às relações aninhadas — sem
+     * este filtro, funções de OUTROS tenants vazariam para usuários compartilhados
+     * entre igrejas.
+     *
+     * @param tenantId - UUID do tenant ativo para escopar usuários e funções.
+     * @returns Lista de users com seleção pública e funções aninhadas do tenant
      */
     async findAll(tenantId?: string) {
         /** Filtra por tenant quando tenantId é fornecido. */
@@ -29,6 +36,7 @@ class IntegrantesRepository {
             select: {
                 ...INTEGRANTE_PUBLIC_SELECT,
                 Users_Funcoes: {
+                    where: tenantId ? { tenant_id: tenantId } : undefined,
                     select: {
                         users_funcoes_funcao_id_fkey: {
                             select: { id: true, nome: true }
@@ -42,15 +50,21 @@ class IntegrantesRepository {
     /**
      * Busca um user pelo ID, incluindo funções musicais associadas.
      *
+     * A relação aninhada `Users_Funcoes` é filtrada por `tenant_id` quando
+     * `tenantId` é fornecido, evitando vazamento de funções de outros tenants para
+     * usuários compartilhados entre igrejas (ver explicação em {@link findAll}).
+     *
      * @param id - UUID do user
-     * @returns User com funções ou `null` se não encontrado
+     * @param tenantId - UUID do tenant ativo para escopar as funções aninhadas.
+     * @returns User com funções do tenant ou `null` se não encontrado
      */
-    async findById(id: string) {
+    async findById(id: string, tenantId?: string) {
         return prisma.users.findUnique({
             where: { id },
             select: {
                 ...INTEGRANTE_PUBLIC_SELECT,
                 Users_Funcoes: {
+                    where: tenantId ? { tenant_id: tenantId } : undefined,
                     select: {
                         users_funcoes_funcao_id_fkey: {
                             select: { id: true, nome: true }

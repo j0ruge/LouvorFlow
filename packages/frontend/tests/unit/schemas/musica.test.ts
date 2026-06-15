@@ -10,6 +10,8 @@ import { describe, it, expect } from 'vitest';
 import {
   CreateMusicaCompleteFormSchema,
   UpdateMusicaCompleteFormSchema,
+  VersaoSchema,
+  CreateVersaoFormSchema,
 } from '@/schemas/musica';
 
 /** UUID válido para testes. */
@@ -274,6 +276,83 @@ describe('UpdateMusicaCompleteFormSchema', () => {
     const result = UpdateMusicaCompleteFormSchema.safeParse({
       nome: 'Teste',
       funcao_ids: ['invalido'],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── cifraclub_url ───────────────────────────────────────
+describe('cifraclub_url persistence schemas', () => {
+  /** Deve aceitar cifraclub_url válida no VersaoSchema (resposta API). */
+  it('VersaoSchema deve aceitar cifraclub_url válida', () => {
+    const result = VersaoSchema.safeParse({
+      id: VALID_UUID,
+      artista: { id: VALID_UUID_2, nome: 'Aline Barros' },
+      bpm: 72,
+      cifras: 'G D Em C',
+      lyrics: 'Rendido estou...',
+      link_versao: 'https://exemplo.com/versao',
+      cifraclub_url: 'https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/',
+      intensidade: 'calma',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cifraclub_url).toBe('https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/');
+    }
+  });
+
+  /** Deve aceitar cifraclub_url null no VersaoSchema. */
+  it('VersaoSchema deve aceitar cifraclub_url null', () => {
+    const result = VersaoSchema.safeParse({
+      id: VALID_UUID,
+      artista: null,
+      bpm: null,
+      cifras: null,
+      lyrics: null,
+      link_versao: null,
+      cifraclub_url: null,
+      intensidade: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cifraclub_url).toBeNull();
+    }
+  });
+
+  /** Deve aceitar cifraclub_url no CreateVersaoFormSchema. */
+  it('CreateVersaoFormSchema deve aceitar cifraclub_url válida', () => {
+    const result = CreateVersaoFormSchema.safeParse({
+      cifraclub_url: 'https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  /** Deve aceitar cifraclub_url no CreateMusicaCompleteFormSchema. */
+  it('CreateMusicaCompleteFormSchema deve aceitar cifraclub_url válida', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'A Ele Glória',
+      cifraclub_url: 'https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.cifraclub_url).toBe('https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/');
+    }
+  });
+
+  /** Deve aceitar cifraclub_url vazia (campo opcional). */
+  it('CreateMusicaCompleteFormSchema deve aceitar cifraclub_url vazia', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      cifraclub_url: '',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  /** Deve rejeitar cifraclub_url com protocolo javascript. */
+  it('CreateMusicaCompleteFormSchema deve rejeitar cifraclub_url com protocolo inseguro', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      cifraclub_url: 'javascript:alert(1)',
     });
     expect(result.success).toBe(false);
   });

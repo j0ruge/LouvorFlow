@@ -44,9 +44,16 @@ class App {
     /**
      * Registra os middlewares globais da aplicação.
      *
-     * Configura CORS, parsing de URL-encoded e parsing de JSON.
+     * Configura `trust proxy` (para que `req.ip` reflita o IP real do cliente
+     * atrás do proxy reverso), CORS, parsing de URL-encoded e parsing de JSON.
      */
     middlewares(): void {
+        // Confia em exatamente um salto de proxy reverso (nginx/Docker) à frente
+        // da aplicação. Sem isso, `req.ip` resolveria para o IP interno do proxy
+        // e o rate limiter por IP (rotas públicas de convites) colapsaria todos
+        // os clientes em um único bucket. Valor `1` evita confiar em
+        // `X-Forwarded-For` forjado por clientes (não usar `true`).
+        this.app.set('trust proxy', 1);
         const webUrl = process.env.APP_WEB_URL?.replace(/\/+$/, '');
         this.app.use(cors({
             origin: webUrl || true,

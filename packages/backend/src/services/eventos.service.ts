@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
+import { applyKeyFragment, computeKeyFragment } from '../lib/cifraclub-key-mapping.js';
 import type {
     EventoIndexRaw,
     EventoShowRaw,
@@ -8,6 +9,8 @@ import type {
     MusicaEvento,
     VersaoMusicaShowRaw,
     VersaoMusicaEvento,
+    CifraclubPlaylistItem,
+    CifraclubPlaylistResponse,
 } from '../types/index.js';
 
 /**
@@ -22,6 +25,7 @@ function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | nu
         id: raw.id,
         artista_nome: raw.artistas_musicas_artista_id_fkey?.nome ?? null,
         link_versao: raw.link_versao,
+        cifraclub_url: raw.cifraclub_url,
     };
 }
 
@@ -151,7 +155,7 @@ class EventosService {
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
-            descricao: descricao ?? ""
+            descricao: descricao ?? "",
         }, tenantId);
 
         return {
@@ -162,7 +166,15 @@ class EventosService {
         };
     }
 
-    /** Atualiza um evento existente pelo ID com os campos informados. */
+    /**
+     * Atualiza um evento existente pelo ID com os campos informados.
+     *
+     * @param id - UUID do evento a atualizar
+     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`); ausência mantém o valor atual.
+     * @returns Evento atualizado com tipo de evento populado
+     * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
+     * @throws {AppError} 404 se o evento não existir
+     */
     async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -210,6 +222,89 @@ class EventosService {
 
         await eventosRepository.delete(id);
         return evento;
+    }
+
+    // --- CifraClub Playlist ---
+
+    /**
+     * Monta a playlist CifraClub de um evento com URLs enriquecidas com #key=N.
+     * Resolve a versão de cada música (selecionada → fallback primeira com cifraclub_url → null).
+     * Aplica transposição automática para URLs do CifraClub.
+     *
+     * @param eventoId - UUID do evento
+     * @returns Playlist ordenada com stats e URL de lista do evento
+     * @throws {AppError} 404 se o evento não existir
+     */
+    async getCifraclubPlaylist(eventoId: string): Promise<CifraclubPlaylistResponse> {
+        if (!eventoId) throw new AppError("ID de evento não enviado", 400);
+
+        const evento = await eventosRepository.findById(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const playlist: CifraclubPlaylistItem[] = evento.Eventos_Musicas.map(em => {
+            const musica = em.eventos_musicas_musicas_id_fkey;
+            const tom = musica.musicas_fk_tonalidade_fkey?.tom ?? null;
+
+            let cifraclubUrl: string | null = null;
+            let artistaNome = '';
+
+            const versaoSelecionada = em.eventos_musicas_artistas_musicas_fkey;
+            if (versaoSelecionada?.cifraclub_url) {
+                cifraclubUrl = versaoSelecionada.cifraclub_url;
+                artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+            } else {
+                const fallback = musica.Artistas_Musicas.find(v => v.cifraclub_url);
+                if (fallback) {
+                    cifraclubUrl = fallback.cifraclub_url;
+                    artistaNome = fallback.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (versaoSelecionada) {
+                    artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (musica.Artistas_Musicas.length > 0) {
+                    artistaNome = musica.Artistas_Musicas[0].artistas_musicas_artista_id_fkey?.nome ?? '';
+                }
+            }
+
+            // O tom final independe de haver URL; calcula uma única vez.
+            const keyResult = computeKeyFragment(tom);
+            const tomFinal: string | null = keyResult ? keyResult.tomFinal : null;
+
+            let tomAjustado = false;
+            let urlFinal = cifraclubUrl;
+
+            if (cifraclubUrl) {
+                const applied = applyKeyFragment(cifraclubUrl, tom);
+                urlFinal = applied.url;
+                tomAjustado = applied.tomAjustado;
+            }
+
+            return {
+                ordem: em.ordem,
+                musica_id: musica.id,
+                nome: musica.nome,
+                tom,
+                tom_final: tomFinal,
+                tom_ajustado: tomAjustado,
+                artista_nome: artistaNome,
+                cifraclub_url: urlFinal,
+            };
+        });
+
+        const comLink = playlist.filter(p => p.cifraclub_url !== null).length;
+
+        return {
+            evento: {
+                id: evento.id,
+                data: evento.data.toISOString(),
+                descricao: evento.descricao,
+                tipo_evento: evento.eventos_fk_tipo_evento_fkey?.nome ?? '',
+            },
+            playlist,
+            stats: {
+                total: playlist.length,
+                com_link: comLink,
+                sem_link: playlist.length - comLink,
+            },
+        };
     }
 
     // --- Musicas ---

@@ -41,13 +41,28 @@ export function is(roles: string[]) {
             throw new AppError('Invalid authentication token', 401);
         }
 
+        /**
+         * Isolamento de tenant obrigatório: sem `tenantId`, `getUserRoles` omite o
+         * filtro de tenant e retornaria roles de TODOS os tenants, permitindo bypass
+         * de autorização. Exige o contexto de tenant aqui, independente da ordem dos
+         * middlewares na rota (defesa em profundidade — ver também `ensureTenantContext`).
+         */
+        if (!req.user.tenantId) {
+            throw new AppError('Contexto de tenant é obrigatório para verificar autorização', 403);
+        }
+
         if (!req.user.roles) {
             /** Passa tenantId para filtrar roles pelo tenant ativo. */
             req.user.roles = await usersRepository.getUserRoles(req.user.id, req.user.tenantId);
         }
 
+        /**
+         * Comparação case-insensitive: normaliza ambos os lados para evitar que
+         * uma role gravada como "Admin" falhe contra um guard `is(['admin'])`.
+         */
+        const requiredRoles = roles.map((role) => role.toLowerCase());
         const hasRole = req.user.roles.some((userRole) =>
-            roles.includes(userRole.name),
+            requiredRoles.includes(userRole.name.toLowerCase()),
         );
 
         if (!hasRole) {
