@@ -8,6 +8,20 @@ services:
       - VIRTUAL_HOST=${VIRTUAL_HOST}
       - LETSENCRYPT_HOST=${VIRTUAL_HOST}
       - VIRTUAL_PORT=3000
+    # Healthcheck interno: o container só é "healthy" quando /api/health responde 200.
+    # Usa o node já presente na imagem (alpine não traz curl). Dá visibilidade de
+    # container unhealthy e habilita auto-restart; o gate de deploy efetivo é o smoke
+    # test do CI (assert do SHA via URL pública).
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const p=process.env.PORT||3000;require('http').get('http://127.0.0.1:'+p+'/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 networks:
   default:

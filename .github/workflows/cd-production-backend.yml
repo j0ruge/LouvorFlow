@@ -75,6 +75,8 @@ jobs:
           tags: |
             ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }}
             ghcr.io/j0ruge/louvorflow-api:latest
+          build-args: |
+            GIT_SHA=${{ github.sha }}
 
   deploy:
     name: Deploy Production
@@ -89,9 +91,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           username: ${{ github.actor }}
 
+      - name: Pull backend image (with retry)
+        uses: ./.github/actions/docker-pull
+        with:
+          command: docker pull ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }}
+
       - name: Run database migrations
         run: |
-          docker pull ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }}
           docker run --rm --network ${{ secrets.NGINX_NETWORK_NAME }} \
             -e DB_URL=${{ secrets.DB_URL }} \
             ghcr.io/j0ruge/louvorflow-api:${{ github.ref_name }} \
@@ -136,11 +142,38 @@ jobs:
           VIRTUAL_HOST=${{ secrets.VIRTUAL_HOST }}
           EOF
 
+      - name: Pull compose images (with retry)
+        uses: ./.github/actions/docker-pull
+        with:
+          working-directory: infra/backend
+          command: docker compose -p louvorflow-api pull
+
       - name: Deploy
         working-directory: infra/backend
+        run: docker compose -p louvorflow-api up -d --force-recreate
+
+      - name: Smoke test (health + SHA)
+        env:
+          API_BASE: ${{ secrets.APP_API_URL }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          docker compose -p louvorflow-api pull
-          docker compose -p louvorflow-api up -d --force-recreate
+          set -uo pipefail
+          # Normaliza a base: tolera barra final e um sufixo /api acidental no secret.
+          base="${API_BASE%/}"; base="${base%/api}"
+          HEALTH_URL="$base/api/health"
+          echo "Smoke test em $HEALTH_URL (esperando sha=$EXPECTED_SHA)"
+          for i in $(seq 1 10); do
+            body=$(curl -fsS -m 10 "$HEALTH_URL" 2>/dev/null || true)
+            sha=$(printf '%s' "$body" | sed -nE 's/.*"sha"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' | head -1)
+            if [ "$sha" = "$EXPECTED_SHA" ]; then
+              echo "✅ Deploy verificado: SHA no ar = $EXPECTED_SHA"
+              exit 0
+            fi
+            echo "Tentativa $i/10: SHA no ar='${sha:-<sem resposta>}' (esperado $EXPECTED_SHA); aguardando recriação do container..."
+            sleep 6
+          done
+          echo "::error::Smoke test falhou: /api/health não reportou o SHA $EXPECTED_SHA após 10 tentativas — o container provavelmente não foi atualizado."
+          exit 1
 
       - name: Cleanup images
         run: docker image prune -f --filter "label=org.opencontainers.image.source=https://github.com/j0ruge/LouvorFlow"
@@ -149,3 +182,35 @@ jobs:
         if: always()
         working-directory: infra/backend
         run: rm -f .env
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: [ci, build-and-push, deploy]
+    if: failure()
+    permissions:
+      issues: write
+    steps:
+      - name: Abrir issue de falha de deploy
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.sha.slice(0, 7);
+            const title = `🚨 Deploy falhou: ${context.workflow} (${sha})`;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `O workflow **${context.workflow}** falhou para o commit \`${context.sha}\`.`,
+              '',
+              `- Run: ${runUrl}`,
+              `- Ref: \`${context.ref}\``,
+              '',
+              'Causa provável: falha transitória de rede no ghcr.io (pull) ou runner self-hosted offline.',
+              `Reexecute com \`gh run rerun --failed ${context.runId}\` após verificar o log.`,
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['deploy-failure'],
+            });
