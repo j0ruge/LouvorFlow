@@ -261,6 +261,7 @@ Base URL: `http://localhost:3000/api`
 
 | Recurso          | Rota base           | CRUD | Sub-recursos / Notas                   |
 |------------------|---------------------|------|----------------------------------------|
+| Health           | `/health`           | —    | Público. `{ status, sha, timestamp }` (SHA do build) |
 | Artistas         | `/artistas`         | Sim  | —                                      |
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
 | Integrantes      | `/integrantes`      | Sim  | `/funcoes`                             |

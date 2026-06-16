@@ -3,6 +3,7 @@ import cors from 'cors';
 import { AppError } from './errors/AppError.js';
 
 import homeRoutes from './routes/home.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import artistasRoutes from './routes/artistas.routes.js';
 import integrantesRoutes from './routes/integrantes.routes.js';
 import musicasRoutes from './routes/musicas.routes.js';
@@ -73,6 +74,7 @@ class App {
      */
     routes(): void {
         this.app.use('/', homeRoutes);
+        this.app.use('/api/health', healthRoutes);
         this.app.use('/api/artistas', artistasRoutes);
         this.app.use('/api/integrantes', integrantesRoutes);
         this.app.use('/api/musicas', musicasRoutes);

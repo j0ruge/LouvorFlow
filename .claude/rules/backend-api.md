@@ -104,6 +104,10 @@ Todos os endpoints de domínio (artistas, categorias, eventos, funções, integr
 - **GET**: `ensureAuthenticated, ensureTenantContext` — qualquer usuário logado com tenant ativo
 - **POST / PUT / DELETE**: `ensureAuthenticated, ensureTenantContext, can(['recurso.write'])` — exige permissão de escrita no tenant ativo
 
+### Health check (rota pública de observabilidade)
+
+`GET /api/health` (`health.routes.ts` → `health.controller.ts`) é público — sem `ensureAuthenticated` nem `ensureTenantContext`. Retorna `{ status: 'ok', sha, timestamp }`, onde `sha` vem da env `GIT_SHA` (injetada em build-time pelo Dockerfile via build-arg `GIT_SHA=${{ github.sha }}`; `'unknown'` fora do CI). Consumido pelo healthcheck do container (`infra/backend/docker-compose.yml`) e pelo smoke test pós-deploy do CI (assert do SHA no ar). Documentado em `infra/README.md` (seção "Detecção de deploy parcial").
+
 ### Padrão misto: rotas autenticadas + públicas (Convites)
 
 O módulo de convites (`/api/convites`) combina rotas autenticadas (líder: gerar, listar, revogar) e rotas públicas (participante: validar token, aceitar convite) no mesmo arquivo de rotas. Rotas públicas não usam middlewares de autenticação — o token UUID na URL é a única forma de autorização.

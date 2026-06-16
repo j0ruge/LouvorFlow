@@ -21,6 +21,10 @@
   ],
   "tags": [
     {
+      "name": "Health",
+      "description": "Health check público da API (status + SHA do build)"
+    },
+    {
       "name": "Artistas",
       "description": "Gerenciamento de artistas/cantores"
     },
@@ -110,6 +114,43 @@
     }
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check da API",
+        "description": "Endpoint público (sem autenticação) que retorna o status da instância e o SHA do build (env GIT_SHA, injetada em build-time pelo CI). Consumido pelo healthcheck do container e pelo smoke test pós-deploy.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Instância no ar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "sha": {
+                      "type": "string",
+                      "description": "SHA do commit que originou a imagem, ou 'unknown' fora do CI.",
+                      "example": "a1b2c3d"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/artistas": {
       "get": {
         "summary": "Listar todos os artistas",
