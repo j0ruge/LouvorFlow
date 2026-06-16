@@ -49,7 +49,10 @@ interface ResponsiveFormDialogProps {
   footer: ReactNode;
   /** Campos do formulário (corpo rolável). */
   children: ReactNode;
-  /** Classes extras para o `DialogContent` no desktop (ex.: `sm:max-w-[600px]`). */
+  /**
+   * Classes extras para o `DialogContent` no desktop (ex.: `sm:max-w-[600px]`).
+   * Ignorado no mobile — o ramo `Drawer` (bottom-sheet) não recebe esta prop.
+   */
   contentClassName?: string;
 }
 
