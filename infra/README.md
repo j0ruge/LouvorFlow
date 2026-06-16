@@ -46,6 +46,21 @@ Variáveis `VITE_*` são injetadas em build-time via Docker build-args, não em 
 
 ---
 
+## GitHub Actions Runner (Self-Hosted)
+
+Runner dockerizado que executa os jobs de deploy (`runs-on: [self-hosted, <label>]`) dos workflows de CD. Roda no servidor de cada ambiente (staging: `192.168.0.6`).
+
+```text
+infra/runners/
+├── docker-compose.yml   # Runner myoung34/github-runner (auto-update ligado)
+├── .env.example         # Template: ACCESS_TOKEN (PAT) + RUNNER_LABELS
+└── README.md            # Bring-up, diagnóstico e recovery (config stale / versão deprecada)
+```
+
+O runner se auto-registra via `ACCESS_TOKEN` (PAT, escopo `repo`). Se um deploy ficar `queued` indefinidamente, o runner provavelmente caiu — ver o runbook em `infra/runners/README.md`.
+
+---
+
 ## Restore do Banco de Dados
 
 ```bash
