@@ -142,15 +142,6 @@ export function VersaoForm({
     }
   }
 
-  /**
-   * Delega a submissão dos dados validados ao callback `onSubmit`.
-   *
-   * @param dados - Dados validados do formulário de versão.
-   */
-  function handleSubmit(dados: CreateVersaoForm) {
-    onSubmit(dados);
-  }
-
   return (
     <Form {...form}>
       <ResponsiveFormDialog
@@ -162,7 +153,7 @@ export function VersaoForm({
             ? "Altere os dados da versão."
             : "Preencha os dados da nova versão da música."
         }
-        onSubmit={form.handleSubmit(handleSubmit)}
+        onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[500px]"
         footer={
           <>

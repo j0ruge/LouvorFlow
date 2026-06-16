@@ -69,14 +69,15 @@ export function useMusicas(
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
   /**
-   * `categorias` e `intensidades` são ordenados e `q` é trimado antes de
-   * compor o `queryKey` e o `normalized` para garantir equivalência
-   * estrutural do cache. Sem isso, a mesma seleção em ordens distintas
-   * (ex.: `[B, A]` vs `[A, B]`) ou um `q="amor "` vs `q="amor"` gerariam
-   * chaves de cache diferentes e refetches desnecessários.
+   * `categorias` e `intensidades` são deduplicados (via `Set`) e ordenados, e
+   * `q` é trimado, antes de compor o `queryKey` e o `normalized`, para garantir
+   * equivalência estrutural do cache. Sem isso, a mesma seleção em ordens
+   * distintas (ex.: `[B, A]` vs `[A, B]`), com contagens de duplicatas distintas
+   * (ex.: `["calma"]` vs `["calma","calma"]`) ou um `q="amor "` vs `q="amor"`
+   * gerariam chaves de cache diferentes e refetches desnecessários.
    */
-  const sortedCategorias = (params.categorias ?? []).slice().sort();
-  const sortedIntensidades = (params.intensidades ?? []).slice().sort();
+  const sortedCategorias = Array.from(new Set(params.categorias ?? [])).sort();
+  const sortedIntensidades = Array.from(new Set(params.intensidades ?? [])).sort();
   const trimmedQ = (params.q ?? "").trim();
   const normalized: GetMusicasParams = {
     page,

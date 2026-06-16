@@ -39,7 +39,7 @@ class MusicasService {
      * @param params.page - Página (>=1)
      * @param params.limit - Itens por página (1..100)
      * @param params.categoriaIds - UUIDs de categorias; retorna músicas com AO MENOS UMA delas
-     * @param params.intensidades - Intensidades (`calma`/`media`/`agitada`); retorna músicas com AO MENOS UMA versão na(s) intensidade(s)
+     * @param params.intensidades - Intensidades (`calma`/`media`/`agitada`); retorna músicas com AO MENOS UMA versão na(s) intensidade(s). Músicas sem nenhuma versão não aparecem enquanto este filtro estiver ativo (uso de `some`)
      * @param params.q - Substring case-insensitive a buscar no nome
      * @returns Objeto paginado com `items` (músicas formatadas) e `meta` (total, page, per_page, total_pages)
      */

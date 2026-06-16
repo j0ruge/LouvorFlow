@@ -340,8 +340,9 @@ export function IntegranteForm({
                           onClick={() => removeFuncao.mutate(funcao.id)}
                           disabled={removeFuncao.isPending}
                           className="ml-1 hover:text-destructive"
+                          aria-label={`Remover função ${funcao.nome}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </button>
                       </Badge>
                     ))}

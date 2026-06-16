@@ -23,6 +23,14 @@ const safeUrlSchema = z.string()
         { message: 'URL deve usar protocolo http ou https' },
     );
 
+/**
+ * Valores válidos de intensidade (tempo) de uma versão de música.
+ * Fonte única reutilizada tanto nos bodies (criação/edição de música e versão)
+ * quanto no filtro de listagem — evita literais duplicados que divergiriam ao
+ * adicionar uma nova intensidade.
+ */
+const INTENSIDADE_VALUES = ['calma', 'media', 'agitada'] as const;
+
 // --- Params ---
 
 /** Schema de validação para parâmetros com `:id` (GET/PUT/DELETE /api/musicas/:id). */
@@ -77,7 +85,7 @@ export const createMusicaCompleteBodySchema = z.object({
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -92,7 +100,7 @@ export const updateMusicaCompleteBodySchema = z.object({
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -105,7 +113,7 @@ export const addVersaoBodySchema = z.object({
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });
 
 /** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). Aceita artista_id para vincular artista a versões sem artista. */
@@ -116,7 +124,7 @@ export const updateVersaoBodySchema = z.object({
     lyrics: z.string().optional(),
     link_versao: safeUrlSchema.optional(),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });
 
 /** Schema de validação para adição de categoria (POST /api/musicas/:musicaId/categorias). */
@@ -135,8 +143,6 @@ export const addFuncaoBodySchema = z.object({
 const Q_MAX_LENGTH = 200;
 /** Limite máximo de IDs de categorias aceitos por requisição. */
 const CATEGORIAS_MAX_COUNT = 50;
-/** Valores válidos de intensidade (tempo) de uma versão de música. */
-const INTENSIDADE_VALUES = ['calma', 'media', 'agitada'] as const;
 
 /**
  * Escapa metacaracteres LIKE (`%`, `_`) e o próprio caractere de escape `\`

@@ -563,6 +563,20 @@
               }
             }
           },
+          "400": {
+            "description": "Parâmetro de query inválido — valor fora do enum permitido (ex.: `intensidades` diferente de `calma`/`media`/`agitada`), UUID inválido em `categorias`, ou `q` acima do limite de caracteres",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Intensidade inválida: lenta. Valores aceitos: calma, media, agitada",
+                  "codigo": 400
+                }
+              }
+            }
+          },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
           },

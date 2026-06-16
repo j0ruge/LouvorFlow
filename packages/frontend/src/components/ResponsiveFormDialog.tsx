@@ -14,6 +14,7 @@
  *    ao contrário do `Dialog` centralizado/`fixed`, que fica atrás do teclado.
  */
 
+import { useEffect, useState } from "react";
 import type { FormEventHandler, ReactNode } from "react";
 import {
   Dialog,
@@ -93,6 +94,20 @@ export function ResponsiveFormDialog({
   contentClassName,
 }: ResponsiveFormDialogProps) {
   const isMobile = useIsMobile();
+
+  /**
+   * `useIsMobile` retorna `false` no primeiro render (antes de seu efeito medir
+   * o viewport). Sem aguardar a montagem, um formulário aberto no mobile
+   * renderizaria por um instante o `Dialog` centralizado antes de trocar para o
+   * `Drawer` — um flash visível. Só decidimos entre os ramos após montar,
+   * quando o valor de `isMobile` é confiável.
+   */
+  const [viewportReady, setViewportReady] = useState(false);
+  useEffect(function marcarViewportPronto() {
+    setViewportReady(true);
+  }, []);
+
+  if (!viewportReady) return null;
 
   if (isMobile) {
     return (

@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
 import { IntensityBars } from "@/components/IntensidadeSelector";
-import { INTENSIDADE_OPTIONS } from "@/components/intensidade-options";
+import { INTENSIDADE_OPTIONS, type Intensidade } from "@/components/intensidade-options";
 import { useCan } from "@/hooks/use-can";
 import { handleClickableKeyDown } from "@/lib/utils";
 
@@ -82,8 +82,18 @@ const Songs = () => {
     ? categoriasParam.split(",").filter(Boolean)
     : [];
   const intensidadesParam = searchParams.get("intensidades") ?? "";
-  const intensidades = intensidadesParam
-    ? intensidadesParam.split(",").filter(Boolean)
+  /**
+   * Mantém apenas valores válidos de intensidade vindos da URL — um
+   * `?intensidades=foo` manipulado é descartado no cliente em vez de gerar um
+   * 400 no backend. Resulta em `Intensidade[]`, alinhado ao contrato de
+   * `useMusicas`/`getMusicas`.
+   */
+  const intensidades: Intensidade[] = intensidadesParam
+    ? intensidadesParam
+        .split(",")
+        .filter((v): v is Intensidade =>
+          INTENSIDADE_OPTIONS.some((opt) => opt.value === v),
+        )
     : [];
 
   /** Input local com inicialização preguiçosa a partir da URL. */
@@ -202,7 +212,7 @@ const Songs = () => {
    *
    * @param value - Valor de intensidade (`calma`/`media`/`agitada`) a alternar.
    */
-  const toggleIntensidade = (value: string) => {
+  const toggleIntensidade = (value: Intensidade) => {
     const set = new Set(intensidades);
     if (set.has(value)) set.delete(value);
     else set.add(value);
@@ -290,37 +300,39 @@ const Songs = () => {
           </div>
 
           {/* Filtro por tempo (intensidade) — primeiras opções, acima das categorias. */}
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Filtrar por tempo"
-          >
-            {INTENSIDADE_OPTIONS.map((opt) => {
-              const active = intensidades.includes(opt.value);
-              return (
-                <Badge
-                  key={opt.value}
-                  variant={active ? "default" : "outline"}
-                  className={
-                    "cursor-pointer select-none gap-1.5 transition-colors " +
-                    (active
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "hover:bg-primary/10")
-                  }
-                  role="button"
-                  aria-pressed={active}
-                  tabIndex={0}
-                  onClick={() => toggleIntensidade(opt.value)}
-                  onKeyDown={handleClickableKeyDown(() =>
-                    toggleIntensidade(opt.value),
-                  )}
-                >
-                  <IntensityBars bars={opt.bars} className="h-3.5 w-3.5" />
-                  {opt.label}
-                </Badge>
-              );
-            })}
-          </div>
+          {INTENSIDADE_OPTIONS.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por intensidade (tempo)"
+            >
+              {INTENSIDADE_OPTIONS.map((opt) => {
+                const active = intensidades.includes(opt.value);
+                return (
+                  <Badge
+                    key={opt.value}
+                    variant={active ? "default" : "outline"}
+                    className={
+                      "cursor-pointer select-none gap-1.5 transition-colors " +
+                      (active
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-primary/10")
+                    }
+                    role="button"
+                    aria-pressed={active}
+                    tabIndex={0}
+                    onClick={() => toggleIntensidade(opt.value)}
+                    onKeyDown={handleClickableKeyDown(() =>
+                      toggleIntensidade(opt.value),
+                    )}
+                  >
+                    <IntensityBars bars={opt.bars} className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
           {categoriasList && categoriasList.length > 0 && (
             <div

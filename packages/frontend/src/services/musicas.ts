@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
+import type { Intensidade } from "@/components/intensidade-options";
 import { IdNomeSchema } from "@/schemas/shared";
 import {
   MusicasPaginadasSchema,
@@ -45,7 +46,7 @@ export interface GetMusicasParams {
   page?: number;
   limit?: number;
   categorias?: string[];
-  intensidades?: string[];
+  intensidades?: Intensidade[];
   q?: string;
 }
 

@@ -1,13 +1,6 @@
 /**
- * Seletor visual de intensidade para versões de música.
- *
- * Exibe três pill buttons (Calma, Média, Agitada) com ícones de barras
- * progressivas (3, 4 e 5 barras respectivamente). Distribuição igualitária
- * na largura do container. Suporta toggle deselect: clicar na opção já
- * selecionada limpa o valor para nulo. Usado em MusicaForm e VersaoForm.
- *
- * @param props - Propriedades do componente.
- * @returns Elemento React com os pill buttons de intensidade.
+ * Seletor visual de intensidade (tempo) e ícone de barras progressivas.
+ * Usado em `MusicaForm`, `VersaoForm` e nos chips de filtro de `Songs.tsx`.
  */
 
 import { cn } from "@/lib/utils";
@@ -42,6 +35,7 @@ export function IntensityBars({ bars, className }: { bars: number; className?: s
       viewBox={`0 0 ${width} ${maxHeight}`}
       fill="currentColor"
       className={className}
+      aria-hidden="true"
     >
       {allBars.map((bar, i) => (
         <rect
@@ -57,9 +51,20 @@ export function IntensityBars({ bars, className }: { bars: number; className?: s
   );
 }
 
+/**
+ * Seletor visual de intensidade para versões de música.
+ *
+ * Exibe três pill buttons (Calma, Média, Agitada) com ícones de barras
+ * progressivas (3, 4 e 5 barras respectivamente), distribuídos igualitariamente
+ * na largura e com quebra de linha (`flex-wrap`) em telas muito estreitas.
+ * Suporta toggle deselect: clicar na opção já selecionada limpa o valor (`""`).
+ *
+ * @param props - Propriedades do componente (`value` e `onChange`).
+ * @returns Elemento React com os pill buttons de intensidade.
+ */
 export function IntensidadeSelector({ value, onChange }: IntensidadeSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {INTENSIDADE_OPTIONS.map((opt) => {
         const isActive = value === opt.value;
         return (
@@ -69,15 +74,15 @@ export function IntensidadeSelector({ value, onChange }: IntensidadeSelectorProp
             aria-pressed={isActive}
             onClick={() => onChange(isActive ? "" : opt.value)}
             className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all",
+              "flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all",
               "border",
               isActive
                 ? "border-primary bg-primary/10 text-primary"
                 : "border-border bg-transparent text-muted-foreground hover:border-primary/50 hover:text-foreground",
             )}
           >
-            <IntensityBars bars={opt.bars} className="h-4 w-4" />
-            {opt.label}
+            <IntensityBars bars={opt.bars} className="h-4 w-4 shrink-0" />
+            <span className="truncate">{opt.label}</span>
           </button>
         );
       })}
