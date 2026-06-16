@@ -34,15 +34,16 @@ class MusicasService {
     // --- Base CRUD ---
 
     /**
-     * Lista músicas paginadas, opcionalmente filtradas por categorias e/ou busca textual.
+     * Lista músicas paginadas, opcionalmente filtradas por categorias, intensidade e/ou busca textual.
      *
      * @param params.page - Página (>=1)
      * @param params.limit - Itens por página (1..100)
      * @param params.categoriaIds - UUIDs de categorias; retorna músicas com AO MENOS UMA delas
+     * @param params.intensidades - Intensidades (`calma`/`media`/`agitada`); retorna músicas com AO MENOS UMA versão na(s) intensidade(s)
      * @param params.q - Substring case-insensitive a buscar no nome
      * @returns Objeto paginado com `items` (músicas formatadas) e `meta` (total, page, per_page, total_pages)
      */
-    async listAll(params: { page: number; limit: number; categoriaIds?: string[]; q?: string }) {
+    async listAll(params: { page: number; limit: number; categoriaIds?: string[]; intensidades?: string[]; q?: string }) {
         const page = Math.max(1, params.page || 1);
         const limit = Math.min(100, Math.max(1, params.limit || 20));
         const skip = (page - 1) * limit;
@@ -50,6 +51,9 @@ class MusicasService {
         const where: Prisma.MusicasWhereInput = {};
         if (params.categoriaIds && params.categoriaIds.length > 0) {
             where.Musicas_Categorias = { some: { categoria_id: { in: params.categoriaIds } } };
+        }
+        if (params.intensidades && params.intensidades.length > 0) {
+            where.Artistas_Musicas = { some: { intensidade: { in: params.intensidades } } };
         }
         if (params.q) {
             where.nome = { contains: params.q, mode: 'insensitive' };

@@ -435,6 +435,25 @@
             ]
           },
           {
+            "name": "intensidades",
+            "in": "query",
+            "required": false,
+            "description": "Intensidades (tempo) das versões. Retorna músicas com ao menos uma versão na(s) intensidade(s) informada(s). No fio é serializado como CSV (`form` + `explode=false`). Valor fora do enum retorna 400.",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["calma", "media", "agitada"]
+              }
+            },
+            "example": [
+              "calma",
+              "agitada"
+            ]
+          },
+          {
             "name": "q",
             "in": "query",
             "required": false,

@@ -105,6 +105,34 @@ describe('MusicasService', () => {
       spy.mockRestore();
     });
 
+    /** Com 1 intensidade, deve montar where com Artistas_Musicas.some.intensidade.in. */
+    it('passa where com intensidade quando intensidades tem 1 item', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, intensidades: ['calma'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Artistas_Musicas: { some: { intensidade: { in: ['calma'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
+    /** Com múltiplas intensidades, deve usar `in` (semântica OR entre intensidades). */
+    it('usa `in` com múltiplas intensidades', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, intensidades: ['calma', 'agitada'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Artistas_Musicas: { some: { intensidade: { in: ['calma', 'agitada'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
     /** Com `q`, deve aplicar busca case-insensitive em `nome`. */
     it('aplica busca case-insensitive em nome quando q presente', async () => {
       const spy = vi.spyOn(fakeRepo, 'findAll');
@@ -126,6 +154,20 @@ describe('MusicasService', () => {
         some: { categoria_id: { in: ['cat-1'] } },
       });
       expect(callWhere).toHaveProperty('nome', { contains: 'rei', mode: 'insensitive' });
+      spy.mockRestore();
+    });
+
+    /** Com categoria + intensidade, deve combinar ambos os filtros no mesmo `where` (AND). */
+    it('combina filtros de categoria e intensidade', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, categoriaIds: ['cat-1'], intensidades: ['media'] });
+      const callWhere = spy.mock.calls[0][2];
+      expect(callWhere).toHaveProperty('Musicas_Categorias', {
+        some: { categoria_id: { in: ['cat-1'] } },
+      });
+      expect(callWhere).toHaveProperty('Artistas_Musicas', {
+        some: { intensidade: { in: ['media'] } },
+      });
       spy.mockRestore();
     });
   });

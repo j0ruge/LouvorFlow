@@ -9,14 +9,14 @@ class MusicasController {
     // --- Base CRUD ---
 
     /**
-     * Lista músicas paginadas com filtros opcionais por categorias e busca textual.
+     * Lista músicas paginadas com filtros opcionais por categorias, intensidade e busca textual.
      *
      * O middleware `validateRequest({ query: listMusicasQuerySchema })` valida `req.query`
      * e expõe o resultado coercido/transformado em `res.locals.query` — evitando re-parse.
      */
     async index(_req: Request, res: Response): Promise<void> {
-        const { page, limit, categorias, q } = res.locals.query as ListMusicasQuery;
-        const result = await musicasService.listAll({ page, limit, categoriaIds: categorias, q });
+        const { page, limit, categorias, intensidades, q } = res.locals.query as ListMusicasQuery;
+        const result = await musicasService.listAll({ page, limit, categoriaIds: categorias, intensidades, q });
         res.status(200).json(result);
     }
 

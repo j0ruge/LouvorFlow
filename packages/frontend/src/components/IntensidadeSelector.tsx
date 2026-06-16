@@ -11,9 +11,7 @@
  */
 
 import { cn } from "@/lib/utils";
-
-/** Valores possíveis de intensidade. */
-type Intensidade = "calma" | "media" | "agitada";
+import { INTENSIDADE_OPTIONS, type Intensidade } from "./intensidade-options";
 
 /** Propriedades do componente IntensidadeSelector. */
 interface IntensidadeSelectorProps {
@@ -31,7 +29,7 @@ interface IntensidadeSelectorProps {
  * @param props.className - Classes CSS adicionais.
  * @returns Elemento SVG com barras de altura crescente.
  */
-function IntensityBars({ bars, className }: { bars: number; className?: string }) {
+export function IntensityBars({ bars, className }: { bars: number; className?: string }) {
   const allBars = Array.from({ length: bars }, (_, i) => ({
     height: 4 + i * 2.5,
     x: i * 3.5,
@@ -59,17 +57,10 @@ function IntensityBars({ bars, className }: { bars: number; className?: string }
   );
 }
 
-/** Configuração das opções de intensidade com label e número de barras. */
-const OPTIONS: { value: Intensidade; label: string; bars: number }[] = [
-  { value: "calma", label: "Calma", bars: 3 },
-  { value: "media", label: "Média", bars: 4 },
-  { value: "agitada", label: "Agitada", bars: 5 },
-];
-
 export function IntensidadeSelector({ value, onChange }: IntensidadeSelectorProps) {
   return (
     <div className="flex items-center gap-2">
-      {OPTIONS.map((opt) => {
+      {INTENSIDADE_OPTIONS.map((opt) => {
         const isActive = value === opt.value;
         return (
           <button

@@ -135,6 +135,8 @@ export const addFuncaoBodySchema = z.object({
 const Q_MAX_LENGTH = 200;
 /** Limite máximo de IDs de categorias aceitos por requisição. */
 const CATEGORIAS_MAX_COUNT = 50;
+/** Valores válidos de intensidade (tempo) de uma versão de música. */
+const INTENSIDADE_VALUES = ['calma', 'media', 'agitada'] as const;
 
 /**
  * Escapa metacaracteres LIKE (`%`, `_`) e o próprio caractere de escape `\`
@@ -161,6 +163,9 @@ function escapeLikeWildcards(raw: string): string {
  * - `page`: inteiro >=1 (default 1)
  * - `limit`: inteiro 1..100 (default 20)
  * - `categorias`: CSV de UUIDs (ex.: "id1,id2"), no máximo 50. Vazio/ausente = sem filtro.
+ * - `intensidades`: CSV de intensidades (`calma`, `media`, `agitada`). Filtra músicas com
+ *   ao menos uma versão na(s) intensidade(s) informada(s). Valor inválido = 400.
+ *   Vazio/ausente = sem filtro.
  * - `q`: substring case-insensitive (até 200 chars) para busca por nome. Wildcards
  *   LIKE (`%`, `_`) são escapados para impedir varredura total via filtro malicioso.
  *   Vazio/ausente = sem busca.
@@ -192,6 +197,20 @@ export const listMusicasQuerySchema = z.object({
             return z.NEVER;
         }
         return parsed.data;
+    }),
+    intensidades: z.string().optional().transform((val, ctx) => {
+        if (!val) return undefined;
+        const items = val.split(',').map((s) => s.trim()).filter(Boolean);
+        if (items.length === 0) return undefined;
+        const invalidos = items.filter((i) => !INTENSIDADE_VALUES.includes(i as (typeof INTENSIDADE_VALUES)[number]));
+        if (invalidos.length > 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Intensidade inválida: ${invalidos.join(', ')}. Valores aceitos: ${INTENSIDADE_VALUES.join(', ')}`,
+            });
+            return z.NEVER;
+        }
+        return Array.from(new Set(items));
     }),
     q: z.string().max(Q_MAX_LENGTH, `Busca não pode exceder ${Q_MAX_LENGTH} caracteres`).optional().transform((val) => {
         if (typeof val !== 'string') return undefined;

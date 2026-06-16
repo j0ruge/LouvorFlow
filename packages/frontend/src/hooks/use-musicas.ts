@@ -52,13 +52,13 @@ export interface UseMusicasOptions {
 /**
  * Hook para buscar músicas com paginação e filtros opcionais.
  *
- * Normaliza `categorias` e `q` antes de montar o `queryKey` e a chamada
- * à API, garantindo que a chave do cache e os argumentos da request
- * sejam estruturalmente equivalentes. Usa `keepPreviousData` para evitar
- * skeleton flash ao trocar filtros/página (alinhado com o "Princípio de
- * Elegância" do projeto — overlays/transições sobre content shift).
+ * Normaliza `categorias`, `intensidades` e `q` antes de montar o `queryKey`
+ * e a chamada à API, garantindo que a chave do cache e os argumentos da
+ * request sejam estruturalmente equivalentes. Usa `keepPreviousData` para
+ * evitar skeleton flash ao trocar filtros/página (alinhado com o "Princípio
+ * de Elegância" do projeto — overlays/transições sobre content shift).
  *
- * @param params - Parâmetros de paginação e filtros (categorias, q).
+ * @param params - Parâmetros de paginação e filtros (categorias, intensidades, q).
  * @param options - Opções extras (staleTime).
  * @returns Resultado do useQuery com a resposta paginada de músicas.
  */
@@ -69,22 +69,24 @@ export function useMusicas(
   const page = params.page ?? 1;
   const limit = params.limit ?? 20;
   /**
-   * `categorias` é ordenado e `q` é trimado antes de compor o `queryKey`
-   * e o `normalized` para garantir equivalência estrutural do cache.
-   * Sem isso, a mesma seleção em ordens distintas (ex.: `[B, A]` vs
-   * `[A, B]`) ou um `q="amor "` vs `q="amor"` gerariam chaves de cache
-   * diferentes e refetches desnecessários.
+   * `categorias` e `intensidades` são ordenados e `q` é trimado antes de
+   * compor o `queryKey` e o `normalized` para garantir equivalência
+   * estrutural do cache. Sem isso, a mesma seleção em ordens distintas
+   * (ex.: `[B, A]` vs `[A, B]`) ou um `q="amor "` vs `q="amor"` gerariam
+   * chaves de cache diferentes e refetches desnecessários.
    */
   const sortedCategorias = (params.categorias ?? []).slice().sort();
+  const sortedIntensidades = (params.intensidades ?? []).slice().sort();
   const trimmedQ = (params.q ?? "").trim();
   const normalized: GetMusicasParams = {
     page,
     limit,
     categorias: sortedCategorias.length > 0 ? sortedCategorias : undefined,
+    intensidades: sortedIntensidades.length > 0 ? sortedIntensidades : undefined,
     q: trimmedQ.length > 0 ? trimmedQ : undefined,
   };
   return useQuery({
-    queryKey: ["musicas", page, limit, sortedCategorias, trimmedQ],
+    queryKey: ["musicas", page, limit, sortedCategorias, sortedIntensidades, trimmedQ],
     queryFn: () => getMusicas(normalized),
     placeholderData: keepPreviousData,
     staleTime: options.staleTime,

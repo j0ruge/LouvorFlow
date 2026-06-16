@@ -37,36 +37,42 @@ import type { IdNome } from "@/schemas/shared";
  * @property page - Número da página (default 1, >=1).
  * @property limit - Itens por página (default 20, 1..100).
  * @property categorias - UUIDs de categorias a filtrar (OR entre elas).
+ * @property intensidades - Intensidades (`calma`/`media`/`agitada`) a filtrar
+ *   (OR entre elas); retorna músicas com ao menos uma versão na intensidade.
  * @property q - Substring case-insensitive para busca por nome.
  */
 export interface GetMusicasParams {
   page?: number;
   limit?: number;
   categorias?: string[];
+  intensidades?: string[];
   q?: string;
 }
 
 /**
  * Busca músicas com paginação e filtros opcionais.
  *
- * Serializa `categorias` como CSV (`uuid1,uuid2`) — escolha consciente vs
- * params repetidos: o backend faz `split(',')` no validator e o OpenAPI
+ * Serializa `categorias` e `intensidades` como CSV (`a,b`) — escolha consciente
+ * vs params repetidos: o backend faz `split(',')` no validator e o OpenAPI
  * documenta como `style: form, explode: false`. `URLSearchParams.set`
  * encoda a vírgula como `%2C`, que o Express decodifica antes do parser
  * — alinhado com o contrato em `packages/backend/docs/openapi.json`.
  *
- * @param params - Página, limite, lista de categorias e/ou busca textual.
+ * @param params - Página, limite, categorias, intensidades e/ou busca textual.
  * @returns Resposta paginada de músicas parseada pelo schema Zod.
  */
 export async function getMusicas(
   params: GetMusicasParams = {},
 ): Promise<MusicasPaginadas> {
-  const { page = 1, limit = 20, categorias, q } = params;
+  const { page = 1, limit = 20, categorias, intensidades, q } = params;
   const search = new URLSearchParams();
   search.set("page", String(page));
   search.set("limit", String(limit));
   if (categorias && categorias.length > 0) {
     search.set("categorias", categorias.join(","));
+  }
+  if (intensidades && intensidades.length > 0) {
+    search.set("intensidades", intensidades.join(","));
   }
   /**
    * `q` é trimado antes de ser enviado para alinhar a UI com o backend,
