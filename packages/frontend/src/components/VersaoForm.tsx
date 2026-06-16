@@ -9,14 +9,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
 import {
   Form,
   FormField,
@@ -159,23 +152,33 @@ export function VersaoForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Versão" : "Nova Versão"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Altere os dados da versão."
-              : "Preencha os dados da nova versão da música."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
+    <Form {...form}>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={isEditing ? "Editar Versão" : "Nova Versão"}
+        description={
+          isEditing
+            ? "Altere os dados da versão."
+            : "Preencha os dados da nova versão da música."
+        }
+        onSubmit={form.handleSubmit(handleSubmit)}
+        contentClassName="sm:max-w-[500px]"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
             <FormField
               control={form.control}
               name="artista_id"
@@ -313,21 +316,7 @@ export function VersaoForm({
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveFormDialog>
+    </Form>
   );
 }

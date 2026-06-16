@@ -12,14 +12,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -310,21 +303,33 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
 
   return (
     <>
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Música" : "Nova Música"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Altere os dados da música e da versão."
-              : "Preencha os dados da nova música para o catálogo."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="max-h-[70vh] overflow-y-auto space-y-4 px-1">
+    <Form {...form}>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={isEditing ? "Editar Música" : "Nova Música"}
+        description={
+          isEditing
+            ? "Altere os dados da música e da versão."
+            : "Preencha os dados da nova música para o catálogo."
+        }
+        onSubmit={form.handleSubmit(onSubmit)}
+        contentClassName="sm:max-w-[600px]"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
               {/* Nome */}
               <FormField
                 control={form.control}
@@ -547,24 +552,8 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveFormDialog>
+    </Form>
 
     <AlertDialog open={draftPromptOpen} onOpenChange={setDraftPromptOpen}>
       <AlertDialogContent>
