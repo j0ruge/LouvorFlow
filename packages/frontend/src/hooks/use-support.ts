@@ -160,6 +160,7 @@ export function useCreateFuncao() {
     mutationFn: (dados: CreateFuncaoForm) => createFuncao(dados),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["funcoes"] });
+      queryClient.invalidateQueries({ queryKey: ["funcoes-grupos"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -180,6 +181,7 @@ export function useUpdateFuncao() {
       updateFuncao(id, dados),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["funcoes"] });
+      queryClient.invalidateQueries({ queryKey: ["funcoes-grupos"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
@@ -199,6 +201,7 @@ export function useDeleteFuncao() {
     mutationFn: (id: string) => deleteFuncao(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["funcoes"] });
+      queryClient.invalidateQueries({ queryKey: ["funcoes-grupos"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {
