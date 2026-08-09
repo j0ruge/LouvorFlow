@@ -34,7 +34,7 @@ packages/backend/
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
-│   ├── schema.prisma    # Schema do banco (25 modelos: 16 domínio + 9 auth)
+│   ├── schema.prisma    # Schema do banco (26 modelos: 17 domínio + 9 auth)
 │   ├── cliente.ts       # Prisma Client: singleton base + forTenant() + getPrisma()
 │   └── migrations/      # Migrações do banco
 ├── seeds/
@@ -103,6 +103,8 @@ Todos os endpoints de domínio (artistas, categorias, eventos, funções, integr
 
 - **GET**: `ensureAuthenticated, ensureTenantContext` — qualquer usuário logado com tenant ativo
 - **POST / PUT / DELETE**: `ensureAuthenticated, ensureTenantContext, can(['recurso.write'])` — exige permissão de escrita no tenant ativo
+
+**Grupos de funções (`/api/funcoes-grupos`)**: recurso próprio (não aninhado em `/api/funcoes`, que colidiria com `GET /funcoes/:id`). Além do CRUD, expõe `PATCH /reorder` (lista completa dos grupos do tenant; subconjunto retorna 400) e `PUT /:id/funcoes` (substitui o conjunto de funções do grupo — quem sai fica sem grupo, quem entra é movido do grupo anterior). Escritas exigem `configuracoes.write`. A rota `/reorder` é declarada **antes** das rotas com `:id`.
 
 ### Health check (rota pública de observabilidade)
 
@@ -189,7 +191,7 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 ## Banco de Dados
 
 - ORM: **Prisma 6** com PostgreSQL 17.
-- Schema: `packages/backend/prisma/schema.prisma` (25 modelos: 16 domínio + 9 auth).
+- Schema: `packages/backend/prisma/schema.prisma` (26 modelos: 17 domínio + 9 auth).
 - Client: `packages/backend/prisma/cliente.ts`:
   - `prisma` (default export) — singleton base, sem filtro de tenant. Usar para operações globais (auth, seeds, super-admin).
   - `forTenant(tenantId)` — retorna client com `$extends` que injeta `tenant_id` em todas as operações de domínio.

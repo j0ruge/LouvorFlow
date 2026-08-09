@@ -1,20 +1,26 @@
 /**
  * Testes E2E para a página de Configurações.
  *
- * Verifica exibição de 5 abas, alternância entre abas e
+ * Verifica exibição das 6 abas, alternância entre abas e
  * operações CRUD em cada aba.
  */
 
 import { test, expect } from "@playwright/test";
+import { loginAsAdmin } from "./helpers/login";
 
 test.describe("Configurações", () => {
-  test("deve exibir página com 5 abas", async ({ page }) => {
+  /** Autentica antes de cada teste — `/configuracoes` é rota protegida. */
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+  });
+
+  test("deve exibir página com 6 abas", async ({ page }) => {
     await page.goto("/configuracoes");
     await expect(
       page.getByRole("heading", { name: "Configurações" }),
     ).toBeVisible();
 
-    const tabs = ["Artistas", "Categorias", "Funções", "Tonalidades", "Tipos de Evento"];
+    const tabs = ["Artistas", "Categorias", "Funções", "Grupos", "Tonalidades", "Tipos de Evento"];
     for (const tabName of tabs) {
       await expect(page.getByRole("tab", { name: tabName })).toBeVisible();
     }
@@ -23,7 +29,7 @@ test.describe("Configurações", () => {
   test("deve alternar entre abas sem recarregar", async ({ page }) => {
     await page.goto("/configuracoes");
 
-    const tabs = ["Categorias", "Funções", "Tonalidades", "Tipos de Evento", "Artistas"];
+    const tabs = ["Categorias", "Funções", "Grupos", "Tonalidades", "Tipos de Evento", "Artistas"];
     for (const tabName of tabs) {
       await page.getByRole("tab", { name: tabName }).click();
       await expect(page.getByRole("tab", { name: tabName })).toHaveAttribute(
@@ -48,6 +54,16 @@ test.describe("Configurações", () => {
 
     await expect(
       page.getByPlaceholder("Novo(a) função..."),
+    ).toBeVisible();
+  });
+
+  test("deve exibir grupos na aba Grupos", async ({ page }) => {
+    await page.goto("/configuracoes");
+    await page.getByRole("tab", { name: "Grupos" }).click();
+
+    await expect(page.getByPlaceholder("Novo(a) grupo...")).toBeVisible();
+    await expect(
+      page.getByText("Ministração", { exact: true }),
     ).toBeVisible();
   });
 
