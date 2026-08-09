@@ -59,6 +59,7 @@ const TENANT_MODELS = [
   'Musicas',
   'Tonalidades',
   'Funcoes',
+  'Funcoes_Grupos',
   'Categorias',
   'Tipos_Eventos',
   'Eventos',

@@ -37,6 +37,7 @@ model Tenant {
   eventos_musicas    Eventos_Musicas[]
   eventos_users      Eventos_Users[]
   eventos_users_funcoes Eventos_Users_Funcoes[]
+  funcoes_grupos     Funcoes_Grupos[]
   users_funcoes      Users_Funcoes[]
   users_roles        UsersRoles[]
   users_permissions  UsersPermissions[]
@@ -144,17 +145,39 @@ model Eventos_Musicas {
 model Funcoes {
   id                    String                  @id @default(uuid()) @db.Uuid
   nome                  String
+  fk_grupo              String?                 @db.Uuid
   tenant_id             String                  @db.Uuid
   created_at            DateTime                @default(now()) @db.Timestamp(6)
   updated_at            DateTime                @updatedAt @db.Timestamp(6)
   tenant                Tenant                  @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  funcoes_fk_grupo_fkey Funcoes_Grupos?         @relation(fields: [fk_grupo], references: [id], onDelete: SetNull, onUpdate: NoAction)
   Musicas_Funcoes       Musicas_Funcoes[]
   Users_Funcoes         Users_Funcoes[]
   Eventos_Users_Funcoes Eventos_Users_Funcoes[]
 
   @@unique([tenant_id, nome], map: "funcoes_tenant_nome_unico")
   @@index([tenant_id])
+  @@index([fk_grupo])
   @@map("funcoes")
+}
+
+/// Agrupa funções por papel (Ministração, Vocal, Instrumentos...) para organizar
+/// a lista de integrantes no compartilhamento da escala via WhatsApp.
+/// A `ordem` define a sequência dos blocos na mensagem gerada.
+model Funcoes_Grupos {
+  id         String    @id @default(uuid()) @db.Uuid
+  nome       String
+  ordem      Int       @default(0)
+  tenant_id  String    @db.Uuid
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @updatedAt @db.Timestamp(6)
+  tenant     Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  Funcoes    Funcoes[]
+
+  @@unique([tenant_id, nome], map: "funcoes_grupos_tenant_nome_unico")
+  @@index([tenant_id])
+  @@index([tenant_id, ordem])
+  @@map("funcoes_grupos")
 }
 
 model Musicas {
