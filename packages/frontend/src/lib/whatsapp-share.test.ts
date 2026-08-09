@@ -8,6 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { EventoShow } from "@/schemas/evento";
+import type { GrupoFuncoes } from "@/schemas/funcoes-grupos";
 import {
   formatEscalaWhatsApp,
   buildWhatsAppShareUrl,
@@ -119,14 +120,52 @@ function makeFullEvento(): EventoShow {
 }
 
 /**
+ * Cria os grupos de funções usados como configuração padrão nos testes.
+ *
+ * "Ministração" é declarado sem funções de propósito, para cobrir a regra
+ * de omissão de blocos vazios; a ordem é deliberadamente embaralhada para
+ * provar que o formatador ordena pelo campo `ordem`, não pelo array.
+ *
+ * @returns Grupos cobrindo as funções do fixture `makeFullEvento`.
+ */
+function makeGrupos(): GrupoFuncoes[] {
+  return [
+    {
+      id: "g3",
+      nome: "Instrumentos",
+      ordem: 3,
+      funcoes: [
+        { id: "f2", nome: "Violão" },
+        { id: "f3", nome: "Bateria" },
+        { id: "f4", nome: "Teclado" },
+      ],
+    },
+    { id: "g1", nome: "Ministração", ordem: 1, funcoes: [] },
+    { id: "g2", nome: "Vocal", ordem: 2, funcoes: [{ id: "f1", nome: "Vocal" }] },
+  ];
+}
+
+/**
+ * Extrai as linhas da seção de integrantes (tudo após o cabeçalho 👥).
+ *
+ * @param mensagem - Mensagem completa gerada pelo formatador.
+ * @returns Linhas da seção, incluindo as vazias que separam os blocos.
+ */
+function linhasDeIntegrantes(mensagem: string): string[] {
+  const linhas = mensagem.split("\n");
+  const headerIdx = linhas.findIndex((l) => l.startsWith("👥"));
+  return linhas.slice(headerIdx + 1);
+}
+
+/**
  * Suite de testes de `formatEscalaWhatsApp`: valida o layout canônico do texto
  * gerado (header, músicas, integrantes, casos de falta de dados).
  */
 describe("formatEscalaWhatsApp", () => {
   /** Verifica se a escala completa produz o layout canônico exato. */
-  it("deve renderizar escala completa com header, músicas com tom e link, e integrantes com funções", () => {
+  it("deve renderizar escala completa com header, músicas com tom e link, e integrantes agrupados", () => {
     const evento = makeFullEvento();
-    const result = formatEscalaWhatsApp(evento);
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
 
     const dateStr = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
@@ -147,10 +186,13 @@ describe("formatEscalaWhatsApp", () => {
       "",
       "👥 *Integrantes* (4)",
       "",
-      "ana — Vocal",
-      "Bruno — Bateria",
-      "Carlos — Vocal, Violão",
-      "Diana — Teclado, Vocal",
+      "Vocal — ana",
+      "Vocal — Carlos",
+      "Vocal — Diana",
+      "",
+      "Bateria — Bruno",
+      "Violão — Carlos",
+      "Teclado — Diana",
     ].join("\n");
 
     expect(result).toBe(expected);
@@ -245,26 +287,152 @@ describe("formatEscalaWhatsApp", () => {
     expect(result).not.toContain("João —");
   });
 
-  /** Verifica que integrantes são ordenados alfabeticamente, case-insensitive. */
-  it("deve ordenar integrantes alfabeticamente por nome, case-insensitive", () => {
+  /** Verifica que os blocos seguem o campo `ordem` dos grupos, não a ordem do array. */
+  it("deve renderizar os blocos na ordem definida pelos grupos", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const idxVocal = result.indexOf("Vocal — ana");
+    const idxInstrumentos = result.indexOf("Bateria — Bruno");
+
+    expect(idxVocal).toBeGreaterThan(-1);
+    expect(idxInstrumentos).toBeGreaterThan(idxVocal);
+  });
+
+  /** Verifica que dentro do bloco a ordenação é pelo nome do integrante, ignorando caixa. */
+  it("deve ordenar as linhas do bloco pelo nome do integrante, case-insensitive", () => {
     const evento = makeFullEvento();
     evento.musicas = [];
     evento.integrantes = [
-      { id: "i1", nome: "Bruno", funcoes: [{ id: "f1", nome: "Vocal" }] },
-      { id: "i2", nome: "ana", funcoes: [{ id: "f2", nome: "Teclado" }] },
-      { id: "i3", nome: "Carlos", funcoes: [] },
+      { id: "i1", nome: "Zeca", funcoes: [{ id: "f1", nome: "Vocal" }] },
+      { id: "i2", nome: "ana", funcoes: [{ id: "f1", nome: "Vocal" }] },
+      { id: "i3", nome: "Ávila", funcoes: [{ id: "f1", nome: "Vocal" }] },
     ];
 
-    const result = formatEscalaWhatsApp(evento);
-    const lines = result.split("\n");
-    const integrantesHeaderIdx = lines.findIndex((l) =>
-      l.startsWith("👥"),
-    );
-    const integrantesLines = lines.slice(integrantesHeaderIdx + 2);
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const linhas = linhasDeIntegrantes(result).filter(Boolean);
 
-    expect(integrantesLines[0]).toBe("ana — Teclado");
-    expect(integrantesLines[1]).toBe("Bruno — Vocal");
-    expect(integrantesLines[2]).toBe("Carlos");
+    expect(linhas).toEqual(["Vocal — ana", "Vocal — Ávila", "Vocal — Zeca"]);
+  });
+
+  /** Verifica que quem exerce várias funções aparece em cada bloco correspondente. */
+  it("deve repetir o integrante em cada grupo em que ele exerce função", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+    evento.integrantes = [
+      {
+        id: "i1",
+        nome: "Vanessa",
+        funcoes: [
+          { id: "f1", nome: "Vocal" },
+          { id: "f4", nome: "Teclado" },
+        ],
+      },
+    ];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+
+    expect(result).toContain("Vocal — Vanessa");
+    expect(result).toContain("Teclado — Vanessa");
+  });
+
+  /** Verifica que o contador do cabeçalho conta pessoas, não linhas geradas. */
+  it("deve contar pessoas únicas no cabeçalho, mesmo com múltiplas funções", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+    evento.integrantes = [
+      {
+        id: "i1",
+        nome: "Vanessa",
+        funcoes: [
+          { id: "f1", nome: "Vocal" },
+          { id: "f4", nome: "Teclado" },
+        ],
+      },
+    ];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const linhas = linhasDeIntegrantes(result).filter(Boolean);
+
+    expect(result).toContain("👥 *Integrantes* (1)");
+    expect(linhas).toHaveLength(2);
+  });
+
+  /** Verifica que grupos sem nenhum integrante escalado não geram bloco. */
+  it("deve omitir blocos de grupos vazios", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+
+    // "Ministração" não tem funções atribuídas — não deve produzir bloco algum.
+    expect(result).not.toContain("Ministração");
+  });
+
+  /** Verifica que há exatamente uma linha em branco separando dois blocos. */
+  it("deve separar blocos por exatamente uma linha em branco", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const linhas = linhasDeIntegrantes(result);
+
+    // Estrutura: "" | bloco Vocal (3) | "" | bloco Instrumentos (3)
+    expect(linhas[0]).toBe("");
+    expect(linhas[4]).toBe("");
+    expect(linhas.filter((l) => l === "")).toHaveLength(2);
+    expect(result).not.toContain("\n\n\n");
+  });
+
+  /** Verifica que funções sem grupo formam um bloco após o último grupo. */
+  it("deve listar funções sem grupo em bloco após o último grupo", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+    evento.integrantes = [
+      { id: "i1", nome: "ana", funcoes: [{ id: "f1", nome: "Vocal" }] },
+      { id: "i2", nome: "Jorge", funcoes: [{ id: "f9", nome: "Sonorização" }] },
+    ];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const linhas = linhasDeIntegrantes(result).filter(Boolean);
+
+    expect(linhas).toEqual(["Vocal — ana", "Sonorização — Jorge"]);
+  });
+
+  /** Verifica que integrantes sem nenhuma função encerram a seção, só com o nome. */
+  it("deve listar integrantes sem função ao final, apenas com o nome", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+    evento.integrantes = [
+      { id: "i1", nome: "Zoe", funcoes: [] },
+      { id: "i2", nome: "ana", funcoes: [{ id: "f1", nome: "Vocal" }] },
+      { id: "i3", nome: "Beto", funcoes: [] },
+    ];
+
+    const result = formatEscalaWhatsApp(evento, makeGrupos());
+    const linhas = linhasDeIntegrantes(result).filter(Boolean);
+
+    expect(linhas).toEqual(["Vocal — ana", "Beto", "Zoe"]);
+  });
+
+  /** Verifica o comportamento sem configuração: tudo num único bloco, nada se perde. */
+  it("deve manter todos os integrantes em um único bloco quando não há grupos", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [];
+
+    const result = formatEscalaWhatsApp(evento);
+    const linhas = linhasDeIntegrantes(result).filter(Boolean);
+
+    // Mesmo integrante em linhas seguidas: "Violão" precede "Vocal" (desempate pela função).
+    expect(linhas).toEqual([
+      "Vocal — ana",
+      "Bateria — Bruno",
+      "Violão — Carlos",
+      "Vocal — Carlos",
+      "Teclado — Diana",
+      "Vocal — Diana",
+    ]);
   });
 
   /** Verifica que escala vazia renderiza headers com contagem (0) e sem linhas de corpo. */
