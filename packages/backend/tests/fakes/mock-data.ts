@@ -73,6 +73,33 @@ export const MOCK_FUNCOES = [
   { id: 'ccc00001-0000-0000-0000-000000000005', nome: 'Baixo' },
 ];
 
+// ─── Grupos de Funções ───────────────────────────────────
+export const MOCK_FUNCOES_GRUPOS = [
+  {
+    id: 'ccc00002-0000-0000-0000-000000000001',
+    nome: 'Ministração',
+    ordem: 1,
+    Funcoes: [] as { id: string; nome: string }[],
+  },
+  {
+    id: 'ccc00002-0000-0000-0000-000000000002',
+    nome: 'Vocal',
+    ordem: 2,
+    Funcoes: [{ id: 'ccc00001-0000-0000-0000-000000000001', nome: 'Vocal' }],
+  },
+  {
+    id: 'ccc00002-0000-0000-0000-000000000003',
+    nome: 'Instrumentos',
+    ordem: 3,
+    Funcoes: [
+      { id: 'ccc00001-0000-0000-0000-000000000004', nome: 'Bateria' },
+      { id: 'ccc00001-0000-0000-0000-000000000005', nome: 'Baixo' },
+      { id: 'ccc00001-0000-0000-0000-000000000002', nome: 'Guitarra' },
+      { id: 'ccc00001-0000-0000-0000-000000000003', nome: 'Teclado' },
+    ],
+  },
+];
+
 // ─── Tipos de Eventos ────────────────────────────────────
 export const MOCK_TIPOS_EVENTOS = [
   { id: 'ddd00001-0000-0000-0000-000000000001', nome: 'Culto Dominical' },
