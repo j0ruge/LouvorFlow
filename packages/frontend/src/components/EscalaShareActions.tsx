@@ -33,6 +33,7 @@ import {
   formatEscalaWhatsApp,
   buildWhatsAppShareUrl,
 } from "@/lib/whatsapp-share";
+import { useFuncoesGrupos } from "@/hooks/use-funcoes-grupos";
 import type { EventoShow } from "@/schemas/evento";
 
 /**
@@ -55,7 +56,9 @@ interface EscalaShareActionsProps {
  * - "Abrir no WhatsApp": abre o wa.me com a mensagem pré-preenchida em nova aba.
  *   Se a mensagem exceder o limite de URL do WhatsApp, exibe toast orientando a usar "Copiar".
  *
- * Ambos os botões ficam desabilitados quando `evento` é `undefined`.
+ * Ambos os botões ficam desabilitados enquanto `evento` for `undefined` ou os
+ * grupos de funções ainda estiverem carregando — compartilhar antes disso
+ * geraria uma mensagem sem o agrupamento.
  *
  * @param props - Propriedades contendo o evento (escala) a ser compartilhado.
  * @returns Fragmento React com os dois botões de compartilhamento.
@@ -63,15 +66,19 @@ interface EscalaShareActionsProps {
 export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
   const [copied, setCopied] = useState(false);
   const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: grupos, isLoading: gruposLoading } = useFuncoesGrupos();
 
   /**
    * Memoiza o texto formatado — evita reformatar a escala em cada render e garante
    * identidade estável para os dois handlers.
    */
   const formattedMessage = useMemo(
-    () => (evento ? formatEscalaWhatsApp(evento) : ""),
-    [evento],
+    () => (evento ? formatEscalaWhatsApp(evento, grupos ?? []) : ""),
+    [evento, grupos],
   );
+
+  /** Impede compartilhar enquanto não há escala ou os grupos não chegaram. */
+  const disabled = !evento || gruposLoading;
 
   /** Limpa o timeout pendente ao desmontar o componente para evitar setState pós-unmount. */
   useEffect(() => {
@@ -91,7 +98,7 @@ export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
   async function handleCopy() {
     if (!evento) return;
     try {
-      await copyEscalaToClipboard(evento);
+      await copyEscalaToClipboard(evento, grupos ?? []);
       setCopied(true);
       toast.success("Escala copiada para a área de transferência");
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
@@ -135,7 +142,7 @@ export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
         variant="outline"
         size="sm"
         onClick={handleCopy}
-        disabled={!evento}
+        disabled={disabled}
         aria-label="Copiar escala para a área de transferência"
       >
         {copied ? (
@@ -149,7 +156,7 @@ export function EscalaShareActions({ evento }: EscalaShareActionsProps) {
         variant="outline"
         size="sm"
         onClick={handleWhatsApp}
-        disabled={!evento}
+        disabled={disabled}
         aria-label="Abrir escala no WhatsApp"
       >
         <WhatsAppIcon className="h-4 w-4 sm:hidden" />
