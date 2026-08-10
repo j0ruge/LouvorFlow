@@ -12,14 +12,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +56,7 @@ const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
   cifras: "",
   lyrics: "",
   link_versao: "",
+  cifraclub_url: "",
   intensidade: "",
   categoria_ids: [],
   funcao_ids: [],
@@ -173,6 +167,7 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           cifras: versaoDefault?.cifras ?? "",
           lyrics: versaoDefault?.lyrics ?? "",
           link_versao: versaoDefault?.link_versao ?? "",
+          cifraclub_url: versaoDefault?.cifraclub_url ?? "",
           intensidade: versaoDefault?.intensidade ?? "",
           categoria_ids: musica.categorias.map((c) => c.id),
           funcao_ids: musica.funcoes.map((f) => f.id),
@@ -308,21 +303,33 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
 
   return (
     <>
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Música" : "Nova Música"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Altere os dados da música e da versão."
-              : "Preencha os dados da nova música para o catálogo."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="max-h-[70vh] overflow-y-auto space-y-4 px-1">
+    <Form {...form}>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title={isEditing ? "Editar Música" : "Nova Música"}
+        description={
+          isEditing
+            ? "Altere os dados da música e da versão."
+            : "Preencha os dados da nova música para o catálogo."
+        }
+        onSubmit={form.handleSubmit(onSubmit)}
+        contentClassName="sm:max-w-[600px]"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
               {/* Nome */}
               <FormField
                 control={form.control}
@@ -480,6 +487,26 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                 )}
               />
 
+              {/* Link CifraClub */}
+              <FormField
+                control={form.control}
+                name="cifraclub_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Link CifraClub (opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="https://www.cifraclub.com.br/artista/musica/"
+                        className="w-full"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Categorias (CreatableMultiCombobox) */}
               <FormField
                 control={form.control}
@@ -525,24 +552,8 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveFormDialog>
+    </Form>
 
     <AlertDialog open={draftPromptOpen} onOpenChange={setDraftPromptOpen}>
       <AlertDialogContent>

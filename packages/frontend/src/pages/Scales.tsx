@@ -91,13 +91,21 @@ const Scales = () => {
    * parâmetro da URL para evitar reabertura ao recarregar.
    */
   useEffect(() => {
-    if (searchParams.get("nova") === "1" && canWrite) {
+    if (searchParams.get("nova") !== "1") return;
+
+    if (canWrite) {
       setEditingEvento(null);
       setFormOpen(true);
-      const next = new URLSearchParams(searchParams);
-      next.delete("nova");
-      setSearchParams(next, { replace: true });
     }
+
+    /**
+     * Limpa o parâmetro mesmo sem permissão de escrita: do contrário, quem
+     * recebesse o link compartilhado ficaria com `?nova=1` preso na URL para
+     * sempre, já que a condição de limpeza nunca seria satisfeita.
+     */
+    const next = new URLSearchParams(searchParams);
+    next.delete("nova");
+    setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, canWrite]);
 
   /**

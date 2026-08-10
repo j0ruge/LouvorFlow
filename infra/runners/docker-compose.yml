@@ -21,7 +21,11 @@ x-runner-env: &runner-env
   ACCESS_TOKEN: ${ACCESS_TOKEN}
   LABELS: ${RUNNER_LABELS}
   RUNNER_SCOPE: repo
-  DISABLE_AUTO_UPDATE: "1"
+  # NÃO definir DISABLE_AUTO_UPDATE: o entrypoint do myoung34 trata qualquer valor
+  # não-vazio (até "0") como "desligar". Sem a var, o binário do runner se
+  # auto-atualiza quando o GitHub exige — evita o crashloop de versão deprecada
+  # ("Runner version vX is deprecated and cannot receive messages") que ocorre
+  # quando a imagem fica stale. Ver infra/runners/README.md.
   DISABLE_AUTOMATIC_DEREGISTRATION: "true"
   RANDOM_RUNNER_SUFFIX: "false"
   UNSET_CONFIG_VARS: "true"

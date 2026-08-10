@@ -17,7 +17,7 @@ const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
  * Requer email em formato válido e senha não vazia.
  */
 export const loginBodySchema = z.object({
-    email: z.string({ required_error: 'Email é obrigatório' }).email('Email deve ter um formato válido'),
+    email: z.string({ required_error: 'Email é obrigatório' }).trim().toLowerCase().email('Email deve ter um formato válido'),
     password: z.string({ required_error: 'Senha é obrigatória' }).min(1, 'Senha é obrigatória'),
 });
 
@@ -37,7 +37,7 @@ export const refreshTokenBodySchema = z.object({
  */
 export const createUserBodySchema = z.object({
     name: z.string({ required_error: 'Nome é obrigatório' }).min(1, 'Nome é obrigatório'),
-    email: z.string({ required_error: 'Email é obrigatório' }).email('Email deve ter um formato válido'),
+    email: z.string({ required_error: 'Email é obrigatório' }).trim().toLowerCase().email('Email deve ter um formato válido'),
     password: z.string({ required_error: 'Senha é obrigatória' }).min(6, 'Senha deve ter no mínimo 6 caracteres'),
 });
 
@@ -123,7 +123,7 @@ export const paginationQuerySchema = z.object({
  * Requer email em formato válido.
  */
 export const forgotPasswordBodySchema = z.object({
-    email: z.string({ required_error: 'Email é obrigatório' }).email('Email deve ter um formato válido'),
+    email: z.string({ required_error: 'Email é obrigatório' }).trim().toLowerCase().email('Email deve ter um formato válido'),
 });
 
 /**
@@ -147,7 +147,7 @@ export const resetPasswordBodySchema = z.object({
  */
 export const updateProfileBodySchema = z.object({
     name: z.string().min(1, 'Nome não pode ser vazio').optional(),
-    email: z.string().email('Email deve ter um formato válido').optional(),
+    email: z.string().trim().toLowerCase().email('Email deve ter um formato válido').optional(),
     old_password: z.string().optional(),
     password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional(),
 });

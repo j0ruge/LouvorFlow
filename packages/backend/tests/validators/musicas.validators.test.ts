@@ -1,8 +1,9 @@
 /**
  * Testes unitários do schema de query params da listagem de músicas.
  *
- * Cobre coerção de page/limit, CSV de UUIDs em `categorias`, trim em `q`,
- * e rejeição de UUIDs inválidos.
+ * Cobre coerção de page/limit, CSV de UUIDs em `categorias`, CSV de
+ * intensidades (tempo) com validação de enum e dedup, trim em `q`, e
+ * rejeição de valores inválidos.
  */
 
 import { listMusicasQuerySchema } from '../../src/validators/musicas.validators.js';
@@ -168,5 +169,54 @@ describe('listMusicasQuerySchema', () => {
         });
         expect(result.q).toBe('amor');
         expect(result.categorias).toEqual([id]);
+    });
+
+    /** CSV de intensidades válidas é transformado em array (ordem preservada). */
+    it('transforma CSV de intensidades válidas em array', () => {
+        const result = listMusicasQuerySchema.parse({ intensidades: 'calma,agitada' });
+        expect(result.intensidades).toEqual(['calma', 'agitada']);
+    });
+
+    /** Intensidades repetidas são deduplicadas, preservando a primeira ocorrência. */
+    it('deduplica intensidades repetidas', () => {
+        const result = listMusicasQuerySchema.parse({ intensidades: 'calma,calma,media' });
+        expect(result.intensidades).toEqual(['calma', 'media']);
+    });
+
+    /** Espaços ao redor das intensidades são removidos via trim. */
+    it('faz trim em intensidades separadas por vírgula com espaços', () => {
+        const result = listMusicasQuerySchema.parse({ intensidades: ' calma , media ' });
+        expect(result.intensidades).toEqual(['calma', 'media']);
+    });
+
+    /** String vazia resolve para `undefined` (sem filtro). */
+    it('retorna undefined quando intensidades é string vazia', () => {
+        const result = listMusicasQuerySchema.parse({ intensidades: '' });
+        expect(result.intensidades).toBeUndefined();
+    });
+
+    /** Apenas separadores resolvem para `undefined`. */
+    it('retorna undefined quando intensidades contém apenas separadores', () => {
+        const result = listMusicasQuerySchema.parse({ intensidades: ' , , ' });
+        expect(result.intensidades).toBeUndefined();
+    });
+
+    /** Valor de intensidade fora do enum (`calma`/`media`/`agitada`) é rejeitado. */
+    it('rejeita intensidade inválida', () => {
+        const result = listMusicasQuerySchema.safeParse({ intensidades: 'calma,rapida' });
+        expect(result.success).toBe(false);
+    });
+
+    /** `intensidades`, `categorias` e `q` coexistem na mesma requisição. */
+    it('aceita intensidades, categorias e q simultaneamente', () => {
+        const id = '550e8400-e29b-41d4-a716-446655440000';
+        const result = listMusicasQuerySchema.parse({
+            q: 'amor',
+            categorias: id,
+            intensidades: 'media',
+        });
+        expect(result.q).toBe('amor');
+        expect(result.categorias).toEqual([id]);
+        expect(result.intensidades).toEqual(['media']);
     });
 });

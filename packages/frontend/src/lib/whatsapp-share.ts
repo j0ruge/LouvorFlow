@@ -6,6 +6,13 @@
  */
 
 import type { EventoShow } from "@/schemas/evento";
+import type { GrupoFuncoes } from "@/schemas/funcoes-grupos";
+
+/** Uma linha da seção de integrantes, antes de ser renderizada como texto. */
+type LinhaIntegrante = {
+  funcaoNome: string;
+  integranteNome: string;
+};
 
 /**
  * Formata a data de um evento no padrão brasileiro DD/MM/AAAA HH:mm.
@@ -22,17 +29,103 @@ function formatDate(isoDate: string): string {
 }
 
 /**
+ * Compara dois nomes alfabeticamente em português, ignorando caixa e acentos.
+ *
+ * @param a - Primeiro nome.
+ * @param b - Segundo nome.
+ * @returns Valor negativo, zero ou positivo conforme a ordem alfabética.
+ */
+function compararNomes(a: string, b: string): number {
+  return a.localeCompare(b, "pt-BR", { sensitivity: "base" });
+}
+
+/**
+ * Monta os blocos da seção de integrantes, um por grupo de funções.
+ *
+ * Cada integrante rende uma linha por função que exerce, portanto quem
+ * acumula papéis (ex.: ministração e vocal) aparece em cada bloco
+ * correspondente. Dentro do bloco, as linhas são ordenadas pelo nome do
+ * integrante — o nome da função serve apenas de desempate, para que a
+ * saída seja determinística.
+ *
+ * Blocos vazios são omitidos. Funções sem grupo formam um bloco após o
+ * último grupo, e integrantes sem nenhuma função encerram a seção
+ * listados apenas pelo nome.
+ *
+ * @param evento - Escala com seus integrantes e respectivas funções.
+ * @param grupos - Grupos configurados pela igreja, em qualquer ordem.
+ * @returns Lista de blocos, cada um já como um array de linhas de texto.
+ */
+function buildIntegrantesBlocos(evento: EventoShow, grupos: GrupoFuncoes[]): string[][] {
+  const gruposOrdenados = [...grupos].sort((a, b) => a.ordem - b.ordem);
+
+  const blocoPorFuncao = new Map<string, number>();
+  gruposOrdenados.forEach((grupo, index) => {
+    grupo.funcoes.forEach((funcao) => blocoPorFuncao.set(funcao.id, index));
+  });
+
+  const indiceSemGrupo = gruposOrdenados.length;
+  const buckets: LinhaIntegrante[][] = Array.from(
+    { length: gruposOrdenados.length + 1 },
+    () => [],
+  );
+  const semFuncao: string[] = [];
+
+  for (const integrante of evento.integrantes) {
+    if (integrante.funcoes.length === 0) {
+      semFuncao.push(integrante.nome);
+      continue;
+    }
+
+    for (const funcao of integrante.funcoes) {
+      const indice = blocoPorFuncao.get(funcao.id) ?? indiceSemGrupo;
+      buckets[indice].push({
+        funcaoNome: funcao.nome,
+        integranteNome: integrante.nome,
+      });
+    }
+  }
+
+  const blocos: string[][] = [];
+
+  for (const bucket of buckets) {
+    if (bucket.length === 0) continue;
+
+    bucket.sort((a, b) =>
+      compararNomes(a.integranteNome, b.integranteNome)
+      || compararNomes(a.funcaoNome, b.funcaoNome),
+    );
+    blocos.push(bucket.map((linha) => `${linha.funcaoNome} — ${linha.integranteNome}`));
+  }
+
+  if (semFuncao.length > 0) {
+    blocos.push([...semFuncao].sort(compararNomes));
+  }
+
+  return blocos;
+}
+
+/**
  * Gera uma mensagem formatada com markdown do WhatsApp a partir de um evento (escala).
  *
  * A mensagem segue o layout canônico definido no PRD:
  * - Header com tipo de evento em negrito e data em itálico
  * - Seção de músicas numeradas com tom e link de versão (quando disponíveis)
- * - Seção de integrantes ordenados alfabeticamente com suas funções
+ * - Seção de integrantes em blocos `Função — Nome`, um bloco por grupo de
+ *   funções, separados por uma linha em branco
+ *
+ * O contador do cabeçalho conta pessoas, não linhas: quem exerce mais de uma
+ * função aparece em vários blocos, mas é contado uma única vez.
  *
  * @param evento - Objeto completo do evento (escala) conforme retornado pela API.
+ * @param grupos - Grupos de funções configurados pela igreja. Sem eles, todas
+ * as funções caem num único bloco final (a mensagem continua legível).
  * @returns String formatada pronta para envio via WhatsApp.
  */
-export function formatEscalaWhatsApp(evento: EventoShow): string {
+export function formatEscalaWhatsApp(
+  evento: EventoShow,
+  grupos: GrupoFuncoes[] = [],
+): string {
   const tipoNome = evento.tipoEvento?.nome ?? "Evento";
   const dataFormatada = formatDate(evento.data);
   const header = `*${tipoNome}* — _${dataFormatada}_`;
@@ -54,16 +147,7 @@ export function formatEscalaWhatsApp(evento: EventoShow): string {
   });
 
   const integrantesHeader = `👥 *Integrantes* (${evento.integrantes.length})`;
-  const integrantesSorted = [...evento.integrantes].sort((a, b) =>
-    a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
-  );
-  const integrantesLines = integrantesSorted.map((integrante) => {
-    if (integrante.funcoes.length === 0) {
-      return integrante.nome;
-    }
-    const funcoes = integrante.funcoes.map((f) => f.nome).join(", ");
-    return `${integrante.nome} — ${funcoes}`;
-  });
+  const integrantesBlocos = buildIntegrantesBlocos(evento, grupos);
 
   const sections = [header, ""];
 
@@ -75,9 +159,9 @@ export function formatEscalaWhatsApp(evento: EventoShow): string {
 
   sections.push("");
   sections.push(integrantesHeader);
-  if (integrantesLines.length > 0) {
+  for (const bloco of integrantesBlocos) {
     sections.push("");
-    sections.push(integrantesLines.join("\n"));
+    sections.push(bloco.join("\n"));
   }
 
   return sections.join("\n");
@@ -101,10 +185,12 @@ export function buildWhatsAppShareUrl(message: string): string {
  * possa exibir feedback de erro ao usuário.
  *
  * @param evento - Objeto completo do evento (escala) conforme retornado pela API.
+ * @param grupos - Grupos de funções usados para agrupar os integrantes.
  * @returns Promise que resolve quando a cópia for concluída.
  */
 export async function copyEscalaToClipboard(
   evento: EventoShow,
+  grupos: GrupoFuncoes[] = [],
 ): Promise<void> {
-  await navigator.clipboard.writeText(formatEscalaWhatsApp(evento));
+  await navigator.clipboard.writeText(formatEscalaWhatsApp(evento, grupos));
 }

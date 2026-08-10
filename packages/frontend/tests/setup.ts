@@ -33,3 +33,24 @@ if (typeof globalThis.ResizeObserver === "undefined") {
 if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function scrollIntoView(): void {};
 }
+
+/**
+ * Polyfill de `window.matchMedia` para ambiente jsdom.
+ * Necessário porque `useIsMobile` (usado por `DateTimePicker`/`Drawer` e demais
+ * componentes que adaptam o layout mobile) instancia `matchMedia` no mount;
+ * jsdom não implementa a API. Retorna sempre "não-mobile" (`matches: false`).
+ */
+if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
+  window.matchMedia = function matchMedia(query: string): MediaQueryList {
+    return {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as MediaQueryList;
+  };
+}

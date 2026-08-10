@@ -41,12 +41,13 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM, letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
 - **Escalas de culto** — Criação, edição e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento.
 - **Gerenciamento de integrantes** — Cadastro de membros com atribuição e remoção de funções (voz, guitarra, teclado, etc.).
-- **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente.
-- **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Tonalidades e Tipos de Evento.
+- **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente, recebendo o papel `integrante` (membro básico, sem permissões administrativas).
+- **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Grupos de funções, Tonalidades e Tipos de Evento.
 - **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
 - **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
-- **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos.
+- **Integração CifraClub** — Link da cifra cadastrado por música (reaproveitado em todas as escalas); playlist exportável da escala com transposição automática de tom (`#key=N`) e compartilhamento via WhatsApp com links que abrem a cifra já no tom correto.
+- **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos. Os integrantes saem agrupados por papel (Ministração, Direção Musical, Vocal, Instrumentos, Outros), na ordem definida na aba **Grupos** de Configurações.
 - **Histórico de escalas** — Consulta de escalas anteriores.
 - **Autenticação e RBAC** — Login com JWT (access + refresh token), recuperação de senha por e-mail, gestão de usuários, papéis (roles) e permissões. Painel administrativo com controle de acesso baseado em roles.
 - **Perfil do usuário** — Edição de nome, e-mail e senha pelo próprio usuário.
@@ -260,6 +261,7 @@ Base URL: `http://localhost:3000/api`
 
 | Recurso          | Rota base           | CRUD | Sub-recursos / Notas                   |
 |------------------|---------------------|------|----------------------------------------|
+| Health           | `/health`           | —    | Público. `{ status, sha, timestamp }` (SHA do build) |
 | Artistas         | `/artistas`         | Sim  | —                                      |
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
 | Integrantes      | `/integrantes`      | Sim  | `/funcoes`                             |
@@ -268,14 +270,16 @@ Base URL: `http://localhost:3000/api`
 | Tags             | `/tags`             | Sim  | —                                      |
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
 | Funções          | `/funcoes`          | Sim  | —                                      |
+| Grupos de funções | `/funcoes-grupos`  | Sim  | `PATCH /reorder`, `PUT /:id/funcoes`   |
 | Tipos de Eventos | `/tipos-eventos`    | Sim  | —                                      |
-| Igrejas          | `/igrejas`          | Sim  | `/users`. Requer role `super-admin`    |
-| Sessions         | `/sessions`         | —    | Login, refresh token, logout, `select-tenant`, `switch-tenant` |
+| Igrejas          | `/igrejas`          | Sim  | `/users`. Requer role `super-admin`. O tenant de sistema é recusado com 403 |
+| Relatórios       | `/relatorios`       | —    | `GET /resumo` — totais, ranking e atividade mensal |
+| Sessions         | `/sessions`         | —    | Login, refresh token, logout, `select-tenant`, `switch-tenant`. Rotas públicas com rate limit |
 | Users            | `/users`            | Sim  | Requer role `admin`                    |
 | Roles            | `/roles`            | Sim  | `/permissions`. Requer role `admin`    |
 | Permissions      | `/permissions`      | Sim  | Requer role `admin`                    |
 | Profile          | `/profile`          | —    | Visualizar e editar perfil próprio     |
-| Password         | `/password`         | —    | Esqueci senha, redefinir senha         |
+| Password         | `/password`         | —    | Esqueci senha, redefinir senha. Com rate limit |
 
 ### Padrão CRUD
 

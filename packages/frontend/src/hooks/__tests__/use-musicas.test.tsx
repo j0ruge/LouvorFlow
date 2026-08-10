@@ -220,4 +220,41 @@ describe("useMusicas — assinatura por objeto", () => {
     const path = lastFetchedPath();
     expect(path).not.toContain("categorias=");
   });
+
+  /**
+   * Verifica que múltiplas intensidades são serializadas como CSV (ordenadas),
+   * com a vírgula codificada como `%2C` por `URLSearchParams` — o backend
+   * decodifica antes de `split(',')`.
+   */
+  it("deve serializar o parâmetro intensidades como CSV", async () => {
+    const { result } = renderHook(
+      () => useMusicas({ page: 1, limit: 20, intensidades: ["calma", "agitada"] }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const path = lastFetchedPath();
+    expect(path).toContain("intensidades=agitada%2Ccalma");
+  });
+
+  /**
+   * Verifica que `intensidades` como array vazio não vira parâmetro na URL
+   * — equivalente a "sem filtro".
+   */
+  it("não deve enviar intensidades quando o array é vazio", async () => {
+    const { result } = renderHook(
+      () => useMusicas({ page: 1, limit: 20, intensidades: [] }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    const path = lastFetchedPath();
+    expect(path).not.toContain("intensidades=");
+  });
 });

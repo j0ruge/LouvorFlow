@@ -49,13 +49,21 @@ export function can(permissions: string[]) {
             throw new AppError('Invalid authentication token', 401);
         }
 
-        if (!req.user.permissions || !req.user.roles) {
-            /** Passa tenantId para filtrar roles/permissions pelo tenant ativo. */
-            const tenantId = req.user.tenantId;
+        /**
+         * Isolamento de tenant obrigatório: sem `tenantId`, `getUserPermissions`
+         * e `getUserRoles` omitem o filtro de tenant e retornariam permissões de
+         * TODOS os tenants, permitindo bypass de autorização. A checagem fica
+         * fora do bloco de cache abaixo de propósito — dentro dele, uma cadeia
+         * que já tivesse populado `permissions` e `roles` pularia a guarda.
+         * Mesma ordem usada em `is` e `ensureHasRole` (defesa em profundidade).
+         */
+        const tenantId = req.user.tenantId;
 
-            if (!tenantId) {
-                throw new AppError('Contexto de tenant é obrigatório para verificar permissões', 403);
-            }
+        if (!tenantId) {
+            throw new AppError('Contexto de tenant é obrigatório para verificar permissões', 403);
+        }
+
+        if (!req.user.permissions || !req.user.roles) {
             const [directPermissions, userRoles] = await Promise.all([
                 req.user.permissions
                     ? Promise.resolve(req.user.permissions)

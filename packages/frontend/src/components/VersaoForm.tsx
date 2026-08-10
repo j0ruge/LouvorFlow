@@ -9,14 +9,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
 import {
   Form,
   FormField,
@@ -93,6 +86,7 @@ export function VersaoForm({
       cifras: "",
       lyrics: "",
       link_versao: "",
+      cifraclub_url: "",
       intensidade: "",
     },
   });
@@ -113,6 +107,7 @@ export function VersaoForm({
           cifras: versao.cifras ?? "",
           lyrics: versao.lyrics ?? "",
           link_versao: versao.link_versao ?? "",
+          cifraclub_url: versao.cifraclub_url ?? "",
           intensidade: versao.intensidade ?? "",
         });
       } else {
@@ -122,6 +117,7 @@ export function VersaoForm({
           cifras: "",
           lyrics: "",
           link_versao: "",
+          cifraclub_url: "",
           intensidade: "",
         });
       }
@@ -146,33 +142,34 @@ export function VersaoForm({
     }
   }
 
-  /**
-   * Delega a submissão dos dados validados ao callback `onSubmit`.
-   *
-   * @param dados - Dados validados do formulário de versão.
-   */
-  function handleSubmit(dados: CreateVersaoForm) {
-    onSubmit(dados);
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Versão" : "Nova Versão"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Altere os dados da versão."
-              : "Preencha os dados da nova versão da música."}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
+    <Form {...form}>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={isEditing ? "Editar Versão" : "Nova Versão"}
+        description={
+          isEditing
+            ? "Altere os dados da versão."
+            : "Preencha os dados da nova versão da música."
+        }
+        onSubmit={form.handleSubmit(onSubmit)}
+        contentClassName="sm:max-w-[500px]"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
             <FormField
               control={form.control}
               name="artista_id"
@@ -292,21 +289,25 @@ export function VersaoForm({
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            <FormField
+              control={form.control}
+              name="cifraclub_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Link CifraClub (opcional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://www.cifraclub.com.br/artista/musica/"
+                      className="w-full"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+      </ResponsiveFormDialog>
+    </Form>
   );
 }

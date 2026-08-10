@@ -200,15 +200,34 @@ export async function apiFetch<T>(
     throw new Error("Não foi possível conectar ao servidor. Verifique sua rede.");
   }
 
+  /**
+   * Só tentamos renovar quando há um access token em memória. Durante a
+   * inicialização da sessão (antes de `setAccessToken`), nenhuma requisição
+   * autenticada chega aqui: o `ProtectedRoute` exibe um spinner enquanto
+   * `isLoading` e só monta os filhos após o `initAuth` concluir. Renovar aqui
+   * nesse intervalo competiria com o refresh do `initAuth` (rotação de refresh
+   * token é de uso único), podendo invalidar a sessão recém-criada.
+   */
   if (response.status === 401 && accessToken) {
     const newToken = await tryRefreshToken();
-    if (newToken) {
-      try {
-        response = await doFetch(newToken);
-      } catch {
-        throw new Error("Não foi possível conectar ao servidor. Verifique sua rede.");
-      }
-    } else {
+    if (!newToken) {
+      onAuthFailure?.();
+      throw new ApiError("Sessão expirada. Faça login novamente.", 401);
+    }
+
+    try {
+      response = await doFetch(newToken);
+    } catch {
+      throw new Error("Não foi possível conectar ao servidor. Verifique sua rede.");
+    }
+
+    /**
+     * Se a requisição ainda retorna 401 mesmo após renovar com sucesso, a sessão
+     * é definitivamente inválida (ex.: token revogado no servidor). Sinaliza falha
+     * de autenticação em vez de cair no handler genérico — evita o loop em que cada
+     * requisição dispara um novo refresh e falha de novo silenciosamente.
+     */
+    if (response.status === 401) {
       onAuthFailure?.();
       throw new ApiError("Sessão expirada. Faça login novamente.", 401);
     }

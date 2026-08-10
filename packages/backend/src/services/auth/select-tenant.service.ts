@@ -9,9 +9,16 @@
 import { AppError } from '../../errors/AppError.js';
 import tokenProvider from '../../providers/token.provider.js';
 import { authConfig } from '../../config/auth.js';
+import { consumeSelectionToken } from '../../providers/selection-token-store.provider.js';
 import type { ISelectTenantDTO, IResponseDTO } from '../../types/auth.types.js';
 import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 import authenticateUserService from './authenticate-user.service.js';
+
+/**
+ * Tempo de vida (ms) da marca de consumo do selection token no store de uso único.
+ * Deve cobrir a validade do token (5 min) para impedir replay durante toda a janela.
+ */
+const SELECTION_TOKEN_TTL_MS = 5 * 60 * 1000;
 
 class SelectTenantService {
     /**
@@ -124,6 +131,18 @@ class SelectTenantService {
 
         if (tenant.status !== 'active') {
             throw new AppError('Igreja não está ativa', 400);
+        }
+
+        /**
+         * Uso único: consome o selection token (por `jti`) imediatamente antes de emitir
+         * a sessão. Consumir somente aqui — após todas as validações — evita "queimar" o
+         * token em uma seleção inválida (ex.: tenant errado) e bloqueia replay/concorrência.
+         */
+        if (
+            typeof decoded.jti !== 'string' ||
+            !consumeSelectionToken(decoded.jti, SELECTION_TOKEN_TTL_MS)
+        ) {
+            throw new AppError('Token de seleção inválido ou já utilizado', 401);
         }
 
         // Gera os tokens de sessão com tenantId no payload, reutilizando o método do AuthenticateUserService

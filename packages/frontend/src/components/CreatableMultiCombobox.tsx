@@ -7,8 +7,9 @@
  * O popover permanece aberto após cada seleção para facilitar múltiplas escolhas.
  */
 
-import { useState, useMemo, useRef } from "react";
+import { useId, useState, useMemo, useRef } from "react";
 import { Check, ChevronsUpDown, Plus, Loader2, X } from "lucide-react";
+import { normalizeForSearch } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -80,6 +81,8 @@ export function CreatableMultiCombobox({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  /** ID único do listbox para wiring de `aria-controls` no trigger. */
+  const listboxId = useId();
   /** Opções criadas localmente, exibidas até o refetch das options externas. */
   const [optimisticOptions, setOptimisticOptions] = useState<ComboboxOption[]>([]);
 
@@ -105,13 +108,16 @@ export function CreatableMultiCombobox({
   );
 
   /**
-   * Verifica se o texto de busca tem correspondência exata em todas as opções (incluindo já selecionadas).
-   * Usado para decidir se exibe o botão "Criar X", evitando criação de duplicatas.
+   * Verifica se o texto de busca tem correspondência exata em todas as opções
+   * (incluindo já selecionadas), ignorando caso e diacríticos — "Adoração" e
+   * "adoracao" comparam iguais. Usado para decidir se exibe o botão "Criar X",
+   * evitando a criação de duplicatas que diferem apenas por acentuação.
    */
-  const hasExactMatch = useMemo(
-    () => mergedOptions.some((opt) => opt.label.toLowerCase() === search.toLowerCase()),
-    [mergedOptions, search],
-  );
+  const hasExactMatch = useMemo(() => {
+    if (!search.trim()) return false;
+    const needle = normalizeForSearch(search);
+    return mergedOptions.some((opt) => normalizeForSearch(opt.label) === needle);
+  }, [mergedOptions, search]);
 
   /**
    * Adiciona um item à seleção.
@@ -169,6 +175,8 @@ export function CreatableMultiCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-haspopup="listbox"
+          aria-controls={listboxId}
           className="w-full min-h-10 h-auto justify-between font-normal"
           disabled={disabled || isLoading}
           type="button"
@@ -208,32 +216,34 @@ export function CreatableMultiCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={true}>
+        <Command
+          /**
+           * Filtro explícito: o item de criação (sentinel `__create__:`) sempre
+           * pontua 1 (sempre visível, independente da versão do cmdk — `forceMount`
+           * sozinho não garante visibilidade contra o score). Demais itens usam
+           * match por substring normalizada (ignora caso e diacríticos), coerente
+           * com `hasExactMatch`.
+           */
+          filter={(value, searchTerm) => {
+            if (value.startsWith("__create__:")) return 1;
+            return normalizeForSearch(value).includes(normalizeForSearch(searchTerm))
+              ? 1
+              : 0;
+          }}
+        >
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList>
-            <CommandEmpty>
-              {search.trim() ? (
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-sm"
-                  onClick={handleCreate}
-                  disabled={creating}
-                >
-                  {creating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  {creating ? "Criando..." : createLabel(search.trim())}
-                </button>
-              ) : (
-                "Nenhum resultado encontrado."
-              )}
-            </CommandEmpty>
+          <CommandList id={listboxId}>
+            {/*
+              CommandEmpty só é renderizado quando NÃO há opção "Criar" disponível,
+              evitando duplicar a ação de criação (uma no empty, outra no grupo abaixo).
+            */}
+            {!(search.trim() && !hasExactMatch) && (
+              <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+            )}
             <CommandGroup>
               {availableOptions.map((option) => (
                 <CommandItem
@@ -246,11 +256,16 @@ export function CreatableMultiCombobox({
                 </CommandItem>
               ))}
             </CommandGroup>
-            {/* Botão "Criar" exibido abaixo das opções filtradas quando não há match exato */}
-            {search.trim() && !hasExactMatch && availableOptions.length > 0 && (
-              <CommandGroup>
+            {/*
+              Botão "Criar" como CommandItem com forceMount — navegável por teclado
+              (setas/Enter) mesmo quando a lista filtrada está vazia. O `value` usa
+              um sentinel com separador (`:`) improvável de colidir com labels reais.
+            */}
+            {search.trim() && !hasExactMatch && (
+              <CommandGroup forceMount>
                 <CommandItem
-                  value={`__create__${search.trim()}`}
+                  forceMount
+                  value={`__create__:${search.trim()}`}
                   onSelect={handleCreate}
                   disabled={creating}
                   className="text-primary"

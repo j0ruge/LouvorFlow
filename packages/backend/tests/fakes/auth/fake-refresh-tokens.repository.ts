@@ -68,6 +68,23 @@ class FakeRefreshTokensRepository {
     }
 
     /**
+     * Remove atomicamente o refresh token pelo par (user_id, token), simulando o
+     * `deleteMany` do Prisma: retorna a contagem de registros removidos, usada como
+     * trava otimista na rotação de tokens.
+     *
+     * @param userId - UUID do usuário dono do token.
+     * @param token - Valor do refresh token a ser consumido.
+     * @returns Objeto com a contagem de registros removidos (`count`).
+     */
+    async deleteByUserIdAndRefreshToken(userId: string, token: string): Promise<{ count: number }> {
+        const before = this.tokens.length;
+        this.tokens = this.tokens.filter(
+            (t) => !(t.user_id === userId && t.refresh_token === token),
+        );
+        return { count: before - this.tokens.length };
+    }
+
+    /**
      * Remove todos os refresh tokens de um usuário.
      *
      * @param userId - UUID do usuário
@@ -77,6 +94,42 @@ class FakeRefreshTokensRepository {
         const before = this.tokens.length;
         this.tokens = this.tokens.filter((t) => t.user_id !== userId);
         return { count: before - this.tokens.length };
+    }
+
+    /**
+     * Rotaciona atomicamente o token (simula a transação do Prisma): consome o
+     * token antigo via trava otimista e, se removido, cria o novo.
+     *
+     * @param userId - UUID do usuário dono do token.
+     * @param oldToken - Refresh token a ser consumido.
+     * @param newData - Dados do novo refresh token a persistir.
+     * @returns Objeto com a contagem de registros removidos (`count`).
+     */
+    async rotateAtomic(
+        userId: string,
+        oldToken: string,
+        newData: { user_id: string; expires_date: Date; refresh_token: string },
+    ): Promise<{ count: number }> {
+        const { count } = await this.deleteByUserIdAndRefreshToken(userId, oldToken);
+        if (count === 0) return { count: 0 };
+        await this.create(newData);
+        return { count };
+    }
+
+    /**
+     * Substitui atomicamente todos os tokens do usuário por um novo (simula a
+     * transação do Prisma): remove todos e cria o novo.
+     *
+     * @param userId - UUID do usuário.
+     * @param newData - Dados do novo refresh token a persistir.
+     * @returns Registro de refresh token criado.
+     */
+    async replaceAllByUserId(
+        userId: string,
+        newData: { user_id: string; expires_date: Date; refresh_token: string },
+    ) {
+        await this.deleteAllByUserId(userId);
+        return this.create(newData);
     }
 
     /**

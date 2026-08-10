@@ -8,7 +8,21 @@
 import fakeUsersRepository from '../../fakes/auth/fake-users.repository.js';
 import fakeRolesRepository from '../../fakes/auth/fake-roles.repository.js';
 import fakePermissionsRepository from '../../fakes/auth/fake-permissions.repository.js';
+import { HASH_TESTE } from '../../fakes/mock-data.js';
 import { AppError } from '../../../src/errors/AppError.js';
+
+/** Mock hoisted do `prisma.tenantUsers.findFirst` para controlar a verificação de pertencimento ao tenant. */
+const { mockTenantUsersFindFirst } = vi.hoisted(() => ({
+    mockTenantUsersFindFirst: vi.fn(),
+}));
+
+vi.mock('../../../prisma/cliente.js', () => ({
+    default: {
+        tenantUsers: {
+            findFirst: (...args: unknown[]) => mockTenantUsersFindFirst(...args),
+        },
+    },
+}));
 
 vi.mock('../../../src/repositories/auth/users.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-users.repository.js');
@@ -33,6 +47,9 @@ describe('CreateUserAccessControlListService', () => {
         fakeUsersRepository.reset();
         fakeRolesRepository.reset();
         fakePermissionsRepository.reset();
+        /** Por padrão, o usuário-alvo pertence ao tenant (vínculo encontrado). */
+        mockTenantUsersFindFirst.mockReset();
+        mockTenantUsersFindFirst.mockResolvedValue({ id: 'link-id' });
     });
 
     /** Verifica que roles e permissoes validas sao atribuidas corretamente ao usuario. */
@@ -40,7 +57,7 @@ describe('CreateUserAccessControlListService', () => {
         const user = await fakeUsersRepository.create({
             name: 'Joao Silva',
             email: 'joao@test.com',
-            password: 'hashed-password',
+            password: HASH_TESTE,
         });
 
         const role = await fakeRolesRepository.create({
@@ -67,6 +84,30 @@ describe('CreateUserAccessControlListService', () => {
         expect(result).toHaveProperty('permissions');
     });
 
+    /** Verifica que um AppError 403 e lancado quando o usuario-alvo nao pertence ao tenant ativo. */
+    it('deve lancar erro 403 quando usuario nao pertence ao tenant', async () => {
+        const user = await fakeUsersRepository.create({
+            name: 'Forasteiro',
+            email: 'forasteiro@test.com',
+            password: HASH_TESTE,
+        });
+        mockTenantUsersFindFirst.mockResolvedValueOnce(null);
+
+        await expect(
+            service.execute({
+                userId: user.id,
+                roles: [],
+                permissions: [],
+                tenantId: 'tenant-test-id',
+                callerId: 'caller-test-id',
+                callerIsSuperAdmin: false,
+            }),
+        ).rejects.toMatchObject({
+            statusCode: 403,
+            message: 'Usuário não pertence a esta igreja',
+        });
+    });
+
     /** Verifica que um AppError e lancado quando o usuario nao existe. */
     it('deve lancar erro para usuario inexistente', async () => {
         await expect(
@@ -86,7 +127,7 @@ describe('CreateUserAccessControlListService', () => {
         const user = await fakeUsersRepository.create({
             name: 'Maria Souza',
             email: 'maria@test.com',
-            password: 'hashed-password',
+            password: HASH_TESTE,
         });
 
         const role = await fakeRolesRepository.create({
@@ -111,7 +152,7 @@ describe('CreateUserAccessControlListService', () => {
         const user = await fakeUsersRepository.create({
             name: 'Carlos Lima',
             email: 'carlos@test.com',
-            password: 'hashed-password',
+            password: HASH_TESTE,
         });
 
         const permission = await fakePermissionsRepository.create({

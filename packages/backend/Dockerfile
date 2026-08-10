@@ -24,7 +24,7 @@ RUN yarn install --frozen-lockfile
 # Copy Prisma schema and generate client (DB_URL dummy — generate não conecta)
 COPY packages/backend/prisma/ packages/backend/prisma/
 COPY packages/backend/prisma.config.ts packages/backend/prisma.config.ts
-RUN cd packages/backend && DB_URL=postgresql://dummy:dummy@localhost:5432/dummy npx prisma generate
+RUN cd packages/backend && DB_URL=postgresql://localhost:5432/dummy npx prisma generate
 
 # Copy backend source code
 COPY packages/backend/ packages/backend/
@@ -57,6 +57,12 @@ COPY --from=builder /app/packages/backend/seeds/ packages/backend/seeds/
 RUN addgroup -g 1001 -S appgroup && \
     adduser -S appuser -u 1001 -G appgroup
 USER appuser
+
+# SHA do commit que originou a imagem, injetado pelo CI via build-arg. Exposto em
+# GET /api/health para o smoke test pós-deploy confirmar que o build correto está
+# no ar (e não uma imagem antiga). Default 'unknown' em builds locais sem o arg.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
 
 EXPOSE 3000
 

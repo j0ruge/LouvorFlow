@@ -1,26 +1,62 @@
-# Gemini Review — PR #61
+# Gemini Code Assist Review — PR #64
 
 **Repository**: j0ruge/LouvorFlow
 **Reviewer**: gemini-code-assist[bot]
-**Date**: 2026-05-03
-**Total findings**: 6 (1 HIGH · 5 MEDIUM)
+**Branch**: `027-cifraclub-list-link` → `develop`
+**Date**: 2026-06-14
+**PR**: feat(cifraclub): integração CifraClub + scroll-restoration + remediação de review
+
+> Nota: CodeRabbit **pulou** a review (auto-reviews desabilitadas em base diferente da branch padrão) — sem achados acionáveis. Ver `coderabbit-review.md`.
+
+## Baseline de testes (pré-fix)
+
+```text
+baseline_pass: 593   (backend 419 + frontend 174)
+baseline_fail: 0
+baseline_failing_tests: (nenhum)
+```
+
+---
 
 ## Findings
 
-- [x] **#1** [HIGH] `packages/frontend/src/lib/utils.ts:107` — Fixed: `formatDateBlock` agora detecta strings _date-only_ (`/^\d{4}-\d{2}-\d{2}$/`) e usa `getUTCDate`/`getUTCMonth`, evitando deslocamento de um dia em fusos ocidentais. Para timestamps com hora, mantém o getter local. Teste cobre o caso `"2026-03-27"`.
-- [x] **#2** [MEDIUM] `packages/frontend/src/components/AppSidebar.tsx:68` — Not applicable: o `!` em `navItemActiveClass` é o workaround documentado para sobrescrever o `data-[active=true]` do primitivo shadcn `SidebarMenuButton` (o estilo ativo da primitiva ganha sobre o utilitário do `NavLink` sem `!important`). Remover quebraria o destaque do item ativo. Aceito como dívida técnica conhecida do primitivo.
-- [x] **#3** [MEDIUM] `packages/frontend/src/components/AppSidebar.tsx:126` — Fixed (revisão pós-feedback de UX): inicialmente trocado para `text-lg` flat para alinhar a `system.md:134`, mas no desktop ficou pequeno demais. Padrão final responsivo: `text-lg sm:text-[22px]` — 18px no mobile (atende ao spec) e 22px a partir de 640px (recupera a presença do wordmark no desktop). `system.md` foi atualizado para documentar essa escalonagem.
-- [x] **#4** [MEDIUM] `packages/frontend/src/components/AppSidebar.tsx:139,165` — Fixed: `text-[10.5px]` substituído por `text-xs` (≥12px, atende a `system.md:133`).
-- [x] **#5** [MEDIUM] `packages/frontend/src/components/UserMenu.tsx:53` — Fixed: extraído `ROLE_LABELS` + `formatRoleLabel(roleName)` em `@/lib/utils`. UserMenu passou a importar e usar a função centralizada; o objeto local foi removido.
-- [x] **#6** [MEDIUM] `packages/frontend/src/pages/Dashboard.tsx:118` — Fixed (revisão pós-feedback de UX): inicialmente reduzido para `text-2xl` flat para alinhar a `system.md:128`, mas o Dashboard é a "front door" do app e perdeu hierarquia no desktop. Padrão final responsivo: `text-2xl sm:text-3xl md:text-[34px]` — 24px no mobile (atende ao spec) e escala até 34px no desktop (recupera o conforto da versão pré-review). `system.md` foi atualizado para documentar essa escalonagem como exceção canônica para hero elements.
+### Segurança / Correção
+
+- [x] **#1 [MEDIUM]** `packages/backend/src/lib/cifraclub-key-mapping.ts:79` — Validação de domínio com `.endsWith('cifraclub.com.br')` aceita bypass (`fakecifraclub.com.br`). **Fixed:** trocado por `hostname === 'cifraclub.com.br' || hostname.endsWith('.cifraclub.com.br')` + comentário atualizado.
+  - _Severidade recalibrada de HIGH → MEDIUM: o impacto real é restrito (apenas anexa `#key=N` a URLs; o `href` é gateado por `isSafeUrl()` em separado). Ainda assim é um bug de correção de validação de domínio._
+
+- [x] **#2 [MEDIUM]** `packages/frontend/src/lib/cifraclub-key-mapping.ts:79` — Mesmo bypass de domínio do #1, no porto frontend. **Fixed:** mesma correção aplicada (front/back sincronizados).
+
+### Validação Zod
+
+- [x] **#3 [MEDIUM]** `packages/backend/src/validators/eventos.validators.ts:74-81` — Bug lógico: `.regex()` roda antes do `.transform()`, então string vazia `""` falha no regex e nunca vira `null`. **Fixed:** reescrito com `z.preprocess` que normaliza `""` → `null` antes da validação; docstring atualizada.
+
+- [x] **#4 [MEDIUM]** `packages/frontend/src/schemas/evento.ts:9` — Falta import de `CIFRACLUB_LIST_URL_REGEX`. **Fixed:** import adicionado (`@/lib/cifraclub-list-url`).
+
+- [x] **#5 [MEDIUM]** `packages/frontend/src/schemas/evento.ts:27-33` — Contract drift: o campo de formulário valida só URL http/https genérica, não o formato CifraClub. **Fixed:** substituído `.url()` + refine de protocolo por `.regex(CIFRACLUB_LIST_URL_REGEX)` (mesmo contrato do backend); docstring atualizada. Os 4 testes de `evento.test.ts` continuam verdes (regex já cobre `https://` sem host e protocolo inseguro).
+
+### Discrepância feature/spec
+
+- [x] **#6 [MEDIUM]** `packages/frontend/src/components/EventoForm.tsx` — Preview debounced (500ms) da spec T035 não estava implementado; `fetchListPreview`/`ListPreview` eram código morto. **Fixed (decisão do usuário: implementar agora):** implementado o preview completo da T035 — `useDebouncedValue` (500ms) + `fetchListPreview` com `AbortController` (cancela a busca anterior), bloco de preview (nome · dono · nº músicas · pública/privada), texto fixo para listas-sistema, aviso "⚠ Lista não marcada como pública" quando privada e guarda de permissão `escalas.write` (input desabilitado + tooltip "Sem permissão"). Mobile-first: input `w-full`, preview empilha com `min-w-0`/`break-words`. `fetchListPreview` deixou de ser código morto.
+  - _Testes: novo `EventoForm.cifraclub-preview.test.tsx` (3 casos: preview público, aviso de privada, lista-sistema sem busca). Polyfill `window.matchMedia` adicionado em `tests/setup.ts` (necessário para renderizar `DateTimePicker`/`Drawer` em jsdom)._
+
+---
 
 ## Final Result
 
-| Status | Count |
-|---|---|
-| Fixed | 5 |
-| Already fixed | 0 |
-| Not applicable | 1 |
-| Pending | 0 |
+| Status | Count | Items |
+|---|---|---|
+| Fixed | 6 | #1, #2, #3, #4, #5, #6 |
+| Already fixed | 0 | — |
+| Not applicable | 0 | — |
+| Pending | 0 | — |
 
-**Tests**: backend 347/347 ✅ · frontend 134/134 ✅
+**Tests pós-fix**: backend **419/419** ✅ · frontend **177/177** ✅ (+3 novos do preview T035) · typecheck backend ✅ · typecheck frontend ✅ · ESLint 0 erros. Sem regressões vs. baseline (593→596).
+
+### Conversations
+
+- **Total threads (Gemini)**: 6
+- **Resolved in this run**: 6
+- **Previously resolved**: 0
+- **Unresolved restantes**: 0
+- _(CodeRabbit não tem review threads — apenas issue comment de skip.)_

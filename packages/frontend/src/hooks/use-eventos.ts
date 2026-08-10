@@ -19,6 +19,7 @@ import {
   setMusicaVersao,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
+  getCifraclubPlaylist,
 } from "@/services/eventos";
 import type { CreateEventoForm, UpdateEventoForm, EventoShow } from "@/schemas/evento";
 
@@ -45,6 +46,25 @@ export function useEvento(id: string) {
     queryKey: ["eventos", id],
     queryFn: () => getEvento(id),
     enabled: !!id,
+  });
+}
+
+/**
+ * Hook para buscar a playlist CifraClub de um evento.
+ *
+ * O parâmetro `enabled` permite carregamento preguiçoso: o consumidor deve passar
+ * `false` enquanto o diálogo está fechado para evitar uma requisição em toda
+ * visualização do detalhe do evento (a busca só dispara quando o diálogo abre).
+ *
+ * @param eventoId - UUID do evento.
+ * @param enabled - Se a query deve ser executada (padrão: true).
+ * @returns Resultado do useQuery com a playlist CifraClub.
+ */
+export function useCifraclubPlaylist(eventoId: string, enabled = true) {
+  return useQuery({
+    queryKey: ["eventos", eventoId, "cifraclub-playlist"],
+    queryFn: () => getCifraclubPlaylist(eventoId),
+    enabled: !!eventoId && enabled,
   });
 }
 

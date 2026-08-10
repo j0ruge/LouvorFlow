@@ -11,13 +11,25 @@ import { z } from 'zod';
 /** Padrão UUID v4 para validação de identificadores. */
 const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
 
-/** Schema de URL restrito a protocolos seguros (http/https). Previne XSS via javascript:/data:. */
+/**
+ * Schema de URL restrito a protocolos seguros (http/https). Previne XSS via
+ * javascript:/data:. Reutilizado por `link_versao` e `cifraclub_url`, portanto as
+ * mensagens são agnósticas ao campo (não citam "link da versão").
+ */
 const safeUrlSchema = z.string()
-    .url('Link da versão deve ser uma URL válida')
+    .url('URL inválida')
     .refine(
         (url) => /^https?:\/\//i.test(url),
-        { message: 'Link da versão deve usar protocolo http ou https' },
+        { message: 'URL deve usar protocolo http ou https' },
     );
+
+/**
+ * Valores válidos de intensidade (tempo) de uma versão de música.
+ * Fonte única reutilizada tanto nos bodies (criação/edição de música e versão)
+ * quanto no filtro de listagem — evita literais duplicados que divergiriam ao
+ * adicionar uma nova intensidade.
+ */
+const INTENSIDADE_VALUES = ['calma', 'media', 'agitada'] as const;
 
 // --- Params ---
 
@@ -68,11 +80,12 @@ export const createMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.optional(),
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -82,11 +95,12 @@ export const updateMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.nullable().optional(),
     versao_id: uuidSchema.optional(),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
     funcao_ids: z.array(uuidSchema).optional(),
 });
@@ -94,21 +108,23 @@ export const updateMusicaCompleteBodySchema = z.object({
 /** Schema de validação para adição de versão (POST /api/musicas/:musicaId/versoes). Artista é opcional. */
 export const addVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });
 
 /** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). Aceita artista_id para vincular artista a versões sem artista. */
 export const updateVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
-    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(["calma", "media", "agitada"]).optional()),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
+    intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });
 
 /** Schema de validação para adição de categoria (POST /api/musicas/:musicaId/categorias). */
@@ -153,6 +169,9 @@ function escapeLikeWildcards(raw: string): string {
  * - `page`: inteiro >=1 (default 1)
  * - `limit`: inteiro 1..100 (default 20)
  * - `categorias`: CSV de UUIDs (ex.: "id1,id2"), no máximo 50. Vazio/ausente = sem filtro.
+ * - `intensidades`: CSV de intensidades (`calma`, `media`, `agitada`). Filtra músicas com
+ *   ao menos uma versão na(s) intensidade(s) informada(s). Valor inválido = 400.
+ *   Vazio/ausente = sem filtro.
  * - `q`: substring case-insensitive (até 200 chars) para busca por nome. Wildcards
  *   LIKE (`%`, `_`) são escapados para impedir varredura total via filtro malicioso.
  *   Vazio/ausente = sem busca.
@@ -184,6 +203,20 @@ export const listMusicasQuerySchema = z.object({
             return z.NEVER;
         }
         return parsed.data;
+    }),
+    intensidades: z.string().optional().transform((val, ctx) => {
+        if (!val) return undefined;
+        const items = val.split(',').map((s) => s.trim()).filter(Boolean);
+        if (items.length === 0) return undefined;
+        const invalidos = items.filter((i) => !INTENSIDADE_VALUES.includes(i as (typeof INTENSIDADE_VALUES)[number]));
+        if (invalidos.length > 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Intensidade inválida: ${invalidos.join(', ')}. Valores aceitos: ${INTENSIDADE_VALUES.join(', ')}`,
+            });
+            return z.NEVER;
+        }
+        return Array.from(new Set(items));
     }),
     q: z.string().max(Q_MAX_LENGTH, `Busca não pode exceder ${Q_MAX_LENGTH} caracteres`).optional().transform((val) => {
         if (typeof val !== 'string') return undefined;

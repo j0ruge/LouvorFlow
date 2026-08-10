@@ -14,10 +14,12 @@ import { validateRequest } from '../middlewares/validateRequest.js';
 import {
     addIntegranteBodySchema,
     addMusicaBodySchema,
+    createEventoBodySchema,
     eventoIdParamSchema,
     eventoMusicaParamsSchema,
     reorderMusicasBodySchema,
     setMusicaVersaoBodySchema,
+    updateEventoBodySchema,
 } from '../validators/eventos.validators.js';
 
 const router: Router = Router();
@@ -25,9 +27,18 @@ const router: Router = Router();
 // Base CRUD
 router.get('/', ensureAuthenticated, ensureTenantContext, eventosController.index);
 router.get('/:id', ensureAuthenticated, ensureTenantContext, eventosController.show);
-router.post('/', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.create);
-router.put('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.update);
+router.post('/', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), validateRequest({ body: createEventoBodySchema }), eventosController.create);
+router.put('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), validateRequest({ body: updateEventoBodySchema }), eventosController.update);
 router.delete('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.delete);
+
+// CifraClub playlist
+router.get(
+    '/:eventoId/cifraclub-playlist',
+    ensureAuthenticated,
+    ensureTenantContext,
+    validateRequest({ params: eventoIdParamSchema }),
+    eventosController.getCifraclubPlaylist,
+);
 
 // Junction: Musicas (eventos_musicas)
 router.get('/:eventoId/musicas', ensureAuthenticated, ensureTenantContext, eventosController.listMusicas);

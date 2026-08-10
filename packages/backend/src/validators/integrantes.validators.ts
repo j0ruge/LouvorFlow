@@ -17,7 +17,7 @@ const uuidSchema = z.string().uuid({ message: 'ID deve ser um UUID válido' });
  */
 export const createIntegranteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome é obrigatório' }).min(1, 'Nome é obrigatório'),
-    email: z.string({ required_error: 'Email é obrigatório' }).email('Email deve ter um formato válido'),
+    email: z.string({ required_error: 'Email é obrigatório' }).trim().toLowerCase().email('Email deve ter um formato válido'),
     senha: z.string({ required_error: 'Senha é obrigatória' }).min(6, 'Senha deve ter no mínimo 6 caracteres'),
     telefone: z.string().max(20, 'Telefone deve ter no máximo 20 caracteres').optional(),
 });
@@ -28,7 +28,7 @@ export const createIntegranteBodySchema = z.object({
  */
 export const updateIntegranteBodySchema = z.object({
     nome: z.string().min(1, 'Nome não pode ser vazio').optional(),
-    email: z.string().email('Email deve ter um formato válido').optional(),
+    email: z.string().trim().toLowerCase().email('Email deve ter um formato válido').optional(),
     senha: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres').optional().or(z.literal('')),
     telefone: z.string().max(20, 'Telefone deve ter no máximo 20 caracteres').optional(),
 });

@@ -99,6 +99,54 @@ export async function deleteEvento(id: string): Promise<CrudResponse> {
   return CrudResponseSchema.parse(data);
 }
 
+/** Schema de resposta da playlist CifraClub. */
+const CifraclubPlaylistItemSchema = z.object({
+  ordem: z.number(),
+  musica_id: z.string(),
+  nome: z.string(),
+  tom: z.string().nullable(),
+  tom_final: z.string().nullable(),
+  tom_ajustado: z.boolean(),
+  artista_nome: z.string(),
+  /** URL da cifra no CifraClub com fragmento #key=N aplicado. */
+  cifraclub_url: z.string().refine(
+    (val) => val === "" || /^https?:\/\//i.test(val),
+    "URL deve usar protocolo http ou https",
+  ).nullable(),
+});
+
+/** Schema de resposta do endpoint de playlist CifraClub. */
+const CifraclubPlaylistResponseSchema = z.object({
+  evento: z.object({
+    id: z.string(),
+    data: z.string(),
+    descricao: z.string(),
+    tipo_evento: z.string(),
+  }),
+  playlist: z.array(CifraclubPlaylistItemSchema),
+  stats: z.object({
+    total: z.number(),
+    com_link: z.number(),
+    sem_link: z.number(),
+  }),
+});
+
+/** Tipo inferido da resposta da playlist CifraClub. */
+export type CifraclubPlaylistResponse = z.infer<typeof CifraclubPlaylistResponseSchema>;
+
+/**
+ * Busca a playlist CifraClub de um evento com URLs enriquecidas (#key=N).
+ *
+ * @param eventoId - UUID do evento.
+ * @returns Playlist ordenada com stats e URL de lista do evento.
+ */
+export async function getCifraclubPlaylist(
+  eventoId: string,
+): Promise<CifraclubPlaylistResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${eventoId}/cifraclub-playlist`);
+  return CifraclubPlaylistResponseSchema.parse(data);
+}
+
 /**
  * Associa uma música a um evento.
  *

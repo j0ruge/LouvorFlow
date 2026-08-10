@@ -11,6 +11,7 @@ import {
   MOCK_FUNCOES,
   MOCK_ARTISTAS_MUSICAS,
   MOCK_ARTISTAS,
+  MOCK_TENANT_USERS,
 } from './mock-data.js';
 
 /**
@@ -25,6 +26,7 @@ function buildVersaoShow(versaoId: string | null | undefined) {
   return {
     id: versao.id,
     link_versao: versao.link_versao,
+    cifraclub_url: versao.cifraclub_url ?? null,
     artistas_musicas_artista_id_fkey: artista ? { id: artista.id, nome: artista.nome } : null,
   };
 }
@@ -168,7 +170,10 @@ export function createFakeEventosRepository() {
 
     /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
     create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
-      const evento = { id: randomUUID(), ...data };
+      const evento = {
+        id: randomUUID(),
+        ...data,
+      };
       eventosData.push(evento);
       return {
         id: evento.id,
@@ -242,10 +247,22 @@ export function createFakeEventosRepository() {
       return record;
     },
 
-    deleteMusica: async (id: string) => {
-      const idx = eventosMusicas.findIndex(em => em.id === id);
+    /**
+     * Remove o vínculo música-evento e reindexa a ordem das restantes (1..N),
+     * espelhando a transação única do repositório real.
+     *
+     * @param eventoMusicaId - ID do registro em Eventos_Musicas a remover
+     * @param eventoId - ID do evento cujas músicas serão reindexadas
+     */
+    deleteMusicaEReindexar: async (eventoMusicaId: string, eventoId: string) => {
+      const idx = eventosMusicas.findIndex(em => em.id === eventoMusicaId);
       if (idx === -1) return;
       eventosMusicas.splice(idx, 1);
+
+      eventosMusicas
+        .filter(em => em.evento_id === eventoId)
+        .sort((a, b) => a.ordem - b.ordem)
+        .forEach((em, i) => { em.ordem = i + 1; });
     },
 
     /**
@@ -415,13 +432,20 @@ export function createFakeEventosRepository() {
       eventosIntegrantes.find(ei => ei.evento_id === eventoId && ei.fk_user_id === userId) ?? null,
 
     /**
-     * Busca um user pelo ID nos dados mock.
+     * Busca um integrante nos dados mock, restrito aos membros do tenant —
+     * espelha o filtro `tenant_users` do repositório real (isolamento entre igrejas).
      *
      * @param userId - ID do user
-     * @returns User encontrado ou `null`
+     * @param tenantId - UUID do tenant ativo
+     * @returns User encontrado no tenant ou `null`
      */
-    findIntegranteById: async (userId: string) =>
-      MOCK_INTEGRANTES.find(i => i.id === userId) ?? null,
+    findIntegranteById: async (userId: string, tenantId: string) => {
+      const ehMembro = MOCK_TENANT_USERS.some(
+        tu => tu.user_id === userId && tu.tenant_id === tenantId,
+      );
+      if (!ehMembro) return null;
+      return MOCK_INTEGRANTES.find(i => i.id === userId) ?? null;
+    },
 
     reset: () => {
       eventosData = MOCK_EVENTOS.map(e => ({ ...e }));

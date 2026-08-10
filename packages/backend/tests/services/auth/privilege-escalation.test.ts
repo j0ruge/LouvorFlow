@@ -52,6 +52,19 @@ vi.mock('../../../src/repositories/auth/permissions.repository.js', () => ({
     },
 }));
 
+/**
+ * Mock do Prisma: o usuário-alvo sempre pertence ao tenant nestes testes, para que
+ * a verificação de isolamento de tenant passe e o fluxo alcance as regras de
+ * escalação de privilégios sob teste.
+ */
+vi.mock('../../../prisma/cliente.js', () => ({
+    default: {
+        tenantUsers: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'link-id' }),
+        },
+    },
+}));
+
 const { default: createUserAclService } = await import(
     '../../../src/services/auth/create-user-acl.service.js'
 );

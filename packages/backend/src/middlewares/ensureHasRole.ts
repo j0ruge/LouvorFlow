@@ -32,6 +32,15 @@ export async function ensureHasRole(
         throw new AppError('Invalid authentication token', 401);
     }
 
+    /**
+     * Isolamento de tenant obrigatório: sem `tenantId`, `getUserRoles` omite o filtro
+     * de tenant e retornaria roles de todos os tenants. Exige o contexto de tenant
+     * antes de carregar as roles (defesa em profundidade).
+     */
+    if (!req.user.tenantId) {
+        throw new AppError('Contexto de tenant é obrigatório para verificar autorização', 403);
+    }
+
     if (!req.user.roles) {
         req.user.roles = await usersRepository.getUserRoles(req.user.id, req.user.tenantId);
     }

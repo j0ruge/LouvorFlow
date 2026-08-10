@@ -6,7 +6,13 @@
  */
 
 import { createFakeTenantRepository } from '../fakes/fake-tenant.repository.js';
-import { MOCK_TENANTS, MOCK_INTEGRANTES, TENANT_A_ID, NON_EXISTENT_ID } from '../fakes/mock-data.js';
+import {
+  MOCK_TENANTS,
+  MOCK_INTEGRANTES,
+  TENANT_A_ID,
+  NON_EXISTENT_ID,
+  SYSTEM_TENANT_ID as MOCK_SYSTEM_TENANT_ID,
+} from '../fakes/mock-data.js';
 
 /** Fake repository de tenants com dados in-memory. */
 const fakeTenantRepo = createFakeTenantRepository();
@@ -78,8 +84,13 @@ vi.mock('../../src/providers/tenant-cache.provider.js', () => ({
   invalidateTenantCache: (...args: unknown[]) => mockInvalidateTenantCache(...args),
 }));
 
-vi.mock('../../prisma/cliente.js', () => ({
-  default: {
+vi.mock('../../prisma/cliente.js', () => {
+  /**
+   * Cliente Prisma falso. `$transaction` executa o callback com o próprio
+   * cliente, espelhando o comportamento real o suficiente para os testes:
+   * o service escreve pelo `tx` recebido, e aqui ele é o mesmo objeto.
+   */
+  const client: Record<string, unknown> = {
     users: {
       findUnique: vi.fn().mockImplementation(({ where }: { where: { id: string } }) => {
         const found = MOCK_INTEGRANTES.find(u => u.id === where.id);
@@ -100,8 +111,17 @@ vi.mock('../../prisma/cliente.js', () => ({
         return Promise.resolve(create);
       }),
     },
-  },
-}));
+  };
+  client.$transaction = vi.fn().mockImplementation(
+    (fn: (tx: unknown) => Promise<unknown>) => fn(client),
+  );
+
+  return {
+    default: client,
+    /** Mesma constante do módulo real — usada pela guarda do tenant sentinela. */
+    SYSTEM_TENANT_ID: MOCK_SYSTEM_TENANT_ID,
+  };
+});
 
 const { default: igrejasService } = await import('../../src/services/igrejas.service.js');
 
@@ -256,6 +276,62 @@ describe('IgrejasService', () => {
 
       expect(mockInvalidateTenantCache).toHaveBeenCalledWith(TENANT_A_ID);
       expect(mockInvalidateTenantCache).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ─── Guarda do tenant sentinela ──────────────────────────────────────────
+
+  /**
+   * O tenant "Sistema" ancora as atribuições de `super-admin` de toda a
+   * plataforma e seu UUID é uma constante pública. Nenhuma operação de gestão
+   * pode alcançá-lo por ID direto: renomeá-lo ou sobrescrever seu
+   * `status: 'system'` seria irreversível pela API.
+   */
+  describe('guarda do tenant de sistema', () => {
+    /** Deve recusar leitura do tenant sentinela com 403. */
+    it('deve recusar getById no tenant de sistema', async () => {
+      await expect(igrejasService.getById(MOCK_SYSTEM_TENANT_ID)).rejects.toMatchObject({
+        statusCode: 403,
+        message: 'Operação não permitida no tenant de sistema',
+      });
+    });
+
+    /** Deve recusar atualização do tenant sentinela com 403. */
+    it('deve recusar update no tenant de sistema', async () => {
+      await expect(
+        igrejasService.update(MOCK_SYSTEM_TENANT_ID, { status: 'active' }),
+      ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    /** Deve recusar desativação do tenant sentinela com 403. */
+    it('deve recusar deactivate no tenant de sistema', async () => {
+      await expect(igrejasService.deactivate(MOCK_SYSTEM_TENANT_ID)).rejects.toMatchObject({
+        statusCode: 403,
+      });
+      expect(mockInvalidateTenantCache).not.toHaveBeenCalled();
+    });
+
+    /** Deve recusar vínculo de usuário ao tenant sentinela com 403. */
+    it('deve recusar addUser no tenant de sistema', async () => {
+      await expect(igrejasService.addUser(MOCK_SYSTEM_TENANT_ID, USER_ID)).rejects.toMatchObject({
+        statusCode: 403,
+      });
+      expect(fakeUsersRoles).toHaveLength(0);
+      expect(fakeTenantUserBindings).toHaveLength(0);
+    });
+
+    /** Deve recusar desvínculo de usuário do tenant sentinela com 403. */
+    it('deve recusar removeUser no tenant de sistema', async () => {
+      await expect(igrejasService.removeUser(MOCK_SYSTEM_TENANT_ID, USER_ID)).rejects.toMatchObject({
+        statusCode: 403,
+      });
+    });
+
+    /** Deve recusar listagem de usuários do tenant sentinela com 403. */
+    it('deve recusar listUsers no tenant de sistema', async () => {
+      await expect(igrejasService.listUsers(MOCK_SYSTEM_TENANT_ID)).rejects.toMatchObject({
+        statusCode: 403,
+      });
     });
   });
 });

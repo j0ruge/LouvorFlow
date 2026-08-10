@@ -104,7 +104,7 @@ describe('SelectTenantService', () => {
     /** Deve completar o fluxo de seleção com selection_token e tenant_id válidos. */
     it('deve retornar sessão completa para seleção válida de tenant', async () => {
         const selectionToken = fakeTokenProvider.sign(
-            { purpose: 'tenant_selection' },
+            { purpose: 'tenant_selection', jti: 'sel-jti-valido' },
             'any-secret',
             { subject: userId, expiresIn: '5m' },
         );

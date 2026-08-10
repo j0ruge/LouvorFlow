@@ -48,6 +48,17 @@ const Dashboard = () => {
   /** Total de integrantes (membros) vinculados ao tenant ativo. */
   const totalIntegrantes = integrantes?.length ?? 0;
 
+  /**
+   * Integrantes que exercem ao menos uma função — os únicos exibidos no card
+   * "Equipe do Ministério". Derivar a lista uma vez mantém o estado vazio
+   * alinhado ao que é de fato renderizado: checar apenas `integrantes.length`
+   * deixaria o card em branco quando existem integrantes, porém nenhum com função.
+   */
+  const equipeAtiva = useMemo(
+    () => integrantes?.filter((i) => i.funcoes.length > 0) ?? [],
+    [integrantes],
+  );
+
   /** Total de escalas. */
   const totalEscalas = eventos?.length ?? 0;
 
@@ -258,14 +269,15 @@ const Dashboard = () => {
                   <Skeleton key={i} className="h-14 w-full rounded-[10px]" />
                 ))}
               </div>
-            ) : !integrantes || integrantes.length === 0 ? (
+            ) : equipeAtiva.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Nenhum integrante vinculado a esta igreja.
+                {!integrantes || integrantes.length === 0
+                  ? "Nenhum integrante vinculado a esta igreja."
+                  : "Nenhum integrante com função atribuída."}
               </p>
             ) : (
               <div className="flex flex-col gap-2">
-                {integrantes
-                  .filter((i) => i.funcoes.length > 0)
+                {equipeAtiva
                   .slice(0, 5)
                   .map((integrante) => (
                     <div

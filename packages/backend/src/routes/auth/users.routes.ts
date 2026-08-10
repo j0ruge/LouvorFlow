@@ -8,6 +8,7 @@ import { Router } from 'express';
 import usersController from '../../controllers/auth/users.controller.js';
 import userAclController from '../../controllers/auth/user-acl.controller.js';
 import { ensureAuthenticated } from '../../middlewares/ensureAuthenticated.js';
+import { ensureTenantContext } from '../../middlewares/ensureTenantContext.js';
 import { is } from '../../middlewares/is.js';
 import { validateRequest } from '../../middlewares/validateRequest.js';
 import { createUserBodySchema, userIdParamsSchema, userAclBodySchema, paginationQuerySchema } from '../../validators/auth.validators.js';
@@ -15,15 +16,15 @@ import { createUserBodySchema, userIdParamsSchema, userAclBodySchema, pagination
 const router: Router = Router();
 
 /** Listagem de todos os usuários do sistema (sem senha). */
-router.get('/', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ query: paginationQuerySchema }), usersController.list);
+router.get('/', ensureAuthenticated, ensureTenantContext, is(['admin', 'super-admin']), validateRequest({ query: paginationQuerySchema }), usersController.list);
 
 /** Criação de um novo usuário no sistema. */
-router.post('/', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ body: createUserBodySchema }), usersController.create);
+router.post('/', ensureAuthenticated, ensureTenantContext, is(['admin', 'super-admin']), validateRequest({ body: createUserBodySchema }), usersController.create);
 
 /** Atribuição de permissões/papéis a um usuário específico. */
-router.post('/acl/:userId', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ params: userIdParamsSchema, body: userAclBodySchema }), userAclController.create);
+router.post('/acl/:userId', ensureAuthenticated, ensureTenantContext, is(['admin', 'super-admin']), validateRequest({ params: userIdParamsSchema, body: userAclBodySchema }), userAclController.create);
 
 /** Consulta das permissões/papéis atribuídos a um usuário específico. */
-router.get('/acl/:userId', ensureAuthenticated, is(['admin', 'super-admin']), validateRequest({ params: userIdParamsSchema }), userAclController.show);
+router.get('/acl/:userId', ensureAuthenticated, ensureTenantContext, is(['admin', 'super-admin']), validateRequest({ params: userIdParamsSchema }), userAclController.show);
 
 export default router;

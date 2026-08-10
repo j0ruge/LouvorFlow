@@ -7,7 +7,7 @@
  */
 
 import { AppError } from '../../../src/errors/AppError.js';
-import { TENANT_A_ID, TENANT_B_ID } from '../../fakes/mock-data.js';
+import { TENANT_A_ID, TENANT_B_ID, SENHA_TESTE } from '../../fakes/mock-data.js';
 
 import fakeUsersRepo from '../../fakes/auth/fake-users.repository.js';
 import fakeHashProvider from '../../fakes/auth/fake-hash.provider.js';
@@ -92,13 +92,13 @@ describe('AuthenticateUserService', () => {
         await fakeUsersRepo.create({
             name: 'Test',
             email: 'test@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
         lastCreatedEmail = 'test@test.com';
 
         const result = await authenticateUserService.execute({
             email: 'test@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         expect(result).toHaveProperty('user');
@@ -118,12 +118,12 @@ describe('AuthenticateUserService', () => {
         await fakeUsersRepo.create({
             name: 'Multi',
             email: 'multi@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         const result = await authenticateUserService.execute({
             email: 'multi@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         expect(result).toMatchObject({
@@ -144,13 +144,13 @@ describe('AuthenticateUserService', () => {
         await fakeUsersRepo.create({
             name: 'Sem Tenant',
             email: 'semtenant@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         await expect(
             authenticateUserService.execute({
                 email: 'semtenant@test.com',
-                password: 'password123',
+                password: SENHA_TESTE,
             }),
         ).rejects.toMatchObject({
             message: 'Usuário não vinculado a nenhuma igreja ativa',
@@ -163,7 +163,7 @@ describe('AuthenticateUserService', () => {
         await fakeUsersRepo.create({
             name: 'Test',
             email: 'test@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         await expect(
@@ -177,12 +177,31 @@ describe('AuthenticateUserService', () => {
         });
     });
 
+    /**
+     * Mitigação de enumeração por tempo: com e-mail inexistente o serviço ainda
+     * executa uma comparação de hash descartável, para que a resposta não seja
+     * visivelmente mais rápida que a de uma senha errada (que gasta o bcrypt).
+     */
+    it('deve comparar hash mesmo quando o email não existe (tempo constante)', async () => {
+        const spy = vi.spyOn(fakeHashProvider, 'compareHash');
+
+        await expect(
+            authenticateUserService.execute({
+                email: 'ninguem@test.com',
+                password: 'any',
+            }),
+        ).rejects.toBeInstanceOf(AppError);
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+    });
+
     /** Deve lançar AppError 401 quando a senha fornecida não corresponde ao hash armazenado. */
     it('deve lançar erro para senha incorreta', async () => {
         await fakeUsersRepo.create({
             name: 'Test',
             email: 'test@test.com',
-            password: 'password123',
+            password: SENHA_TESTE,
         });
 
         await expect(

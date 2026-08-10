@@ -146,11 +146,11 @@ const IgrejaUsers = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Link to="/admin/igrejas">
-            <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas">
+          <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas" asChild>
+            <Link to="/admin/igrejas">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div>
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-64 mt-1" />
@@ -172,11 +172,11 @@ const IgrejaUsers = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Link to="/admin/igrejas">
-            <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas">
+          <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas" asChild>
+            <Link to="/admin/igrejas">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
         <ErrorState
           message={
@@ -197,12 +197,12 @@ const IgrejaUsers = () => {
     <div className="space-y-6">
       {/* Cabeçalho com link de voltar */}
       <div className="flex items-center gap-4">
-        <Link to="/admin/igrejas">
-          <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas">
+        <Button variant="ghost" size="icon" aria-label="Voltar para lista de igrejas" asChild>
+          <Link to="/admin/igrejas">
             <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
+          </Link>
+        </Button>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             {igreja?.name ?? "Igreja"}
           </h1>
@@ -240,44 +240,83 @@ const IgrejaUsers = () => {
               Nenhum usuário vinculado a esta igreja.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>E-mail</TableHead>
-                    <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {igrejaUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {user.telefone ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveUser(user.id)}
-                          disabled={removingUserId === user.id || removeMutation.isPending}
-                        >
-                          {removingUserId === user.id ? (
-                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                          ) : (
-                            <UserMinus className="mr-1 h-3 w-3" />
-                          )}
-                          Desvincular
-                        </Button>
-                      </TableCell>
+            <>
+              {/* Mobile: Cards */}
+              <div className="space-y-3 sm:hidden">
+                {igrejaUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className="p-4 rounded-lg border border-border space-y-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{user.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {user.email}
+                      </p>
+                      {user.telefone && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {user.telefone}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => handleRemoveUser(user.id)}
+                      disabled={removingUserId === user.id || removeMutation.isPending}
+                    >
+                      {removingUserId === user.id ? (
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      ) : (
+                        <UserMinus className="mr-1 h-3 w-3" />
+                      )}
+                      Desvincular
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {igrejaUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium max-w-[14rem] truncate">
+                          {user.name}
+                        </TableCell>
+                        <TableCell className="max-w-[16rem] truncate">{user.email}</TableCell>
+                        <TableCell>{user.telefone ?? "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveUser(user.id)}
+                            disabled={removingUserId === user.id || removeMutation.isPending}
+                          >
+                            {removingUserId === user.id ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <UserMinus className="mr-1 h-3 w-3" />
+                            )}
+                            Desvincular
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

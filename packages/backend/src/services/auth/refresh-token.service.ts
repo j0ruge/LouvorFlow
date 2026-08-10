@@ -83,18 +83,6 @@ class UserRefreshTokenService {
             }
         }
 
-        const existingToken =
-            await refreshTokensRepository.findByUserIdAndRefreshToken(
-                sub,
-                token,
-            );
-
-        if (!existingToken) {
-            throw new AppError('Refresh token não encontrado', 400);
-        }
-
-        await refreshTokensRepository.deleteById(existingToken.id);
-
         // Preserva tenantId no payload do novo access token
         const accessTokenPayload: Record<string, unknown> = {};
         if (tenantId) accessTokenPayload.tenantId = tenantId;
@@ -125,11 +113,28 @@ class UserRefreshTokenService {
             authConfig.refreshToken.expiresDays,
         );
 
-        await refreshTokensRepository.create({
-            user_id: sub,
-            refresh_token: newRefreshToken,
-            expires_date,
-        });
+        /**
+         * Rotaciona o refresh token atomicamente: a remoção do token antigo e a
+         * criação do novo acontecem numa única transação. A contagem de linhas
+         * removidas funciona como trava otimista — se nada foi removido, o token já
+         * foi rotacionado por uma requisição concorrente ou não existe, bloqueando o
+         * double-spend. Como delete e create são atômicos, uma falha ao persistir o
+         * novo token faz rollback e preserva o token antigo (o usuário não fica
+         * deslogado por um erro transitório de banco).
+         */
+        const { count: consumedTokens } = await refreshTokensRepository.rotateAtomic(
+            sub,
+            token,
+            {
+                user_id: sub,
+                refresh_token: newRefreshToken,
+                expires_date,
+            },
+        );
+
+        if (consumedTokens === 0) {
+            throw new AppError('Refresh token não encontrado', 400);
+        }
 
         return {
             token: newAccessToken,

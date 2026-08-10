@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { AppError } from '../errors/AppError.js';
 import eventosRepository from '../repositories/eventos.repository.js';
+import { applyKeyFragment, computeKeyFragment } from '../lib/cifraclub-key-mapping.js';
 import type {
     EventoIndexRaw,
     EventoShowRaw,
@@ -8,6 +9,8 @@ import type {
     MusicaEvento,
     VersaoMusicaShowRaw,
     VersaoMusicaEvento,
+    CifraclubPlaylistItem,
+    CifraclubPlaylistResponse,
 } from '../types/index.js';
 
 /**
@@ -22,6 +25,7 @@ function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | nu
         id: raw.id,
         artista_nome: raw.artistas_musicas_artista_id_fkey?.nome ?? null,
         link_versao: raw.link_versao,
+        cifraclub_url: raw.cifraclub_url,
     };
 }
 
@@ -151,7 +155,7 @@ class EventosService {
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
-            descricao: descricao ?? ""
+            descricao: descricao ?? "",
         }, tenantId);
 
         return {
@@ -162,7 +166,15 @@ class EventosService {
         };
     }
 
-    /** Atualiza um evento existente pelo ID com os campos informados. */
+    /**
+     * Atualiza um evento existente pelo ID com os campos informados.
+     *
+     * @param id - UUID do evento a atualizar
+     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`); ausência mantém o valor atual.
+     * @returns Evento atualizado com tipo de evento populado
+     * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
+     * @throws {AppError} 404 se o evento não existir
+     */
     async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
@@ -212,6 +224,89 @@ class EventosService {
         return evento;
     }
 
+    // --- CifraClub Playlist ---
+
+    /**
+     * Monta a playlist CifraClub de um evento com URLs enriquecidas com #key=N.
+     * Resolve a versão de cada música (selecionada → fallback primeira com cifraclub_url → null).
+     * Aplica transposição automática para URLs do CifraClub.
+     *
+     * @param eventoId - UUID do evento
+     * @returns Playlist ordenada com stats e URL de lista do evento
+     * @throws {AppError} 404 se o evento não existir
+     */
+    async getCifraclubPlaylist(eventoId: string): Promise<CifraclubPlaylistResponse> {
+        if (!eventoId) throw new AppError("ID de evento não enviado", 400);
+
+        const evento = await eventosRepository.findById(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const playlist: CifraclubPlaylistItem[] = evento.Eventos_Musicas.map(em => {
+            const musica = em.eventos_musicas_musicas_id_fkey;
+            const tom = musica.musicas_fk_tonalidade_fkey?.tom ?? null;
+
+            let cifraclubUrl: string | null = null;
+            let artistaNome = '';
+
+            const versaoSelecionada = em.eventos_musicas_artistas_musicas_fkey;
+            if (versaoSelecionada?.cifraclub_url) {
+                cifraclubUrl = versaoSelecionada.cifraclub_url;
+                artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+            } else {
+                const fallback = musica.Artistas_Musicas.find(v => v.cifraclub_url);
+                if (fallback) {
+                    cifraclubUrl = fallback.cifraclub_url;
+                    artistaNome = fallback.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (versaoSelecionada) {
+                    artistaNome = versaoSelecionada.artistas_musicas_artista_id_fkey?.nome ?? '';
+                } else if (musica.Artistas_Musicas.length > 0) {
+                    artistaNome = musica.Artistas_Musicas[0].artistas_musicas_artista_id_fkey?.nome ?? '';
+                }
+            }
+
+            // O tom final independe de haver URL; calcula uma única vez.
+            const keyResult = computeKeyFragment(tom);
+            const tomFinal: string | null = keyResult ? keyResult.tomFinal : null;
+
+            let tomAjustado = false;
+            let urlFinal = cifraclubUrl;
+
+            if (cifraclubUrl) {
+                const applied = applyKeyFragment(cifraclubUrl, tom);
+                urlFinal = applied.url;
+                tomAjustado = applied.tomAjustado;
+            }
+
+            return {
+                ordem: em.ordem,
+                musica_id: musica.id,
+                nome: musica.nome,
+                tom,
+                tom_final: tomFinal,
+                tom_ajustado: tomAjustado,
+                artista_nome: artistaNome,
+                cifraclub_url: urlFinal,
+            };
+        });
+
+        const comLink = playlist.filter(p => p.cifraclub_url !== null).length;
+
+        return {
+            evento: {
+                id: evento.id,
+                data: evento.data.toISOString(),
+                descricao: evento.descricao,
+                tipo_evento: evento.eventos_fk_tipo_evento_fkey?.nome ?? '',
+            },
+            playlist,
+            stats: {
+                total: playlist.length,
+                com_link: comLink,
+                sem_link: playlist.length - comLink,
+            },
+        };
+    }
+
     // --- Musicas ---
 
     /** Lista as músicas vinculadas a um evento com tonalidade e posição, ordenadas por ordem. */
@@ -249,6 +344,9 @@ class EventosService {
             }
             if (error.message === 'VERSAO_WRONG_MUSICA') {
                 throw new AppError('A versão informada não pertence a esta música', 400);
+            }
+            if (error.message === 'EVENTO_MUSICA_NOT_FOUND') {
+                throw new AppError('Música não encontrada neste evento', 404);
             }
         }
 
@@ -357,13 +455,7 @@ class EventosService {
         const registro = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);
 
-        await eventosRepository.deleteMusica(registro.id);
-
-        const remaining = await eventosRepository.findMusicas(eventoId);
-        if (remaining.length > 0) {
-            const orderedIds = remaining.map(m => m.eventos_musicas_musicas_id_fkey.id);
-            await eventosRepository.reorderMusicas(eventoId, orderedIds);
-        }
+        await eventosRepository.deleteMusicaEReindexar(registro.id, eventoId);
     }
 
     /**
@@ -443,7 +535,7 @@ class EventosService {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
 
-        const integrante = await eventosRepository.findIntegranteById(fk_integrante_id);
+        const integrante = await eventosRepository.findIntegranteById(fk_integrante_id, tenantId);
         if (!integrante) throw new AppError("Integrante não encontrado", 404);
 
         const existente = await eventosRepository.findIntegranteDuplicate(eventoId, fk_integrante_id);
@@ -465,7 +557,49 @@ class EventosService {
             selectedFuncaoIds = funcao_ids;
         }
 
-        await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds, tenantId);
+        /**
+         * A escrita toca duas tabelas com constraints próprias. Sem este catch,
+         * uma corrida com outra requisição (P2002 em `Eventos_Users`) ou uma
+         * função apagada entre a validação e a gravação (P2003) escapariam como
+         * 500 genérico — o handler de `app.ts` ainda ecoa `err.message` fora de
+         * produção, vazando detalhe interno do Prisma.
+         */
+        try {
+            await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds, tenantId);
+        } catch (error) {
+            this.handleIntegranteSentinel(error);
+        }
+    }
+
+    /**
+     * Converte erros conhecidos do Prisma na vinculação de integrante em `AppError`.
+     *
+     * @param error - Erro capturado da transação de `createIntegrante`
+     * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
+     */
+    private handleIntegranteSentinel(error: unknown): never {
+        const prismaError = error as { code?: string; meta?: { field_name?: string } };
+
+        if (error instanceof Error && 'code' in error) {
+            /** P2002 — corrida com outra vinculação do mesmo integrante no evento. */
+            if (prismaError.code === 'P2002') {
+                throw new AppError('Registro duplicado', 409);
+            }
+
+            /** P2003 — FK inválida: função ou evento removido entre a validação e a gravação. */
+            if (prismaError.code === 'P2003') {
+                const field = prismaError.meta?.field_name ?? '';
+                if (field.includes('funcao_id')) {
+                    throw new AppError('Função não encontrada', 404);
+                }
+                if (field.includes('evento_id')) {
+                    throw new AppError('Evento não encontrado', 404);
+                }
+                throw new AppError('Recurso referenciado não encontrado', 404);
+            }
+        }
+
+        throw error;
     }
 
     /** Remove o vínculo entre um evento e um integrante. */

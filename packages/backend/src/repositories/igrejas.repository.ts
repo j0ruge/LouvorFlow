@@ -7,8 +7,19 @@
  * Importa `prisma` (base) diretamente, sem `getPrisma()`, para garantir
  * acesso irrestrito às tabelas de tenant.
  */
+import type { Prisma } from '@prisma/client';
 import prisma from '../../prisma/cliente.js';
 import { INTEGRANTE_PUBLIC_SELECT } from '../types/index.js';
+
+/**
+ * Cliente aceito pelas escritas que podem participar de uma transação.
+ *
+ * O `PrismaClient` base satisfaz `Prisma.TransactionClient`, então o mesmo
+ * método serve para a escrita avulsa e para a executada dentro de
+ * `$transaction` — necessário para que criação de igreja e vínculo de usuário
+ * sejam atômicos com as operações que os acompanham.
+ */
+type EscritaClient = Prisma.TransactionClient;
 
 /**
  * Repositório responsável pelas operações CRUD sobre a tabela `tenants`
@@ -73,10 +84,11 @@ class IgrejasRepository {
    * Cria um novo tenant com status `active` por padrão.
    *
    * @param data - Dados de criação contendo o nome do tenant
+   * @param client - Cliente de transação (opcional; usa o base quando omitido)
    * @returns Tenant criado
    */
-  async create(data: { name: string }) {
-    return prisma.tenant.create({
+  async create(data: { name: string }, client: EscritaClient = prisma) {
+    return client.tenant.create({
       data,
       select: {
         id: true,
@@ -118,8 +130,8 @@ class IgrejasRepository {
    * @param userId - UUID do usuário a vincular
    * @returns Registro de vínculo criado
    */
-  async addUser(tenantId: string, userId: string) {
-    return prisma.tenantUsers.create({
+  async addUser(tenantId: string, userId: string, client: EscritaClient = prisma) {
+    return client.tenantUsers.create({
       data: { tenant_id: tenantId, user_id: userId },
     });
   }

@@ -1,0 +1,67 @@
+name: 'Docker pull with retry'
+description: >-
+  Executa um comando de pull de imagem (`docker pull` ou `docker compose pull`)
+  com retry exponencial e backoff. Resiliente a `net/http: TLS handshake timeout`
+  intermitente contra o ghcr.io em self-hosted runners (mesma causa raiz do
+  ghcr-login: MTU reduzido em VPN/overlay). Sem isto, um hiccup transitório no
+  pull aborta o deploy e deixa o container com a imagem antiga — o frontend
+  avança e o backend fica para trás. Espelha o padrão de `.github/actions/ghcr-login`.
+
+inputs:
+  command:
+    description: >-
+      Comando de pull a executar (ex.: "docker pull ghcr.io/org/app:tag" ou
+      "docker compose -p projeto pull"). Executado via `bash -c`.
+    required: true
+  working-directory:
+    description: 'Diretório de trabalho do comando. Default: raiz do checkout.'
+    required: false
+    default: '.'
+  attempts:
+    description: 'Número total de tentativas. Default: 3.'
+    required: false
+    default: '3'
+  per-attempt-timeout:
+    description: >-
+      Timeout por tentativa (formato do timeout(1), ex.: "300s"). Impede que um
+      pull travado em TLS handshake pendure o loop e anule o retry. Default: 300s.
+    required: false
+    default: '300s'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Docker pull (with retry on TLS handshake timeout)
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        PULL_CMD: ${{ inputs.command }}
+        PULL_ATTEMPTS: ${{ inputs.attempts }}
+        PULL_TIMEOUT: ${{ inputs.per-attempt-timeout }}
+      run: |
+        set -uo pipefail
+        rc=0
+        for attempt in $(seq 1 "$PULL_ATTEMPTS"); do
+          echo "::group::Pull attempt $attempt/$PULL_ATTEMPTS: $PULL_CMD"
+          rc=0
+          # `timeout(1)` retorna 124 ao disparar — tratamos como falha
+          # transitória e seguimos para o próximo attempt.
+          timeout "$PULL_TIMEOUT" bash -c "$PULL_CMD" || rc=$?
+          echo "::endgroup::"
+          if [ "$rc" -eq 0 ]; then
+            echo "Pull succeeded on attempt $attempt"
+            exit 0
+          fi
+          if [ "$rc" -eq 124 ]; then
+            echo "::warning::Pull attempt $attempt timed out after $PULL_TIMEOUT"
+          else
+            echo "Pull attempt $attempt failed (exit $rc)"
+          fi
+          if [ "$attempt" -lt "$PULL_ATTEMPTS" ]; then
+            backoff=$((attempt * 10))
+            echo "Retrying in ${backoff}s..."
+            sleep "$backoff"
+          fi
+        done
+        echo "::error::Docker pull failed after $PULL_ATTEMPTS attempts: $PULL_CMD"
+        exit 1

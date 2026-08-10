@@ -130,6 +130,10 @@ if ($staleFrontProcs) {
 Write-Info "Gerando Prisma Client e aplicando migrations..."
 Push-Location "$DIR\packages\backend"
 try {
+    if (Test-Path "$DIR\packages\backend\node_modules\.prisma") {
+        Write-Warn "Removendo shadow .prisma local (stale) para forcar resolucao pelo hoisted..."
+        Remove-Item -Recurse -Force "$DIR\packages\backend\node_modules\.prisma"
+    }
     npx prisma generate
     if ($LASTEXITCODE -ne 0) { throw "prisma generate falhou" }
     npx prisma migrate deploy

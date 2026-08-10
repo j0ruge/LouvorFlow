@@ -3,11 +3,13 @@ import cors from 'cors';
 import { AppError } from './errors/AppError.js';
 
 import homeRoutes from './routes/home.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import artistasRoutes from './routes/artistas.routes.js';
 import integrantesRoutes from './routes/integrantes.routes.js';
 import musicasRoutes from './routes/musicas.routes.js';
 import tonalidadesRoutes from './routes/tonalidades.routes.js';
 import funcoesRoutes from './routes/funcoes.routes.js';
+import funcoesGruposRoutes from './routes/funcoes-grupos.routes.js';
 import categoriasRoutes from './routes/categorias.routes.js';
 import tiposEventosRoutes from './routes/tipos-eventos.routes.js';
 import eventosRoutes from './routes/eventos.routes.js';
@@ -44,9 +46,16 @@ class App {
     /**
      * Registra os middlewares globais da aplicação.
      *
-     * Configura CORS, parsing de URL-encoded e parsing de JSON.
+     * Configura `trust proxy` (para que `req.ip` reflita o IP real do cliente
+     * atrás do proxy reverso), CORS, parsing de URL-encoded e parsing de JSON.
      */
     middlewares(): void {
+        // Confia em exatamente um salto de proxy reverso (nginx/Docker) à frente
+        // da aplicação. Sem isso, `req.ip` resolveria para o IP interno do proxy
+        // e o rate limiter por IP (rotas públicas de convites) colapsaria todos
+        // os clientes em um único bucket. Valor `1` evita confiar em
+        // `X-Forwarded-For` forjado por clientes (não usar `true`).
+        this.app.set('trust proxy', 1);
         const webUrl = process.env.APP_WEB_URL?.replace(/\/+$/, '');
         this.app.use(cors({
             origin: webUrl || true,
@@ -66,11 +75,13 @@ class App {
      */
     routes(): void {
         this.app.use('/', homeRoutes);
+        this.app.use('/api/health', healthRoutes);
         this.app.use('/api/artistas', artistasRoutes);
         this.app.use('/api/integrantes', integrantesRoutes);
         this.app.use('/api/musicas', musicasRoutes);
         this.app.use('/api/tonalidades', tonalidadesRoutes);
         this.app.use('/api/funcoes', funcoesRoutes);
+        this.app.use('/api/funcoes-grupos', funcoesGruposRoutes);
         this.app.use('/api/categorias', categoriasRoutes);
         this.app.use('/api/tipos-eventos', tiposEventosRoutes);
         this.app.use('/api/eventos', eventosRoutes);

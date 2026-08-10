@@ -7,9 +7,28 @@
  */
 import { AppError } from '../errors/AppError.js';
 import igrejasRepository from '../repositories/igrejas.repository.js';
-import prisma from '../../prisma/cliente.js';
+import prisma, { SYSTEM_TENANT_ID } from '../../prisma/cliente.js';
 import { seedTenantDefaults } from '../../seeds/domain-defaults.js';
 import { invalidateTenantCache } from '../providers/tenant-cache.provider.js';
+
+/**
+ * Recusa operações sobre o tenant sentinela "Sistema".
+ *
+ * `SYSTEM_TENANT_ID` é uma constante fixa e pública, e é nele que vivem as
+ * atribuições de `super-admin` de toda a plataforma. `findAll` já o esconde da
+ * listagem (`status: { not: 'system' }`), mas sem esta guarda um super-admin
+ * poderia alcançá-lo por ID direto e renomeá-lo, desativá-lo ou sobrescrever
+ * seu `status: 'system'` — o validator só aceita `active`/`inactive`, então não
+ * haveria caminho de volta pela API.
+ *
+ * @param id - UUID do tenant alvo da operação
+ * @throws AppError 403 se o alvo for o tenant de sistema
+ */
+function recusarTenantDeSistema(id: string): void {
+  if (id === SYSTEM_TENANT_ID) {
+    throw new AppError('Operação não permitida no tenant de sistema', 403);
+  }
+}
 
 /**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
@@ -33,9 +52,11 @@ class IgrejasService {
    *
    * @param id - UUID do tenant
    * @returns Dados do tenant com contagem de usuários
+   * @throws AppError 403 se o alvo for o tenant de sistema
    * @throws AppError 404 se o tenant não existir
    */
   async getById(id: string) {
+    recusarTenantDeSistema(id);
     const tenant = await igrejasRepository.findById(id);
     if (!tenant) {
       throw new AppError('Igreja não encontrada', 404);
@@ -55,12 +76,21 @@ class IgrejasService {
     if (existente) {
       throw new AppError('Já existe uma igreja com esse nome', 409);
     }
-    const tenant = await igrejasRepository.create({ name });
 
-    /** Semeia dados padrão de domínio (funções, tipos de evento, categorias) na nova igreja. */
-    await seedTenantDefaults(prisma, tenant.id);
+    /**
+     * Criação e seed correm na mesma transação: se o seed falhar no meio, a
+     * igreja também é desfeita. Sem isso, uma falha parcial deixaria a igreja
+     * gravada e meio-semeada, e a tentativa seguinte com o mesmo nome bateria
+     * no 409 acima — sem caminho de recuperação pela API.
+     */
+    return prisma.$transaction(async (tx) => {
+      const tenant = await igrejasRepository.create({ name }, tx);
 
-    return tenant;
+      /** Semeia dados padrão de domínio (funções, tipos de evento, categorias) na nova igreja. */
+      await seedTenantDefaults(tx, tenant.id);
+
+      return tenant;
+    });
   }
 
   /**
@@ -75,6 +105,7 @@ class IgrejasService {
    * @throws AppError 409 se o nome já pertencer a outro tenant
    */
   async update(id: string, data: { name?: string; status?: 'active' | 'inactive' }) {
+    recusarTenantDeSistema(id);
     const existente = await igrejasRepository.findById(id);
     if (!existente) {
       throw new AppError('Igreja não encontrada', 404);
@@ -87,12 +118,19 @@ class IgrejasService {
       }
     }
 
-    /** Invalida cache se o status foi alterado para garantir efeito imediato. */
+    const atualizado = await igrejasRepository.update(id, data);
+
+    /**
+     * Invalida o cache de status APÓS a escrita no banco. Invalidar antes da escrita
+     * abriria uma janela TOCTOU: uma requisição concorrente que leu o status antigo
+     * poderia re-popular o cache logo após a invalidação, deixando o status obsoleto
+     * em cache até o TTL expirar. (Mesma ordem usada em `deactivate`.)
+     */
     if (data.status !== undefined) {
       invalidateTenantCache(id);
     }
 
-    return igrejasRepository.update(id, data);
+    return atualizado;
   }
 
   /**
@@ -103,6 +141,7 @@ class IgrejasService {
    * @throws AppError 404 se o tenant não existir
    */
   async deactivate(id: string) {
+    recusarTenantDeSistema(id);
     const existente = await igrejasRepository.findById(id);
     if (!existente) {
       throw new AppError('Igreja não encontrada', 404);
@@ -133,11 +172,15 @@ class IgrejasService {
    * @param tenantId - UUID do tenant
    * @param userId - UUID do usuário a vincular
    * @returns Registro de vínculo criado
+   * @throws AppError 403 se o alvo for o tenant de sistema
    * @throws AppError 404 se o tenant não existir
    * @throws AppError 404 se o usuário não existir
    * @throws AppError 409 se o vínculo já existir
+   * @throws AppError 500 se a role `admin` não existir (seed não executado)
    */
   async addUser(tenantId: string, userId: string) {
+    recusarTenantDeSistema(tenantId);
+
     const tenant = await igrejasRepository.findById(tenantId);
     if (!tenant) {
       throw new AppError('Igreja não encontrada', 404);
@@ -153,15 +196,23 @@ class IgrejasService {
       throw new AppError('Usuário já vinculado a essa igreja', 409);
     }
 
-    const vinculo = await igrejasRepository.addUser(tenantId, userId);
-
-    /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
+    /**
+     * A role é resolvida ANTES de qualquer escrita: se ela não existir, a
+     * requisição falha sem ter criado o vínculo. Fazer o contrário deixaria o
+     * usuário vinculado porém sem role, e o retry bateria no 409 acima — o
+     * vínculo ficaria permanentemente sem permissões, só recuperável por SQL.
+     */
     const adminRole = await prisma.roles.findUnique({ where: { name: 'admin' } });
     if (!adminRole) {
       throw new AppError('Role "admin" não encontrada. Execute o seed de admin antes de vincular usuários.', 500);
     }
 
-    await prisma.usersRoles.upsert({
+    /** Vínculo e atribuição de role são atômicos: nunca um sem o outro. */
+    return prisma.$transaction(async (tx) => {
+      const vinculo = await igrejasRepository.addUser(tenantId, userId, tx);
+
+      /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
+      await tx.usersRoles.upsert({
         where: {
           user_id_role_id_tenant_id: {
             user_id: userId,
@@ -177,7 +228,8 @@ class IgrejasService {
         },
       });
 
-    return vinculo;
+      return vinculo;
+    });
   }
 
   /**
@@ -190,6 +242,7 @@ class IgrejasService {
    * @throws AppError 404 se o vínculo não existir
    */
   async removeUser(tenantId: string, userId: string) {
+    recusarTenantDeSistema(tenantId);
     const tenant = await igrejasRepository.findById(tenantId);
     if (!tenant) {
       throw new AppError('Igreja não encontrada', 404);
@@ -211,6 +264,7 @@ class IgrejasService {
    * @throws AppError 404 se o tenant não existir
    */
   async listUsers(tenantId: string) {
+    recusarTenantDeSistema(tenantId);
     const tenant = await igrejasRepository.findById(tenantId);
     if (!tenant) {
       throw new AppError('Igreja não encontrada', 404);

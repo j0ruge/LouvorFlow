@@ -55,17 +55,18 @@ class IntegrantesService {
     }
 
     /**
-     * Busca um integrante (user) pelo ID, incluindo suas funções.
+     * Busca um integrante (user) pelo ID, incluindo suas funções do tenant ativo.
      *
      * @param id - UUID do user
-     * @returns Integrante com funções mapeadas
+     * @param tenantId - UUID do tenant ativo para escopar as funções retornadas.
+     * @returns Integrante com funções mapeadas (apenas do tenant)
      * @throws AppError 400 se o ID não for informado
      * @throws AppError 404 se o integrante não existir
      */
-    async getById(id: string) {
+    async getById(id: string, tenantId?: string) {
         if (!id) throw new AppError("ID de integrante não enviado", 400);
 
-        const user = await integrantesRepository.findById(id);
+        const user = await integrantesRepository.findById(id, tenantId);
         if (!user) throw new AppError("O integrante não foi encontrado ou não existe", 404);
 
         return mapUserToIntegrante(user as IntegranteWithFuncoes);

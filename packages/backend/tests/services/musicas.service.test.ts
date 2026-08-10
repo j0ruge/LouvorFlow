@@ -105,6 +105,34 @@ describe('MusicasService', () => {
       spy.mockRestore();
     });
 
+    /** Com 1 intensidade, deve montar where com Artistas_Musicas.some.intensidade.in. */
+    it('passa where com intensidade quando intensidades tem 1 item', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, intensidades: ['calma'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Artistas_Musicas: { some: { intensidade: { in: ['calma'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
+    /** Com múltiplas intensidades, deve usar `in` (semântica OR entre intensidades). */
+    it('usa `in` com múltiplas intensidades', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, intensidades: ['calma', 'agitada'] });
+      expect(spy).toHaveBeenCalledWith(
+        0,
+        20,
+        expect.objectContaining({
+          Artistas_Musicas: { some: { intensidade: { in: ['calma', 'agitada'] } } },
+        }),
+      );
+      spy.mockRestore();
+    });
+
     /** Com `q`, deve aplicar busca case-insensitive em `nome`. */
     it('aplica busca case-insensitive em nome quando q presente', async () => {
       const spy = vi.spyOn(fakeRepo, 'findAll');
@@ -126,6 +154,20 @@ describe('MusicasService', () => {
         some: { categoria_id: { in: ['cat-1'] } },
       });
       expect(callWhere).toHaveProperty('nome', { contains: 'rei', mode: 'insensitive' });
+      spy.mockRestore();
+    });
+
+    /** Com categoria + intensidade, deve combinar ambos os filtros no mesmo `where` (AND). */
+    it('combina filtros de categoria e intensidade', async () => {
+      const spy = vi.spyOn(fakeRepo, 'findAll');
+      await musicasService.listAll({ page: 1, limit: 20, categoriaIds: ['cat-1'], intensidades: ['media'] });
+      const callWhere = spy.mock.calls[0][2];
+      expect(callWhere).toHaveProperty('Musicas_Categorias', {
+        some: { categoria_id: { in: ['cat-1'] } },
+      });
+      expect(callWhere).toHaveProperty('Artistas_Musicas', {
+        some: { intensidade: { in: ['media'] } },
+      });
       spy.mockRestore();
     });
   });
@@ -618,6 +660,67 @@ describe('MusicasService', () => {
         statusCode: 409,
         message: 'Registro duplicado',
       });
+    });
+  });
+
+  // ─── cifraclub_url persistence ──────────────────────────
+  describe('cifraclub_url persistence', () => {
+    /** Deve persistir cifraclub_url ao criar música completa com versão. */
+    it('createComplete deve persistir cifraclub_url na versão', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Música com CifraClub',
+        fk_tonalidade: MOCK_TONALIDADES[0].id,
+        artista_id: MOCK_ARTISTAS[0].id,
+        cifraclub_url: 'https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/',
+      }, 'tenant-fake-id');
+      expect(result.versoes).toHaveLength(1);
+      expect(result.versoes[0].cifraclub_url).toBe('https://www.cifraclub.com.br/diante-do-trono/a-ele-gloria/');
+    });
+
+    /** Deve criar versão quando cifraclub_url é o único campo de versão fornecido. */
+    it('createComplete deve criar versão quando cifraclub_url é o único campo', async () => {
+      const result = await musicasService.createComplete({
+        nome: 'Música só com cifra link',
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
+      }, 'tenant-fake-id');
+      expect(result.versoes).toHaveLength(1);
+      expect(result.versoes[0].cifraclub_url).toBe('https://www.cifraclub.com.br/aline-barros/rendido-estou/');
+    });
+
+    /** Deve persistir cifraclub_url ao atualizar música completa com versão existente. */
+    it('updateComplete deve persistir cifraclub_url na versão existente', async () => {
+      const versaoId = MOCK_ARTISTAS_MUSICAS[0].id;
+      const result = await musicasService.updateComplete(MOCK_MUSICAS_BASE[0].id, {
+        nome: MOCK_MUSICAS_BASE[0].nome,
+        versao_id: versaoId,
+        cifraclub_url: 'https://www.cifraclub.com.br/fernandinho/galileu/',
+      }, 'tenant-fake-id');
+      const versao = result.versoes.find(v => v.id === versaoId);
+      expect(versao?.cifraclub_url).toBe('https://www.cifraclub.com.br/fernandinho/galileu/');
+    });
+
+    /** Deve persistir cifraclub_url ao adicionar versão via addVersao. */
+    it('addVersao deve persistir cifraclub_url', async () => {
+      const result = await musicasService.addVersao(MOCK_MUSICAS_BASE[1].id, {
+        cifraclub_url: 'https://www.cifraclub.com.br/diante-do-trono/preciso-de-ti/',
+      }, 'tenant-fake-id');
+      expect(result.cifraclub_url).toBe('https://www.cifraclub.com.br/diante-do-trono/preciso-de-ti/');
+    });
+
+    /** Deve persistir cifraclub_url ao atualizar versão via updateVersao. */
+    it('updateVersao deve persistir cifraclub_url', async () => {
+      const result = await musicasService.updateVersao(MOCK_ARTISTAS_MUSICAS[0].id, {
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
+      });
+      expect(result.cifraclub_url).toBe('https://www.cifraclub.com.br/aline-barros/rendido-estou/');
+    });
+
+    /** Deve retornar cifraclub_url ao listar versões. */
+    it('listVersoes deve retornar cifraclub_url', async () => {
+      const result = await musicasService.listVersoes(MOCK_MUSICAS_BASE[0].id);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('cifraclub_url');
+      expect(result[0].cifraclub_url).toBe('https://www.cifraclub.com.br/aline-barros/rendido-estou/');
     });
   });
 

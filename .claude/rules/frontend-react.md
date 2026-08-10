@@ -53,6 +53,7 @@ packages/frontend/src/
 │   ├── use-profile.ts   # React Query hooks para perfil
 │   ├── use-admin.ts     # React Query hooks para CRUD admin
 │   ├── use-igrejas.ts   # React Query hooks para igrejas
+│   ├── use-scroll-restoration.ts # Salva/restaura rolagem do container interno; abre páginas no topo
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
@@ -135,6 +136,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 11. **Botões de ação com labels**: No mobile, usar `hidden sm:inline` nos labels de texto e manter apenas o ícone visível. Garantir `aria-label` para acessibilidade. Exemplo: `<Pencil className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Editar</span>`.
 12. **Cards com informação densa** (música com nome + tonalidade + versão + ações): Separar em 2 linhas — 1ª linha: nome + ação de remoção; 2ª linha: badges/metadata com padding-left alinhado ao nome. Usar `items-start` (não `items-center`) quando o nome pode quebrar em `line-clamp-2`.
 13. **Integrantes com funções/badges**: Nome + botão de remoção na 1ª linha, badges de função em linha separada com `flex-wrap` e padding-left alinhado ao nome.
+14. **Formulários em overlay**: Usar **`ResponsiveFormDialog`** (`components/ResponsiveFormDialog.tsx`) — renderiza `Drawer` (bottom-sheet) no mobile e `Dialog` no desktop via `useIsMobile()`, com **header fixo + corpo rolável + footer fixo (sticky)** limitado à altura da viewport. Nunca colocar um formulário alto num `Dialog` centralizado puro: no mobile o `Dialog` é `position: fixed` centralizado e **não reage ao teclado virtual** — o botão de ação some atrás do teclado/barra do navegador e o campo em foco fica encoberto. O `Drawer` (vaul, `repositionInputs` por padrão) reposiciona o campo focado acima do teclado. Passar os `FormField` como `children` e os botões via prop `footer`; envolver com `<Form {...form}>` por fora (o contexto do react-hook-form atravessa o portal). Referência: `MusicaForm.tsx`.
 
 ### Padrão de referência (modelo correto)
 
@@ -187,7 +189,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 |---|---|
 | `MusicaDetail.tsx` | Edit overflow + truncate + flex-wrap + responsive gaps |
 | `AppLayout.tsx` | Padding responsivo `p-4 sm:p-6` + overflow-x-hidden |
-| `EventoDetail.tsx` | Layout 2 linhas em cards (nome+ação / metadata), icon-only buttons, items-start com line-clamp-2 |
+| `EventoDetail.tsx` | Layout 2 linhas em cards (nome+ação / metadata), icon-only buttons, items-start com line-clamp-2; card de música clicável (navega ao detalhe) |
 | `EscalaShareActions.tsx` | Labels com `hidden sm:inline` para icon-only no mobile |
 | `CreatableCombobox.tsx` | `truncate` no span do placeholder para evitar overflow sobre botão adjacente |
 | `ConfigCrudSection.tsx` | flex-wrap form + gap + truncate nomes |
@@ -195,8 +197,65 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `admin/Roles.tsx` | Dual layout cards/table + header responsivo |
 | `admin/Users.tsx` | Dual layout cards/table + header responsivo |
 | `Scales.tsx` | Header justify-between com prefixo sm: |
-| `IntegranteForm.tsx` | flex-wrap no select+button de funções |
+| `IntegranteForm.tsx` | flex-wrap no select+button de funções; migrado para `ResponsiveFormDialog` |
 | `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
+| `ResponsiveFormDialog.tsx` | Shell de formulário: Drawer (mobile) / Dialog (desktop), header fixo + corpo rolável + footer sticky; corrige botão Salvar escondido e campo em foco atrás do teclado |
+| `MusicaForm.tsx` / `VersaoForm.tsx` / `EventoForm.tsx` | Migrados para `ResponsiveFormDialog` (bottom-sheet no mobile) |
+| `admin/Igrejas.tsx` | Dual layout cards/table + header responsivo + `Button asChild` no lugar de `<Link><Button>` |
+| `admin/IgrejaUsers.tsx` | Dual layout cards/table + truncate em nome/e-mail + `Button asChild` nos 3 botões de voltar |
+| `GruposFuncoesSection.tsx` | Grip de arraste `w-11 h-11` (44px) já no mobile + anúncios do dnd-kit em PT-BR |
+| `DateTimePicker.tsx` | `aria-label` "Hora"/"Minuto" nos selects (o rótulo "Horário:" não estava associado) |
+| `CifraclubPlaylistDialog.tsx` | `aria-label` no gatilho icon-only |
+| `MusicaVersaoPicker.tsx` | `truncate max-w-[10rem]` no rótulo do badge (nome de artista é texto livre) |
+
+### Verificação automatizada de mobile
+
+`playwright.config.ts` roda **dois projetos**, com escopos separados por convenção de nome:
+
+| Projeto | Viewport | Specs |
+|---|---|---|
+| `chromium` | 1280×720 | todos, **exceto** `*.mobile.spec.ts` (`testIgnore`) |
+| `mobile` | 360×740, `devices["Galaxy S8"]`, com toque | **apenas** `*.mobile.spec.ts` (`testMatch`) |
+
+A separação é obrigatória: os specs de desktop usam locators de tabela (`getByRole("table")`, `tbody tr`) e clicam direto nos links da sidebar. A 360px a tabela fica `display:none` (fora da árvore de acessibilidade) e o menu vive atrás do botão "Toggle Sidebar" — rodar esses specs no projeto mobile geraria falhas que não revelam bug nenhum.
+
+**Ao criar uma página com layout dual**, escreva um `*.mobile.spec.ts` que verifique: (1) a variante de cards aparece e a tabela está oculta; (2) **não há overflow horizontal** (`document.documentElement.scrollWidth <= clientWidth`) — a checagem objetiva da regra "nunca depender de scroll horizontal". Referência: `tests/e2e/admin-igrejas.mobile.spec.ts`.
+
+Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
+
+> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa apenas lint + testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
+
+## Navegação e Rolagem
+
+- **Rolagem é do container interno, não da janela.** Em `AppLayout` o scroll vive
+  num `<div data-scroll-root>` (o `<main>` é `h-screen overflow-hidden`). Por isso a
+  restauração nativa de back/forward do navegador não se aplica e o container é
+  compartilhado entre páginas.
+  - `useScrollRestoration(key, ready)` (`hooks/use-scroll-restoration.ts`): salva/restaura
+    a posição ao voltar. Usar em páginas-lista/detalhe onde o usuário deve retomar
+    "onde estava" (ex.: `EventoDetail` com `key = \`escala:${id}\``; `ready = !isLoading && !!data`).
+    Reseta o flag interno de "já restaurado" no render quando a `key` muda, para tratar
+    o caso de o React Router reaproveitar a instância ao navegar entre detalhes
+    (ex.: `/escalas/1` → `/escalas/2`) sem desmontar o componente.
+  - `useScrollToTopOnMount()`: chamar em páginas de detalhe para abrir no topo,
+    evitando herdar o `scrollTop` da página anterior (ex.: `SongDetail`).
+  - `clearScrollPositions()`: limpa o `Map` global de posições (keyed só pela
+    chave da página). Chamado no `signOut`, no `onAuthFailure` e no `switchTenant`
+    (`AuthContext`) para evitar que uma página de mesmo id em outro tenant restaure
+    a rolagem do tenant anterior, além de limitar o crescimento do `Map`.
+- **Card clicável que navega ao detalhe** (padrão de `Songs.tsx`/`EventoDetail.tsx`):
+  card inteiro com `role="button"`, `tabIndex={0}`, `onClick` e
+  `onKeyDown={handleClickableKeyDown(...)}` (de `@/lib/utils`), `cursor-pointer` +
+  `hover:shadow-medium hover:border-primary/30`. Navegar preservando a origem em
+  `navigate(path, { state: { from: location.pathname } })`.
+  - **Isolamento de controles internos** (botões, grip de arraste, popovers como o
+    seletor de versão): no **clique**, cada controle interno chama `e.stopPropagation()`
+    no seu `onClick`. No **teclado**, como o `keydown` faz bubble até o card, prefira um
+    **guard de `currentTarget`** no `onKeyDown` do card —
+    `if (e.target === e.currentTarget) handleClickableKeyDown(onOpen)(e)` — em vez de
+    `stopPropagation` por controle: uma única guarda cobre grip, picker e botão de
+    remover de uma vez (DRY) e evita navegação inesperada ao acionar Enter/Espaço num
+    controle interno (a11y). Ver `EventoDetail.tsx` (`SortableMusicaCard`).
 
 ## Convenções de Código
 

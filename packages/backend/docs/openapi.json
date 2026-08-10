@@ -21,6 +21,10 @@
   ],
   "tags": [
     {
+      "name": "Health",
+      "description": "Health check público da API (status + SHA do build)"
+    },
+    {
       "name": "Artistas",
       "description": "Gerenciamento de artistas/cantores"
     },
@@ -73,6 +77,10 @@
       "description": "Funções/instrumentos do ministério"
     },
     {
+      "name": "Funções - Grupos",
+      "description": "Grupos que organizam as funções por papel e definem a ordem dos blocos de integrantes no compartilhamento da escala"
+    },
+    {
       "name": "Tipos de Eventos",
       "description": "Categorias de eventos"
     },
@@ -103,9 +111,58 @@
     {
       "name": "Convites",
       "description": "Links de convite para onboarding de integrantes"
+    },
+    {
+      "name": "CifraClub",
+      "description": "Integração com CifraClub — URLs de cifras em versões e playlist de evento"
+    },
+    {
+      "name": "Igrejas",
+      "description": "Gestão de igrejas (tenants). Exclusivo de `super-admin`."
+    },
+    {
+      "name": "Relatórios",
+      "description": "Métricas agregadas do tenant ativo."
     }
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check da API",
+        "description": "Endpoint público (sem autenticação) que retorna o status da instância e o SHA do build (env GIT_SHA, injetada em build-time pelo CI). Consumido pelo healthcheck do container e pelo smoke test pós-deploy.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Instância no ar.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "sha": {
+                      "type": "string",
+                      "description": "SHA do commit que originou a imagem, ou 'unknown' fora do CI.",
+                      "example": "a1b2c3d"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/artistas": {
       "get": {
         "summary": "Listar todos os artistas",
@@ -431,6 +488,29 @@
             ]
           },
           {
+            "name": "intensidades",
+            "in": "query",
+            "required": false,
+            "description": "Intensidades (tempo) das versões. Retorna músicas com ao menos uma versão na(s) intensidade(s) informada(s). No fio é serializado como CSV (`form` + `explode=false`). Valor fora do enum retorna 400.",
+            "style": "form",
+            "explode": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "calma",
+                  "media",
+                  "agitada"
+                ]
+              }
+            },
+            "example": [
+              "calma",
+              "agitada"
+            ]
+          },
+          {
             "name": "q",
             "in": "query",
             "required": false,
@@ -536,6 +616,20 @@
                     "per_page": 10,
                     "total_pages": 5
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetro de query inválido — valor fora do enum permitido (ex.: `intensidades` diferente de `calma`/`media`/`agitada`), UUID inválido em `categorias`, ou `q` acima do limite de caracteres",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Intensidade inválida: lenta. Valores aceitos: calma, media, agitada",
+                  "codigo": 400
                 }
               }
             }
@@ -2694,7 +2788,9 @@
               },
               "example": {
                 "fk_integrante_id": "11111111-aaaa-4000-8000-000000000003",
-                "funcao_ids": ["f6a7b8c9-6666-4000-f000-000000000001"]
+                "funcao_ids": [
+                  "f6a7b8c9-6666-4000-f000-000000000001"
+                ]
               }
             }
           }
@@ -3618,6 +3714,426 @@
         ]
       }
     },
+    "/funcoes-grupos": {
+      "get": {
+        "summary": "Listar grupos de funções",
+        "description": "Retorna os grupos de funções do tenant com as funções de cada um, ordenados pelo campo `ordem`.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GrupoFuncoes"
+                  }
+                },
+                "example": [
+                  {
+                    "id": "a1b2c3d4-7777-4000-a000-000000000001",
+                    "nome": "Vocal",
+                    "ordem": 3,
+                    "funcoes": [
+                      {
+                        "id": "f6a7b8c9-6666-4000-f000-000000000001",
+                        "nome": "Voz"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Criar grupo de funções",
+        "description": "Cria um grupo no fim da sequência (`ordem` = maior existente + 1). O nome deve ser único no tenant.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NomeInput"
+              },
+              "example": {
+                "nome": "Vocal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Grupo criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoFuncoesResponse"
+                },
+                "example": {
+                  "msg": "Grupo criado com sucesso",
+                  "grupo": {
+                    "id": "a1b2c3d4-7777-4000-a000-000000000001",
+                    "nome": "Vocal",
+                    "ordem": 6,
+                    "funcoes": []
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/funcoes-grupos/reorder": {
+      "patch": {
+        "summary": "Reordenar grupos de funções",
+        "description": "Reordena os grupos conforme a ordem dos IDs recebidos. A lista deve conter exatamente todos os grupos do tenant.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grupos_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "description": "Lista ordenada com todos os IDs de grupo do tenant"
+                  }
+                },
+                "required": [
+                  "grupos_ids"
+                ]
+              },
+              "example": {
+                "grupos_ids": [
+                  "a1b2c3d4-7777-4000-a000-000000000001",
+                  "a1b2c3d4-7777-4000-a000-000000000002"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem dos grupos atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Grupos reordenados com sucesso"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/funcoes-grupos/{id}": {
+      "put": {
+        "summary": "Renomear grupo de funções",
+        "description": "Altera o nome de um grupo. O nome deve permanecer único no tenant.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID do grupo de funções"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NomeInput"
+              },
+              "example": {
+                "nome": "Vozes"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grupo editado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoFuncoesResponse"
+                },
+                "example": {
+                  "msg": "Grupo editado com sucesso",
+                  "grupo": {
+                    "id": "a1b2c3d4-7777-4000-a000-000000000001",
+                    "nome": "Vocal",
+                    "ordem": 3,
+                    "funcoes": [
+                      {
+                        "id": "f6a7b8c9-6666-4000-f000-000000000001",
+                        "nome": "Voz"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Remover grupo de funções",
+        "description": "Remove o grupo. As funções que pertenciam a ele ficam sem grupo e passam a aparecer ao final da lista de integrantes compartilhada.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID do grupo de funções"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grupo deletado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoFuncoesResponse"
+                },
+                "example": {
+                  "msg": "Grupo deletado com sucesso",
+                  "grupo": {
+                    "id": "a1b2c3d4-7777-4000-a000-000000000001",
+                    "nome": "Vocal",
+                    "ordem": 3,
+                    "funcoes": [
+                      {
+                        "id": "f6a7b8c9-6666-4000-f000-000000000001",
+                        "nome": "Voz"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/funcoes-grupos/{id}/funcoes": {
+      "put": {
+        "summary": "Definir funções do grupo",
+        "description": "Substitui o conjunto de funções do grupo. Funções que saem da lista ficam sem grupo; funções que entram são movidas de seu grupo anterior, caso tenham um. Lista vazia esvazia o grupo.",
+        "tags": [
+          "Funções - Grupos"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID do grupo de funções"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "funcoes_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "description": "IDs das funções que devem pertencer ao grupo (pode ser vazio)"
+                  }
+                },
+                "required": [
+                  "funcoes_ids"
+                ]
+              },
+              "example": {
+                "funcoes_ids": [
+                  "f6a7b8c9-6666-4000-f000-000000000001"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Funções do grupo atualizadas com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GrupoFuncoesResponse"
+                },
+                "example": {
+                  "msg": "Funções do grupo atualizadas com sucesso",
+                  "grupo": {
+                    "id": "a1b2c3d4-7777-4000-a000-000000000001",
+                    "nome": "Vocal",
+                    "ordem": 3,
+                    "funcoes": [
+                      {
+                        "id": "f6a7b8c9-6666-4000-f000-000000000001",
+                        "nome": "Voz"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/tipos-eventos": {
       "get": {
         "summary": "Listar tipos de eventos",
@@ -3911,8 +4427,12 @@
               "application/json": {
                 "schema": {
                   "oneOf": [
-                    { "$ref": "#/components/schemas/SessionResponse" },
-                    { "$ref": "#/components/schemas/TenantSelectionResponse" }
+                    {
+                      "$ref": "#/components/schemas/SessionResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TenantSelectionResponse"
+                    }
                   ]
                 }
               }
@@ -3923,6 +4443,20 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas tentativas de login. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -3960,6 +4494,20 @@
           },
           "400": {
             "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas requisições. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -4031,6 +4579,20 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundError"
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas requisições. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -4650,6 +5212,20 @@
           "400": {
             "$ref": "#/components/responses/ValidationError"
           },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas solicitações de recuperação de senha. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
+              }
+            }
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
@@ -4679,6 +5255,20 @@
           },
           "400": {
             "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas tentativas de redefinição de senha. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -4765,8 +5355,14 @@
       "post": {
         "summary": "Gerar link de convite",
         "description": "Gera um novo link de convite com expiração de 2 horas para o tenant do líder autenticado.",
-        "tags": ["Convites"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Convites"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "201": {
             "description": "Convite gerado com sucesso",
@@ -4775,22 +5371,37 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "msg": { "type": "string", "example": "Convite gerado com sucesso" },
-                    "invite": { "$ref": "#/components/schemas/Invite" }
+                    "msg": {
+                      "type": "string",
+                      "example": "Convite gerado com sucesso"
+                    },
+                    "invite": {
+                      "$ref": "#/components/schemas/Invite"
+                    }
                   }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/UnauthorizedError" },
-          "403": { "$ref": "#/components/responses/ForbiddenError" }
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
         }
       },
       "get": {
         "summary": "Listar convites",
         "description": "Lista todos os convites do tenant do líder autenticado com status derivado.",
-        "tags": ["Convites"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Convites"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de convites retornada com sucesso",
@@ -4801,15 +5412,21 @@
                   "properties": {
                     "invites": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/Invite" }
+                      "items": {
+                        "$ref": "#/components/schemas/Invite"
+                      }
                     }
                   }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/UnauthorizedError" },
-          "403": { "$ref": "#/components/responses/ForbiddenError" }
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          }
         }
       }
     },
@@ -4817,14 +5434,23 @@
       "delete": {
         "summary": "Revogar convite",
         "description": "Revoga um convite ativo antes de ser utilizado.",
-        "tags": ["Convites"],
-        "security": [{ "bearerAuth": [] }],
+        "tags": [
+          "Convites"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "UUID do registro de convite"
           }
         ],
@@ -4836,7 +5462,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "msg": { "type": "string", "example": "Convite revogado com sucesso" }
+                    "msg": {
+                      "type": "string",
+                      "example": "Convite revogado com sucesso"
+                    }
                   }
                 }
               }
@@ -4846,16 +5475,22 @@
             "description": "Convite já utilizado ou já revogado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
           "404": {
             "description": "Convite não encontrado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
@@ -4865,14 +5500,19 @@
     "/convites/{token}/validate": {
       "get": {
         "summary": "Validar token de convite",
-        "description": "Valida o estado de um token de convite e retorna nome do tenant. Rota pública.",
-        "tags": ["Convites"],
+        "description": "Valida o estado de um token de convite e retorna nome do tenant. Rota pública com limite de taxa (30 requisições por IP a cada 15 minutos).",
+        "tags": [
+          "Convites"
+        ],
         "parameters": [
           {
             "name": "token",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "UUID do token de convite"
           }
         ],
@@ -4884,11 +5524,17 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "valid": { "type": "boolean", "example": true },
+                    "valid": {
+                      "type": "boolean",
+                      "example": true
+                    },
                     "tenant": {
                       "type": "object",
                       "properties": {
-                        "name": { "type": "string", "example": "Igreja Exemplo" }
+                        "name": {
+                          "type": "string",
+                          "example": "Igreja Exemplo"
+                        }
                       }
                     }
                   }
@@ -4900,11 +5546,28 @@
             "description": "Token expirado, usado ou revogado",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
                 "examples": {
-                  "expired": { "value": { "erro": "Este convite expirou. Peça um novo ao seu líder.", "codigo": 400 } },
-                  "used": { "value": { "erro": "Este convite já foi utilizado.", "codigo": 400 } },
-                  "revoked": { "value": { "erro": "Este convite foi cancelado.", "codigo": 400 } }
+                  "expired": {
+                    "value": {
+                      "erro": "Este convite expirou. Peça um novo ao seu líder.",
+                      "codigo": 400
+                    }
+                  },
+                  "used": {
+                    "value": {
+                      "erro": "Este convite já foi utilizado.",
+                      "codigo": 400
+                    }
+                  },
+                  "revoked": {
+                    "value": {
+                      "erro": "Este convite foi cancelado.",
+                      "codigo": 400
+                    }
+                  }
                 }
               }
             }
@@ -4913,24 +5576,120 @@
             "description": "Token inexistente",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas requisições. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
               }
             }
           }
         }
       }
     },
+    "/eventos/{eventoId}/cifraclub-playlist": {
+      "get": {
+        "summary": "Obter playlist CifraClub de um evento",
+        "description": "Retorna a playlist do CifraClub para um evento, contendo as músicas escaladas com suas URLs de cifra, informações de tonalidade ajustada, estatísticas de cobertura e a URL da lista CifraClub do evento.",
+        "tags": [
+          "CifraClub"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Playlist CifraClub retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CifraclubPlaylistResponse"
+                },
+                "example": {
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000001",
+                    "data": "2026-02-16T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Manhã",
+                    "tipo_evento": "Culto de Domingo"
+                  },
+                  "playlist": [
+                    {
+                      "ordem": 1,
+                      "musica_id": "b2c3d4e5-2222-4000-b000-000000000001",
+                      "nome": "Rendido Estou",
+                      "tom": "G",
+                      "tom_final": "A",
+                      "tom_ajustado": true,
+                      "artista_nome": "Aline Barros",
+                      "cifraclub_url": "https://www.cifraclub.com.br/aline-barros/rendido-estou/"
+                    },
+                    {
+                      "ordem": 2,
+                      "musica_id": "b2c3d4e5-2222-4000-b000-000000000002",
+                      "nome": "Ninguém Explica Deus",
+                      "tom": "D",
+                      "tom_final": "D",
+                      "tom_ajustado": false,
+                      "artista_nome": "Gabriela Rocha",
+                      "cifraclub_url": null
+                    }
+                  ],
+                  "stats": {
+                    "total": 2,
+                    "com_link": 1,
+                    "sem_link": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/convites/{token}/accept": {
       "post": {
         "summary": "Aceitar convite",
-        "description": "Aceita um convite e cria conta ou vincula conta existente ao tenant. Rota pública.",
-        "tags": ["Convites"],
+        "description": "Aceita um convite e cria conta ou vincula conta existente ao tenant. Rota pública com limite de taxa (10 requisições por IP a cada 15 minutos) para proteger a verificação de senha.",
+        "tags": [
+          "Convites"
+        ],
         "parameters": [
           {
             "name": "token",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "UUID do token de convite"
           }
         ],
@@ -4940,31 +5699,37 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["nome", "email", "senha", "senha_confirmacao"],
+                "required": [
+                  "nome",
+                  "email",
+                  "senha",
+                  "senha_confirmacao"
+                ],
                 "properties": {
-                  "nome": { "type": "string", "example": "Maria Silva" },
-                  "email": { "type": "string", "format": "email", "example": "maria@gmail.com" },
-                  "senha": { "type": "string", "minLength": 6, "example": "minhasenha123" },
-                  "senha_confirmacao": { "type": "string", "example": "minhasenha123" }
+                  "nome": {
+                    "type": "string",
+                    "example": "Maria Silva"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "maria@gmail.com"
+                  },
+                  "senha": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "minhasenha123"
+                  },
+                  "senha_confirmacao": {
+                    "type": "string",
+                    "example": "minhasenha123"
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Conta criada com sucesso",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "msg": { "type": "string", "example": "Conta criada com sucesso! Faça login para continuar." }
-                  }
-                }
-              }
-            }
-          },
           "200": {
             "description": "Conta existente vinculada ao tenant",
             "content": {
@@ -4972,7 +5737,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "msg": { "type": "string", "example": "Você foi adicionado à igreja com sucesso! Faça login para continuar." }
+                    "msg": {
+                      "type": "string",
+                      "example": "Você foi adicionado à igreja com sucesso! Faça login para continuar."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Conta criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": {
+                      "type": "string",
+                      "example": "Conta criada com sucesso! Faça login para continuar."
+                    }
                   }
                 }
               }
@@ -4982,7 +5766,9 @@
             "description": "Token inválido ou validação falhou",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -4990,8 +5776,13 @@
             "description": "Senha incorreta para conta existente",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "example": { "erro": "Senha incorreta para a conta existente.", "codigo": 401 }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Senha incorreta para a conta existente.",
+                  "codigo": 401
+                }
               }
             }
           },
@@ -4999,7 +5790,9 @@
             "description": "Token inexistente",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -5007,12 +5800,604 @@
             "description": "Usuário já pertence ao tenant",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-                "example": { "erro": "Você já pertence a este grupo.", "codigo": 409 }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Você já pertence a este grupo.",
+                  "codigo": 409
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitas requisições — limite de taxa da rota pública excedido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Muitas tentativas de aceitar convite. Tente novamente em alguns minutos.",
+                  "codigo": 429
+                }
               }
             }
           }
         }
+      }
+    },
+    "/igrejas": {
+      "get": {
+        "summary": "Listar igrejas",
+        "description": "Retorna todas as igrejas, exceto o tenant de sistema. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de igrejas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Igreja"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Criar igreja",
+        "description": "Cria a igreja e semeia seus dados padrão (funções, grupos, tipos de evento, categorias, tonalidades) na mesma transação. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgrejaInput"
+              },
+              "example": {
+                "name": "Igreja Central"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Igreja criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgrejaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/igrejas/{id}": {
+      "get": {
+        "summary": "Detalhar igreja",
+        "description": "Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dados da igreja",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Igreja"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Atualizar igreja",
+        "description": "Altera nome e/ou status. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgrejaUpdateInput"
+              },
+              "example": {
+                "name": "Igreja Central",
+                "status": "active"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Igreja atualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgrejaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Desativar igreja",
+        "description": "Soft delete: muda o status para `inactive` e invalida os refresh tokens dos usuários vinculados, forçando re-autenticação. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Igreja desativada (sem corpo)"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/igrejas/{id}/users": {
+      "get": {
+        "summary": "Listar usuários da igreja",
+        "description": "Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuários vinculados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IgrejaUsuario"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Vincular usuário à igreja",
+        "description": "Cria o vínculo e atribui o papel `admin` naquele tenant, na mesma transação — o super-admin delega a gestão da igreja ao usuário. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddUsuarioIgrejaInput"
+              },
+              "example": {
+                "user_id": "f1a2b3c4-0000-4000-a000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário vinculado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinculoIgrejaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/igrejas/{id}/users/{userId}": {
+      "delete": {
+        "summary": "Desvincular usuário da igreja",
+        "description": "Remove o vínculo e, em cascata, as roles e permissões diretas do usuário naquele tenant. Requer papel `super-admin` (verificado no tenant sentinela). O tenant de sistema é recusado com 403.",
+        "tags": [
+          "Igrejas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          },
+          {
+            "$ref": "#/components/parameters/UserIdParam"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Vínculo removido (sem corpo)"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/musicas/complete": {
+      "post": {
+        "summary": "Criar música completa",
+        "description": "Cria música, versão inicial e vínculos de categorias/funções numa única requisição. Exige permissão `musicas.write`.",
+        "tags": [
+          "Músicas"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicaCompleteInput"
+              },
+              "example": {
+                "nome": "Rendido Estou",
+                "fk_tonalidade": "b1c2d3e4-0000-4000-b000-000000000001",
+                "artista_id": "a1b2c3d4-0000-4000-a000-000000000001",
+                "bpm": 72,
+                "intensidade": "suave",
+                "categoria_ids": [
+                  "c1d2e3f4-0000-4000-c000-000000000001"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Música criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": {
+                      "type": "string"
+                    },
+                    "musica": {
+                      "$ref": "#/components/schemas/Musica"
+                    }
+                  },
+                  "required": [
+                    "msg",
+                    "musica"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/musicas/{id}/complete": {
+      "put": {
+        "summary": "Editar música completa",
+        "description": "Atualiza música, a versão indicada em `versao_id` e substitui os vínculos de categorias/funções numa única requisição. Exige permissão `musicas.write`.",
+        "tags": [
+          "Músicas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MusicaCompleteUpdateInput"
+              },
+              "example": {
+                "nome": "Rendido Estou",
+                "versao_id": "d1e2f3a4-0000-4000-d000-000000000001",
+                "bpm": 74,
+                "intensidade": "media"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Música editada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "msg": {
+                      "type": "string"
+                    },
+                    "musica": {
+                      "$ref": "#/components/schemas/Musica"
+                    }
+                  },
+                  "required": [
+                    "msg",
+                    "musica"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/relatorios/resumo": {
+      "get": {
+        "summary": "Resumo de relatórios",
+        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas e atividade mensal.",
+        "tags": [
+          "Relatórios"
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo agregado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatorioResumo"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     }
   },
@@ -5021,30 +6406,75 @@
       "Invite": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "token": { "type": "string", "format": "uuid" },
-          "url": { "type": "string", "format": "uri", "example": "https://app.louvorflow.com/convite/uuid" },
-          "expires_at": { "type": "string", "format": "date-time" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "used_at": { "type": "string", "format": "date-time", "nullable": true },
-          "status": { "type": "string", "enum": ["active", "expired", "used", "revoked"] },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://app.louvorflow.com/convite/uuid"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "used_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "used",
+              "revoked"
+            ]
+          },
           "created_by": {
             "type": "object",
             "properties": {
-              "id": { "type": "string", "format": "uuid" },
-              "name": { "type": "string" }
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           },
           "used_by": {
             "type": "object",
             "nullable": true,
             "properties": {
-              "id": { "type": "string", "format": "uuid" },
-              "name": { "type": "string" }
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           }
         },
-        "required": ["id", "token", "url", "expires_at", "created_at", "status"]
+        "required": [
+          "id",
+          "token",
+          "url",
+          "expires_at",
+          "created_at",
+          "status"
+        ]
       },
       "IdNome": {
         "type": "object",
@@ -5126,7 +6556,11 @@
           },
           "artista": {
             "nullable": true,
-            "allOf": [{ "$ref": "#/components/schemas/IdNome" }],
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IdNome"
+              }
+            ],
             "description": "Artista da versão. Null quando artista não informado."
           },
           "bpm": {
@@ -5147,9 +6581,18 @@
           },
           "intensidade": {
             "type": "string",
-            "enum": ["calma", "media", "agitada"],
+            "enum": [
+              "calma",
+              "media",
+              "agitada"
+            ],
             "nullable": true,
             "description": "Nível de intensidade da versão"
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL da cifra no CifraClub para esta versão"
           }
         },
         "required": [
@@ -5159,7 +6602,8 @@
           "cifras",
           "lyrics",
           "link_versao",
-          "intensidade"
+          "intensidade",
+          "cifraclub_url"
         ]
       },
       "VersaoInput": {
@@ -5189,9 +6633,18 @@
           },
           "intensidade": {
             "type": "string",
-            "enum": ["calma", "media", "agitada"],
+            "enum": [
+              "calma",
+              "media",
+              "agitada"
+            ],
             "nullable": true,
             "description": "Nível de intensidade da versão"
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL da cifra no CifraClub para esta versão"
           }
         }
       },
@@ -5221,9 +6674,18 @@
           },
           "intensidade": {
             "type": "string",
-            "enum": ["calma", "media", "agitada"],
+            "enum": [
+              "calma",
+              "media",
+              "agitada"
+            ],
             "nullable": true,
             "description": "Nível de intensidade da versão"
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL da cifra no CifraClub para esta versão"
           }
         }
       },
@@ -5392,6 +6854,11 @@
           "link_versao": {
             "type": "string",
             "nullable": true
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "URL da cifra no CifraClub. Nulo quando não informado."
           }
         },
         "required": [
@@ -6047,7 +7514,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"]
+        "required": [
+          "id",
+          "name"
+        ]
       },
       "SelectTenantInput": {
         "type": "object",
@@ -6063,7 +7533,10 @@
             "description": "UUID do tenant selecionado pelo usuário."
           }
         },
-        "required": ["selection_token", "tenant_id"]
+        "required": [
+          "selection_token",
+          "tenant_id"
+        ]
       },
       "SwitchTenantInput": {
         "type": "object",
@@ -6075,7 +7548,9 @@
             "description": "UUID do tenant de destino escolhido pelo usuário."
           }
         },
-        "required": ["tenant_id"]
+        "required": [
+          "tenant_id"
+        ]
       },
       "TenantSelectionResponse": {
         "type": "object",
@@ -6083,7 +7558,9 @@
         "properties": {
           "requires_tenant_selection": {
             "type": "boolean",
-            "enum": [true]
+            "enum": [
+              true
+            ]
           },
           "tenants": {
             "type": "array",
@@ -6096,7 +7573,11 @@
             "description": "Token de curta duração (5 min) para uso em POST /sessions/select-tenant."
           }
         },
-        "required": ["requires_tenant_selection", "tenants", "selection_token"]
+        "required": [
+          "requires_tenant_selection",
+          "tenants",
+          "selection_token"
+        ]
       },
       "SessionResponse": {
         "type": "object",
@@ -6104,7 +7585,9 @@
         "properties": {
           "user": {
             "allOf": [
-              { "$ref": "#/components/schemas/UserPublic" },
+              {
+                "$ref": "#/components/schemas/UserPublic"
+              },
               {
                 "type": "object",
                 "properties": {
@@ -6233,6 +7716,558 @@
           "name",
           "roles",
           "permissions"
+        ]
+      },
+      "CifraclubPlaylistResponse": {
+        "type": "object",
+        "description": "Resposta da playlist CifraClub de um evento. Contém dados do evento, itens da playlist com URLs de cifra e estatísticas de cobertura.",
+        "properties": {
+          "evento": {
+            "type": "object",
+            "description": "Dados resumidos do evento",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "UUID do evento"
+              },
+              "data": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Data/hora do evento"
+              },
+              "descricao": {
+                "type": "string",
+                "description": "Descrição do evento"
+              },
+              "tipo_evento": {
+                "type": "string",
+                "description": "Nome do tipo de evento"
+              }
+            },
+            "required": [
+              "id",
+              "data",
+              "descricao",
+              "tipo_evento"
+            ]
+          },
+          "playlist": {
+            "type": "array",
+            "description": "Itens da playlist com URLs de cifra do CifraClub",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ordem": {
+                  "type": "integer",
+                  "description": "Posição da música na ordem do evento"
+                },
+                "musica_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "UUID da música"
+                },
+                "nome": {
+                  "type": "string",
+                  "description": "Nome da música"
+                },
+                "tom": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Tom original da música"
+                },
+                "tom_final": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Tom final considerando ajuste de tonalidade"
+                },
+                "tom_ajustado": {
+                  "type": "boolean",
+                  "description": "Indica se o tom foi ajustado em relação ao original"
+                },
+                "artista_nome": {
+                  "type": "string",
+                  "description": "Nome do artista da versão selecionada"
+                },
+                "cifraclub_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "URL da cifra no CifraClub (null se não cadastrada)"
+                }
+              },
+              "required": [
+                "ordem",
+                "musica_id",
+                "nome",
+                "tom",
+                "tom_final",
+                "tom_ajustado",
+                "artista_nome",
+                "cifraclub_url"
+              ]
+            }
+          },
+          "stats": {
+            "type": "object",
+            "description": "Estatísticas de cobertura de links CifraClub na playlist",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "description": "Total de músicas na playlist"
+              },
+              "com_link": {
+                "type": "integer",
+                "description": "Quantidade de músicas com link CifraClub"
+              },
+              "sem_link": {
+                "type": "integer",
+                "description": "Quantidade de músicas sem link CifraClub"
+              }
+            },
+            "required": [
+              "total",
+              "com_link",
+              "sem_link"
+            ]
+          }
+        },
+        "required": [
+          "evento",
+          "playlist",
+          "stats"
+        ]
+      },
+      "GrupoFuncoes": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string",
+            "example": "Vocal"
+          },
+          "ordem": {
+            "type": "integer",
+            "description": "Posição do grupo na sequência de exibição (1..N)",
+            "example": 3
+          },
+          "funcoes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IdNome"
+            },
+            "description": "Funções que pertencem ao grupo, ordenadas por nome"
+          }
+        }
+      },
+      "GrupoFuncoesResponse": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "grupo": {
+            "$ref": "#/components/schemas/GrupoFuncoes"
+          }
+        }
+      },
+      "Igreja": {
+        "type": "object",
+        "description": "Igreja (tenant) da plataforma. O tenant sentinela de status `system` é omitido da listagem e não pode ser alvo das operações de gestão.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive",
+              "system"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "_count": {
+            "type": "object",
+            "description": "Contagens agregadas das relações.",
+            "properties": {
+              "tenant_users": {
+                "type": "integer",
+                "description": "Usuários vinculados à igreja"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "IgrejaInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "IgrejaUpdateInput": {
+        "type": "object",
+        "description": "Todos os campos são opcionais; envie apenas o que deseja alterar.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ]
+          }
+        }
+      },
+      "IgrejaResponse": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "igreja": {
+            "$ref": "#/components/schemas/Igreja"
+          }
+        },
+        "required": [
+          "msg",
+          "igreja"
+        ]
+      },
+      "IgrejaUsuario": {
+        "type": "object",
+        "description": "Vínculo entre um usuário e uma igreja, com os dados públicos do usuário.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID do vínculo"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "telefone": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "email"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "user"
+        ]
+      },
+      "AddUsuarioIgrejaInput": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "user_id"
+        ]
+      },
+      "VinculoIgrejaResponse": {
+        "type": "object",
+        "properties": {
+          "msg": {
+            "type": "string"
+          },
+          "vinculo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "tenant_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "user_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "required": [
+          "msg",
+          "vinculo"
+        ]
+      },
+      "MusicaCompleteInput": {
+        "type": "object",
+        "description": "Cria a música e, quando os campos de versão são informados, também a primeira versão, além dos vínculos de categorias e funções — tudo numa única requisição.",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fk_tonalidade": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "artista_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Artista da versão criada junto com a música"
+          },
+          "bpm": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cifras": {
+            "type": "string"
+          },
+          "lyrics": {
+            "type": "string"
+          },
+          "link_versao": {
+            "type": "string",
+            "format": "uri",
+            "description": "Deve usar protocolo http ou https"
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Deve usar protocolo http ou https"
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": [
+              "suave",
+              "media",
+              "intensa"
+            ]
+          },
+          "categoria_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "funcao_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "nome"
+        ]
+      },
+      "MusicaCompleteUpdateInput": {
+        "type": "object",
+        "description": "Atualiza a música e, quando `versao_id` é informado, também a versão indicada, além de substituir os vínculos de categorias e funções.",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fk_tonalidade": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "versao_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Versão a atualizar junto com a música"
+          },
+          "bpm": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cifras": {
+            "type": "string"
+          },
+          "lyrics": {
+            "type": "string"
+          },
+          "link_versao": {
+            "type": "string",
+            "format": "uri",
+            "description": "Deve usar protocolo http ou https"
+          },
+          "cifraclub_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Deve usar protocolo http ou https"
+          },
+          "intensidade": {
+            "type": "string",
+            "enum": [
+              "suave",
+              "media",
+              "intensa"
+            ]
+          },
+          "categoria_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "funcao_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "nome"
+        ]
+      },
+      "MusicaRanking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "vezes": {
+            "type": "integer",
+            "description": "Quantidade de escalas em que a música apareceu"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "vezes"
+        ]
+      },
+      "AtividadeMensal": {
+        "type": "object",
+        "properties": {
+          "mes": {
+            "type": "string",
+            "description": "Mês de referência"
+          },
+          "eventos": {
+            "type": "integer"
+          },
+          "musicas": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "mes",
+          "eventos",
+          "musicas"
+        ]
+      },
+      "RelatorioResumo": {
+        "type": "object",
+        "properties": {
+          "totalMusicas": {
+            "type": "integer"
+          },
+          "totalEventos": {
+            "type": "integer"
+          },
+          "mediaPorEvento": {
+            "type": "number",
+            "description": "Média de músicas por escala, arredondada a 1 casa"
+          },
+          "topMusicas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MusicaRanking"
+            }
+          },
+          "atividadeMensal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AtividadeMensal"
+            }
+          }
+        },
+        "required": [
+          "totalMusicas",
+          "totalEventos",
+          "mediaPorEvento",
+          "topMusicas",
+          "atividadeMensal"
         ]
       }
     },

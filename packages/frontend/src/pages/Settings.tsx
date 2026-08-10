@@ -2,14 +2,17 @@
  * Página de configurações do sistema.
  *
  * Renderizada na rota `/configuracoes`. Exibe abas horizontais para gerenciar
- * entidades auxiliares: Artistas, Categorias, Funções, Tonalidades e Tipos de Evento.
- * Cada aba renderiza um `ConfigCrudSection` com hooks CRUD específicos.
+ * entidades auxiliares: Artistas, Categorias, Funções, Grupos, Tonalidades e
+ * Tipos de Evento. As abas de cadastro simples renderizam um `ConfigCrudSection`;
+ * a aba Grupos usa `GruposFuncoesSection`, que além do CRUD permite ordenar os
+ * grupos e definir as funções de cada um.
  */
 
 import { useCallback, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ConfigCrudSection } from "@/components/ConfigCrudSection";
+import { GruposFuncoesSection } from "@/components/GruposFuncoesSection";
 import {
   useArtistas,
   useCreateArtista,
@@ -108,7 +111,7 @@ const Settings = () => {
           <CardHeader className="pb-0">
             <TabsList
               ref={tabsListRef}
-              className="flex w-full justify-start overflow-x-auto scrollbar-none md:grid md:grid-cols-5"
+              className="flex w-full justify-start overflow-x-auto scrollbar-none md:grid md:grid-cols-6"
             >
               <TabsTrigger value="artistas" className="shrink-0">
                 Artistas
@@ -118,6 +121,9 @@ const Settings = () => {
               </TabsTrigger>
               <TabsTrigger value="funcoes" className="shrink-0">
                 Funções
+              </TabsTrigger>
+              <TabsTrigger value="grupos" className="shrink-0">
+                Grupos
               </TabsTrigger>
               <TabsTrigger value="tonalidades" className="shrink-0">
                 Tonalidades
@@ -217,6 +223,10 @@ const Settings = () => {
                 isDeleting={deleteFuncao.isPending}
                 readOnly={!canWrite}
               />
+            </TabsContent>
+
+            <TabsContent value="grupos">
+              <GruposFuncoesSection />
             </TabsContent>
 
             <TabsContent value="tonalidades">

@@ -23,6 +23,7 @@ function formatMusica(m: MusicaRaw): Musica {
             cifras: v.cifras,
             lyrics: v.lyrics,
             link_versao: v.link_versao,
+            cifraclub_url: v.cifraclub_url,
             intensidade: v.intensidade
         })),
         funcoes: m.Musicas_Funcoes.map(f => f.musicas_funcoes_funcao_id_fkey)
@@ -33,15 +34,16 @@ class MusicasService {
     // --- Base CRUD ---
 
     /**
-     * Lista músicas paginadas, opcionalmente filtradas por categorias e/ou busca textual.
+     * Lista músicas paginadas, opcionalmente filtradas por categorias, intensidade e/ou busca textual.
      *
      * @param params.page - Página (>=1)
      * @param params.limit - Itens por página (1..100)
      * @param params.categoriaIds - UUIDs de categorias; retorna músicas com AO MENOS UMA delas
+     * @param params.intensidades - Intensidades (`calma`/`media`/`agitada`); retorna músicas com AO MENOS UMA versão na(s) intensidade(s). Músicas sem nenhuma versão não aparecem enquanto este filtro estiver ativo (uso de `some`)
      * @param params.q - Substring case-insensitive a buscar no nome
      * @returns Objeto paginado com `items` (músicas formatadas) e `meta` (total, page, per_page, total_pages)
      */
-    async listAll(params: { page: number; limit: number; categoriaIds?: string[]; q?: string }) {
+    async listAll(params: { page: number; limit: number; categoriaIds?: string[]; intensidades?: string[]; q?: string }) {
         const page = Math.max(1, params.page || 1);
         const limit = Math.min(100, Math.max(1, params.limit || 20));
         const skip = (page - 1) * limit;
@@ -49,6 +51,9 @@ class MusicasService {
         const where: Prisma.MusicasWhereInput = {};
         if (params.categoriaIds && params.categoriaIds.length > 0) {
             where.Musicas_Categorias = { some: { categoria_id: { in: params.categoriaIds } } };
+        }
+        if (params.intensidades && params.intensidades.length > 0) {
+            where.Artistas_Musicas = { some: { intensidade: { in: params.intensidades } } };
         }
         if (params.q) {
             where.nome = { contains: params.q, mode: 'insensitive' };
@@ -155,7 +160,7 @@ class MusicasService {
      * @throws {AppError} 400 se nome ausente; 404 se tonalidade/artista/categoria/função não existir
      */
     async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
-        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, intensidade, categoria_ids, funcao_ids } = body;
+        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 
@@ -215,6 +220,12 @@ class MusicasService {
 
     // --- Versoes ---
 
+    /**
+     * Lista todas as versões disponíveis para uma música.
+     *
+     * @param musicaId - ID da música
+     * @returns Array de versões com artista, bpm, cifras, lyrics, links e intensidade
+     */
     async listVersoes(musicaId: string) {
         const versoes = await musicasRepository.findVersoes(musicaId);
         return versoes.map(v => ({
@@ -224,6 +235,7 @@ class MusicasService {
             cifras: v.cifras,
             lyrics: v.lyrics,
             link_versao: v.link_versao,
+            cifraclub_url: v.cifraclub_url,
             intensidade: v.intensidade
         }));
     }
@@ -239,10 +251,10 @@ class MusicasService {
      * @returns Versão criada com dados do artista (ou null se sem artista)
      * @throws {AppError} 404 se música ou artista não existir; 409 se duplicado
      */
-    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string }, tenantId: string) {
-        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
+    async addVersao(musicaId: string, body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; cifraclub_url?: string; intensidade?: string }, tenantId: string) {
+        const { artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade } = body;
 
-        const temAlgumCampo = artista_id || bpm !== undefined || cifras || lyrics || link_versao || intensidade;
+        const temAlgumCampo = artista_id !== undefined || bpm !== undefined || cifras !== undefined || lyrics !== undefined || link_versao !== undefined || cifraclub_url !== undefined || intensidade !== undefined;
         if (!temAlgumCampo) throw new AppError("Informe ao menos um campo da versão", 400);
 
         const musicaExiste = await musicasRepository.findByIdSimple(musicaId);
@@ -260,7 +272,7 @@ class MusicasService {
         }
 
         const versao = await musicasRepository.createVersao({
-            artista_id: artista_id ?? null, musica_id: musicaId, bpm, cifras, lyrics, link_versao, intensidade
+            artista_id: artista_id ?? null, musica_id: musicaId, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade
         }, tenantId);
 
         return {
@@ -270,6 +282,7 @@ class MusicasService {
             cifras: versao.cifras,
             lyrics: versao.lyrics,
             link_versao: versao.link_versao,
+            cifraclub_url: versao.cifraclub_url,
             intensidade: versao.intensidade
         };
     }
@@ -290,13 +303,13 @@ class MusicasService {
      */
     async updateVersao(
         versaoId: string,
-        body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; intensidade?: string },
+        body: { artista_id?: string; bpm?: number; cifras?: string; lyrics?: string; link_versao?: string; cifraclub_url?: string; intensidade?: string },
         options: { allowArtistChange?: boolean } = {},
     ) {
         const existente = await musicasRepository.findVersaoById(versaoId);
         if (!existente) throw new AppError("Versão não encontrada", 404);
 
-        const { artista_id, bpm, cifras, lyrics, link_versao, intensidade } = body;
+        const { artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade } = body;
         const updateData: Record<string, unknown> = {};
 
         if (artista_id !== undefined) {
@@ -320,6 +333,7 @@ class MusicasService {
         if (cifras !== undefined) updateData.cifras = cifras;
         if (lyrics !== undefined) updateData.lyrics = lyrics;
         if (link_versao !== undefined) updateData.link_versao = link_versao;
+        if (cifraclub_url !== undefined) updateData.cifraclub_url = cifraclub_url;
         if (intensidade !== undefined) updateData.intensidade = intensidade;
 
         if (Object.keys(updateData).length === 0) {
@@ -335,6 +349,7 @@ class MusicasService {
             cifras: versao.cifras,
             lyrics: versao.lyrics,
             link_versao: versao.link_versao,
+            cifraclub_url: versao.cifraclub_url,
             intensidade: versao.intensidade
         };
     }

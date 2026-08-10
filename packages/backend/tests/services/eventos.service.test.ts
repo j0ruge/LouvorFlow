@@ -10,6 +10,8 @@ import {
   MOCK_EVENTOS_INTEGRANTES,
   MOCK_ARTISTAS_MUSICAS,
   NON_EXISTENT_ID,
+  TENANT_A_ID,
+  TENANT_B_ID,
 } from '../fakes/mock-data.js';
 
 const fakeRepo = createFakeEventosRepository();
@@ -69,6 +71,7 @@ describe('EventosService', () => {
         id: 'jjj00002-0000-0000-0000-000000000001',
         artista_nome: 'Aline Barros',
         link_versao: 'https://exemplo.com/rendido-aline',
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
       });
     });
 
@@ -111,6 +114,7 @@ describe('EventosService', () => {
         id: 'jjj00002-0000-0000-0000-000000000004',
         artista_nome: null,
         link_versao: null,
+        cifraclub_url: null,
       });
     });
   });
@@ -205,6 +209,43 @@ describe('EventosService', () => {
       await expect(eventosService.update(MOCK_EVENTOS[0].id, {})).rejects.toMatchObject({
         statusCode: 400,
         message: 'Ao menos um campo deve ser enviado para atualização',
+      });
+    });
+  });
+
+  // ─── getCifraclubPlaylist ───────────────────────────────
+  describe('getCifraclubPlaylist', () => {
+    /** Deve montar a playlist com stats coerentes (total = com_link + sem_link). */
+    it('deve montar a playlist com stats coerentes', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      expect(result).toHaveProperty('evento');
+      expect(result).toHaveProperty('playlist');
+      expect(result).toHaveProperty('stats');
+      expect(result.stats.total).toBe(result.playlist.length);
+      expect(result.stats.com_link + result.stats.sem_link).toBe(result.stats.total);
+      expect(typeof result.evento.data).toBe('string');
+    });
+
+    /** Deve enriquecer com cifraclub_url a música cuja versão selecionada possui link. */
+    it('inclui cifraclub_url nas músicas com versão com link', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const comLink = result.playlist.filter(p => p.cifraclub_url !== null);
+      expect(comLink.length).toBe(result.stats.com_link);
+      expect(comLink.length).toBeGreaterThan(0);
+      expect(comLink[0].cifraclub_url).toContain('cifraclub.com.br');
+    });
+
+    it('deve lançar AppError 400 quando id não é enviado', async () => {
+      await expect(eventosService.getCifraclubPlaylist('')).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'ID de evento não enviado',
+      });
+    });
+
+    it('deve lançar AppError 404 quando evento não existe', async () => {
+      await expect(eventosService.getCifraclubPlaylist(NON_EXISTENT_ID)).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
       });
     });
   });
@@ -311,6 +352,7 @@ describe('EventosService', () => {
         id: versaoId,
         artista_nome: 'Aline Barros',
         link_versao: 'https://exemplo.com/rendido-aline',
+        cifraclub_url: 'https://www.cifraclub.com.br/aline-barros/rendido-estou/',
       });
     });
 
@@ -442,6 +484,7 @@ describe('EventosService', () => {
         id: versaoId,
         artista_nome: 'Gabriela Rocha',
         link_versao: null,
+        cifraclub_url: null,
       });
     });
 
@@ -520,6 +563,7 @@ describe('EventosService', () => {
           id: versaoId,
           artista_nome: 'Fernandinho',
           link_versao: 'https://exemplo.com/rendido-fernandinho',
+          cifraclub_url: null,
         },
         versoes_disponiveis: expect.any(Array),
       }));
@@ -637,7 +681,7 @@ describe('EventosService', () => {
     /** Deve vincular integrante ao evento usando todas as funções globais quando funcao_ids não é fornecido. */
     it('deve vincular integrante ao evento com todas as funções quando funcao_ids não fornecido', async () => {
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[0].id, MOCK_INTEGRANTES[2].id, undefined, 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[0].id, MOCK_INTEGRANTES[2].id, undefined, TENANT_B_ID)
       ).resolves.toBeUndefined();
     });
 
@@ -647,7 +691,7 @@ describe('EventosService', () => {
         .filter(iif => iif.fk_user_id === MOCK_INTEGRANTES[0].id)
         .map(iif => iif.funcao_id);
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoId[0]], 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoId[0]], TENANT_A_ID)
       ).resolves.toBeUndefined();
 
       const integrantes = await eventosService.listIntegrantes(MOCK_EVENTOS[2].id);
@@ -657,10 +701,24 @@ describe('EventosService', () => {
       expect(added!.funcoes[0].id).toBe(funcaoId[0]);
     });
 
+    /**
+     * Isolamento entre igrejas: um integrante que pertence apenas ao tenant B
+     * não pode ser vinculado a uma escala operada no contexto do tenant A,
+     * mesmo que seu UUID seja conhecido.
+     */
+    it('deve lançar AppError 404 quando o integrante não pertence ao tenant ativo', async () => {
+      await expect(
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[2].id, undefined, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Integrante não encontrado',
+      });
+    });
+
     /** Deve lançar AppError 400 quando funcao_ids contém ID que não pertence ao integrante. */
     it('deve lançar AppError 400 quando funcao_ids contém ID inválido', async () => {
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [NON_EXISTENT_ID], 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [NON_EXISTENT_ID], TENANT_A_ID)
       ).rejects.toMatchObject({
         statusCode: 400,
         message: 'Função inválida: não pertence ao integrante',
@@ -668,21 +726,21 @@ describe('EventosService', () => {
     });
 
     it('deve lançar AppError 400 quando fk_integrante_id não é enviado', async () => {
-      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, undefined, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, undefined, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 400,
         message: 'ID do integrante é obrigatório',
       });
     });
 
     it('deve lançar AppError 404 quando evento não existe', async () => {
-      await expect(eventosService.addIntegrante(NON_EXISTENT_ID, MOCK_INTEGRANTES[0].id, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(NON_EXISTENT_ID, MOCK_INTEGRANTES[0].id, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Evento não encontrado',
       });
     });
 
     it('deve lançar AppError 404 quando integrante não existe', async () => {
-      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Integrante não encontrado',
       });
@@ -690,7 +748,7 @@ describe('EventosService', () => {
 
     it('deve lançar AppError 409 quando registro duplicado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];
-      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_user_id, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_user_id, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });

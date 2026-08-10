@@ -150,6 +150,24 @@ async function main(): Promise<void> {
     });
     console.log('✓ Role "super-admin" ready');
 
+    /**
+     * Garante a existência do papel "integrante" — membro básico, atribuído
+     * automaticamente a quem entra por link de convite (spec 023, FR-004).
+     *
+     * Deliberadamente sem nenhuma permissão associada: dá ao usuário uma role
+     * no tenant (satisfazendo `ensureHasRole`) sem conceder escrita. O líder
+     * promove depois, se quiser.
+     */
+    await prisma.roles.upsert({
+      where: { name: 'integrante' },
+      update: {},
+      create: {
+        name: 'integrante',
+        description: 'Membro básico da igreja (sem permissões administrativas)',
+      },
+    });
+    console.log('✓ Role "integrante" ready');
+
     // ─── Role-Permission associations ────────────────────────────
 
     /** Associa todas as permissões (admin + domínio) ao papel admin. */

@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { EventoShow } from "@/schemas/evento";
+import type { GrupoFuncoes } from "@/schemas/funcoes-grupos";
 import {
   copyEscalaToClipboard,
   formatEscalaWhatsApp,
@@ -89,6 +90,25 @@ describe("EscalaShareActions — handler: Copiar texto", () => {
 
     expect(writeTextMock).toHaveBeenCalledOnce();
     expect(writeTextMock).toHaveBeenCalledWith(formatEscalaWhatsApp(evento));
+  });
+
+  /** Verifica que os grupos vindos do hook chegam ao texto copiado, já agrupado. */
+  it("deve copiar a mensagem agrupada quando os grupos são informados", async () => {
+    const evento = makeEvento();
+    const grupos: GrupoFuncoes[] = [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        nome: "Vocal",
+        ordem: 1,
+        funcoes: [{ id: "f1", nome: "Vocal" }],
+      },
+    ];
+
+    await copyEscalaToClipboard(evento, grupos);
+
+    const copiado = writeTextMock.mock.calls[0][0] as string;
+    expect(copiado).toContain("Vocal — Carlos");
+    expect(copiado).toBe(formatEscalaWhatsApp(evento, grupos));
   });
 
   /** Verifica que clipboard.writeText resolve sem lançar erro no caminho de sucesso (toast.success seria chamado). */

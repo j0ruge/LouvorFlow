@@ -11,14 +11,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
 import {
   Form,
   FormField,
@@ -206,26 +199,42 @@ export function IntegranteForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar Integrante" : "Novo Integrante"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? "Altere os dados do integrante."
-              : "Preencha os dados do novo integrante do ministério."}
-          </DialogDescription>
-        </DialogHeader>
-
+    <Form {...form}>
+      <ResponsiveFormDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title={isEditing ? "Editar Integrante" : "Novo Integrante"}
+        description={
+          isEditing
+            ? "Altere os dados do integrante."
+            : "Preencha os dados do novo integrante do ministério."
+        }
+        onSubmit={form.handleSubmit(onSubmit)}
+        contentClassName="sm:max-w-[425px]"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isPending || (isEditing && isLoadingIntegrante)}
+            >
+              {isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </>
+        }
+      >
         {isEditing && isLoadingIntegrante ? (
           <p className="py-4 text-center text-muted-foreground">
             Carregando dados...
           </p>
         ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <>
               <FormField
                 control={form.control}
                 name="nome"
@@ -331,8 +340,9 @@ export function IntegranteForm({
                           onClick={() => removeFuncao.mutate(funcao.id)}
                           disabled={removeFuncao.isPending}
                           className="ml-1 hover:text-destructive"
+                          aria-label={`Remover função ${funcao.nome}`}
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-3 w-3" aria-hidden="true" />
                         </button>
                       </Badge>
                     ))}
@@ -345,22 +355,9 @@ export function IntegranteForm({
                 </div>
               )}
 
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? "Salvando..." : "Salvar"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          </>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveFormDialog>
+    </Form>
   );
 }

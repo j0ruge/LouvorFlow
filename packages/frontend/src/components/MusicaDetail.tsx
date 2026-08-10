@@ -142,6 +142,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
             cifras: dados.cifras,
             lyrics: dados.lyrics,
             link_versao: dados.link_versao,
+            cifraclub_url: dados.cifraclub_url,
             intensidade: dados.intensidade,
           },
         },
@@ -215,6 +216,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                     size="sm"
                     onClick={handleSaveInfo}
                     disabled={updateMusica.isPending}
+                    aria-label="Salvar nome e tonalidade"
                   >
                     <Check className="h-4 w-4 text-primary" />
                   </Button>
@@ -226,6 +228,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                       setEditName(musica.nome);
                       setEditTonalidade(musica.tonalidade?.id ?? "");
                     }}
+                    aria-label="Cancelar edição do nome"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -239,6 +242,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsEditingName(true)}
+                        aria-label="Editar nome da música"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -324,6 +328,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline text-xs"
+                        aria-label={`Abrir link da versão de ${versao.artista ? versao.artista.nome : "artista não informado"}`}
                       >
                         <LinkIcon className="h-3 w-3" />
                       </a>
@@ -338,6 +343,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                           setEditingVersao(versao);
                           setVersaoFormOpen(true);
                         }}
+                        aria-label={`Editar versão de ${versao.artista ? versao.artista.nome : "artista não informado"}`}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -346,6 +352,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                         size="sm"
                         onClick={() => removeVersao.mutate(versao.id)}
                         disabled={removeVersao.isPending}
+                        aria-label={`Remover versão de ${versao.artista ? versao.artista.nome : "artista não informado"}`}
                       >
                         <X className="h-4 w-4 text-destructive" />
                       </Button>
@@ -401,6 +408,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   addCategoria.isPending ||
                   categoriasDisponiveis.length === 0
                 }
+                aria-label="Adicionar categoria selecionada"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>
@@ -412,9 +420,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 {categoria.nome}
                 {canWrite && (
                   <button
+                    type="button"
                     onClick={() => removeCategoria.mutate(categoria.id)}
                     disabled={removeCategoria.isPending}
                     className="ml-1 hover:text-destructive"
+                    aria-label={`Remover categoria ${categoria.nome}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -473,6 +483,7 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                   addFuncao.isPending ||
                   funcoesDisponiveis.length === 0
                 }
+                aria-label="Adicionar função selecionada"
               >
                 <CornerDownLeft className="h-4 w-4" />
               </Button>
@@ -484,9 +495,11 @@ export function MusicaDetail({ musica, onDeleted }: MusicaDetailProps) {
                 {funcao.nome}
                 {canWrite && (
                   <button
+                    type="button"
                     onClick={() => removeFuncao.mutate(funcao.id)}
                     disabled={removeFuncao.isPending}
                     className="ml-1 hover:text-destructive"
+                    aria-label={`Remover função ${funcao.nome}`}
                   >
                     <X className="h-3 w-3" />
                   </button>

@@ -1,9 +1,9 @@
 /**
  * Página de gerenciamento do catálogo de músicas.
  *
- * Estado da lista (page, busca, categorias) sincronizado com a URL via
- * `useSearchParams`. Filtros por categoria via chips multi-seleção.
- * Busca textual e filtro por categoria executados no backend.
+ * Estado da lista (page, busca, intensidades, categorias) sincronizado com a
+ * URL via `useSearchParams`. Filtros por tempo (intensidade) e por categoria
+ * via chips multi-seleção. Busca textual e ambos os filtros executados no backend.
  */
 
 import { useState, useEffect } from "react";
@@ -19,6 +19,8 @@ import { useCategorias } from "@/hooks/use-categorias";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
+import { IntensityBars } from "@/components/IntensidadeSelector";
+import { INTENSIDADE_OPTIONS, type Intensidade } from "@/components/intensidade-options";
 import { useCan } from "@/hooks/use-can";
 import { handleClickableKeyDown } from "@/lib/utils";
 
@@ -51,9 +53,9 @@ function SongSkeleton() {
 /**
  * Componente da página de músicas do ministério com filtros sincronizados na URL.
  *
- * Gerencia busca com debounce (300ms), filtro multi-categoria por chips e
- * paginação — tudo refletido na URL para permitir compartilhamento e
- * restauração de estado ao voltar do detalhe.
+ * Gerencia busca com debounce (300ms), filtro multi-intensidade (tempo) e
+ * multi-categoria por chips, e paginação — tudo refletido na URL para permitir
+ * compartilhamento e restauração de estado ao voltar do detalhe.
  *
  * @returns Elemento JSX com a página de músicas.
  */
@@ -78,6 +80,20 @@ const Songs = () => {
   const categoriasParam = searchParams.get("categorias") ?? "";
   const categoriaIds = categoriasParam
     ? categoriasParam.split(",").filter(Boolean)
+    : [];
+  const intensidadesParam = searchParams.get("intensidades") ?? "";
+  /**
+   * Mantém apenas valores válidos de intensidade vindos da URL — um
+   * `?intensidades=foo` manipulado é descartado no cliente em vez de gerar um
+   * 400 no backend. Resulta em `Intensidade[]`, alinhado ao contrato de
+   * `useMusicas`/`getMusicas`.
+   */
+  const intensidades: Intensidade[] = intensidadesParam
+    ? intensidadesParam
+        .split(",")
+        .filter((v): v is Intensidade =>
+          INTENSIDADE_OPTIONS.some((opt) => opt.value === v),
+        )
     : [];
 
   /** Input local com inicialização preguiçosa a partir da URL. */
@@ -129,6 +145,7 @@ const Songs = () => {
     page,
     limit: ITEMS_PER_PAGE,
     categorias: categoriaIds.length > 0 ? categoriaIds : undefined,
+    intensidades: intensidades.length > 0 ? intensidades : undefined,
     q: normalizedQ || undefined,
   });
 
@@ -187,6 +204,32 @@ const Songs = () => {
   };
 
   /**
+   * Alterna uma intensidade (tempo) no filtro, resetando para a página 1.
+   *
+   * Espelha `toggleCategoria`: mesma canonização via `sort()` antes de
+   * serializar para a URL, evitando `queryKey`s distintas (e refetch) para
+   * a mesma seleção em ordens diferentes.
+   *
+   * @param value - Valor de intensidade (`calma`/`media`/`agitada`) a alternar.
+   */
+  const toggleIntensidade = (value: Intensidade) => {
+    const set = new Set(intensidades);
+    if (set.has(value)) set.delete(value);
+    else set.add(value);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (set.size > 0)
+          next.set("intensidades", Array.from(set).sort().join(","));
+        else next.delete("intensidades");
+        next.set("page", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  /**
    * Navega ao detalhe preservando a URL atual em `location.state.from`.
    *
    * @param id - UUID da música a abrir.
@@ -213,7 +256,10 @@ const Songs = () => {
     );
   };
 
-  const hasFilters = normalizedQ.length > 0 || categoriaIds.length > 0;
+  const hasFilters =
+    normalizedQ.length > 0 ||
+    categoriaIds.length > 0 ||
+    intensidades.length > 0;
 
   return (
     <div className="space-y-6">
@@ -252,6 +298,41 @@ const Songs = () => {
               />
             </div>
           </div>
+
+          {/* Filtro por tempo (intensidade) — primeiras opções, acima das categorias. */}
+          {INTENSIDADE_OPTIONS.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por intensidade (tempo)"
+            >
+              {INTENSIDADE_OPTIONS.map((opt) => {
+                const active = intensidades.includes(opt.value);
+                return (
+                  <Badge
+                    key={opt.value}
+                    variant={active ? "default" : "outline"}
+                    className={
+                      "cursor-pointer select-none gap-1.5 transition-colors " +
+                      (active
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-primary/10")
+                    }
+                    role="button"
+                    aria-pressed={active}
+                    tabIndex={0}
+                    onClick={() => toggleIntensidade(opt.value)}
+                    onKeyDown={handleClickableKeyDown(() =>
+                      toggleIntensidade(opt.value),
+                    )}
+                  >
+                    <IntensityBars bars={opt.bars} className="h-3.5 w-3.5" />
+                    {opt.label}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
           {categoriasList && categoriasList.length > 0 && (
             <div
