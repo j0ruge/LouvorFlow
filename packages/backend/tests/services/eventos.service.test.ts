@@ -10,6 +10,8 @@ import {
   MOCK_EVENTOS_INTEGRANTES,
   MOCK_ARTISTAS_MUSICAS,
   NON_EXISTENT_ID,
+  TENANT_A_ID,
+  TENANT_B_ID,
 } from '../fakes/mock-data.js';
 
 const fakeRepo = createFakeEventosRepository();
@@ -679,7 +681,7 @@ describe('EventosService', () => {
     /** Deve vincular integrante ao evento usando todas as funções globais quando funcao_ids não é fornecido. */
     it('deve vincular integrante ao evento com todas as funções quando funcao_ids não fornecido', async () => {
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[0].id, MOCK_INTEGRANTES[2].id, undefined, 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[0].id, MOCK_INTEGRANTES[2].id, undefined, TENANT_B_ID)
       ).resolves.toBeUndefined();
     });
 
@@ -689,7 +691,7 @@ describe('EventosService', () => {
         .filter(iif => iif.fk_user_id === MOCK_INTEGRANTES[0].id)
         .map(iif => iif.funcao_id);
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoId[0]], 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoId[0]], TENANT_A_ID)
       ).resolves.toBeUndefined();
 
       const integrantes = await eventosService.listIntegrantes(MOCK_EVENTOS[2].id);
@@ -699,10 +701,24 @@ describe('EventosService', () => {
       expect(added!.funcoes[0].id).toBe(funcaoId[0]);
     });
 
+    /**
+     * Isolamento entre igrejas: um integrante que pertence apenas ao tenant B
+     * não pode ser vinculado a uma escala operada no contexto do tenant A,
+     * mesmo que seu UUID seja conhecido.
+     */
+    it('deve lançar AppError 404 quando o integrante não pertence ao tenant ativo', async () => {
+      await expect(
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[2].id, undefined, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Integrante não encontrado',
+      });
+    });
+
     /** Deve lançar AppError 400 quando funcao_ids contém ID que não pertence ao integrante. */
     it('deve lançar AppError 400 quando funcao_ids contém ID inválido', async () => {
       await expect(
-        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [NON_EXISTENT_ID], 'tenant-fake-id')
+        eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [NON_EXISTENT_ID], TENANT_A_ID)
       ).rejects.toMatchObject({
         statusCode: 400,
         message: 'Função inválida: não pertence ao integrante',
@@ -710,21 +726,21 @@ describe('EventosService', () => {
     });
 
     it('deve lançar AppError 400 quando fk_integrante_id não é enviado', async () => {
-      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, undefined, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, undefined, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 400,
         message: 'ID do integrante é obrigatório',
       });
     });
 
     it('deve lançar AppError 404 quando evento não existe', async () => {
-      await expect(eventosService.addIntegrante(NON_EXISTENT_ID, MOCK_INTEGRANTES[0].id, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(NON_EXISTENT_ID, MOCK_INTEGRANTES[0].id, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Evento não encontrado',
       });
     });
 
     it('deve lançar AppError 404 quando integrante não existe', async () => {
-      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'Integrante não encontrado',
       });
@@ -732,7 +748,7 @@ describe('EventosService', () => {
 
     it('deve lançar AppError 409 quando registro duplicado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];
-      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_user_id, undefined, 'tenant-fake-id')).rejects.toMatchObject({
+      await expect(eventosService.addIntegrante(existing.evento_id, existing.fk_user_id, undefined, TENANT_A_ID)).rejects.toMatchObject({
         statusCode: 409,
         message: 'Registro duplicado',
       });

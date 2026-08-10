@@ -119,7 +119,7 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" aria-label="Abrir playlist do CifraClub">
           <Guitar className="h-4 w-4 sm:mr-1" />
           <span className="hidden sm:inline">CifraClub</span>
         </Button>

@@ -67,11 +67,17 @@ class UsersRepository {
      * Busca um usuário pelo email, retornando o registro completo
      * (incluindo hash da senha) para comparação de autenticação.
      *
+     * A busca é case-insensitive. Como `findFirst` sem ordenação deixaria o
+     * registro escolhido a critério do Postgres, ordena pelo mais antigo:
+     * se a base já contiver contas legadas com a mesma caixa diferente, o login
+     * resolve sempre para a conta original, e não para uma criada depois.
+     *
      * @param email - Email do usuário
      * @returns Usuário completo ou `null` se não encontrado
      */
     async findByEmail(email: string) {
         return prisma.users.findFirst({
+            orderBy: { created_at: 'asc' },
             where: { email: { equals: email, mode: 'insensitive' } },
             include: {
                 roles: {

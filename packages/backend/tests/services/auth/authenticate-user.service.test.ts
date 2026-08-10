@@ -177,6 +177,25 @@ describe('AuthenticateUserService', () => {
         });
     });
 
+    /**
+     * Mitigação de enumeração por tempo: com e-mail inexistente o serviço ainda
+     * executa uma comparação de hash descartável, para que a resposta não seja
+     * visivelmente mais rápida que a de uma senha errada (que gasta o bcrypt).
+     */
+    it('deve comparar hash mesmo quando o email não existe (tempo constante)', async () => {
+        const spy = vi.spyOn(fakeHashProvider, 'compareHash');
+
+        await expect(
+            authenticateUserService.execute({
+                email: 'ninguem@test.com',
+                password: 'any',
+            }),
+        ).rejects.toBeInstanceOf(AppError);
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+    });
+
     /** Deve lançar AppError 401 quando a senha fornecida não corresponde ao hash armazenado. */
     it('deve lançar erro para senha incorreta', async () => {
         await fakeUsersRepo.create({

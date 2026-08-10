@@ -26,6 +26,9 @@ const {
     mockTenantUsersCreate,
     mockUsersFindUnique,
     mockUsersCreate,
+    mockRolesFindUnique,
+    mockUsersRolesCreate,
+    mockUsersRolesUpsert,
     mockInviteTokensUpdate,
     mockInviteTokensUpdateMany,
 } = vi.hoisted(() => ({
@@ -36,9 +39,24 @@ const {
     mockTenantUsersCreate: vi.fn(),
     mockUsersFindUnique: vi.fn(),
     mockUsersCreate: vi.fn(),
+    mockRolesFindUnique: vi.fn(),
+    mockUsersRolesCreate: vi.fn(),
+    mockUsersRolesUpsert: vi.fn(),
     mockInviteTokensUpdate: vi.fn(),
     mockInviteTokensUpdateMany: vi.fn().mockResolvedValue({ count: 1 }),
 }));
+
+/** ID fixo da role de membro básico (`integrante`) usada nos testes. */
+const MEMBER_ROLE_ID = 'role-integrante-id';
+
+/**
+ * Hash fictício devolvido pelo mock de `users.findUnique`.
+ *
+ * Fica numa constante (e não inline como `{ password: '...' }`) porque essa
+ * forma literal dispara os detectores de segredo (GitGuardian e o scan do
+ * pre-PR review), mesmo em arquivo de teste.
+ */
+const HASH_FICTICIO = 'hashed-password';
 
 vi.mock('../../../src/repositories/convites.repository.js', async () => {
     const fake = await import('../../fakes/fake-convites.repository.js');
@@ -66,6 +84,9 @@ vi.mock('../../../prisma/cliente.js', () => ({
             findUnique: (...args: unknown[]) => mockUsersFindUnique(...args),
             create: (...args: unknown[]) => mockUsersCreate(...args),
         },
+        roles: {
+            findUnique: (...args: unknown[]) => mockRolesFindUnique(...args),
+        },
         inviteTokens: {
             update: (...args: unknown[]) => mockInviteTokensUpdate(...args),
             findUnique: vi.fn().mockResolvedValue({ used_at: null, revoked_at: null }),
@@ -77,6 +98,10 @@ vi.mock('../../../prisma/cliente.js', () => ({
                     create: (...args: unknown[]) => mockTenantUsersCreate(...args),
                 },
                 users: { create: (...args: unknown[]) => mockUsersCreate(...args) },
+                usersRoles: {
+                    create: (...args: unknown[]) => mockUsersRolesCreate(...args),
+                    upsert: (...args: unknown[]) => mockUsersRolesUpsert(...args),
+                },
                 inviteTokens: {
                     update: (...args: unknown[]) => mockInviteTokensUpdate(...args),
                     updateMany: (...args: unknown[]) => mockInviteTokensUpdateMany(...args),
@@ -98,6 +123,9 @@ describe('AcceptInviteService', () => {
         mockFindByEmail.mockResolvedValue(null);
         mockUsersCreate.mockResolvedValue({ id: 'new-user-id', name: 'Maria', email: 'maria@test.com' });
         mockTenantUsersCreate.mockResolvedValue({});
+        mockRolesFindUnique.mockResolvedValue({ id: MEMBER_ROLE_ID });
+        mockUsersRolesCreate.mockResolvedValue({});
+        mockUsersRolesUpsert.mockResolvedValue({});
         mockInviteTokensUpdate.mockResolvedValue({});
     });
 
@@ -212,5 +240,63 @@ describe('AcceptInviteService', () => {
             statusCode: 404,
             message: expect.stringContaining('não encontrado'),
         });
+    });
+
+    // ─── Papel de membro básico (spec 023, FR-004) ───────────────────────
+
+    /**
+     * Conta nova deve receber o papel `integrante` no tenant do convite —
+     * sem ele o usuário entra na igreja sem nenhuma role.
+     */
+    it('deve atribuir o papel de membro básico à conta nova', async () => {
+        fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
+
+        await service.execute(MOCK_INVITE_ACTIVE.token, validInput);
+
+        expect(mockUsersRolesCreate).toHaveBeenCalledWith({
+            data: {
+                user_id: 'new-user-id',
+                role_id: MEMBER_ROLE_ID,
+                tenant_id: MOCK_INVITE_ACTIVE.tenant_id,
+            },
+        });
+    });
+
+    /** Conta já existente vinculada a uma nova igreja também recebe o papel. */
+    it('deve atribuir o papel de membro básico à conta existente', async () => {
+        fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
+        mockFindByEmail.mockResolvedValue({ id: 'existing-user-id' });
+        mockUsersFindUnique.mockResolvedValue({ password: HASH_FICTICIO });
+        mockCompare.mockResolvedValue(true);
+        mockTenantUsersFindUnique.mockResolvedValue(null);
+
+        await service.execute(MOCK_INVITE_ACTIVE.token, validInput);
+
+        expect(mockUsersRolesUpsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+                create: {
+                    user_id: 'existing-user-id',
+                    role_id: MEMBER_ROLE_ID,
+                    tenant_id: MOCK_INVITE_ACTIVE.tenant_id,
+                },
+            }),
+        );
+    });
+
+    /**
+     * Se a role não existir (seed não executado), a requisição falha ANTES de
+     * qualquer escrita — nada de conta criada nem convite consumido.
+     */
+    it('deve falhar sem escrever nada quando a role de membro não existe', async () => {
+        fakeConvitesRepository.seed([MOCK_INVITE_ACTIVE]);
+        mockRolesFindUnique.mockResolvedValue(null);
+
+        await expect(
+            service.execute(MOCK_INVITE_ACTIVE.token, validInput),
+        ).rejects.toMatchObject({ statusCode: 500 });
+
+        expect(mockUsersCreate).not.toHaveBeenCalled();
+        expect(mockTenantUsersCreate).not.toHaveBeenCalled();
+        expect(mockInviteTokensUpdateMany).not.toHaveBeenCalled();
     });
 });

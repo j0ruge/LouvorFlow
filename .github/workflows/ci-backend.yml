@@ -2,7 +2,7 @@ name: CI Backend
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, master]
     paths:
       - 'packages/backend/**'
       - '.github/workflows/ci-backend.yml'
@@ -28,7 +28,7 @@ jobs:
       - name: Generate Prisma Client
         run: yarn workspace backend run prisma generate
         env:
-          DB_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          DB_URL: postgresql://localhost:5432/dummy
 
       - run: yarn workspace backend run typecheck
 
@@ -63,7 +63,7 @@ jobs:
       - name: Generate Prisma Client
         run: yarn workspace backend run prisma generate
         env:
-          DB_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          DB_URL: postgresql://localhost:5432/dummy
 
       - run: yarn workspace backend run test
         env:

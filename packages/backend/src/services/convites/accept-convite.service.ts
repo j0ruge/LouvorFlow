@@ -15,6 +15,12 @@ import type { AcceptInviteInput } from '../../types/convites.types.js';
 
 const SALT_ROUNDS = 12;
 
+/**
+ * Nome da role de membro básico atribuída a quem entra por convite.
+ * Criada (sem permissões) por `seeds/admin.ts`. Ver spec 023, FR-004.
+ */
+const MEMBER_ROLE_NAME = 'integrante';
+
 class AcceptInviteService {
     /**
      * Aceita um convite: cria conta nova ou vincula conta existente ao tenant.
@@ -49,14 +55,44 @@ class AcceptInviteService {
             throw new AppError('Este convite expirou. Peça um novo ao seu líder.', 400);
         }
 
+        /**
+         * Resolve a role de membro ANTES de qualquer escrita. Se ela não
+         * existir, a requisição falha sem ter criado conta nem vínculo —
+         * evita o estado "usuário dentro da igreja porém sem nenhuma role",
+         * que não seria recuperável pela API (o convite já teria sido gasto).
+         */
+        const memberRoleId = await this.resolveMemberRoleId();
+
         const { nome, email, senha } = input;
         const existingUser = await integrantesRepository.findByEmail(email);
 
         if (existingUser) {
-            return this.handleExistingUser(existingUser, invite, senha);
+            return this.handleExistingUser(existingUser, invite, senha, memberRoleId);
         }
 
-        return this.handleNewUser(nome, email, senha, invite);
+        return this.handleNewUser(nome, email, senha, invite, memberRoleId);
+    }
+
+    /**
+     * Busca o ID da role de membro básico (`integrante`).
+     *
+     * @returns UUID da role
+     * @throws AppError 500 se a role não existir (seed de admin não executado)
+     */
+    private async resolveMemberRoleId(): Promise<string> {
+        const role = await prisma.roles.findUnique({
+            where: { name: MEMBER_ROLE_NAME },
+            select: { id: true },
+        });
+
+        if (!role) {
+            throw new AppError(
+                `Role "${MEMBER_ROLE_NAME}" não encontrada. Execute o seed de admin antes de aceitar convites.`,
+                500,
+            );
+        }
+
+        return role.id;
     }
 
     /**
@@ -67,12 +103,14 @@ class AcceptInviteService {
      * @param existingUser - Usuário encontrado pelo e-mail (sem password)
      * @param invite - Registro do convite com tenant_id
      * @param senha - Senha informada pelo participante
+     * @param memberRoleId - UUID da role de membro básico a atribuir no tenant
      * @returns Resultado com statusCode 200 e mensagem de vínculo
      */
     private async handleExistingUser(
         existingUser: { id: string },
         invite: { id: string; tenant_id: string },
         senha: string,
+        memberRoleId: string,
     ): Promise<{ statusCode: number; msg: string }> {
         /** Busca o hash completo do usuário para verificação de senha. */
         const userWithPassword = await prisma.users.findUnique({
@@ -124,6 +162,23 @@ class AcceptInviteService {
             await tx.tenantUsers.create({
                 data: { tenant_id: invite.tenant_id, user_id: existingUser.id },
             });
+
+            /** Papel de membro básico no tenant (spec 023, FR-004). */
+            await tx.usersRoles.upsert({
+                where: {
+                    user_id_role_id_tenant_id: {
+                        user_id: existingUser.id,
+                        role_id: memberRoleId,
+                        tenant_id: invite.tenant_id,
+                    },
+                },
+                update: {},
+                create: {
+                    user_id: existingUser.id,
+                    role_id: memberRoleId,
+                    tenant_id: invite.tenant_id,
+                },
+            });
         });
 
         return {
@@ -140,6 +195,7 @@ class AcceptInviteService {
      * @param email - E-mail do participante
      * @param senha - Senha escolhida
      * @param invite - Registro do convite com tenant_id
+     * @param memberRoleId - UUID da role de membro básico a atribuir no tenant
      * @returns Resultado com statusCode 201 e mensagem de criação
      */
     private async handleNewUser(
@@ -147,6 +203,7 @@ class AcceptInviteService {
         email: string,
         senha: string,
         invite: { id: string; tenant_id: string },
+        memberRoleId: string,
     ): Promise<{ statusCode: number; msg: string }> {
         const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
@@ -174,6 +231,15 @@ class AcceptInviteService {
 
             await tx.tenantUsers.create({
                 data: { tenant_id: invite.tenant_id, user_id: user.id },
+            });
+
+            /** Papel de membro básico no tenant (spec 023, FR-004). */
+            await tx.usersRoles.create({
+                data: {
+                    user_id: user.id,
+                    role_id: memberRoleId,
+                    tenant_id: invite.tenant_id,
+                },
             });
 
             /** Atualiza used_by após criação do user (ID só disponível após create). */

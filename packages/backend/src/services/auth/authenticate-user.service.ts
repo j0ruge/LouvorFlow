@@ -20,6 +20,29 @@ import { flattenUserRelations } from '../../types/auth.types.js';
 import type { ILoginDTO, IResponseDTO, ITenantSelectionDTO } from '../../types/auth.types.js';
 import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
 
+/**
+ * Hash de referência usado para igualar o tempo de resposta do login quando o
+ * e-mail não existe.
+ *
+ * É o hash de um valor aleatório gerado em memória, descartado em seguida: não
+ * corresponde a nenhuma conta e não concede acesso a nada. Fica em cache porque
+ * gerá-lo custa um bcrypt (fator 12) — o objetivo é gastar tempo na comparação,
+ * não na geração.
+ */
+let dummyPasswordHash: string | null = null;
+
+/**
+ * Devolve (memoizado) o hash de referência para a comparação de tempo constante.
+ *
+ * @returns Hash BCrypt de um valor aleatório.
+ */
+async function getDummyPasswordHash(): Promise<string> {
+    if (!dummyPasswordHash) {
+        dummyPasswordHash = await hashProvider.generateHash(randomUUID());
+    }
+    return dummyPasswordHash;
+}
+
 /** Usuário com roles e permissões carregadas via Prisma include (com campo password). */
 interface IUserWithRelations {
     id: string;
@@ -75,6 +98,14 @@ class AuthenticateUserService {
         const user = await usersRepository.findByEmail(email);
 
         if (!user) {
+            /**
+             * Compara contra um hash descartável antes de recusar. A mensagem de
+             * erro já é idêntica nos dois casos, mas sem esta comparação o
+             * caminho "e-mail inexistente" retornaria em poucos milissegundos
+             * enquanto o caminho "senha errada" gastaria o bcrypt (custo 12) —
+             * a diferença de tempo, sozinha, revelaria quais e-mails têm conta.
+             */
+            await hashProvider.compareHash(password, await getDummyPasswordHash());
             throw new AppError('Incorrect email/password combination', 401);
         }
 

@@ -80,10 +80,10 @@ export const createMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.optional(),
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
@@ -95,10 +95,10 @@ export const updateMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.nullable().optional(),
     versao_id: uuidSchema.optional(),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
     categoria_ids: z.array(uuidSchema).optional(),
@@ -108,10 +108,10 @@ export const updateMusicaCompleteBodySchema = z.object({
 /** Schema de validação para adição de versão (POST /api/musicas/:musicaId/versoes). Artista é opcional. */
 export const addVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });
@@ -119,10 +119,10 @@ export const addVersaoBodySchema = z.object({
 /** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). Aceita artista_id para vincular artista a versões sem artista. */
 export const updateVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.number().int().positive().optional(),
+    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
-    link_versao: safeUrlSchema.optional(),
+    link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     cifraclub_url: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
     intensidade: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.enum(INTENSIDADE_VALUES).optional()),
 });

@@ -175,8 +175,8 @@ export function MusicaVersaoPicker({
         className={badgeClass}
         aria-label={`Versão selecionada: ${badgeLabel}`}
       >
-        <Disc3 className="h-3 w-3 mr-1" />
-        {badgeLabel}
+        <Disc3 className="h-3 w-3 mr-1 flex-shrink-0" />
+        <span className="truncate max-w-[10rem]">{badgeLabel}</span>
       </span>
     );
   }
@@ -190,8 +190,8 @@ export function MusicaVersaoPicker({
           className={`${badgeClass} transition-colors outline-none focus:outline-2 focus:outline-ring hover:bg-primary/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label={`Versão: ${badgeLabel}. Clique para alterar.`}
         >
-          <Disc3 className="h-3 w-3 mr-1" />
-          {badgeLabel}
+          <Disc3 className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate max-w-[10rem]">{badgeLabel}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-3" align="start">

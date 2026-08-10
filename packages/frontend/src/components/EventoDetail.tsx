@@ -322,13 +322,19 @@ export function EventoDetail() {
 
   /**
    * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
+   *
+   * Ignora o arraste enquanto uma reordenação anterior ainda está em voo: dois
+   * PATCH concorrentes reescrevem a lista inteira, e o que chegar por último no
+   * servidor vence — podendo ser o mais antigo, sobrescrevendo a ordem correta.
    */
   function handleDragEnd(event: DragEndEvent) {
+    if (reorderMusicas.isPending) return;
+
     const { active, over } = event;
     if (!over || active.id === over.id || !evento) return;
 
-    const oldIndex = musicaIds.indexOf(active.id as string);
-    const newIndex = musicaIds.indexOf(over.id as string);
+    const oldIndex = musicaIds.indexOf(String(active.id));
+    const newIndex = musicaIds.indexOf(String(over.id));
     if (oldIndex === -1 || newIndex === -1) return;
 
     const newOrder = arrayMove(musicaIds, oldIndex, newIndex);
@@ -571,7 +577,15 @@ export function EventoDetail() {
                       onRemove={() => {
                         setRemovingMusicaId(musica.id);
                         removeMusica.mutate(musica.id, {
-                          onSettled: () => setRemovingMusicaId(null),
+                          /**
+                           * Só limpa se ainda for esta música: com remoções
+                           * sobrepostas, a primeira a concluir reabilitaria o
+                           * botão da segunda, que continua em voo.
+                           */
+                          onSettled: () =>
+                            setRemovingMusicaId((atual) =>
+                              atual === musica.id ? null : atual,
+                            ),
                         });
                       }}
                       isPending={removingMusicaId === musica.id}

@@ -162,8 +162,8 @@ const AdminIgrejas = () => {
   return (
     <div className="space-y-6">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Igrejas
           </h1>
@@ -173,7 +173,7 @@ const AdminIgrejas = () => {
         </div>
 
         <Button
-          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft w-full sm:w-auto"
           onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
@@ -221,73 +221,140 @@ const AdminIgrejas = () => {
           )}
 
           {!isLoading && !isError && igrejas && igrejas.length > 0 && (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Membros</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {igrejas.map((igreja) => (
-                    <TableRow key={igreja.id}>
-                      <TableCell className="font-medium">{igreja.name}</TableCell>
-                      <TableCell>
+            <>
+              {/* Mobile: Cards */}
+              <div className="space-y-3 sm:hidden">
+                {igrejas.map((igreja) => (
+                  <div
+                    key={igreja.id}
+                    className="p-4 rounded-lg border border-border space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-medium truncate min-w-0">{igreja.name}</p>
+                      {igreja.status === "active" ? (
+                        <Badge className="flex-shrink-0 bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+                          Ativa
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="flex-shrink-0 text-muted-foreground">
+                          Inativa
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {igreja._count?.tenant_users ?? 0} membro(s)
+                    </p>
+                    <div className="space-y-2">
+                      <Button variant="outline" size="sm" className="w-full" asChild>
+                        <Link to={`/admin/igrejas/${igreja.id}/usuarios`}>
+                          <Users className="mr-1 h-3 w-3" />
+                          Membros
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleOpenEdit(igreja)}
+                      >
+                        <Pencil className="mr-1 h-3 w-3" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleToggleStatus(igreja)}
+                        disabled={updateMutation.isPending}
+                      >
                         {igreja.status === "active" ? (
-                          <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
-                            Ativa
-                          </Badge>
+                          <>
+                            <PowerOff className="mr-1 h-3 w-3" />
+                            Desativar
+                          </>
                         ) : (
-                          <Badge variant="secondary" className="text-muted-foreground">
-                            Inativa
-                          </Badge>
+                          <>
+                            <Power className="mr-1 h-3 w-3" />
+                            Reativar
+                          </>
                         )}
-                      </TableCell>
-                      <TableCell>{igreja._count?.tenant_users ?? 0}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          <Link to={`/admin/igrejas/${igreja.id}/usuarios`}>
-                            <Button variant="outline" size="sm">
-                              <Users className="mr-1 h-3 w-3" />
-                              Membros
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenEdit(igreja)}
-                          >
-                            <Pencil className="mr-1 h-3 w-3" />
-                            Editar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleStatus(igreja)}
-                            disabled={updateMutation.isPending}
-                          >
-                            {igreja.status === "active" ? (
-                              <>
-                                <PowerOff className="mr-1 h-3 w-3" />
-                                Desativar
-                              </>
-                            ) : (
-                              <>
-                                <Power className="mr-1 h-3 w-3" />
-                                Reativar
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Membros</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {igrejas.map((igreja) => (
+                      <TableRow key={igreja.id}>
+                        <TableCell className="font-medium max-w-[16rem] truncate">
+                          {igreja.name}
+                        </TableCell>
+                        <TableCell>
+                          {igreja.status === "active" ? (
+                            <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
+                              Ativa
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-muted-foreground">
+                              Inativa
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{igreja._count?.tenant_users ?? 0}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2 flex-wrap">
+                            <Button variant="outline" size="sm" asChild>
+                              <Link to={`/admin/igrejas/${igreja.id}/usuarios`}>
+                                <Users className="mr-1 h-3 w-3" />
+                                Membros
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenEdit(igreja)}
+                            >
+                              <Pencil className="mr-1 h-3 w-3" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleToggleStatus(igreja)}
+                              disabled={updateMutation.isPending}
+                            >
+                              {igreja.status === "active" ? (
+                                <>
+                                  <PowerOff className="mr-1 h-3 w-3" />
+                                  Desativar
+                                </>
+                              ) : (
+                                <>
+                                  <Power className="mr-1 h-3 w-3" />
+                                  Reativar
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

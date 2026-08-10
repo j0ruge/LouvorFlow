@@ -75,7 +75,8 @@ export function useUpdateGrupo() {
 /**
  * Hook para excluir um grupo via mutation.
  *
- * Invalida também `["funcoes"]` — a exclusão desvincula as funções do grupo.
+ * Invalida `["funcoes-grupos"]` e também `["funcoes"]` — a exclusão desvincula
+ * as funções que pertenciam ao grupo, então a lista de funções fica desatualizada.
  *
  * @returns Resultado do useMutation para exclusão de grupo.
  */
@@ -85,6 +86,7 @@ export function useDeleteGrupo() {
     mutationFn: (id: string) => deleteGrupo(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["funcoes-grupos"] });
+      queryClient.invalidateQueries({ queryKey: ["funcoes"] });
       toast.success(data.msg);
     },
     onError: (error: Error) => {

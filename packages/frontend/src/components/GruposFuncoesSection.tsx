@@ -60,6 +60,33 @@ import {
 import type { GrupoFuncoes } from "@/schemas/funcoes-grupos";
 import type { IdNome } from "@/schemas/shared";
 
+/**
+ * Instruções e anúncios do drag-and-drop em PT-BR.
+ *
+ * Sem isto o `@dnd-kit` usa seus textos padrão em inglês, que destoam do resto
+ * da interface justamente para quem depende de leitor de tela — o único público
+ * que ouve essas mensagens.
+ */
+const ACESSIBILIDADE_ARRASTE = {
+  screenReaderInstructions: {
+    draggable:
+      "Para reordenar, pressione Espaço ou Enter para pegar o grupo, use as setas para movê-lo e pressione Espaço ou Enter novamente para soltar. Pressione Escape para cancelar.",
+  },
+  announcements: {
+    /** Anuncia que o grupo foi pego pelo teclado. */
+    onDragStart: ({ active }: { active: { id: string | number } }) =>
+      `Grupo ${active.id} pego. Use as setas para movê-lo.`,
+    /** Anuncia a posição sobre a qual o grupo está sendo movido. */
+    onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+      over ? `Grupo movido sobre a posição de ${over.id}.` : "Grupo fora de uma posição válida.",
+    /** Anuncia a conclusão do arraste. */
+    onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
+      over ? `Grupo solto na posição de ${over.id}.` : "Grupo solto fora de uma posição válida.",
+    /** Anuncia o cancelamento do arraste. */
+    onDragCancel: () => "Reordenação cancelada. O grupo voltou à posição original.",
+  },
+};
+
 /** Propriedades do card arrastável de grupo. */
 interface SortableGrupoCardProps {
   /** Grupo exibido no card. */
@@ -209,7 +236,7 @@ function SortableGrupoCard({
                 <button
                   {...attributes}
                   {...listeners}
-                  className="flex-shrink-0 w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+                  className="flex-shrink-0 w-11 h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
                   aria-label={`Arrastar ${grupo.nome} para reordenar`}
                 >
                   <GripVertical className="h-4 w-4" />
@@ -373,13 +400,22 @@ export function GruposFuncoesSection() {
     createGrupo.mutate({ nome: trimmed }, { onSuccess: () => setNewName("") });
   }
 
-  /** Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista. */
+  /**
+   * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
+   *
+   * Ignora o arraste enquanto uma reordenação anterior ainda está em voo: cada
+   * `onMutate` tira seu próprio snapshot do cache, então dois PATCH concorrentes
+   * fariam o `onError` do primeiro restaurar um estado anterior ao segundo,
+   * desfazendo visualmente uma reordenação que o servidor já aceitou.
+   */
   function handleDragEnd(event: DragEndEvent) {
+    if (reorderGrupos.isPending) return;
+
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = grupoIds.indexOf(active.id as string);
-    const newIndex = grupoIds.indexOf(over.id as string);
+    const oldIndex = grupoIds.indexOf(String(active.id));
+    const newIndex = grupoIds.indexOf(String(over.id));
     if (oldIndex === -1 || newIndex === -1) return;
 
     reorderGrupos.mutate(arrayMove(grupoIds, oldIndex, newIndex));
@@ -414,6 +450,7 @@ export function GruposFuncoesSection() {
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
+          accessibility={ACESSIBILIDADE_ARRASTE}
         >
           <SortableContext items={grupoIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">

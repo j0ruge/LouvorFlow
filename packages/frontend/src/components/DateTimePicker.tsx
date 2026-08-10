@@ -117,7 +117,7 @@ function DateTimePickerContent({
       <div className="flex items-center gap-2 border-t px-3 py-2">
         <span className="text-sm text-muted-foreground">Horário:</span>
         <Select value={draftHour} onValueChange={onHourChange}>
-          <SelectTrigger className="w-[70px] min-w-0">
+          <SelectTrigger className="w-[70px] min-w-0" aria-label="Hora">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +130,7 @@ function DateTimePickerContent({
         </Select>
         <span className="text-sm font-medium">:</span>
         <Select value={draftMinute} onValueChange={onMinuteChange}>
-          <SelectTrigger className="w-[70px] min-w-0">
+          <SelectTrigger className="w-[70px] min-w-0" aria-label="Minuto">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -201,6 +201,29 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
 | `ResponsiveFormDialog.tsx` | Shell de formulário: Drawer (mobile) / Dialog (desktop), header fixo + corpo rolável + footer sticky; corrige botão Salvar escondido e campo em foco atrás do teclado |
 | `MusicaForm.tsx` / `VersaoForm.tsx` / `EventoForm.tsx` | Migrados para `ResponsiveFormDialog` (bottom-sheet no mobile) |
+| `admin/Igrejas.tsx` | Dual layout cards/table + header responsivo + `Button asChild` no lugar de `<Link><Button>` |
+| `admin/IgrejaUsers.tsx` | Dual layout cards/table + truncate em nome/e-mail + `Button asChild` nos 3 botões de voltar |
+| `GruposFuncoesSection.tsx` | Grip de arraste `w-11 h-11` (44px) já no mobile + anúncios do dnd-kit em PT-BR |
+| `DateTimePicker.tsx` | `aria-label` "Hora"/"Minuto" nos selects (o rótulo "Horário:" não estava associado) |
+| `CifraclubPlaylistDialog.tsx` | `aria-label` no gatilho icon-only |
+| `MusicaVersaoPicker.tsx` | `truncate max-w-[10rem]` no rótulo do badge (nome de artista é texto livre) |
+
+### Verificação automatizada de mobile
+
+`playwright.config.ts` roda **dois projetos**, com escopos separados por convenção de nome:
+
+| Projeto | Viewport | Specs |
+|---|---|---|
+| `chromium` | 1280×720 | todos, **exceto** `*.mobile.spec.ts` (`testIgnore`) |
+| `mobile` | 360×740, `devices["Galaxy S8"]`, com toque | **apenas** `*.mobile.spec.ts` (`testMatch`) |
+
+A separação é obrigatória: os specs de desktop usam locators de tabela (`getByRole("table")`, `tbody tr`) e clicam direto nos links da sidebar. A 360px a tabela fica `display:none` (fora da árvore de acessibilidade) e o menu vive atrás do botão "Toggle Sidebar" — rodar esses specs no projeto mobile geraria falhas que não revelam bug nenhum.
+
+**Ao criar uma página com layout dual**, escreva um `*.mobile.spec.ts` que verifique: (1) a variante de cards aparece e a tabela está oculta; (2) **não há overflow horizontal** (`document.documentElement.scrollWidth <= clientWidth`) — a checagem objetiva da regra "nunca depender de scroll horizontal". Referência: `tests/e2e/admin-igrejas.mobile.spec.ts`.
+
+Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
+
+> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa apenas lint + testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
 
 ## Navegação e Rolagem
 

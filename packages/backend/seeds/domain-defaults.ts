@@ -10,7 +10,16 @@
  * - `seeds/admin.ts` — para todos os tenants ativos no deploy
  * - `igrejas.service.ts` — ao criar uma nova igreja via API
  */
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+
+/**
+ * Cliente aceito pelas funções de seed.
+ *
+ * Tipado como `Prisma.TransactionClient` — o `PrismaClient` base também o
+ * satisfaz, então a mesma função serve tanto para o seed avulso quanto para uma
+ * execução dentro de `$transaction` (usada ao criar uma igreja pela API).
+ */
+type SeedClient = Prisma.TransactionClient;
 
 /** Funções musicais padrão para um ministério de louvor. */
 const DEFAULT_FUNCOES = [
@@ -108,7 +117,7 @@ const DEFAULT_CATEGORIAS = [
  * @param tenantId - UUID do tenant cujas funções serão classificadas
  * @returns Quantidade de funções efetivamente vinculadas a um grupo
  */
-async function classifyFuncoesEmGrupos(prisma: PrismaClient, tenantId: string): Promise<number> {
+async function classifyFuncoesEmGrupos(prisma: SeedClient, tenantId: string): Promise<number> {
   const grupos = await prisma.funcoes_Grupos.findMany({
     where: { tenant_id: tenantId },
     select: { id: true, nome: true },
@@ -157,7 +166,7 @@ async function classifyFuncoesEmGrupos(prisma: PrismaClient, tenantId: string): 
  * @param prisma - Instância do Prisma Client (base, sem filtro de tenant)
  * @param tenantId - UUID do tenant para o qual os dados serão criados
  */
-export async function seedTenantDefaults(prisma: PrismaClient, tenantId: string): Promise<void> {
+export async function seedTenantDefaults(prisma: SeedClient, tenantId: string): Promise<void> {
   const funcoes = await prisma.funcoes.createMany({
     data: DEFAULT_FUNCOES.map(nome => ({ nome, tenant_id: tenantId })),
     skipDuplicates: true,

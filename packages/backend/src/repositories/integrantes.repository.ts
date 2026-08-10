@@ -86,13 +86,22 @@ class IntegrantesRepository {
     }
 
     /**
-     * Busca um user pelo email.
+     * Busca um user pelo email, ignorando diferenças de caixa.
+     *
+     * A comparação precisa ser case-insensitive para casar com
+     * `auth/users.repository.findByEmail` (usada no login): se esta busca fosse
+     * case-sensitive, `Bob@x.com` não encontraria o `bob@x.com` já cadastrado e
+     * o aceite de convite criaria uma segunda conta para a mesma pessoa —
+     * a constraint `@unique` de `Users.email` é case-sensitive e não barraria.
      *
      * @param email - Email do user a buscar
      * @returns User encontrado ou `null`
      */
     async findByEmail(email: string) {
-        return prisma.users.findUnique({ where: { email } });
+        return prisma.users.findFirst({
+            orderBy: { created_at: 'asc' },
+            where: { email: { equals: email, mode: 'insensitive' } },
+        });
     }
 
     /**
@@ -104,7 +113,13 @@ class IntegrantesRepository {
      * @returns User encontrado ou `null`
      */
     async findByEmailExcludingId(email: string, excludeId: string) {
-        return prisma.users.findFirst({ where: { email, NOT: { id: excludeId } } });
+        return prisma.users.findFirst({
+            orderBy: { created_at: 'asc' },
+            where: {
+                email: { equals: email, mode: 'insensitive' },
+                NOT: { id: excludeId },
+            },
+        });
     }
 
     /**

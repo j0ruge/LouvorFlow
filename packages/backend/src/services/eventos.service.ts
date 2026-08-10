@@ -345,6 +345,9 @@ class EventosService {
             if (error.message === 'VERSAO_WRONG_MUSICA') {
                 throw new AppError('A versão informada não pertence a esta música', 400);
             }
+            if (error.message === 'EVENTO_MUSICA_NOT_FOUND') {
+                throw new AppError('Música não encontrada neste evento', 404);
+            }
         }
 
         const prismaError = error as { code?: string; meta?: { field_name?: string } };
@@ -452,13 +455,7 @@ class EventosService {
         const registro = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
         if (!registro) throw new AppError("Registro não encontrado", 404);
 
-        await eventosRepository.deleteMusica(registro.id);
-
-        const remaining = await eventosRepository.findMusicas(eventoId);
-        if (remaining.length > 0) {
-            const orderedIds = remaining.map(m => m.eventos_musicas_musicas_id_fkey.id);
-            await eventosRepository.reorderMusicas(eventoId, orderedIds);
-        }
+        await eventosRepository.deleteMusicaEReindexar(registro.id, eventoId);
     }
 
     /**
@@ -538,7 +535,7 @@ class EventosService {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
 
-        const integrante = await eventosRepository.findIntegranteById(fk_integrante_id);
+        const integrante = await eventosRepository.findIntegranteById(fk_integrante_id, tenantId);
         if (!integrante) throw new AppError("Integrante não encontrado", 404);
 
         const existente = await eventosRepository.findIntegranteDuplicate(eventoId, fk_integrante_id);
@@ -560,7 +557,49 @@ class EventosService {
             selectedFuncaoIds = funcao_ids;
         }
 
-        await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds, tenantId);
+        /**
+         * A escrita toca duas tabelas com constraints próprias. Sem este catch,
+         * uma corrida com outra requisição (P2002 em `Eventos_Users`) ou uma
+         * função apagada entre a validação e a gravação (P2003) escapariam como
+         * 500 genérico — o handler de `app.ts` ainda ecoa `err.message` fora de
+         * produção, vazando detalhe interno do Prisma.
+         */
+        try {
+            await eventosRepository.createIntegrante(eventoId, fk_integrante_id, selectedFuncaoIds, tenantId);
+        } catch (error) {
+            this.handleIntegranteSentinel(error);
+        }
+    }
+
+    /**
+     * Converte erros conhecidos do Prisma na vinculação de integrante em `AppError`.
+     *
+     * @param error - Erro capturado da transação de `createIntegrante`
+     * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
+     */
+    private handleIntegranteSentinel(error: unknown): never {
+        const prismaError = error as { code?: string; meta?: { field_name?: string } };
+
+        if (error instanceof Error && 'code' in error) {
+            /** P2002 — corrida com outra vinculação do mesmo integrante no evento. */
+            if (prismaError.code === 'P2002') {
+                throw new AppError('Registro duplicado', 409);
+            }
+
+            /** P2003 — FK inválida: função ou evento removido entre a validação e a gravação. */
+            if (prismaError.code === 'P2003') {
+                const field = prismaError.meta?.field_name ?? '';
+                if (field.includes('funcao_id')) {
+                    throw new AppError('Função não encontrada', 404);
+                }
+                if (field.includes('evento_id')) {
+                    throw new AppError('Evento não encontrado', 404);
+                }
+                throw new AppError('Recurso referenciado não encontrado', 404);
+            }
+        }
+
+        throw error;
     }
 
     /** Remove o vínculo entre um evento e um integrante. */

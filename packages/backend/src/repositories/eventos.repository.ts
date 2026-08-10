@@ -144,8 +144,35 @@ class EventosRepository {
     }
 
     /** Remove o vínculo entre evento e música pelo ID do registro. */
-    async deleteMusica(id: string) {
-        return getPrisma().eventos_Musicas.delete({ where: { id } });
+    /**
+     * Remove o vínculo música-evento e reindexa a ordem das restantes (1..N)
+     * numa única transação.
+     *
+     * Fazer os três passos (delete → reler → reordenar) soltos deixaria a
+     * sequência de `ordem` com buracos ou posições duplicadas caso uma falha
+     * ocorresse no meio, ou caso outra remoção/reordenação intercalasse.
+     *
+     * @param eventoMusicaId - ID do registro em `Eventos_Musicas` a remover
+     * @param eventoId - ID do evento cujas músicas serão reindexadas
+     */
+    async deleteMusicaEReindexar(eventoMusicaId: string, eventoId: string) {
+        const prismaClient = getPrisma();
+        await prismaClient.$transaction(async (tx) => {
+            await tx.eventos_Musicas.delete({ where: { id: eventoMusicaId } });
+
+            const restantes = await tx.eventos_Musicas.findMany({
+                where: { evento_id: eventoId },
+                select: { id: true },
+                orderBy: { ordem: 'asc' },
+            });
+
+            for (const [index, registro] of restantes.entries()) {
+                await tx.eventos_Musicas.update({
+                    where: { id: registro.id },
+                    data: { ordem: index + 1 },
+                });
+            }
+        });
     }
 
     /**
@@ -160,6 +187,7 @@ class EventosRepository {
      * @param artistas_musicas_id - UUID da versão desejada, ou `null` para limpar
      * @throws Error "VERSAO_NOT_FOUND" — versão inexistente no tenant ativo
      * @throws Error "VERSAO_WRONG_MUSICA" — versão existe mas pertence a outra música
+     * @throws Error "EVENTO_MUSICA_NOT_FOUND" — vínculo música-evento removido durante a operação
      */
     async setMusicaVersaoAtomic(
         eventoMusicaId: string,
@@ -176,10 +204,19 @@ class EventosRepository {
                 if (versao.musica_id !== musicaId) throw new Error('VERSAO_WRONG_MUSICA');
             }
 
-            await tx.eventos_Musicas.update({
+            /**
+             * `updateMany` + checagem de `count` em vez de `update`: se a música
+             * for desvinculada do evento por outra requisição entre a validação e
+             * esta escrita, `update` lançaria P2025 cru — que `handleVersaoSentinel`
+             * não traduz e viraria um 500. Com `updateMany`, a corrida vira um
+             * sentinela tratado como 404.
+             */
+            const { count } = await tx.eventos_Musicas.updateMany({
                 where: { id: eventoMusicaId },
                 data: { fk_artistas_musicas: artistas_musicas_id }
             });
+
+            if (count === 0) throw new Error('EVENTO_MUSICA_NOT_FOUND');
         });
     }
 
@@ -395,14 +432,26 @@ class EventosRepository {
     }
 
     /**
-     * Busca um user pelo ID (valida existência antes de vincular a evento).
-     * Usa o client base pois `users` é um modelo global (não filtrado por tenant).
+     * Busca um user pelo ID **restrito aos membros do tenant informado**
+     * (valida existência antes de vincular a evento).
+     *
+     * Usa o client base porque `users` é um modelo global (compartilhado entre
+     * igrejas), mas o filtro `tenant_users` é obrigatório: sem ele, um usuário
+     * com `escalas.write` na igreja A conseguiria vincular à escala um usuário
+     * que pertence apenas à igreja B, vazando o nome dele para a igreja A.
+     * Mesmo guarda aplicada em `integrantes.repository.findAll`.
      *
      * @param userId - ID do user
-     * @returns User encontrado ou `null` se não existir
+     * @param tenantId - UUID do tenant ativo (escopo obrigatório)
+     * @returns User encontrado no tenant ou `null` se não existir/não for membro
      */
-    async findIntegranteById(userId: string) {
-        return prisma.users.findUnique({ where: { id: userId } });
+    async findIntegranteById(userId: string, tenantId: string) {
+        return prisma.users.findFirst({
+            where: {
+                id: userId,
+                tenant_users: { some: { tenant_id: tenantId } },
+            },
+        });
     }
 }
 

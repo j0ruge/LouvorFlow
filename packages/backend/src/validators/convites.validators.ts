@@ -13,7 +13,7 @@ import { z } from 'zod';
  */
 export const acceptInviteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome é obrigatório' }).min(1, 'Nome é obrigatório'),
-    email: z.string({ required_error: 'Email é obrigatório' }).email('Email deve ter um formato válido'),
+    email: z.string({ required_error: 'Email é obrigatório' }).trim().toLowerCase().email('Email deve ter um formato válido'),
     senha: z.string({ required_error: 'Senha é obrigatória' }).min(6, 'Senha deve ter no mínimo 6 caracteres'),
     senha_confirmacao: z.string({ required_error: 'Confirmação de senha é obrigatória' }).min(1, 'Confirmação de senha é obrigatória'),
 }).refine((data) => data.senha === data.senha_confirmacao, {
