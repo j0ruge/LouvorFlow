@@ -44,7 +44,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 - **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente, recebendo o papel `integrante` (membro básico, sem permissões administrativas).
 - **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Grupos de funções, Tonalidades e Tipos de Evento.
 - **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
-- **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
+- **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce. Na página de Músicas, contagem real de resultados, filtros ativos (categoria/intensidade) exibidos como badges removíveis e atalho de teclado `/` para focar a busca.
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
 - **Integração CifraClub** — Link da cifra cadastrado por música (reaproveitado em todas as escalas); playlist exportável da escala com transposição automática de tom (`#key=N`) e compartilhamento via WhatsApp com links que abrem a cifra já no tom correto.
 - **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos. Os integrantes saem agrupados por papel (Ministração, Direção Musical, Vocal, Instrumentos, Outros), na ordem definida na aba **Grupos** de Configurações.

@@ -8,7 +8,7 @@
  * Busca textual e ambos os filtros executados no backend.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,14 @@ import { useCategorias } from "@/hooks/use-categorias";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
-import { MusicaFiltrosChips, MusicaFiltrosDrawer } from "@/components/MusicaFiltros";
+import {
+  MusicaFiltrosAtivos,
+  MusicaFiltrosChips,
+  MusicaFiltrosDrawer,
+} from "@/components/MusicaFiltros";
 import { INTENSIDADE_OPTIONS, type Intensidade } from "@/components/intensidade-options";
 import { useCan } from "@/hooks/use-can";
+import { useFocusShortcut } from "@/hooks/use-focus-shortcut";
 import { handleClickableKeyDown } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 20;
@@ -111,6 +116,10 @@ const Songs = () => {
 
   /** Input local com inicialização preguiçosa a partir da URL. */
   const [searchInput, setSearchInput] = useState(() => q);
+
+  /** Referência ao input de busca — alvo do atalho de teclado `/`. */
+  const searchRef = useRef<HTMLInputElement>(null);
+  useFocusShortcut(searchRef);
 
   /**
    * Sincroniza `searchInput` com `q` em mudanças externas da URL
@@ -268,6 +277,31 @@ const Songs = () => {
   };
 
   /**
+   * Remove busca textual e todos os filtros de chips de uma vez (CTA do
+   * zero-result quando `hasFilters` é verdadeiro).
+   *
+   * Zera `searchInput` explicitamente em vez de confiar no efeito
+   * `syncSearchInputFromUrl`: um debounce ainda pendente (`searchInput`
+   * digitado nos últimos 300ms) reescreveria `q` na URL depois deste
+   * `setSearchParams`, reaplicando a busca que acabamos de limpar —
+   * acoplamento temporal entre o timer do debounce e esta ação.
+   */
+  const limparTudo = () => {
+    setSearchInput("");
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("q");
+        next.delete("categorias");
+        next.delete("intensidades");
+        next.set("page", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  /**
    * Navega ao detalhe preservando a URL atual em `location.state.from`.
    *
    * @param id - UUID da música a abrir.
@@ -328,12 +362,17 @@ const Songs = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
+                ref={searchRef}
                 placeholder="Buscar músicas por nome..."
                 aria-label="Buscar músicas por nome"
-                className="pl-10 w-full"
+                className="pl-10 w-full sm:pr-9"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
+              {/* Dica visual do atalho de teclado — some no mobile (sem teclado físico). */}
+              <kbd className="hidden sm:flex absolute right-3 top-1/2 h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded border border-border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                /
+              </kbd>
             </div>
             {/* Mobile: filtros colapsados atrás do botão (bottom-sheet). */}
             <div className="sm:hidden">
@@ -361,14 +400,46 @@ const Songs = () => {
         </CardHeader>
 
         <CardContent>
-          {/* Anuncia para leitores de tela a quantidade de resultados após filtrar. */}
-          <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
-            {!isLoading && !isError && (
-              hasFilters
-                ? `${songs.length} música${songs.length === 1 ? "" : "s"} encontrada${songs.length === 1 ? "" : "s"}.`
-                : ""
-            )}
-          </div>
+          {/*
+           * Linha de resultados visível — substitui o antigo anúncio `sr-only`
+           * (mantê-lo junto duplicaria o anúncio no leitor de tela). Usa
+           * `meta.total` (contagem real do backend), não `songs.length`
+           * (tamanho da página atual, teto de `ITEMS_PER_PAGE`).
+           *
+           * `role="status"`/`aria-live`/`aria-atomic` ficam só no `<span>` da
+           * contagem, não no container: os badges de `MusicaFiltrosAtivos`
+           * são interativos (botões), e colocar a live region no `<div>` pai
+           * faria cada clique num badge re-anunciar a linha inteira (ruído).
+           * O `<div>` externo é só um flex container.
+           */}
+          {hasFilters && !isLoading && !isError && meta && (
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="min-w-0"
+              >
+                <b className="text-foreground tabular-nums">{meta.total}</b>{" "}
+                {meta.total === 1 ? "música" : "músicas"}
+                {normalizedQ && (
+                  <>
+                    {" "}
+                    para <span className="text-foreground">“{normalizedQ}”</span>
+                  </>
+                )}
+              </span>
+              <MusicaFiltrosAtivos
+                categorias={categoriasList ?? []}
+                categoriaIds={categoriaIds}
+                intensidades={intensidades}
+                onToggleCategoria={toggleCategoria}
+                onToggleIntensidade={toggleIntensidade}
+                onLimpar={limparFiltros}
+                aoRemover={() => searchRef.current?.focus()}
+              />
+            </div>
+          )}
           {isLoading && (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -396,8 +467,8 @@ const Songs = () => {
                   ? "Tente remover filtros ou ajustar a busca."
                   : "Comece adicionando músicas ao catálogo do ministério."
               }
-              actionLabel={!hasFilters ? "Nova Música" : undefined}
-              onAction={!hasFilters ? () => setFormOpen(true) : undefined}
+              actionLabel={hasFilters ? "Limpar busca e filtros" : "Nova Música"}
+              onAction={hasFilters ? limparTudo : () => setFormOpen(true)}
             />
           )}
 
