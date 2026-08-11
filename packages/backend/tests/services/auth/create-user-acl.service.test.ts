@@ -9,7 +9,6 @@ import fakeUsersRepository from '../../fakes/auth/fake-users.repository.js';
 import fakeRolesRepository from '../../fakes/auth/fake-roles.repository.js';
 import fakePermissionsRepository from '../../fakes/auth/fake-permissions.repository.js';
 import { HASH_TESTE } from '../../fakes/mock-data.js';
-import { AppError } from '../../../src/errors/AppError.js';
 
 /** Mock hoisted do `prisma.tenantUsers.findFirst` para controlar a verificação de pertencimento ao tenant. */
 const { mockTenantUsersFindFirst } = vi.hoisted(() => ({

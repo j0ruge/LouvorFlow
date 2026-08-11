@@ -107,6 +107,13 @@ class EventosRepository {
      * Vincula uma música a um evento no tenant informado.
      * Atribui automaticamente a próxima posição disponível (MAX(ordem) + 1).
      *
+     * O `MAX(ordem) + 1` é um read-modify-write: sob READ COMMITTED (padrão do
+     * Prisma no Postgres) duas requisições concorrentes no mesmo evento leriam o
+     * mesmo máximo e gravariam a mesma `ordem` — o índice `[evento_id, ordem]` não
+     * é unique e portanto não barra a duplicata. Por isso a transação começa
+     * travando a linha do evento com `SELECT ... FOR UPDATE`: a segunda requisição
+     * fica bloqueada até a primeira concluir e só então lê o máximo já atualizado.
+     *
      * @param eventoId - ID do evento
      * @param musicasId - ID da música a vincular
      * @param tenantId - ID do tenant ao qual o vínculo pertence
@@ -115,6 +122,9 @@ class EventosRepository {
      */
     async createMusica(eventoId: string, musicasId: string, tenantId: string, artistas_musicas_id?: string | null) {
         return getPrisma().$transaction(async (tx) => {
+            /** Serializa as inserções concorrentes deste evento (ver JSDoc). */
+            await tx.$queryRaw`SELECT id FROM eventos WHERE id = ${eventoId}::uuid FOR UPDATE`;
+
             if (artistas_musicas_id != null) {
                 const versao = await tx.artistas_Musicas.findUnique({
                     where: { id: artistas_musicas_id },
@@ -143,7 +153,6 @@ class EventosRepository {
         });
     }
 
-    /** Remove o vínculo entre evento e música pelo ID do registro. */
     /**
      * Remove o vínculo música-evento e reindexa a ordem das restantes (1..N)
      * numa única transação.
@@ -166,12 +175,19 @@ class EventosRepository {
                 orderBy: { ordem: 'asc' },
             });
 
-            for (const [index, registro] of restantes.entries()) {
-                await tx.eventos_Musicas.update({
-                    where: { id: registro.id },
-                    data: { ordem: index + 1 },
-                });
-            }
+            /**
+             * Atualizações disparadas em paralelo (mesmo padrão de `createIntegrante`):
+             * são linhas distintas dentro da mesma transação, então não há ordem a
+             * respeitar entre elas e o sequencial custaria um round trip por música.
+             */
+            await Promise.all(
+                restantes.map((registro, index) =>
+                    tx.eventos_Musicas.update({
+                        where: { id: registro.id },
+                        data: { ordem: index + 1 },
+                    }),
+                ),
+            );
         });
     }
 

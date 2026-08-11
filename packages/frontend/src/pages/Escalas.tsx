@@ -83,7 +83,7 @@ const Escalas = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
   const deleteEvento = useDeleteEvento();
-  const { can: canWrite } = useCan("escalas.write");
+  const { can: canWrite, isLoading: isLoadingPermissao } = useCan("escalas.write");
 
   /**
    * Quando a página recebe `?nova=1` (ex: vindo do CTA "Nova Escala" do
@@ -92,6 +92,15 @@ const Escalas = () => {
    */
   useEffect(() => {
     if (searchParams.get("nova") !== "1") return;
+
+    /**
+     * Espera a autenticação resolver antes de qualquer ação. `useCan` devolve
+     * `can: false` enquanto carrega (fail-closed), e num carregamento direto de
+     * `/escalas?nova=1` (link compartilhado, recarga) esse `false` inicial não
+     * significa "sem permissão". Agir aqui apagaria o parâmetro antes da hora e
+     * o formulário nunca abriria, mesmo para quem pode escrever.
+     */
+    if (isLoadingPermissao) return;
 
     if (canWrite) {
       setEditingEvento(null);
@@ -106,7 +115,7 @@ const Escalas = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("nova");
     setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams, canWrite]);
+  }, [searchParams, setSearchParams, canWrite, isLoadingPermissao]);
 
   /**
    * Separa as escalas em próximas (data >= início do dia) e passadas,
@@ -213,7 +222,7 @@ const Escalas = () => {
                 {scale.tipoEvento && (
                   <Badge
                     variant="default"
-                    className="bg-primary text-primary-foreground self-start sm:self-auto"
+                    className="bg-primary text-primary-foreground self-start sm:self-auto truncate max-w-[10rem]"
                   >
                     {scale.tipoEvento.nome}
                   </Badge>
@@ -293,8 +302,8 @@ const Escalas = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Escalas
           </h1>
@@ -320,6 +329,7 @@ const Escalas = () => {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por data, tipo, integrante ou música..."
+          aria-label="Buscar escalas por data, tipo, integrante ou música"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"

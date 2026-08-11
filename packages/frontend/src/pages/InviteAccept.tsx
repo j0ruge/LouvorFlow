@@ -65,6 +65,14 @@ const InviteAccept = () => {
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   /**
+   * Sem token na rota não há convite a validar nem a aceitar. A guarda explícita
+   * torna provável-por-construção o que antes dependia de o formulário só
+   * renderizar depois da validação — uma garantia indireta, que uma mudança nas
+   * condições de render quebraria em silêncio (enviando `/convites/undefined/accept`).
+   */
+  if (!token) return <Navigate to="/login" replace />;
+
+  /**
    * Processa o envio do formulário de cadastro via convite.
    *
    * @param dados - Dados validados do formulário.
@@ -72,7 +80,7 @@ const InviteAccept = () => {
   async function onSubmit(dados: AcceptForm) {
     setSubmitError(null);
     acceptMutation.mutate(
-      { token: token!, body: dados },
+      { token, body: dados },
       {
         onSuccess: () => {
           setSuccess(true);
@@ -108,7 +116,7 @@ const InviteAccept = () => {
           {/* Loading */}
           {isLoading && (
             <div className="space-y-4">
-              <Skeleton className="h-6 w-48 mx-auto" />
+              <Skeleton className="h-6 w-1/2 sm:w-48 mx-auto" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
@@ -120,7 +128,7 @@ const InviteAccept = () => {
             <div className="text-center space-y-4 py-6">
               <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
               <p className="text-muted-foreground">
-                {(validateError as Error).message}
+                {validateError.message}
               </p>
               <Link to="/login">
                 <Button variant="outline" className="mt-2">

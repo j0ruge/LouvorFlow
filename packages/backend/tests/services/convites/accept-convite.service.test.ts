@@ -8,7 +8,6 @@
 
 import fakeConvitesRepository from '../../fakes/fake-convites.repository.js';
 import {
-    TENANT_A_ID,
     MOCK_INVITE_ACTIVE,
     MOCK_INVITE_EXPIRED,
     MOCK_INVITE_USED,

@@ -7148,13 +7148,13 @@
           },
           "descricao": {
             "type": "string",
-            "minLength": 1
+            "default": "",
+            "description": "Opcional. Quando omitida, o evento é criado com descrição vazia."
           }
         },
         "required": [
           "data",
-          "fk_tipo_evento",
-          "descricao"
+          "fk_tipo_evento"
         ]
       },
       "EventoUpdateInput": {

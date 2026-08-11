@@ -6,22 +6,25 @@
  * usando selects populados com dados de `useMusicas` e `useIntegrantes`.
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   DndContext,
   closestCenter,
   PointerSensor,
   TouchSensor,
+  KeyboardSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type Announcements,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
   arrayMove,
+  sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,7 +88,7 @@ import type { MusicaEvento } from "@/schemas/evento";
  * @param onOpen - Callback invocado com o ID da música ao ativar o card (clique/Enter),
  *   navegando para a página de detalhe da música.
  */
-export function SortableMusicaCard({
+function SortableMusicaCardBase({
   musica,
   canWrite,
   onRemove,
@@ -95,7 +98,8 @@ export function SortableMusicaCard({
 }: {
   musica: MusicaEvento;
   canWrite: boolean;
-  onRemove: () => void;
+  /** Recebe o ID para que o pai possa passar um callback estável (memoizável). */
+  onRemove: (musicaId: string) => void;
   isPending: boolean;
   eventoId: string;
   onOpen: (musicaId: string) => void;
@@ -143,8 +147,8 @@ export function SortableMusicaCard({
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}
-              className="flex-shrink-0 w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-              aria-label="Arrastar para reordenar"
+              className="flex-shrink-0 w-11 h-11 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+              aria-label={`Arrastar ${musica.nome} para reordenar`}
             >
               <GripVertical className="h-4 w-4" />
             </button>
@@ -161,18 +165,18 @@ export function SortableMusicaCard({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onRemove();
+              onRemove(musica.id);
             }}
             disabled={isPending}
             className="flex-shrink-0"
-            aria-label="Remover música"
+            aria-label={`Remover ${musica.nome}`}
           >
             <X className="h-4 w-4 text-destructive" />
           </Button>
         )}
       </div>
-      {/* pl-9/pl-14: alinha com o nome da música acima (grip w-8/w-11 + badge w-6 + gaps) */}
-      <div className="flex items-center gap-2 mt-1.5 pl-9 sm:pl-14 flex-wrap">
+      {/* pl-14: alinha com o nome da música acima (grip w-11 + badge w-6 + gaps) */}
+      <div className="flex items-center gap-2 mt-1.5 pl-14 flex-wrap">
         {musica.tonalidade && (
           <Badge variant="outline" className="text-xs flex-shrink-0">
             <Guitar className="h-3 w-3 mr-1" />
@@ -203,6 +207,17 @@ export function SortableMusicaCard({
 }
 
 /**
+ * Card de música memoizado.
+ *
+ * A página re-renderiza a cada tecla digitada na busca de músicas; sem o `memo`
+ * todo card da lista (com seu `useSortable` e seu `useSetMusicaVersao`) refazia
+ * render junto, embora nada neles tivesse mudado. O `memo` só surte efeito
+ * porque as props de callback vêm memoizadas do pai — daí `onRemove` receber o
+ * ID em vez de ser uma arrow recriada por item.
+ */
+export const SortableMusicaCard = memo(SortableMusicaCardBase);
+
+/**
  * Página de detalhe de evento com gerenciamento de associações.
  *
  * Renderizada na rota `/escalas/:id`. Permite visualizar e gerenciar
@@ -216,7 +231,22 @@ export function EventoDetail() {
   const location = useLocation();
   const [selectedMusicaId, setSelectedMusicaId] = useState("");
   const [selectedIntegranteId, setSelectedIntegranteId] = useState("");
-  const [removingMusicaId, setRemovingMusicaId] = useState<string | null>(null);
+  /**
+   * IDs das músicas com remoção em voo.
+   *
+   * Precisa ser um conjunto, e não um único ID: com duas remoções sobrepostas,
+   * um `string | null` seria sobrescrito pelo segundo clique e o botão da
+   * primeira música reabilitaria no meio do voo, permitindo disparar um segundo
+   * DELETE para a mesma música.
+   */
+  const [removingMusicaIds, setRemovingMusicaIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  /** Mesmo raciocínio do conjunto acima, para as remoções de integrante. */
+  const [removingIntegranteIds, setRemovingIntegranteIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [funcaoDialogIntegrante, setFuncaoDialogIntegrante] =
@@ -267,7 +297,11 @@ export function EventoDetail() {
   const touchSensor = useSensor(TouchSensor, {
     activationConstraint: { delay: 250, tolerance: 5 },
   });
-  const sensors = useSensors(pointerSensor, touchSensor);
+  /** Sem este sensor a reordenação seria inacessível por teclado. */
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
+  const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
 
   /** IDs das músicas ordenados para o SortableContext. */
   const musicaIds = useMemo(
@@ -280,6 +314,53 @@ export function EventoDetail() {
     () => new Set(musicaIds),
     [musicaIds],
   );
+
+  /**
+   * Instruções e anúncios do arraste em PT-BR.
+   *
+   * Os anúncios resolvem o ID para o nome da música — o padrão do dnd-kit
+   * lê o `id` cru, que aqui é um UUID e não diz nada a quem usa leitor de tela.
+   */
+  const acessibilidadeArraste = useMemo(() => {
+    /**
+     * Traduz o ID de uma música no seu nome.
+     *
+     * @param id - Identificador vindo do evento de arraste.
+     * @returns Nome da música, ou o próprio ID se ela não for encontrada.
+     */
+    const nomeDaMusica = (id: string | number) =>
+      evento?.musicas.find((m) => m.id === id)?.nome ?? String(id);
+
+    return {
+      screenReaderInstructions: {
+        draggable:
+          "Para reordenar, pressione Espaço ou Enter para pegar a música, use as setas para movê-la e pressione Espaço ou Enter novamente para soltar. Pressione Escape para cancelar.",
+      },
+      /**
+       * Tipado com o `Announcements` do próprio dnd-kit: uma mudança na forma de
+       * `active`/`over` numa futura versão vira erro de compilação, em vez de um
+       * anúncio silenciosamente errado.
+       */
+      announcements: {
+        /** Anuncia que a música foi pega pelo teclado. */
+        onDragStart: ({ active }) =>
+          `Música ${nomeDaMusica(active.id)} pega. Use as setas para movê-la.`,
+        /** Anuncia sobre qual posição a música está sendo movida. */
+        onDragOver: ({ over }) =>
+          over
+            ? `Música movida sobre a posição de ${nomeDaMusica(over.id)}.`
+            : "Música fora de uma posição válida.",
+        /** Anuncia a conclusão do arraste. */
+        onDragEnd: ({ over }) =>
+          over
+            ? `Música solta na posição de ${nomeDaMusica(over.id)}.`
+            : "Música solta fora de uma posição válida.",
+        /** Anuncia o cancelamento do arraste. */
+        onDragCancel: () =>
+          "Reordenação cancelada. A música voltou à posição original.",
+      } satisfies Announcements,
+    };
+  }, [evento?.musicas]);
 
   /** Músicas disponíveis para associação (excluindo já associadas). */
   const musicasDisponiveis = useMemo(
@@ -296,6 +377,36 @@ export function EventoDetail() {
       })),
     [musicasDisponiveis],
   );
+
+  /**
+   * Texto do combobox de busca de música, conforme o estado do catálogo.
+   *
+   * Os gates olham `meta.total` (e não `items.length`) porque a primeira página
+   * pode estar cheia (limit=100) e ainda haver músicas em páginas seguintes,
+   * alcançáveis pela busca textual. O combobox precisa seguir habilitado sempre
+   * que houver qualquer música no catálogo do tenant.
+   */
+  const placeholderBuscaMusica = useMemo(() => {
+    const totalNoCatalogo = allMusicas?.meta.total ?? 0;
+
+    if (totalNoCatalogo === 0 && !debouncedMusicaSearch) {
+      return "Nenhuma música cadastrada no sistema";
+    }
+
+    const todasJaAdicionadas =
+      musicasDisponiveis.length === 0 &&
+      totalNoCatalogo === (evento?.musicas.length ?? 0) &&
+      !debouncedMusicaSearch;
+
+    return todasJaAdicionadas
+      ? "Todas as músicas já foram adicionadas"
+      : "Selecione uma música para adicionar";
+  }, [
+    allMusicas?.meta.total,
+    debouncedMusicaSearch,
+    musicasDisponiveis.length,
+    evento?.musicas.length,
+  ]);
 
   /** IDs dos integrantes já associados ao evento. */
   const integrantesAssociadosIds = useMemo(
@@ -341,6 +452,43 @@ export function EventoDetail() {
     reorderMusicas.mutate(newOrder);
   }
 
+  /**
+   * Navega ao detalhe da música preservando a URL atual em `location.state.from`,
+   * para que o botão "Voltar" da página da música retorne a esta escala.
+   *
+   * Memoizado (assim como `handleRemoveMusica`) porque é prop de um card
+   * memoizado: uma arrow nova a cada render anularia o `memo`.
+   *
+   * @param musicaId - UUID da música a abrir.
+   */
+  const handleOpenMusica = useCallback(
+    (musicaId: string) => {
+      navigate(`/musicas/${musicaId}`, { state: { from: location.pathname } });
+    },
+    [navigate, location.pathname],
+  );
+
+  /**
+   * Remove uma música do evento, marcando-a como em voo enquanto a mutação corre.
+   *
+   * @param musicaId - UUID da música a remover.
+   */
+  const handleRemoveMusica = useCallback(
+    (musicaId: string) => {
+      setRemovingMusicaIds((atual) => new Set(atual).add(musicaId));
+      removeMusica.mutate(musicaId, {
+        /** Remove só o próprio ID — as demais seguem em voo. */
+        onSettled: () =>
+          setRemovingMusicaIds((atual) => {
+            const proximo = new Set(atual);
+            proximo.delete(musicaId);
+            return proximo;
+          }),
+      });
+    },
+    [removeMusica],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -358,16 +506,6 @@ export function EventoDetail() {
         onRetry={() => refetch()}
       />
     );
-  }
-
-  /**
-   * Navega ao detalhe da música preservando a URL atual em `location.state.from`,
-   * para que o botão "Voltar" da página da música retorne a esta escala.
-   *
-   * @param musicaId - UUID da música a abrir.
-   */
-  function handleOpenMusica(musicaId: string) {
-    navigate(`/musicas/${musicaId}`, { state: { from: location.pathname } });
   }
 
   /**
@@ -512,22 +650,7 @@ export function EventoDetail() {
                   options={musicaOptions}
                   value={selectedMusicaId || undefined}
                   onSelect={setSelectedMusicaId}
-                  placeholder={
-                    /**
-                     * Gates baseados em `meta.total` (e não em `items.length`)
-                     * porque a primeira página pode estar cheia (limit=100) e
-                     * ainda existirem músicas em páginas seguintes acessíveis
-                     * via busca textual. O combobox deve permanecer habilitado
-                     * sempre que houver qualquer música no catálogo do tenant.
-                     */
-                    (allMusicas?.meta.total ?? 0) === 0 && !debouncedMusicaSearch
-                      ? "Nenhuma música cadastrada no sistema"
-                      : musicasDisponiveis.length === 0 &&
-                          (allMusicas?.meta.total ?? 0) === evento.musicas.length &&
-                          !debouncedMusicaSearch
-                        ? "Todas as músicas já foram adicionadas"
-                        : "Selecione uma música para adicionar"
-                  }
+                  placeholder={placeholderBuscaMusica}
                   searchPlaceholder="Buscar música..."
                   disabled={
                     (allMusicas?.meta.total ?? 0) === 0 &&
@@ -564,6 +687,7 @@ export function EventoDetail() {
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
+              accessibility={acessibilidadeArraste}
             >
               <SortableContext items={musicaIds} strategy={verticalListSortingStrategy}>
                 <div className="space-y-2">
@@ -574,21 +698,8 @@ export function EventoDetail() {
                       canWrite={canWrite}
                       eventoId={evento.id}
                       onOpen={handleOpenMusica}
-                      onRemove={() => {
-                        setRemovingMusicaId(musica.id);
-                        removeMusica.mutate(musica.id, {
-                          /**
-                           * Só limpa se ainda for esta música: com remoções
-                           * sobrepostas, a primeira a concluir reabilitaria o
-                           * botão da segunda, que continua em voo.
-                           */
-                          onSettled: () =>
-                            setRemovingMusicaId((atual) =>
-                              atual === musica.id ? null : atual,
-                            ),
-                        });
-                      }}
-                      isPending={removingMusicaId === musica.id}
+                      onRemove={handleRemoveMusica}
+                      isPending={removingMusicaIds.has(musica.id)}
                     />
                   ))}
                 </div>
@@ -712,10 +823,23 @@ export function EventoDetail() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeIntegrante.mutate(integrante.id)}
-                        disabled={removeIntegrante.isPending}
+                        onClick={() => {
+                          setRemovingIntegranteIds((atual) =>
+                            new Set(atual).add(integrante.id),
+                          );
+                          removeIntegrante.mutate(integrante.id, {
+                            /** Limpa só o próprio ID — os demais seguem em voo. */
+                            onSettled: () =>
+                              setRemovingIntegranteIds((atual) => {
+                                const proximo = new Set(atual);
+                                proximo.delete(integrante.id);
+                                return proximo;
+                              }),
+                          });
+                        }}
+                        disabled={removingIntegranteIds.has(integrante.id)}
                         className="flex-shrink-0"
-                        aria-label="Remover integrante"
+                        aria-label={`Remover ${integrante.nome}`}
                       >
                         <X className="h-4 w-4 text-destructive" />
                       </Button>

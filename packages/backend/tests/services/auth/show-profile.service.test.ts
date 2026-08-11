@@ -6,7 +6,6 @@
  */
 
 import fakeUsersRepository from '../../fakes/auth/fake-users.repository.js';
-import { AppError } from '../../../src/errors/AppError.js';
 
 vi.mock('../../../src/repositories/auth/users.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-users.repository.js');

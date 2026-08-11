@@ -28,6 +28,10 @@ import { handleClickableKeyDown } from "@/lib/utils";
 
 const ITEMS_PER_PAGE = 20;
 
+/** Formato de UUID aceito pelo backend no filtro `categorias`. */
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Componente de skeleton para o item de música durante carregamento.
  *
@@ -80,8 +84,15 @@ const Songs = () => {
    */
   const normalizedQ = q.trim();
   const categoriasParam = searchParams.get("categorias") ?? "";
+  /**
+   * Mantém apenas UUIDs bem formados vindos da URL, pelo mesmo motivo do filtro
+   * de intensidades logo abaixo: o backend valida `categorias` com
+   * `z.array(uuidSchema)` e devolve 400 ao primeiro token inválido, o que
+   * jogaria a página inteira no `ErrorState` por causa de um link velho ou
+   * editado à mão. Descartar o token inválido degrada para "sem esse filtro".
+   */
   const categoriaIds = categoriasParam
-    ? categoriasParam.split(",").filter(Boolean)
+    ? categoriasParam.split(",").filter((v) => UUID_REGEX.test(v))
     : [];
   const intensidadesParam = searchParams.get("intensidades") ?? "";
   /**
@@ -161,20 +172,28 @@ const Songs = () => {
    * Replace silencioso no histórico para evitar entradas extras de
    * navegação ao recuperar do estado inválido.
    */
+  /**
+   * Só o primitivo entra no efeito abaixo. Ler `meta` inteiro lá dentro
+   * obrigaria a listá-lo nas dependências, e como o objeto ganha nova
+   * referência a cada fetch, o efeito rodaria mesmo sem mudança na contagem
+   * de páginas (ex.: `total` muda com a mesma quantidade de páginas).
+   */
+  const totalPages = meta?.total_pages;
+
   useEffect(
     function clampPageToMeta() {
-      if (!meta || meta.total_pages < 1) return;
-      if (page <= meta.total_pages) return;
+      if (totalPages === undefined || totalPages < 1) return;
+      if (page <= totalPages) return;
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          next.set("page", String(meta.total_pages));
+          next.set("page", String(totalPages));
           return next;
         },
         { replace: true },
       );
     },
-    [meta?.total_pages, meta, page, setSearchParams],
+    [totalPages, page, setSearchParams],
   );
 
   /**

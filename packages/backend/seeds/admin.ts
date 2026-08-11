@@ -23,11 +23,7 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { seedTenantDefaults } from './domain-defaults.js';
-
-/** UUID fixo do tenant sentinela para atribuições de nível plataforma. */
-const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
-/** UUID fixo do tenant padrão para migração de dados existentes. */
-const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+import { SYSTEM_TENANT_ID, DEFAULT_TENANT_ID } from '../prisma/tenant-ids.js';
 
 /**
  * Valida e retorna as variáveis de ambiente obrigatórias para o seed admin.

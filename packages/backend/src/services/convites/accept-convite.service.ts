@@ -7,6 +7,7 @@
  * para garantir atomicidade e evitar race conditions.
  */
 import bcrypt from 'bcryptjs';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../../errors/AppError.js';
 import convitesRepository from '../../repositories/convites.repository.js';
 import integrantesRepository from '../../repositories/integrantes.repository.js';
@@ -127,64 +128,89 @@ class AcceptInviteService {
             throw new AppError('Senha incorreta para a conta existente.', 401);
         }
 
-        /** Vincula e marca como usado atomicamente com guards de duplicata e TOCTOU. */
-        await prisma.$transaction(async (tx) => {
-            /** Verifica se o usuário já pertence ao tenant do convite (dentro da transaction para evitar race condition). */
-            const existingLink = await tx.tenantUsers.findUnique({
-                where: {
-                    tenant_id_user_id: {
-                        tenant_id: invite.tenant_id,
-                        user_id: existingUser.id,
-                    },
-                },
-            });
-
-            if (existingLink) {
-                throw new AppError('Você já pertence a este grupo.', 409);
-            }
-
-            /** Claim atômico: atualiza apenas se unused/unrevoked/não expirado. */
-            const now = new Date();
-            const claim = await tx.inviteTokens.updateMany({
-                where: {
-                    id: invite.id,
-                    used_at: null,
-                    revoked_at: null,
-                    expires_at: { gt: now },
-                },
-                data: { used_at: now, used_by: existingUser.id },
-            });
-
-            if (claim.count !== 1) {
-                throw new AppError('Este convite já foi utilizado, cancelado ou expirou.', 400);
-            }
-
-            await tx.tenantUsers.create({
-                data: { tenant_id: invite.tenant_id, user_id: existingUser.id },
-            });
-
-            /** Papel de membro básico no tenant (spec 023, FR-004). */
-            await tx.usersRoles.upsert({
-                where: {
-                    user_id_role_id_tenant_id: {
-                        user_id: existingUser.id,
-                        role_id: memberRoleId,
-                        tenant_id: invite.tenant_id,
-                    },
-                },
-                update: {},
-                create: {
-                    user_id: existingUser.id,
-                    role_id: memberRoleId,
-                    tenant_id: invite.tenant_id,
-                },
-            });
-        });
+        await prisma.$transaction((tx) =>
+            this.vincularUsuarioExistente(tx, existingUser.id, invite, memberRoleId),
+        );
 
         return {
             statusCode: 200,
             msg: 'Você foi adicionado à igreja com sucesso! Faça login para continuar.',
         };
+    }
+
+    /**
+     * Vincula um usuário já cadastrado ao tenant e consome o convite — tudo
+     * dentro da transação recebida.
+     *
+     * Os quatro passos (guarda de duplicata, claim do convite, criação do
+     * vínculo e atribuição da role) precisam valer ou falhar juntos: um vínculo
+     * criado sem o convite consumido permitiria reusar o link, e um convite
+     * consumido sem o vínculo deixaria o participante fora da igreja com o
+     * convite já gasto.
+     *
+     * @param tx - Cliente da transação em curso
+     * @param userId - UUID do usuário já cadastrado
+     * @param invite - Registro do convite com `id` e `tenant_id`
+     * @param memberRoleId - UUID da role de membro básico a atribuir no tenant
+     * @throws {AppError} 409 se o usuário já pertencer ao tenant
+     * @throws {AppError} 400 se o convite já tiver sido usado, revogado ou expirado
+     */
+    private async vincularUsuarioExistente(
+        tx: Prisma.TransactionClient,
+        userId: string,
+        invite: { id: string; tenant_id: string },
+        memberRoleId: string,
+    ): Promise<void> {
+        /** Verifica se o usuário já pertence ao tenant do convite (dentro da transaction para evitar race condition). */
+        const existingLink = await tx.tenantUsers.findUnique({
+            where: {
+                tenant_id_user_id: {
+                    tenant_id: invite.tenant_id,
+                    user_id: userId,
+                },
+            },
+        });
+
+        if (existingLink) {
+            throw new AppError('Você já pertence a este grupo.', 409);
+        }
+
+        /** Claim atômico: atualiza apenas se unused/unrevoked/não expirado. */
+        const now = new Date();
+        const claim = await tx.inviteTokens.updateMany({
+            where: {
+                id: invite.id,
+                used_at: null,
+                revoked_at: null,
+                expires_at: { gt: now },
+            },
+            data: { used_at: now, used_by: userId },
+        });
+
+        if (claim.count !== 1) {
+            throw new AppError('Este convite já foi utilizado, cancelado ou expirou.', 400);
+        }
+
+        await tx.tenantUsers.create({
+            data: { tenant_id: invite.tenant_id, user_id: userId },
+        });
+
+        /** Papel de membro básico no tenant (spec 023, FR-004). */
+        await tx.usersRoles.upsert({
+            where: {
+                user_id_role_id_tenant_id: {
+                    user_id: userId,
+                    role_id: memberRoleId,
+                    tenant_id: invite.tenant_id,
+                },
+            },
+            update: {},
+            create: {
+                user_id: userId,
+                role_id: memberRoleId,
+                tenant_id: invite.tenant_id,
+            },
+        });
     }
 
     /**
@@ -208,46 +234,64 @@ class AcceptInviteService {
         const passwordHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
         /** Cria user + vínculo + marca token atomicamente com claim condicional. */
-        await prisma.$transaction(async (tx) => {
-            /** Claim atômico: atualiza apenas se unused/unrevoked/não expirado. */
-            const now = new Date();
-            const claim = await tx.inviteTokens.updateMany({
-                where: {
-                    id: invite.id,
-                    used_at: null,
-                    revoked_at: null,
-                    expires_at: { gt: now },
-                },
-                data: { used_at: now },
-            });
+        try {
+            await prisma.$transaction(async (tx) => {
+                /** Claim atômico: atualiza apenas se unused/unrevoked/não expirado. */
+                const now = new Date();
+                const claim = await tx.inviteTokens.updateMany({
+                    where: {
+                        id: invite.id,
+                        used_at: null,
+                        revoked_at: null,
+                        expires_at: { gt: now },
+                    },
+                    data: { used_at: now },
+                });
 
-            if (claim.count !== 1) {
-                throw new AppError('Este convite já foi utilizado, cancelado ou expirou.', 400);
+                if (claim.count !== 1) {
+                    throw new AppError('Este convite já foi utilizado, cancelado ou expirou.', 400);
+                }
+
+                const user = await tx.users.create({
+                    data: { name: nome, email, password: passwordHash },
+                });
+
+                await tx.tenantUsers.create({
+                    data: { tenant_id: invite.tenant_id, user_id: user.id },
+                });
+
+                /** Papel de membro básico no tenant (spec 023, FR-004). */
+                await tx.usersRoles.create({
+                    data: {
+                        user_id: user.id,
+                        role_id: memberRoleId,
+                        tenant_id: invite.tenant_id,
+                    },
+                });
+
+                /** Atualiza used_by após criação do user (ID só disponível após create). */
+                await tx.inviteTokens.update({
+                    where: { id: invite.id },
+                    data: { used_by: user.id },
+                });
+            });
+        } catch (error) {
+            /**
+             * O `findByEmail` de `execute` roda fora da transação, então dois aceites
+             * concorrentes para o mesmo e-mail ainda não cadastrado passam juntos pela
+             * checagem e colidem na unique de `Users.email`. Sem esta tradução o `P2002`
+             * escaparia cru como 500 (o handler de `app.ts` ecoa `err.message` fora de
+             * produção), contrariando "erros do Prisma nunca devem escapar crus".
+             */
+            const prismaError = error as { code?: string };
+            if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
+                throw new AppError(
+                    'Este e-mail já possui uma conta. Faça login para vincular-se à igreja.',
+                    409,
+                );
             }
-
-            const user = await tx.users.create({
-                data: { name: nome, email, password: passwordHash },
-            });
-
-            await tx.tenantUsers.create({
-                data: { tenant_id: invite.tenant_id, user_id: user.id },
-            });
-
-            /** Papel de membro básico no tenant (spec 023, FR-004). */
-            await tx.usersRoles.create({
-                data: {
-                    user_id: user.id,
-                    role_id: memberRoleId,
-                    tenant_id: invite.tenant_id,
-                },
-            });
-
-            /** Atualiza used_by após criação do user (ID só disponível após create). */
-            await tx.inviteTokens.update({
-                where: { id: invite.id },
-                data: { used_by: user.id },
-            });
-        });
+            throw error;
+        }
 
         return {
             statusCode: 201,

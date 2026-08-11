@@ -16,6 +16,10 @@ enum TenantStatus {
 }
 
 /// Representa uma igreja/comunidade no sistema multi-tenant.
+/// `name` tem índice ÚNICO case-insensitive sobre `lower(name)`, criado na
+/// migração `20260811003000_add_tenants_name_unique_ci`. Expressões não são
+/// representáveis aqui, então o índice não aparece no schema — mas existe no
+/// banco, e `igrejas.service` traduz o `P2002` correspondente em 409.
 model Tenant {
   id         String       @id @default(uuid()) @db.Uuid
   name       String       @db.VarChar(255)

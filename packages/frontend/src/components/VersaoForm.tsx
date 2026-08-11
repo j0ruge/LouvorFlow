@@ -170,143 +170,143 @@ export function VersaoForm({
           </>
         }
       >
-            <FormField
-              control={form.control}
-              name="artista_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Artista (opcional)</FormLabel>
-                  <FormControl>
-                    <CreatableCombobox
-                      options={artistaOptions}
-                      value={field.value || undefined}
-                      onSelect={field.onChange}
-                      onCreate={handleCreateArtista}
-                      placeholder="Não informado (opcional)"
-                      searchPlaceholder="Buscar artista..."
-                      isLoading={artistasLoading}
-                      disabled={artistaBloqueado}
-                      aria-describedby={
-                        exibirAvisoAlteracaoArtista
-                          ? "versao-artista-aviso"
-                          : undefined
-                      }
-                    />
-                  </FormControl>
-                  {exibirAvisoAlteracaoArtista && (
-                    <p
-                      id="versao-artista-aviso"
-                      className="text-xs text-muted-foreground"
-                    >
-                      Alterar o artista move esta versão para outro artista. Use apenas para corrigir cadastros.
-                    </p>
-                  )}
-                  <FormMessage />
-                </FormItem>
+        <FormField
+          control={form.control}
+          name="artista_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Artista (opcional)</FormLabel>
+              <FormControl>
+                <CreatableCombobox
+                  options={artistaOptions}
+                  value={field.value || undefined}
+                  onSelect={field.onChange}
+                  onCreate={handleCreateArtista}
+                  placeholder="Não informado (opcional)"
+                  searchPlaceholder="Buscar artista..."
+                  isLoading={artistasLoading}
+                  disabled={artistaBloqueado}
+                  aria-describedby={
+                    exibirAvisoAlteracaoArtista
+                      ? "versao-artista-aviso"
+                      : undefined
+                  }
+                />
+              </FormControl>
+              {exibirAvisoAlteracaoArtista && (
+                <p
+                  id="versao-artista-aviso"
+                  className="text-xs text-muted-foreground"
+                >
+                  Alterar o artista move esta versão para outro artista. Use apenas para corrigir cadastros.
+                </p>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="intensidade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Intensidade</FormLabel>
-                  <FormControl>
-                    <IntensidadeSelector
-                      value={field.value as "calma" | "media" | "agitada" | "" | undefined}
-                      onChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bpm"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>BPM (opcional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Ex.: 120"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="cifras"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cifras (opcional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Cole as cifras aqui..."
-                      className="min-h-[80px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lyrics"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Letras (opcional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Cole a letra aqui..."
-                      className="min-h-[80px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="link_versao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Link (opcional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://youtube.com/..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="cifraclub_url"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Link CifraClub (opcional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://www.cifraclub.com.br/artista/musica/"
-                      className="w-full"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="intensidade"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Intensidade (opcional)</FormLabel>
+              <FormControl>
+                <IntensidadeSelector
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bpm"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>BPM (opcional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Ex.: 120"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="cifras"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cifras (opcional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Cole as cifras aqui..."
+                  className="min-h-[80px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="lyrics"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Letras (opcional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Cole a letra aqui..."
+                  className="min-h-[80px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="link_versao"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Link (opcional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="url"
+                  placeholder="https://youtube.com/..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="cifraclub_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Link CifraClub (opcional)</FormLabel>
+              <FormControl>
+                <Input
+                  type="url"
+                  placeholder="https://www.cifraclub.com.br/artista/musica/"
+                  className="w-full"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </ResponsiveFormDialog>
     </Form>
   );

@@ -16,17 +16,31 @@ import type {
 /**
  * Achata uma versão crua (`Artistas_Musicas` projetada) no formato consumido pela API.
  *
- * @param raw - Versão bruta vinda do Prisma ou `null`
- * @returns Objeto plano `{ id, artista_nome, link_versao }` ou `null`
+ * Recebe apenas versões existentes — usada nos itens de `versoes_disponiveis`,
+ * que nunca contêm `null`. Manter esta variante evita o `!` no `.map`, que
+ * silenciaria um `null` real caso a projeção mudasse.
+ *
+ * @param raw - Versão bruta vinda do Prisma
+ * @returns Objeto plano `{ id, artista_nome, link_versao, cifraclub_url }`
  */
-function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | null {
-    if (!raw) return null;
+function flattenVersaoObrigatoria(raw: VersaoMusicaShowRaw): VersaoMusicaEvento {
     return {
         id: raw.id,
         artista_nome: raw.artistas_musicas_artista_id_fkey?.nome ?? null,
         link_versao: raw.link_versao,
         cifraclub_url: raw.cifraclub_url,
     };
+}
+
+/**
+ * Variante que aceita ausência de versão — usada em `versao_selecionada`,
+ * que é `null` quando nenhuma versão foi escolhida para a música no evento.
+ *
+ * @param raw - Versão bruta vinda do Prisma ou `null`
+ * @returns Objeto plano da versão, ou `null`
+ */
+function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | null {
+    return raw ? flattenVersaoObrigatoria(raw) : null;
 }
 
 /**
@@ -43,7 +57,7 @@ function flattenEventoMusicaDetail(raw: EventoMusicaDetailRaw): MusicaEvento {
         tonalidade: musica.musicas_fk_tonalidade_fkey,
         ordem: raw.ordem,
         versao_selecionada: flattenVersao(raw.eventos_musicas_artistas_musicas_fkey),
-        versoes_disponiveis: musica.Artistas_Musicas.map(v => flattenVersao(v)!),
+        versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
     };
 }
 
@@ -90,7 +104,7 @@ function formatEventoShow(e: EventoShowRaw) {
                 tonalidade: musica.musicas_fk_tonalidade_fkey,
                 ordem: m.ordem,
                 versao_selecionada: flattenVersao(m.eventos_musicas_artistas_musicas_fkey),
-                versoes_disponiveis: musica.Artistas_Musicas.map(v => flattenVersao(v)!),
+                versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
             };
         }),
         integrantes: e.Eventos_Users.map(i => {
@@ -137,12 +151,15 @@ class EventosService {
         if (!data) errors.push("Data do evento é obrigatória");
         if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
 
-        if (data && isNaN(Date.parse(String(data)))) {
+        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
+        const timestamp = data ? Date.parse(String(data)) : NaN;
+
+        if (data && isNaN(timestamp)) {
             errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
         }
 
-        if (data && !isNaN(Date.parse(String(data)))) {
-            const parsedYear = new Date(data).getFullYear();
+        if (data && !isNaN(timestamp)) {
+            const parsedYear = new Date(timestamp).getFullYear();
             if (parsedYear < 1900 || parsedYear > 9999) {
                 errors.push("Ano da data do evento deve estar entre 1900 e 9999");
             }
@@ -183,12 +200,15 @@ class EventosService {
 
         const { data, fk_tipo_evento, descricao } = body;
 
-        if (data !== undefined && isNaN(Date.parse(String(data)))) {
+        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
+        const timestamp = data !== undefined ? Date.parse(String(data)) : NaN;
+
+        if (data !== undefined && isNaN(timestamp)) {
             throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
         }
 
-        if (data !== undefined && !isNaN(Date.parse(String(data)))) {
-            const parsedYear = new Date(data).getFullYear();
+        if (data !== undefined && !isNaN(timestamp)) {
+            const parsedYear = new Date(timestamp).getFullYear();
             if (parsedYear < 1900 || parsedYear > 9999) {
                 throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
             }
@@ -554,7 +574,13 @@ class EventosService {
             if (invalidas.length > 0) {
                 throw new AppError("Função inválida: não pertence ao integrante", 400);
             }
-            selectedFuncaoIds = funcao_ids;
+            /**
+             * Deduplica antes de gravar: `funcao_ids` repetido faria `createIntegrante`
+             * tentar dois inserts iguais em `Eventos_Users_Funcoes`, violar a unique e
+             * derrubar a transação inteira — o vínculo do integrante, que era válido,
+             * também seria desfeito, e o cliente receberia um 409 genérico.
+             */
+            selectedFuncaoIds = Array.from(new Set(funcao_ids));
         }
 
         /**

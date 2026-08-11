@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { selectDefaultVersaoId } from "@/components/MusicaVersaoPicker";
+import { selectDefaultVersaoId } from "@/lib/versao-selection";
 import type { VersaoMusica } from "@/schemas/evento";
 
 /** Fábrica auxiliar para criar versões de teste. */

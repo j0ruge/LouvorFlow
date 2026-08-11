@@ -8,7 +8,6 @@
 import fakeRecoveryTokensRepository from '../../fakes/auth/fake-recovery-tokens.repository.js';
 import fakeUsersRepository from '../../fakes/auth/fake-users.repository.js';
 import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
-import { AppError } from '../../../src/errors/AppError.js';
 
 vi.mock('../../../src/repositories/auth/recovery-tokens.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-recovery-tokens.repository.js');

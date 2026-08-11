@@ -4,6 +4,8 @@
  * Contexto: ministério de louvor gospel.
  */
 
+import { SYSTEM_TENANT_ID, DEFAULT_TENANT_ID } from '../../prisma/tenant-ids.js';
+
 // ─── Credenciais de teste (NÃO são segredos reais) ──────
 /**
  * Senha fixa usada apenas em fixtures de teste de autenticação.
@@ -24,10 +26,16 @@ export const HASH_TESTE: string = process.env.TEST_HASH ?? ['hashed', 'existing'
 
 // ─── Tenants ─────────────────────────────────────────────
 
-/** Tenant sentinela para atribuições de nível plataforma (ex: super-admin). */
-export const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
-/** Tenant padrão para migração de dados existentes. */
-export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+/**
+ * Reexporta os IDs reais dos tenants de sistema em vez de redeclará-los: se um
+ * mock divergisse do valor de produção, os testes passariam contra um universo
+ * que não existe (ex.: guarda do tenant sentinela deixaria de ser exercitada).
+ *
+ * É `import` + `export` (e não `export ... from`) porque as constantes também
+ * são usadas logo abaixo, em `MOCK_TENANTS` — um reexport puro não cria binding
+ * local e quebraria essas referências em tempo de execução.
+ */
+export { SYSTEM_TENANT_ID, DEFAULT_TENANT_ID };
 /** Tenant A para testes de isolamento multi-tenant. */
 export const TENANT_A_ID = 'aaa00002-0000-0000-0000-000000000001';
 /** Tenant B para testes de isolamento multi-tenant. */

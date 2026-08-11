@@ -160,7 +160,12 @@ class MusicasService {
      * @throws {AppError} 400 se nome ausente; 404 se tonalidade/artista/categoria/função não existir
      */
     async createComplete(body: CreateMusicaCompleteInput, tenantId: string): Promise<Musica> {
-        const { nome, fk_tonalidade, artista_id, bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade, categoria_ids, funcao_ids } = body;
+        /**
+         * Só os campos usados nas validações abaixo são desestruturados — os demais
+         * (bpm, cifras, lyrics, link_versao, cifraclub_url, intensidade) seguem para
+         * o repositório dentro do próprio `body`, que é passado inteiro.
+         */
+        const { nome, fk_tonalidade, artista_id, categoria_ids, funcao_ids } = body;
 
         if (!nome) throw new AppError("Nome da música é obrigatório", 400);
 

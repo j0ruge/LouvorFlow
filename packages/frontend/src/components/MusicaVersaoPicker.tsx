@@ -10,7 +10,7 @@
  * dispara uma limpeza silenciosa para sincronizar com o backend.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -20,6 +20,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Disc3 } from "lucide-react";
 import type { VersaoMusica } from "@/schemas/evento";
+import {
+  selectDefaultVersaoId,
+  computeBadgeLabel,
+} from "@/lib/versao-selection";
 
 /**
  * Valor sentinela para a opção "Sem versão" no radio group.
@@ -27,54 +31,6 @@ import type { VersaoMusica } from "@/schemas/evento";
  */
 const SEM_VERSAO_VALUE = "__sem_versao__";
 
-/**
- * Determina o ID da versão padrão a ser selecionada automaticamente.
- *
- * Regras:
- * - Se há 0 versões: retorna null.
- * - Se há seleção atual que ainda existe na lista: retorna o id da seleção atual.
- * - Se há seleção atual stale (não existe mais nas versões): retorna null.
- * - Se não há seleção e há exatamente 1 versão: retorna o id dessa versão (auto-select).
- * - Se não há seleção e há múltiplas versões: retorna null (não adivinha).
- *
- * @param versoes - Lista de versões disponíveis para a música.
- * @param current - Versão atualmente selecionada, ou null.
- * @returns ID da versão a selecionar, ou null.
- */
-export function selectDefaultVersaoId(
-  versoes: VersaoMusica[],
-  current: VersaoMusica | null,
-): string | null {
-  if (versoes.length === 0) return null;
-
-  if (current !== null) {
-    const stillExists = versoes.some((v) => v.id === current.id);
-    return stillExists ? current.id : null;
-  }
-
-  if (versoes.length === 1) return versoes[0].id;
-
-  return null;
-}
-
-/**
- * Calcula o label do badge considerando o estado da seleção.
- *
- * @param versaoSelecionada - Versão selecionada (pode estar stale).
- * @param versoesDisponiveis - Lista atualizada de versões.
- * @returns Label a exibir no badge.
- */
-function computeBadgeLabel(
-  versaoSelecionada: VersaoMusica | null,
-  versoesDisponiveis: VersaoMusica[],
-): string {
-  if (versaoSelecionada === null) return "Sem versão";
-
-  const stillExists = versoesDisponiveis.some((v) => v.id === versaoSelecionada.id);
-  if (!stillExists) return "Sem versão";
-
-  return versaoSelecionada.artista_nome ?? "Sem artista";
-}
 
 /**
  * Props do componente MusicaVersaoPicker.
@@ -116,6 +72,8 @@ export function MusicaVersaoPicker({
   readOnly = false,
 }: MusicaVersaoPickerProps) {
   const [open, setOpen] = useState(false);
+  /** Liga o título do popover ao `radiogroup`, que não tem nome acessível próprio. */
+  const tituloId = useId();
   /**
    * Guard composto do auto-select: reseta sempre que `musicaId` muda ou quando o
    * conjunto de IDs de versões disponíveis muda (swap com mesma cardinalidade
@@ -123,31 +81,37 @@ export function MusicaVersaoPicker({
    */
   const autoSelectKeyRef = useRef<string | null>(null);
 
+  /**
+   * Mantém `onSelect` acessível ao efeito sem entrar nas dependências dele.
+   *
+   * O consumidor (`EventoDetail`) passa uma arrow inline, cuja identidade muda
+   * a cada render do card — inclusive durante o arraste. Listá-la nas deps faria
+   * o efeito reexecutar nessas horas, sem que nada relevante tivesse mudado.
+   */
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  /**
+   * Aplica silenciosamente a seleção padrão: limpa uma versão que saiu da lista
+   * e auto-seleciona quando só existe uma opção.
+   *
+   * A decisão vem de `selectDefaultVersaoId` — a mesma função coberta pelos
+   * testes unitários. Reimplementar as regras aqui deixaria duas cópias da
+   * mesma lógica, e a suíte continuaria verde se elas divergissem.
+   */
   useEffect(() => {
     if (readOnly) return;
 
     const currentKey = `${musicaId}:${versoesDisponiveis.map((v) => v.id).join(",")}`;
     if (autoSelectKeyRef.current === currentKey) return;
-
-    // Caso 1: seleção stale — limpar silenciosamente.
-    if (
-      versaoSelecionada !== null &&
-      !versoesDisponiveis.some((v) => v.id === versaoSelecionada.id)
-    ) {
-      autoSelectKeyRef.current = currentKey;
-      onSelect(null, { silent: true });
-      return;
-    }
-
-    // Caso 2: auto-select quando há exatamente uma versão e nenhuma seleção.
-    if (versoesDisponiveis.length === 1 && versaoSelecionada === null) {
-      autoSelectKeyRef.current = currentKey;
-      onSelect(versoesDisponiveis[0].id, { silent: true });
-      return;
-    }
-
     autoSelectKeyRef.current = currentKey;
-  }, [musicaId, versoesDisponiveis, versaoSelecionada, onSelect, readOnly]);
+
+    const desejado = selectDefaultVersaoId(versoesDisponiveis, versaoSelecionada);
+    const atual = versaoSelecionada?.id ?? null;
+    if (desejado !== atual) {
+      onSelectRef.current(desejado, { silent: true });
+    }
+  }, [musicaId, versoesDisponiveis, versaoSelecionada, readOnly]);
 
   if (versoesDisponiveis.length === 0) return null;
 
@@ -194,12 +158,15 @@ export function MusicaVersaoPicker({
           <span className="truncate max-w-[10rem]">{badgeLabel}</span>
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-3" align="start">
-        <p className="text-sm font-medium mb-2">Selecionar versão</p>
+      <PopoverContent className="w-64 max-w-[calc(100vw-2rem)] p-3" align="start">
+        <p id={tituloId} className="text-sm font-medium mb-2">
+          Selecionar versão
+        </p>
         <RadioGroup
           value={radioValue}
           onValueChange={handleValueChange}
           className="gap-2"
+          aria-labelledby={tituloId}
         >
           {versoesDisponiveis.map((versao) => (
             <div key={versao.id} className="flex items-center space-x-2">

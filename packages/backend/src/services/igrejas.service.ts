@@ -31,6 +31,63 @@ function recusarTenantDeSistema(id: string): void {
 }
 
 /**
+ * Traduz o `P2002` de `tenant_users` em `AppError` 409.
+ *
+ * O `findTenantUser` feito antes da escrita resolve o caso comum, mas duas
+ * requisições concorrentes para o mesmo par (tenant, usuário) podem passar
+ * juntas pela checagem e colidir na unique `@@unique([tenant_id, user_id])`.
+ * Sem esta tradução o `P2002` cru escaparia como 500 ecoando `err.message`
+ * fora de produção, contrariando a regra "erros do Prisma nunca devem escapar
+ * crus" de `.claude/rules/backend-api.md`.
+ *
+ * @param error - Erro capturado da transação de vinculação
+ * @throws AppError 409 quando for violação de unicidade; re-lança os demais
+ */
+function traduzirVinculoDuplicado(error: unknown): never {
+  const prismaError = error as { code?: string };
+  if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
+    throw new AppError('Usuário já vinculado a essa igreja', 409);
+  }
+  throw error;
+}
+
+/**
+ * Traduz o `P2002` do índice único `tenants_name_lower_key` em `AppError` 409.
+ *
+ * O `findByName` antes da escrita cobre o caso comum, mas duas requisições
+ * concorrentes com o mesmo nome passam juntas por ele. Quem perder a corrida
+ * bate no índice único case-insensitive criado na migração
+ * `20260811003000_add_tenants_name_unique_ci` e precisa receber o mesmo 409 do
+ * caminho sequencial, não um 500 com a mensagem crua do Prisma.
+ *
+ * @param error - Erro capturado da criação/atualização do tenant
+ * @throws AppError 409 quando for violação de unicidade de nome; re-lança os demais
+ */
+function traduzirNomeDuplicado(error: unknown): never {
+  const prismaError = error as { code?: string };
+  if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
+    throw new AppError('Já existe uma igreja com esse nome', 409);
+  }
+  throw error;
+}
+
+/**
+ * Aplica os efeitos colaterais obrigatórios da desativação de um tenant.
+ *
+ * Desativar uma igreja precisa (1) invalidar o cache de status, para o
+ * middleware de auth enxergar a mudança imediatamente, e (2) revogar os
+ * refresh tokens dos usuários vinculados, senão eles seguem renovando sessão
+ * num tenant desativado. Os dois passos vivem aqui para que valham igualmente
+ * pelo `DELETE /igrejas/:id` e pelo `PUT /igrejas/:id` com `status: 'inactive'`.
+ *
+ * @param id - UUID do tenant desativado
+ */
+async function aplicarEfeitosDeDesativacao(id: string): Promise<void> {
+  invalidateTenantCache(id);
+  await igrejasRepository.invalidateRefreshTokens(id);
+}
+
+/**
  * Service responsável pela gestão de tenants (igrejas) na plataforma.
  *
  * Implementa as regras de negócio: unicidade de nome, existência de
@@ -83,20 +140,28 @@ class IgrejasService {
      * gravada e meio-semeada, e a tentativa seguinte com o mesmo nome bateria
      * no 409 acima — sem caminho de recuperação pela API.
      */
-    return prisma.$transaction(async (tx) => {
-      const tenant = await igrejasRepository.create({ name }, tx);
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const tenant = await igrejasRepository.create({ name }, tx);
 
-      /** Semeia dados padrão de domínio (funções, tipos de evento, categorias) na nova igreja. */
-      await seedTenantDefaults(tx, tenant.id);
+        /** Semeia dados padrão de domínio (funções, tipos de evento, categorias) na nova igreja. */
+        await seedTenantDefaults(tx, tenant.id);
 
-      return tenant;
-    });
+        return tenant;
+      });
+    } catch (error) {
+      traduzirNomeDuplicado(error);
+    }
   }
 
   /**
    * Atualiza os dados de um tenant existente.
    *
    * Verifica unicidade do nome em relação aos demais tenants (ignora o próprio).
+   *
+   * Quando o status passa a `inactive`, aplica os mesmos efeitos colaterais de
+   * `deactivate` (invalidação de cache + revogação de refresh tokens) — desativar
+   * por aqui e desativar pelo `DELETE` precisam ser equivalentes.
    *
    * @param id - UUID do tenant a atualizar
    * @param data - Campos a atualizar (nome e/ou status)
@@ -118,7 +183,12 @@ class IgrejasService {
       }
     }
 
-    const atualizado = await igrejasRepository.update(id, data);
+    let atualizado;
+    try {
+      atualizado = await igrejasRepository.update(id, data);
+    } catch (error) {
+      traduzirNomeDuplicado(error);
+    }
 
     /**
      * Invalida o cache de status APÓS a escrita no banco. Invalidar antes da escrita
@@ -126,7 +196,9 @@ class IgrejasService {
      * poderia re-popular o cache logo após a invalidação, deixando o status obsoleto
      * em cache até o TTL expirar. (Mesma ordem usada em `deactivate`.)
      */
-    if (data.status !== undefined) {
+    if (data.status === 'inactive') {
+      await aplicarEfeitosDeDesativacao(id);
+    } else if (data.status !== undefined) {
       invalidateTenantCache(id);
     }
 
@@ -148,15 +220,7 @@ class IgrejasService {
     }
     const resultado = await igrejasRepository.update(id, { status: 'inactive' });
 
-    /** Invalida cache de status do tenant para efeito imediato no middleware de auth. */
-    invalidateTenantCache(id);
-
-    /**
-     * Invalida todos os refresh tokens dos usuários vinculados ao tenant desativado.
-     * Isso força re-autenticação e impede que usuários continuem renovando sessões
-     * em um tenant que foi desativado pelo super-admin.
-     */
-    await igrejasRepository.invalidateRefreshTokens(id);
+    await aplicarEfeitosDeDesativacao(id);
 
     return resultado;
   }
@@ -208,28 +272,32 @@ class IgrejasService {
     }
 
     /** Vínculo e atribuição de role são atômicos: nunca um sem o outro. */
-    return prisma.$transaction(async (tx) => {
-      const vinculo = await igrejasRepository.addUser(tenantId, userId, tx);
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const vinculo = await igrejasRepository.addUser(tenantId, userId, tx);
 
-      /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
-      await tx.usersRoles.upsert({
-        where: {
-          user_id_role_id_tenant_id: {
+        /** Atribui role admin ao usuário no novo tenant (super-admin delegando gestão). */
+        await tx.usersRoles.upsert({
+          where: {
+            user_id_role_id_tenant_id: {
+              user_id: userId,
+              role_id: adminRole.id,
+              tenant_id: tenantId,
+            },
+          },
+          update: {},
+          create: {
             user_id: userId,
             role_id: adminRole.id,
             tenant_id: tenantId,
           },
-        },
-        update: {},
-        create: {
-          user_id: userId,
-          role_id: adminRole.id,
-          tenant_id: tenantId,
-        },
-      });
+        });
 
-      return vinculo;
-    });
+        return vinculo;
+      });
+    } catch (error) {
+      traduzirVinculoDuplicado(error);
+    }
   }
 
   /**
@@ -253,7 +321,16 @@ class IgrejasService {
       throw new AppError('Vínculo entre usuário e igreja não encontrado', 404);
     }
 
-    await igrejasRepository.removeUser(tenantId, userId);
+    /**
+     * A checagem acima é apenas para a mensagem de erro amigável no caso comum.
+     * A garantia real vem do `count` retornado: entre o `findTenantUser` e o
+     * delete há uma janela em que outra requisição pode remover o mesmo vínculo,
+     * e nesse caso a remoção afeta zero linhas — traduzida aqui no mesmo 404.
+     */
+    const removidos = await igrejasRepository.removeUser(tenantId, userId);
+    if (removidos === 0) {
+      throw new AppError('Vínculo entre usuário e igreja não encontrado', 404);
+    }
   }
 
   /**

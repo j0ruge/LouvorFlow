@@ -6,7 +6,7 @@
  * usuários com role "super-admin".
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +48,7 @@ import {
 } from "@/hooks/use-igrejas";
 import { CreateIgrejaFormSchema, type Igreja, type CreateIgrejaForm } from "@/schemas/auth";
 import { ErrorState } from "@/components/ErrorState";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 /**
  * Componente da página de administração de igrejas.
@@ -61,9 +62,19 @@ const AdminIgrejas = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingIgreja, setEditingIgreja] = useState<Igreja | null>(null);
+  /** Igreja aguardando confirmação de desativação (null = nenhum diálogo aberto). */
+  const [deactivatingIgreja, setDeactivatingIgreja] = useState<Igreja | null>(null);
+  /**
+   * Igreja cuja alternância de status está em voo.
+   *
+   * `updateMutation.isPending` sozinho é global: desabilitaria o botão de todas
+   * as linhas (e também o "Salvar" do diálogo de edição, que usa a mesma
+   * mutation) enquanto uma única linha era alternada.
+   */
+  const [togglingIgrejaId, setTogglingIgrejaId] = useState<string | null>(null);
 
   const {
-    data: igrejas,
+    data: todasIgrejas,
     isLoading,
     isError,
     error,
@@ -71,6 +82,21 @@ const AdminIgrejas = () => {
   } = useIgrejas();
   const createMutation = useCreateIgreja();
   const updateMutation = useUpdateIgreja();
+
+  /**
+   * Esconde o tenant sentinela da listagem.
+   *
+   * `IgrejaSchema.status` é `"active" | "inactive" | "system"`, mas a tela trata
+   * o status como binário (badge "Ativa"/"Inativa" e botão Desativar/Reativar).
+   * Um tenant `system` cairia no ramo "Inativa" com um botão "Reativar" que o
+   * backend recusa com 403 (`recusarTenantDeSistema`). Hoje o repositório já o
+   * exclui de `findAll`, então isto é defesa em profundidade: se a listagem
+   * mudar, a tela continua coerente em vez de oferecer uma ação impossível.
+   */
+  const igrejas = useMemo(
+    () => todasIgrejas?.filter((igreja) => igreja.status !== "system"),
+    [todasIgrejas],
+  );
 
   const createForm = useForm<CreateIgrejaForm>({
     resolver: zodResolver(CreateIgrejaFormSchema),
@@ -88,7 +114,7 @@ const AdminIgrejas = () => {
    * @param dados - Dados validados do formulário (nome da igreja).
    */
   function onCreateSubmit(dados: CreateIgrejaForm) {
-    createMutation.mutate({ name: dados.name! }, {
+    createMutation.mutate({ name: dados.name }, {
       onSuccess: () => {
         createForm.reset();
         setCreateDialogOpen(false);
@@ -108,7 +134,7 @@ const AdminIgrejas = () => {
   function onEditSubmit(dados: CreateIgrejaForm) {
     if (!editingIgreja) return;
     updateMutation.mutate(
-      { id: editingIgreja.id!, data: dados },
+      { id: editingIgreja.id, data: dados },
       {
         onSuccess: () => {
           editForm.reset();
@@ -135,28 +161,47 @@ const AdminIgrejas = () => {
   }
 
   /**
-   * Alterna o estado ativo/inativo de uma igreja.
+   * Aplica a mudança de status de uma igreja.
    *
    * @param igreja - Igreja a ter o status alternado.
+   * @param newStatus - Novo status a persistir.
    */
-  function handleToggleStatus(igreja: Igreja) {
-    const isActive = igreja.status === "active";
-    const newStatus = isActive ? "inactive" : "active";
+  function aplicarStatus(igreja: Igreja, newStatus: "active" | "inactive") {
+    setTogglingIgrejaId(igreja.id);
     updateMutation.mutate(
-      { id: igreja.id!, data: { status: newStatus } },
+      { id: igreja.id, data: { status: newStatus } },
       {
         onSuccess: () => {
           toast.success(
-            isActive
+            newStatus === "inactive"
               ? "Igreja desativada com sucesso."
               : "Igreja reativada com sucesso.",
           );
+          setDeactivatingIgreja(null);
         },
         onError: (err) => {
           toast.error(err instanceof Error ? err.message : "Erro ao alterar status.");
         },
+        onSettled: () => setTogglingIgrejaId(null),
       },
     );
+  }
+
+  /**
+   * Alterna o estado ativo/inativo de uma igreja.
+   *
+   * Desativar bloqueia login e renovação de sessão de **todos** os usuários
+   * daquela igreja, então exige confirmação explícita. Reativar é inócuo e
+   * segue imediato.
+   *
+   * @param igreja - Igreja a ter o status alternado.
+   */
+  function handleToggleStatus(igreja: Igreja) {
+    if (igreja.status === "active") {
+      setDeactivatingIgreja(igreja);
+      return;
+    }
+    aplicarStatus(igreja, "active");
   }
 
   return (
@@ -265,19 +310,16 @@ const AdminIgrejas = () => {
                         size="sm"
                         className="w-full"
                         onClick={() => handleToggleStatus(igreja)}
-                        disabled={updateMutation.isPending}
+                        disabled={togglingIgrejaId === igreja.id}
                       >
-                        {igreja.status === "active" ? (
-                          <>
-                            <PowerOff className="mr-1 h-3 w-3" />
-                            Desativar
-                          </>
+                        {togglingIgrejaId === igreja.id ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : igreja.status === "active" ? (
+                          <PowerOff className="mr-1 h-3 w-3" />
                         ) : (
-                          <>
-                            <Power className="mr-1 h-3 w-3" />
-                            Reativar
-                          </>
+                          <Power className="mr-1 h-3 w-3" />
                         )}
+                        {igreja.status === "active" ? "Desativar" : "Reativar"}
                       </Button>
                     </div>
                   </div>
@@ -333,19 +375,16 @@ const AdminIgrejas = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleToggleStatus(igreja)}
-                              disabled={updateMutation.isPending}
+                              disabled={togglingIgrejaId === igreja.id}
                             >
-                              {igreja.status === "active" ? (
-                                <>
-                                  <PowerOff className="mr-1 h-3 w-3" />
-                                  Desativar
-                                </>
+                              {togglingIgrejaId === igreja.id ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : igreja.status === "active" ? (
+                                <PowerOff className="mr-1 h-3 w-3" />
                               ) : (
-                                <>
-                                  <Power className="mr-1 h-3 w-3" />
-                                  Reativar
-                                </>
+                                <Power className="mr-1 h-3 w-3" />
                               )}
+                              {igreja.status === "active" ? "Desativar" : "Reativar"}
                             </Button>
                           </div>
                         </TableCell>
@@ -460,6 +499,24 @@ const AdminIgrejas = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de desativação — bloqueia o acesso de todos os membros */}
+      <DeleteConfirmDialog
+        open={deactivatingIgreja !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeactivatingIgreja(null);
+        }}
+        title="Desativar igreja?"
+        description={
+          deactivatingIgreja
+            ? `Todos os usuários de "${deactivatingIgreja.name}" perderão o acesso: novos logins são bloqueados e as sessões ativas não poderão ser renovadas. Você pode reativar a igreja depois.`
+            : ""
+        }
+        onConfirm={() => {
+          if (deactivatingIgreja) aplicarStatus(deactivatingIgreja, "inactive");
+        }}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   );
 };

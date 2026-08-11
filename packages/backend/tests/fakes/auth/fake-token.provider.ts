@@ -24,7 +24,7 @@ class FakeTokenProvider implements ITokenProvider {
    */
   sign(
     payload: Record<string, unknown>,
-    secret: string,
+    _secret: string,
     options: ITokenSignOptions,
   ): string {
     const token = `fake-token-${options.subject}-${++this.counter}`;
@@ -44,7 +44,7 @@ class FakeTokenProvider implements ITokenProvider {
    * @returns Payload decodificado com o campo `sub` e demais dados originais.
    * @throws Error se o formato do token for inválido.
    */
-  verify(token: string, secret: string): Record<string, unknown> {
+  verify(token: string, _secret: string): Record<string, unknown> {
     if (!token.startsWith('fake-token-')) {
       throw new Error('Invalid token');
     }

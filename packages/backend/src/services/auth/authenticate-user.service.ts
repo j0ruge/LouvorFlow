@@ -18,7 +18,8 @@ import dateProvider from '../../providers/date.provider.js';
 import { authConfig } from '../../config/auth.js';
 import { flattenUserRelations } from '../../types/auth.types.js';
 import type { ILoginDTO, IResponseDTO, ITenantSelectionDTO } from '../../types/auth.types.js';
-import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
+import prisma from '../../../prisma/cliente.js';
+import { montarUserSessionInclude, type UserComRelacoesDeSessao } from './user-session-include.js';
 
 /**
  * Hash de referência usado para igualar o tempo de resposta do login quando o
@@ -43,43 +44,13 @@ async function getDummyPasswordHash(): Promise<string> {
     return dummyPasswordHash;
 }
 
-/** Usuário com roles e permissões carregadas via Prisma include (com campo password). */
-interface IUserWithRelations {
-    id: string;
-    email: string;
-    password: string;
-    avatar: string | null;
-    name: string;
-    roles: Array<{
-        role: {
-            id: string;
-            name: string;
-            description: string;
-            created_at: Date;
-            updated_at: Date;
-            permissions: Array<{
-                permission: {
-                    id: string;
-                    name: string;
-                    description: string;
-                    created_at: Date;
-                    updated_at: Date;
-                };
-            }>;
-        };
-    }>;
-    permissions: Array<{
-        permission: {
-            id: string;
-            name: string;
-            description: string;
-            created_at: Date;
-            updated_at: Date;
-        };
-    }>;
-    created_at: Date;
-    updated_at: Date;
-}
+/**
+ * Usuário com roles e permissões carregadas via Prisma include (com campo password).
+ *
+ * Derivado da projeção compartilhada em `user-session-include.ts` — ver a
+ * justificativa lá para não reescrever a forma à mão.
+ */
+type IUserWithRelations = UserComRelacoesDeSessao;
 
 class AuthenticateUserService {
     /**
@@ -164,52 +135,20 @@ class AuthenticateUserService {
         // Recarrega o usuário com roles e permissões filtradas pelo tenant selecionado
         const userWithTenantRoles = await prisma.users.findUnique({
             where: { id: user.id },
-            include: {
-                roles: {
-                    where: { tenant_id: { in: [tenant.id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                                permissions: {
-                                    select: {
-                                        permission: {
-                                            select: {
-                                                id: true,
-                                                name: true,
-                                                description: true,
-                                                created_at: true,
-                                                updated_at: true,
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                permissions: {
-                    where: { tenant_id: { in: [tenant.id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        permission: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                            },
-                        },
-                    },
-                },
-            },
+            include: montarUserSessionInclude(tenant.id),
         });
 
-        return this._generateSession(userWithTenantRoles!, tenant);
+        /**
+         * O `findByEmail` acima garantiu que o usuário existia, mas esta é uma
+         * segunda leitura: nada impede que a linha tenha sido removida no intervalo.
+         * Com `!`, esse caso viraria um `TypeError` ao desestruturar `user.password`
+         * em `_generateSession` — um 500 opaco em vez de um erro tratado.
+         */
+        if (!userWithTenantRoles) {
+            throw new AppError('Usuário não encontrado', 404);
+        }
+
+        return this._generateSession(userWithTenantRoles, tenant);
     }
 
     /**

@@ -76,7 +76,7 @@ describe("SortableMusicaCard", () => {
     const onOpen = vi.fn();
     const onRemove = vi.fn();
     renderCard({ onOpen, onRemove });
-    fireEvent.click(screen.getByRole("button", { name: /remover música/i }));
+    fireEvent.click(screen.getByRole("button", { name: /remover Oceans/i }));
     expect(onRemove).toHaveBeenCalledTimes(1);
     expect(onOpen).not.toHaveBeenCalled();
   });
@@ -90,11 +90,11 @@ describe("SortableMusicaCard", () => {
     const onOpen = vi.fn();
     renderCard({ onOpen, onRemove: vi.fn() });
     fireEvent.keyDown(
-      screen.getByRole("button", { name: /arrastar para reordenar/i }),
+      screen.getByRole("button", { name: /arrastar Oceans para reordenar/i }),
       { key: "Enter" },
     );
     fireEvent.keyDown(
-      screen.getByRole("button", { name: /remover música/i }),
+      screen.getByRole("button", { name: /remover Oceans/i }),
       { key: " " },
     );
     expect(onOpen).not.toHaveBeenCalled();

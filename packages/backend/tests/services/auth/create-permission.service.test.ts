@@ -5,7 +5,6 @@
  * de nomes duplicados.
  */
 
-import { AppError } from '../../../src/errors/AppError.js';
 
 import fakePermissionsRepo from '../../fakes/auth/fake-permissions.repository.js';
 

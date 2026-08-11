@@ -5,10 +5,8 @@
  * e a rejeição de email duplicado.
  */
 
-import { AppError } from '../../../src/errors/AppError.js';
 
 import fakeUsersRepo from '../../fakes/auth/fake-users.repository.js';
-import fakeHashProvider from '../../fakes/auth/fake-hash.provider.js';
 
 vi.mock('../../../src/repositories/auth/users.repository.js', async () => {
     const fake = await import('../../fakes/auth/fake-users.repository.js');

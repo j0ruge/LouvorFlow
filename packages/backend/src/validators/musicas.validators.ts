@@ -31,6 +31,19 @@ const safeUrlSchema = z.string()
  */
 const INTENSIDADE_VALUES = ['calma', 'media', 'agitada'] as const;
 
+/** União literal das intensidades aceitas, derivada de `INTENSIDADE_VALUES`. */
+export type Intensidade = (typeof INTENSIDADE_VALUES)[number];
+
+/**
+ * Type guard que estreita uma string para a união `Intensidade`.
+ *
+ * @param valor - Texto vindo da query string
+ * @returns `true` quando o valor é uma intensidade conhecida
+ */
+function ehIntensidade(valor: string): valor is Intensidade {
+    return (INTENSIDADE_VALUES as readonly string[]).includes(valor);
+}
+
 // --- Params ---
 
 /** Schema de validação para parâmetros com `:id` (GET/PUT/DELETE /api/musicas/:id). */
@@ -204,11 +217,11 @@ export const listMusicasQuerySchema = z.object({
         }
         return parsed.data;
     }),
-    intensidades: z.string().optional().transform((val, ctx) => {
+    intensidades: z.string().optional().transform((val, ctx): Intensidade[] | undefined => {
         if (!val) return undefined;
         const items = val.split(',').map((s) => s.trim()).filter(Boolean);
         if (items.length === 0) return undefined;
-        const invalidos = items.filter((i) => !INTENSIDADE_VALUES.includes(i as (typeof INTENSIDADE_VALUES)[number]));
+        const invalidos = items.filter((i) => !ehIntensidade(i));
         if (invalidos.length > 0) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -216,7 +229,13 @@ export const listMusicasQuerySchema = z.object({
             });
             return z.NEVER;
         }
-        return Array.from(new Set(items));
+        /**
+         * `items` já foi validado item a item pelo `ehIntensidade` acima, mas o
+         * `.filter()` não estreita o array de origem — daí o filtro explícito com
+         * type guard, que faz o tipo exportado (`Intensidade[]`) refletir a
+         * garantia que o runtime já dá, em vez de continuar como `string[]`.
+         */
+        return Array.from(new Set(items.filter(ehIntensidade)));
     }),
     q: z.string().max(Q_MAX_LENGTH, `Busca não pode exceder ${Q_MAX_LENGTH} caracteres`).optional().transform((val) => {
         if (typeof val !== 'string') return undefined;

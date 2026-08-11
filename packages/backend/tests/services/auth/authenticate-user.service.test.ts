@@ -13,7 +13,6 @@ import fakeUsersRepo from '../../fakes/auth/fake-users.repository.js';
 import fakeHashProvider from '../../fakes/auth/fake-hash.provider.js';
 import fakeTokenProvider from '../../fakes/auth/fake-token.provider.js';
 import fakeRefreshTokensRepo from '../../fakes/auth/fake-refresh-tokens.repository.js';
-import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
 
 /** Tenants ativos retornados pelo mock do Prisma por padrão (tenant único). */
 let mockActiveTenants: Array<{ tenant: { id: string; name: string; status: string } }> = [];

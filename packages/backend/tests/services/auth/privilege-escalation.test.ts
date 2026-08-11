@@ -9,7 +9,6 @@
  * - Super-admins PODEM editar próprias permissões
  */
 
-import { AppError } from '../../../src/errors/AppError.js';
 
 /** Mock de roles do sistema. */
 const MOCK_ADMIN_ROLE = { id: 'role-admin-id', name: 'admin', description: 'Tenant administrator' };

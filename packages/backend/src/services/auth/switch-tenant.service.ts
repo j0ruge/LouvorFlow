@@ -8,8 +8,9 @@
  */
 
 import { AppError } from '../../errors/AppError.js';
-import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
+import prisma from '../../../prisma/cliente.js';
 import authenticateUserService from './authenticate-user.service.js';
+import { montarUserSessionInclude } from './user-session-include.js';
 import type { IResponseDTO } from '../../types/auth.types.js';
 
 /** DTO de entrada para a operação de troca de tenant. */
@@ -68,49 +69,7 @@ class SwitchTenantService {
         // Carrega o usuário completo (incluindo senha, roles e permissões filtradas pelo tenant de destino)
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            include: {
-                roles: {
-                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                                permissions: {
-                                    select: {
-                                        permission: {
-                                            select: {
-                                                id: true,
-                                                name: true,
-                                                description: true,
-                                                created_at: true,
-                                                updated_at: true,
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                permissions: {
-                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        permission: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                            },
-                        },
-                    },
-                },
-            },
+            include: montarUserSessionInclude(tenant_id),
         });
 
         if (!user) {

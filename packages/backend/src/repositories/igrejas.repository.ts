@@ -128,6 +128,7 @@ class IgrejasRepository {
    *
    * @param tenantId - UUID do tenant
    * @param userId - UUID do usuário a vincular
+   * @param client - Cliente de transação (opcional; usa o client base quando omitido)
    * @returns Registro de vínculo criado
    */
   async addUser(tenantId: string, userId: string, client: EscritaClient = prisma) {
@@ -141,17 +142,26 @@ class IgrejasRepository {
    * atribuições de roles (`UsersRoles`) e permissões diretas (`UsersPermissions`)
    * do usuário naquele tenant específico.
    *
+   * Usa `deleteMany` + checagem de `count` no vínculo (em vez de `delete`), porque
+   * `delete` lança `P2025` cru quando a linha já sumiu — cenário real numa remoção
+   * concorrente do mesmo vínculo. Com `deleteMany` a corrida é detectável pelo
+   * `count === 0` e o service a traduz em `AppError` 404, conforme a regra de
+   * `.claude/rules/backend-api.md` ("prefira `updateMany` + checagem de `count`").
+   *
    * @param tenantId - UUID do tenant
    * @param userId - UUID do usuário a desvincular
+   * @returns Número de vínculos efetivamente removidos (0 quando outra requisição venceu a corrida)
    */
-  async removeUser(tenantId: string, userId: string) {
-    await prisma.$transaction([
+  async removeUser(tenantId: string, userId: string): Promise<number> {
+    const [, , vinculo] = await prisma.$transaction([
       prisma.usersRoles.deleteMany({ where: { user_id: userId, tenant_id: tenantId } }),
       prisma.usersPermissions.deleteMany({ where: { user_id: userId, tenant_id: tenantId } }),
-      prisma.tenantUsers.delete({
-        where: { tenant_id_user_id: { tenant_id: tenantId, user_id: userId } },
+      prisma.tenantUsers.deleteMany({
+        where: { tenant_id: tenantId, user_id: userId },
       }),
     ]);
+
+    return vinculo.count;
   }
 
   /**

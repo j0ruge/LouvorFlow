@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   computeKeyFragment,
   applyKeyFragment,
-  CHROMATIC_MAP,
 } from '../../src/lib/cifraclub-key-mapping'
 
 /** Testes do mapeamento cromático para transposição CifraClub */

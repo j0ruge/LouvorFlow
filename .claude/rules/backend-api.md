@@ -79,6 +79,32 @@ Controllers **NÃO** usam try-catch. Express 5 suporta async error handling nati
 
 Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`.
 
+### Checagem de unicidade nunca basta sozinha
+
+Um `findByName`/`findByEmail`/`findTenantUser` antes da escrita resolve o **caso comum** (mensagem de erro amigável), mas não é uma trava: duas requisições concorrentes passam juntas pela checagem. Toda checagem desse tipo precisa de um respaldo no banco **e** da tradução do erro do Prisma:
+
+- `igrejas.service.addUser` — `try/catch` na `$transaction` traduzindo `P2002` de `tenant_users` em `409` (`traduzirVinculoDuplicado`).
+- `convites/accept-convite.service.handleNewUser` — `try/catch` traduzindo `P2002` de `Users.email` em `409`; o claim do convite em si já era atômico (`updateMany` condicional + `count !== 1`).
+- `igrejas.service.removeUser` — o repositório usa `deleteMany` e devolve o `count`; `count === 0` vira `404`. Nunca `delete` (que lança `P2025` cru).
+
+**Pendência conhecida**: `Tenant.name` **não tem unique constraint** no schema. `create`/`update` de igreja checam duplicidade só por leitura, então dois `POST /api/igrejas` simultâneos com o mesmo nome criam dois tenants homônimos. Fechar isso exige índice único case-insensitive (`lower(name)`, via SQL — o `@unique` do Prisma é case-sensitive) mais o `P2002` → `409`; a migração falha se já houver duplicatas em produção, então precisa de reconciliação antes.
+
+### Sequências `MAX(x) + 1` precisam de lock
+
+Calcular a próxima posição lendo o máximo e gravando `+1` é read-modify-write. Sob READ COMMITTED (padrão do Prisma no Postgres) duas requisições leem o mesmo máximo e gravam a mesma posição — e um `@@index([evento_id, ordem])` **não** é unique, portanto não barra a duplicata.
+
+`eventos.repository.createMusica` abre a transação com `SELECT id FROM eventos WHERE id = $1 FOR UPDATE`, serializando as inserções daquele evento: a segunda requisição espera a primeira concluir e só então lê o máximo já atualizado.
+
+### Projeção Prisma compartilhada, tipo derivado
+
+Quando mais de um caminho carrega a **mesma** forma de entidade, o `include`/`select` mora num módulo só e o tipo é **derivado** dele com `Prisma.<Model>GetPayload<{ include: ReturnType<typeof fn> }>` — nunca uma interface reescrita à mão espelhando a query.
+
+`services/auth/user-session-include.ts` é a referência: login, seleção e troca de igreja repetiam o mesmo `include` de ~40 linhas e havia ainda uma quarta cópia como interface (`IUserWithRelations`). Quatro cópias que só ficavam em sincronia por disciplina; agora mudar a projeção é erro de compilação em quem consome.
+
+### Efeitos colaterais de desativação vivem num único helper
+
+Desativar um tenant precisa invalidar o cache de status **e** revogar os refresh tokens dos usuários vinculados. Como o status pode virar `inactive` tanto pelo `DELETE /api/igrejas/:id` quanto pelo `PUT` com `status: 'inactive'`, os dois efeitos ficam em `aplicarEfeitosDeDesativacao` (`igrejas.service`), chamado pelos dois caminhos. Sem isso, desativar pelo `PUT` deixaria sessões ativas renovando indefinidamente num tenant desativado.
+
 ## Autenticação e Autorização (RBAC)
 
 ### Middleware chain para rotas protegidas

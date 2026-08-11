@@ -11,8 +11,9 @@ import tokenProvider from '../../providers/token.provider.js';
 import { authConfig } from '../../config/auth.js';
 import { consumeSelectionToken } from '../../providers/selection-token-store.provider.js';
 import type { ISelectTenantDTO, IResponseDTO } from '../../types/auth.types.js';
-import prisma, { SYSTEM_TENANT_ID } from '../../../prisma/cliente.js';
+import prisma from '../../../prisma/cliente.js';
 import authenticateUserService from './authenticate-user.service.js';
+import { montarUserSessionInclude } from './user-session-include.js';
 
 /**
  * Tempo de vida (ms) da marca de consumo do selection token no store de uso único.
@@ -58,49 +59,7 @@ class SelectTenantService {
         // Busca o usuário completo (com senha) via Prisma, filtrando roles e permissões pelo tenant selecionado
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            include: {
-                roles: {
-                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        role: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                                permissions: {
-                                    select: {
-                                        permission: {
-                                            select: {
-                                                id: true,
-                                                name: true,
-                                                description: true,
-                                                created_at: true,
-                                                updated_at: true,
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                permissions: {
-                    where: { tenant_id: { in: [tenant_id, SYSTEM_TENANT_ID] } },
-                    select: {
-                        permission: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                                created_at: true,
-                                updated_at: true,
-                            },
-                        },
-                    },
-                },
-            },
+            include: montarUserSessionInclude(tenant_id),
         });
 
         if (!user) {

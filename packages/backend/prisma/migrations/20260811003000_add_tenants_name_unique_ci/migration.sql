@@ -1,0 +1,13 @@
+-- Unicidade case-insensitive do nome do tenant.
+--
+-- `igrejas.service` já recusava nome duplicado via `findByName` (que compara com
+-- `mode: 'insensitive'`), mas essa checagem é só uma leitura: duas requisições
+-- concorrentes passam juntas por ela e criam dois tenants homônimos, porque não
+-- havia constraint alguma em `tenants.name`.
+--
+-- O índice é sobre `lower(name)` — e não um `@unique` do Prisma — porque o
+-- `@unique` gera índice case-sensitive, que deixaria "Igreja X" e "igreja x"
+-- coexistirem, divergindo da comparação usada no service. Expressões não são
+-- representáveis em `schema.prisma`, então este índice vive só aqui (ver nota no
+-- model `Tenant`).
+CREATE UNIQUE INDEX "tenants_name_lower_key" ON "tenants" (lower("name"));

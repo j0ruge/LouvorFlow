@@ -43,11 +43,13 @@ export function getPrisma(): PrismaClient {
 
 /**
  * IDs fixos dos tenants de sistema.
- * SYSTEM_TENANT_ID: tenant sentinela para atribuições de nível plataforma (ex: super-admin).
- * DEFAULT_TENANT_ID: tenant padrão para migração de dados existentes.
+ *
+ * Definidos em `tenant-ids.ts` (módulo sem efeitos colaterais) e reexportados
+ * aqui para não quebrar quem já os importava deste caminho. Seeds e testes devem
+ * importar de `tenant-ids.js`, evitando instanciar o Prisma Client só por causa
+ * de duas constantes.
  */
-export const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000';
-export const DEFAULT_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+export { SYSTEM_TENANT_ID, DEFAULT_TENANT_ID } from './tenant-ids.js';
 
 /**
  * Lista de modelos de domínio que devem ser filtrados por tenant.

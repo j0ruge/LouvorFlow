@@ -7,7 +7,7 @@
  * de integrantes na mensagem de compartilhamento da escala.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState, memo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -17,6 +17,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type Announcements,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -72,19 +73,23 @@ const ACESSIBILIDADE_ARRASTE = {
     draggable:
       "Para reordenar, pressione Espaço ou Enter para pegar o grupo, use as setas para movê-lo e pressione Espaço ou Enter novamente para soltar. Pressione Escape para cancelar.",
   },
+  /**
+   * Tipado com o `Announcements` do próprio dnd-kit em vez de shapes escritos à
+   * mão: assim uma mudança na forma de `active`/`over` numa futura versão da
+   * biblioteca vira erro de compilação, e não um anúncio silenciosamente errado.
+   */
   announcements: {
     /** Anuncia que o grupo foi pego pelo teclado. */
-    onDragStart: ({ active }: { active: { id: string | number } }) =>
-      `Grupo ${active.id} pego. Use as setas para movê-lo.`,
+    onDragStart: ({ active }) => `Grupo ${active.id} pego. Use as setas para movê-lo.`,
     /** Anuncia a posição sobre a qual o grupo está sendo movido. */
-    onDragOver: ({ over }: { over: { id: string | number } | null }) =>
+    onDragOver: ({ over }) =>
       over ? `Grupo movido sobre a posição de ${over.id}.` : "Grupo fora de uma posição válida.",
     /** Anuncia a conclusão do arraste. */
-    onDragEnd: ({ over }: { over: { id: string | number } | null }) =>
+    onDragEnd: ({ over }) =>
       over ? `Grupo solto na posição de ${over.id}.` : "Grupo solto fora de uma posição válida.",
     /** Anuncia o cancelamento do arraste. */
     onDragCancel: () => "Reordenação cancelada. O grupo voltou à posição original.",
-  },
+  } satisfies Announcements,
 };
 
 /** Propriedades do card arrastável de grupo. */
@@ -97,12 +102,18 @@ interface SortableGrupoCardProps {
   canWrite: boolean;
   /** Funções ainda não atribuídas a nenhum grupo ou pertencentes a outros. */
   funcoesDisponiveis: IdNome[];
-  /** Callback para renomear o grupo. */
-  onRename: (nome: string) => void;
+  /**
+   * Callback para renomear o grupo.
+   *
+   * Recebe o ID junto do nome (assim como `onDelete`/`onSetFuncoes`) para que o
+   * pai possa passar uma função estável: com arrows recriadas por item, o `memo`
+   * aplicado ao card não teria efeito nenhum.
+   */
+  onRename: (grupoId: string, nome: string) => void;
   /** Callback para solicitar exclusão do grupo. */
-  onDelete: () => void;
+  onDelete: (grupo: GrupoFuncoes) => void;
   /** Callback que substitui o conjunto de funções do grupo. */
-  onSetFuncoes: (funcoesIds: string[]) => void;
+  onSetFuncoes: (grupoId: string, funcoesIds: string[]) => void;
   /** Indica que uma renomeação está em andamento. */
   isUpdating: boolean;
   /** Indica que uma atribuição de funções está em andamento. */
@@ -118,7 +129,7 @@ interface SortableGrupoCardProps {
  * @param props - Propriedades do card.
  * @returns Elemento React do card do grupo.
  */
-function SortableGrupoCard({
+function SortableGrupoCardBase({
   grupo,
   posicao,
   canWrite,
@@ -157,14 +168,14 @@ function SortableGrupoCard({
   function confirmEditing() {
     const trimmed = editName.trim();
     if (!trimmed) return;
-    onRename(trimmed);
+    onRename(grupo.id, trimmed);
     setIsEditing(false);
   }
 
   /** Adiciona ao grupo a função selecionada no seletor. */
   function handleAddFuncao() {
     if (!selectedFuncaoId) return;
-    onSetFuncoes([...grupo.funcoes.map((f) => f.id), selectedFuncaoId]);
+    onSetFuncoes(grupo.id, [...grupo.funcoes.map((f) => f.id), selectedFuncaoId]);
     setSelectedFuncaoId("");
   }
 
@@ -174,7 +185,7 @@ function SortableGrupoCard({
    * @param funcaoId - UUID da função a desvincular.
    */
   function handleRemoveFuncao(funcaoId: string) {
-    onSetFuncoes(grupo.funcoes.filter((f) => f.id !== funcaoId).map((f) => f.id));
+    onSetFuncoes(grupo.id, grupo.funcoes.filter((f) => f.id !== funcaoId).map((f) => f.id));
   }
 
   /**
@@ -263,7 +274,7 @@ function SortableGrupoCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onDelete}
+                  onClick={() => onDelete(grupo)}
                   aria-label={`Excluir grupo ${grupo.nome}`}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -344,6 +355,14 @@ function SortableGrupoCard({
 }
 
 /**
+ * Card de grupo memoizado.
+ *
+ * A seção re-renderiza a cada tecla digitada no campo "Novo(a) grupo"; sem o
+ * `memo` todos os cards (cada um com seu `useSortable`) refaziam render junto.
+ */
+const SortableGrupoCard = memo(SortableGrupoCardBase);
+
+/**
  * Seção de gerenciamento dos grupos de funções.
  *
  * @returns Elemento React com a lista ordenável de grupos e o formulário de criação.
@@ -399,6 +418,36 @@ export function GruposFuncoesSection() {
     if (!trimmed) return;
     createGrupo.mutate({ nome: trimmed }, { onSuccess: () => setNewName("") });
   }
+
+  /**
+   * Renomeia um grupo.
+   *
+   * Memoizado (junto de `handleSetFuncoesDoGrupo`) porque é prop de um card
+   * memoizado: uma arrow nova a cada tecla digitada no campo "Novo grupo"
+   * anularia o `memo` e re-renderizaria a lista inteira.
+   *
+   * @param grupoId - UUID do grupo a renomear.
+   * @param nome - Novo nome já validado como não-vazio pelo card.
+   */
+  const handleRenameGrupo = useCallback(
+    (grupoId: string, nome: string) => {
+      updateGrupo.mutate({ id: grupoId, dados: { nome } });
+    },
+    [updateGrupo],
+  );
+
+  /**
+   * Substitui o conjunto de funções de um grupo.
+   *
+   * @param grupoId - UUID do grupo alvo.
+   * @param funcoesIds - Conjunto completo de funções que passa a pertencer a ele.
+   */
+  const handleSetFuncoesDoGrupo = useCallback(
+    (grupoId: string, funcoesIds: string[]) => {
+      setGrupoFuncoes.mutate({ id: grupoId, funcoesIds });
+    },
+    [setGrupoFuncoes],
+  );
 
   /**
    * Handler de fim de arraste — recalcula a ordem e persiste via mutation otimista.
@@ -461,13 +510,9 @@ export function GruposFuncoesSection() {
                   posicao={index + 1}
                   canWrite={canWrite}
                   funcoesDisponiveis={funcoesSemGrupo}
-                  onRename={(nome) =>
-                    updateGrupo.mutate({ id: grupo.id, dados: { nome } })
-                  }
-                  onDelete={() => setDeleteTarget(grupo)}
-                  onSetFuncoes={(funcoesIds) =>
-                    setGrupoFuncoes.mutate({ id: grupo.id, funcoesIds })
-                  }
+                  onRename={handleRenameGrupo}
+                  onDelete={setDeleteTarget}
+                  onSetFuncoes={handleSetFuncoesDoGrupo}
                   isUpdating={updateGrupo.isPending}
                   isSettingFuncoes={setGrupoFuncoes.isPending}
                 />

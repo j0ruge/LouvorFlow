@@ -5,12 +5,10 @@
  * purpose incorreto, usuário sem vínculo com o tenant, e tenant inativo.
  */
 
-import { AppError } from '../../../src/errors/AppError.js';
 import { TENANT_A_ID, TENANT_B_ID, MOCK_TENANTS, MOCK_TENANT_USERS, MOCK_INTEGRANTES } from '../../fakes/mock-data.js';
 
 import fakeTokenProvider from '../../fakes/auth/fake-token.provider.js';
 import fakeRefreshTokensRepo from '../../fakes/auth/fake-refresh-tokens.repository.js';
-import fakeDateProvider from '../../fakes/auth/fake-date.provider.js';
 
 /** Mock in-memory dos tenants e tenant_users para este teste. */
 const mockTenants = MOCK_TENANTS.map(t => ({ ...t, created_at: new Date(), updated_at: new Date() }));
@@ -155,7 +153,6 @@ describe('SelectTenantService', () => {
     it('deve lançar erro 403 quando usuário não está vinculado ao tenant', async () => {
         // userId do Pedro (MOCK_INTEGRANTES[2]) está em TENANT_B mas não em TENANT_A conforme mock-data
         // Usamos TENANT_B_ID para o segundo usuário que só está vinculado a TENANT_A
-        const userId2 = MOCK_INTEGRANTES[1].id; // Maria — vinculada apenas a TENANT_A
 
         const prismaModule = await import('../../../prisma/cliente.js');
         const prismaMock = prismaModule.default as any;

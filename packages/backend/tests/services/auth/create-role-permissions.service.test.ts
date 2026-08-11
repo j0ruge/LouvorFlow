@@ -5,7 +5,6 @@
  * rejeição de role inexistente e rejeição de permissões inexistentes.
  */
 
-import { AppError } from '../../../src/errors/AppError.js';
 
 import fakeRolesRepo from '../../fakes/auth/fake-roles.repository.js';
 import fakePermissionsRepo from '../../fakes/auth/fake-permissions.repository.js';

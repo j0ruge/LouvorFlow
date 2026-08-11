@@ -26,6 +26,25 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
+/**
+ * Filtro do cmdk que ignora caso E diacríticos.
+ *
+ * O filtro embutido do cmdk apenas rebaixa para minúsculas — ele não remove
+ * acentos. Isso divergia de `hasExactMatch`, que usa `normalizeForSearch`: ao
+ * digitar "do" para "Dó", o cmdk escondia o item (acento não bate) enquanto
+ * `hasExactMatch` dava `true` e suprimia tanto o `CommandEmpty` quanto o botão
+ * "Criar" — o usuário via um popover vazio, sem saída. Com este filtro as duas
+ * comparações passam a usar a mesma normalização.
+ *
+ * @param value - Rótulo da opção (usado como `value` do `CommandItem`).
+ * @param search - Texto digitado na busca.
+ * @returns 1 quando a opção corresponde à busca, 0 caso contrário.
+ */
+function filtrarIgnorandoAcentos(value: string, search: string): number {
+  if (!search) return 1;
+  return normalizeForSearch(value).includes(normalizeForSearch(search)) ? 1 : 0;
+}
+
 /** Opção individual do combobox. */
 export interface ComboboxOption {
   /** Valor único identificador (ex: UUID). */
@@ -243,7 +262,7 @@ export function CreatableCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command shouldFilter={!isExternalSearch}>
+        <Command shouldFilter={!isExternalSearch} filter={filtrarIgnorandoAcentos}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}

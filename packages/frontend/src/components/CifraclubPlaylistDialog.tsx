@@ -127,11 +127,16 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
       <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Playlist CifraClub</DialogTitle>
-          {data && (
-            <DialogDescription>
-              {data.evento.descricao} — {dataFormatada}
-            </DialogDescription>
-          )}
+          {/*
+            A descrição é sempre renderizada: condicioná-la a `data` deixava o
+            diálogo sem nome acessível durante o carregamento e no erro (o Radix
+            avisa "Missing Description" e o leitor de tela fica sem contexto).
+          */}
+          <DialogDescription>
+            {data
+              ? `${data.evento.descricao} — ${dataFormatada}`
+              : "Carregando a playlist desta escala..."}
+          </DialogDescription>
         </DialogHeader>
 
         {isLoading && (
@@ -214,11 +219,19 @@ export function CifraclubPlaylistDialog({ eventoId }: CifraclubPlaylistDialogPro
             <span className="hidden sm:inline">WhatsApp</span>
             <span className="sm:hidden" aria-hidden="true">WA</span>
           </Button>
+          {/*
+            Mantido apesar do "X" que o DialogContent já renderiza no canto: no
+            mobile o botão do rodapé fica ao alcance do polegar, enquanto o X do
+            topo exige reposicionar a mão. É `aria-hidden` para não duplicar o
+            controle de fechar na árvore de acessibilidade — quem navega por
+            leitor de tela já encontra o "Close" nativo do Radix.
+          */}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setOpen(false)}
-            aria-label="Fechar diálogo"
+            aria-hidden="true"
+            tabIndex={-1}
           >
             <X className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Fechar</span>

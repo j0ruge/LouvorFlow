@@ -172,18 +172,19 @@ const Dashboard = () => {
         {/* ── Próximas Escalas ───────────────────────────── */}
         <Card className="shadow-soft border border-border">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground">
-              <Calendar className="h-[18px] w-[18px] text-primary" />
-              Próximas Escalas
+            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground min-w-0">
+              <Calendar className="h-[18px] w-[18px] text-primary flex-shrink-0" />
+              <span className="truncate">Próximas Escalas</span>
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 text-xs flex-shrink-0"
               onClick={() => navigate("/escalas")}
+              aria-label="Ver todas as escalas"
             >
-              Ver todas
-              <ChevronRight className="ml-1 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ver todas</span>
+              <ChevronRight className="sm:ml-1 h-3.5 w-3.5" />
             </Button>
           </CardHeader>
           <CardContent>
@@ -233,7 +234,7 @@ const Dashboard = () => {
                       </div>
                       {/* Tag */}
                       {scale.tipoEvento && (
-                        <span className="ml-auto flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
+                        <span className="ml-auto flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light truncate max-w-[7rem]">
                           {scale.tipoEvento.nome}
                         </span>
                       )}
@@ -248,18 +249,19 @@ const Dashboard = () => {
         {/* ── Equipe do Ministério ──────────────────────── */}
         <Card className="shadow-soft border border-border">
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-3">
-            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground">
-              <Users className="h-[18px] w-[18px] text-primary" />
-              Equipe do Ministério
+            <CardTitle className="font-display text-base sm:text-lg font-semibold flex items-center gap-2 text-foreground min-w-0">
+              <Users className="h-[18px] w-[18px] text-primary flex-shrink-0" />
+              <span className="truncate">Equipe do Ministério</span>
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 text-xs flex-shrink-0"
               onClick={() => navigate("/integrantes")}
+              aria-label="Ver todos os integrantes"
             >
-              Ver integrantes
-              <ChevronRight className="ml-1 h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ver integrantes</span>
+              <ChevronRight className="sm:ml-1 h-3.5 w-3.5" />
             </Button>
           </CardHeader>
           <CardContent>

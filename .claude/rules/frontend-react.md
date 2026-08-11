@@ -196,7 +196,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `Dashboard.tsx` | grid-cols-2 stats + responsive gaps + truncate |
 | `admin/Roles.tsx` | Dual layout cards/table + header responsivo |
 | `admin/Users.tsx` | Dual layout cards/table + header responsivo |
-| `Escalas.tsx` | Header justify-between com prefixo sm: |
+| `Escalas.tsx` | Header `flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between` (padrão de referência) + `min-w-0` no bloco de título; `aria-label` na busca; badge de tipo com `truncate max-w-[10rem]` |
 | `IntegranteForm.tsx` | flex-wrap no select+button de funções; migrado para `ResponsiveFormDialog` |
 | `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
 | `ResponsiveFormDialog.tsx` | Shell de formulário: Drawer (mobile) / Dialog (desktop), header fixo + corpo rolável + footer sticky; corrige botão Salvar escondido e campo em foco atrás do teclado |
@@ -208,6 +208,47 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `CifraclubPlaylistDialog.tsx` | `aria-label` no gatilho icon-only |
 | `MusicaVersaoPicker.tsx` | `truncate max-w-[10rem]` no rótulo do badge (nome de artista é texto livre) |
 | `Songs.tsx` + `MusicaFiltros.tsx` | Filtros colapsáveis no mobile: chips de intensidade/categoria atrás do botão "Filtros" (Drawer bottom-sheet) com contador de ativos e "Limpar filtros"; desktop mantém chips inline; busca protagonista a 360px |
+| `Dashboard.tsx` | `CardHeader` título+botão: `min-w-0`+`truncate` no `CardTitle`, botão `flex-shrink-0` com label `hidden sm:inline` + `aria-label` (ícone puro no mobile); tag de tipo com `truncate max-w-[7rem]` |
+| `admin/IgrejaUsers.tsx` | `line-clamp-2` no `h1` com o nome da igreja (texto livre de até 255 chars) |
+
+### Ações destrutivas exigem confirmação
+
+Toda ação destrutiva e sem desfazer passa por **`DeleteConfirmDialog`** — nunca dispara direto do `onClick`. Vale também para o que não é "excluir" no nome, mas tem efeito equivalente:
+
+- **Desativar igreja** (`admin/Igrejas.tsx`): bloqueia login e renovação de sessão de todos os membros daquela igreja. Reativar é inócuo e segue imediato — só o lado destrutivo confirma.
+- **Desvincular usuário de igreja** (`admin/IgrejaUsers.tsx`): remove o vínculo e, em cascata, as roles e permissões daquele usuário no tenant.
+
+A descrição do diálogo deve dizer **o que se perde**, não apenas "esta ação não pode ser desfeita", e identificar o alvo pelo nome.
+
+### Arraste (dnd-kit) — checklist de acessibilidade
+
+Todo `DndContext` precisa de:
+
+1. **`KeyboardSensor`** com `sortableKeyboardCoordinates` junto de Pointer/Touch — sem ele a reordenação é inacessível por teclado.
+2. Prop **`accessibility`** com `screenReaderInstructions` e `announcements` em PT-BR — o padrão do dnd-kit é em inglês.
+3. Anúncios que resolvam o **id para um rótulo humano**. Os ids do projeto são UUIDs; anunciar o id cru não diz nada a quem usa leitor de tela. Ver `EventoDetail.tsx` (`acessibilidadeArraste`, que mapeia id → nome da música).
+4. **`aria-label` por item**, interpolando o nome (`Arrastar ${nome} para reordenar`, `Remover ${nome}`) — rótulos genéricos se repetem em todos os cards e não identificam o alvo.
+5. Grip de arraste **`w-11 h-11` (44px) já no mobile**, sem reduzir para `w-8` — 44px é o alvo mínimo de toque, e o mobile é o alvo primário.
+
+### Listas com card memoizado: callbacks por ID
+
+Páginas que re-renderizam a cada tecla (busca, campo de criação) e renderizam uma lista de cards com hooks próprios (`useSortable`, mutations) devem envolver o card em `memo`. O `memo` só funciona se as props de callback forem **estáveis**, então o callback recebe o **ID** e é criado uma vez com `useCallback` no pai — em vez de uma arrow por item, que muda de identidade a cada render e anula a memoização.
+
+Referências: `EventoDetail.tsx` (`SortableMusicaCard` + `handleRemoveMusica`/`handleOpenMusica`) e `GruposFuncoesSection.tsx` (`SortableGrupoCard` + `handleRenameGrupo`/`handleSetFuncoesDoGrupo`).
+
+Cuidado com a ordem: os `useCallback`/`useMemo` precisam ficar **antes** dos early returns (`if (isLoading) return …`) e depois das variáveis que aparecem no array de dependências — o array é avaliado na hora, então referenciar um `const` declarado abaixo dá `ReferenceError` de TDZ que o `tsc` não pega.
+
+### Tipos do dnd-kit vêm da biblioteca
+
+O objeto passado em `accessibility` deve ser tipado com `satisfies Announcements` (`@dnd-kit/core`), nunca com shapes escritos à mão como `{ active: { id: string | number } }`. Assim uma mudança de forma numa futura versão vira erro de compilação em vez de anúncio silenciosamente errado.
+
+### Filtros vindos da URL: validar antes de enviar
+
+Parâmetros de filtro lidos de `searchParams` são entrada não confiável (link velho, editado à mão, colado). Descartar token inválido no cliente em vez de repassá-lo: o backend responde 400 e a página inteira cai em `ErrorState` por causa de um filtro. Ver `Songs.tsx` — `intensidades` filtra contra `INTENSIDADE_OPTIONS` e `categorias` contra `UUID_REGEX`.
+
+### Busca com `cmdk`: normalização única
+
+O filtro embutido do `cmdk` só rebaixa para minúsculas — **não remove acentos**. Se o componente também faz comparação própria com `normalizeForSearch`, as duas divergem: "do" bate com "Dó" numa e não na outra. Em `CreatableCombobox.tsx` isso escondia o item e, ao mesmo tempo, suprimia o `CommandEmpty` e o botão "Criar" — popover vazio, sem saída. Passe sempre um `filter` próprio ao `Command` usando a mesma normalização das demais comparações.
 
 ### Verificação automatizada de mobile
 

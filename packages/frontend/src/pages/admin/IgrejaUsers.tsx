@@ -44,6 +44,8 @@ import {
 } from "@/hooks/use-igrejas";
 import { useUsers } from "@/hooks/use-admin";
 import { ErrorState } from "@/components/ErrorState";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import type { IgrejaTenantUser } from "@/schemas/auth";
 
 /**
  * Componente da página de usuários de uma igreja.
@@ -58,6 +60,9 @@ const IgrejaUsers = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [removingUserId, setRemovingUserId] = useState<string | null>(null);
+  /** Usuário aguardando confirmação de desvínculo (null = nenhum diálogo aberto). */
+  const [confirmingRemoval, setConfirmingRemoval] =
+    useState<IgrejaTenantUser | null>(null);
 
   const {
     data: igreja,
@@ -119,11 +124,24 @@ const IgrejaUsers = () => {
   }
 
   /**
-   * Processa a desvinculação de um usuário da igreja.
+   * Abre a confirmação de desvinculação de um usuário.
+   *
+   * A desvinculação é destrutiva e sem desfazer — remove o vínculo e, junto
+   * com ele, as roles e permissões daquele usuário na igreja. Por isso passa
+   * por confirmação explícita, como as demais ações destrutivas do projeto.
+   *
+   * @param usuario - Usuário a ser desvinculado.
+   */
+  function handleRemoveUser(usuario: IgrejaTenantUser) {
+    setConfirmingRemoval(usuario);
+  }
+
+  /**
+   * Executa a desvinculação após a confirmação do super-admin.
    *
    * @param userId - UUID do usuário a ser desvinculado.
    */
-  function handleRemoveUser(userId: string) {
+  function confirmRemoveUser(userId: string) {
     if (!id) return;
     setRemovingUserId(userId);
     removeMutation.mutate(
@@ -131,6 +149,7 @@ const IgrejaUsers = () => {
       {
         onSuccess: () => {
           toast.success("Usuário desvinculado com sucesso.");
+          setConfirmingRemoval(null);
         },
         onError: (err) => {
           toast.error(err instanceof Error ? err.message : "Erro ao desvincular usuário.");
@@ -203,7 +222,7 @@ const IgrejaUsers = () => {
           </Link>
         </Button>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent line-clamp-2">
             {igreja?.name ?? "Igreja"}
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -263,7 +282,7 @@ const IgrejaUsers = () => {
                       variant="outline"
                       size="sm"
                       className="w-full"
-                      onClick={() => handleRemoveUser(user.id)}
+                      onClick={() => handleRemoveUser(user)}
                       disabled={removingUserId === user.id || removeMutation.isPending}
                     >
                       {removingUserId === user.id ? (
@@ -300,7 +319,7 @@ const IgrejaUsers = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRemoveUser(user.id)}
+                            onClick={() => handleRemoveUser(user)}
                             disabled={removingUserId === user.id || removeMutation.isPending}
                           >
                             {removingUserId === user.id ? (
@@ -395,6 +414,24 @@ const IgrejaUsers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de desvínculo — remove também roles e permissões na igreja */}
+      <DeleteConfirmDialog
+        open={confirmingRemoval !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmingRemoval(null);
+        }}
+        title="Desvincular usuário?"
+        description={
+          confirmingRemoval
+            ? `${confirmingRemoval.name} (${confirmingRemoval.email}) perderá o acesso a esta igreja, junto com as roles e permissões que tinha nela. Esta ação não pode ser desfeita.`
+            : ""
+        }
+        onConfirm={() => {
+          if (confirmingRemoval) confirmRemoveUser(confirmingRemoval.id);
+        }}
+        isLoading={removeMutation.isPending}
+      />
     </div>
   );
 };

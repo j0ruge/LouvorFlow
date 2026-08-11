@@ -47,10 +47,16 @@ const fakeIgrejasRepo = {
     fakeTenantUserBindings.push(binding);
     return binding;
   },
-  /** Remove o vínculo user-tenant. */
+  /**
+   * Remove o vínculo user-tenant e devolve quantas linhas saíram — mesmo
+   * contrato do repositório real, que usa `deleteMany` para que uma remoção
+   * concorrente seja detectável por `count === 0` em vez de lançar `P2025`.
+   */
   removeUser: async (tenantId: string, userId: string) => {
     const idx = fakeTenantUserBindings.findIndex(b => b.tenant_id === tenantId && b.user_id === userId);
-    if (idx !== -1) fakeTenantUserBindings.splice(idx, 1);
+    if (idx === -1) return 0;
+    fakeTenantUserBindings.splice(idx, 1);
+    return 1;
   },
   /** Lista usuários de um tenant (retorna lista vazia para simplificação). */
   findUsers: async (_tenantId: string) => [],
@@ -332,6 +338,77 @@ describe('IgrejasService', () => {
       await expect(igrejasService.listUsers(MOCK_SYSTEM_TENANT_ID)).rejects.toMatchObject({
         statusCode: 403,
       });
+    });
+  });
+
+  /**
+   * Corridas de concorrência: as checagens de leitura antes da escrita cobrem só
+   * o caso sequencial. Estes testes exercitam o que sobra — o erro de constraint
+   * do Prisma chegando à camada de service — e garantem que ele vira `AppError`
+   * em vez de escapar cru como 500.
+   */
+  describe('tradução de erros de corrida (P2002 / count 0)', () => {
+    /** Constrói um erro no formato do Prisma para violação de unicidade. */
+    function erroP2002(): Error & { code: string } {
+      const erro = new Error('Unique constraint failed') as Error & { code: string };
+      erro.code = 'P2002';
+      return erro;
+    }
+
+    /** Nome duplicado gravado por outra requisição vira 409, não 500. */
+    it('create traduz P2002 de nome duplicado em 409', async () => {
+      vi.spyOn(fakeIgrejasRepo, 'create').mockRejectedValueOnce(erroP2002());
+
+      await expect(igrejasService.create('Igreja Nova Corrida')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma igreja com esse nome',
+      });
+    });
+
+    /** Renomear para um nome tomado na corrida vira 409, não 500. */
+    it('update traduz P2002 de nome duplicado em 409', async () => {
+      vi.spyOn(fakeIgrejasRepo, 'update').mockRejectedValueOnce(erroP2002());
+
+      await expect(
+        igrejasService.update(TENANT_A_ID, { name: 'Nome Tomado Na Corrida' }),
+      ).rejects.toMatchObject({ statusCode: 409, message: 'Já existe uma igreja com esse nome' });
+    });
+
+    /** Vínculo criado por outra requisição vira 409, não 500. */
+    it('addUser traduz P2002 de vínculo duplicado em 409', async () => {
+      vi.spyOn(fakeIgrejasRepo, 'addUser').mockRejectedValueOnce(erroP2002());
+
+      await expect(igrejasService.addUser(TENANT_A_ID, USER_ID)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Usuário já vinculado a essa igreja',
+      });
+    });
+
+    /** Vínculo removido por outra requisição no meio da operação vira 404. */
+    it('removeUser traduz remoção de zero linhas em 404', async () => {
+      fakeTenantUserBindings.push({
+        id: `binding-${TENANT_A_ID}-${USER_ID}`,
+        tenant_id: TENANT_A_ID,
+        user_id: USER_ID,
+      });
+      /** Simula o vínculo sumindo entre o `findTenantUser` e o delete. */
+      vi.spyOn(fakeIgrejasRepo, 'removeUser').mockResolvedValueOnce(0);
+
+      await expect(igrejasService.removeUser(TENANT_A_ID, USER_ID)).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Vínculo entre usuário e igreja não encontrado',
+      });
+
+      fakeTenantUserBindings.length = 0;
+    });
+
+    /** Erros que não são de unicidade seguem propagando sem mascaramento. */
+    it('não mascara erros que não são P2002', async () => {
+      const outro = new Error('falha de conexão') as Error & { code: string };
+      outro.code = 'P1001';
+      vi.spyOn(fakeIgrejasRepo, 'create').mockRejectedValueOnce(outro);
+
+      await expect(igrejasService.create('Igreja Erro Generico')).rejects.toThrow('falha de conexão');
     });
   });
 });
