@@ -3,54 +3,43 @@
  *
  * Busca eventos reais da API via React Query, filtra apenas os com data
  * anterior ou igual à data atual, e exibe em ordem cronológica decrescente.
- * Inclui estados de carregamento (skeleton), erro e vazio.
- * O botão "Ver Detalhes" navega para `/escalas/:id`.
+ * Cada evento é renderizado com `EventoRow` (linha inteira clicável, mais o
+ * botão "Detalhes" no slot de ações). Inclui estados de carregamento
+ * (skeleton), erro e vazio.
  */
 
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { History as HistoryIcon, Calendar, Music, Users } from "lucide-react";
+import { History as HistoryIcon } from "lucide-react";
 import { useEventos } from "@/hooks/use-eventos";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import { EventoRow } from "@/components/EventoRow";
+import { formatDataExtenso } from "@/lib/utils";
 
 /**
- * Componente de skeleton para o card de evento durante carregamento.
+ * Componente de skeleton para a linha de evento durante carregamento.
  *
- * Reproduz a estrutura visual do card de histórico com placeholders animados.
+ * Reproduz a anatomia de `EventoRow` (bloco de data + corpo em 3 linhas +
+ * ação) com placeholders animados — um skeleton que mentisse sobre o
+ * layout real (ex.: o card de duas colunas antigo) confundiria o usuário
+ * no instante em que os dados chegassem e o layout mudasse debaixo dele.
  *
- * @returns Elemento React com placeholder animado do card de evento.
+ * @returns Elemento React com placeholder animado da linha de evento.
  */
 function HistorySkeleton() {
   return (
-    <div className="p-5 rounded-lg bg-gradient-card border border-border">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Skeleton className="w-14 h-14 rounded-lg" />
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-56" />
-          </div>
-        </div>
-        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-          <div className="text-center space-y-1">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="h-7 w-8 mx-auto" />
-          </div>
-          <div className="text-center space-y-1">
-            <Skeleton className="h-4 w-14" />
-            <Skeleton className="h-7 w-8 mx-auto" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-        </div>
+    <div className="flex flex-wrap items-start gap-3 p-3 rounded-xl bg-gradient-card border border-border">
+      <Skeleton className="w-[52px] h-[52px] flex-shrink-0 rounded-[10px]" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-32" />
+        <Skeleton className="h-3 w-24" />
       </div>
+      <Skeleton className="h-8 w-full sm:ml-auto sm:w-24" />
     </div>
   );
 }
@@ -59,8 +48,9 @@ function HistorySkeleton() {
  * Componente da página de histórico de escalas realizadas.
  *
  * Consome dados reais da API via `useEventos()`, filtra eventos com data
- * passada, ordena por data decrescente e renderiza cards com tipo de evento,
- * data formatada, contagem de músicas/integrantes e descrição.
+ * passada, ordena por data decrescente e renderiza cada evento com
+ * `EventoRow` (título por descrição/tipo, data por extenso como legenda,
+ * contagem de músicas/integrantes e botão "Detalhes").
  *
  * @returns Elemento JSX com a página de histórico.
  */
@@ -133,70 +123,24 @@ const History = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {pastEvents.map((evento) => (
-                <div
+                <EventoRow
                   key={evento.id}
-                  className="p-5 rounded-lg bg-gradient-card border border-border hover:shadow-soft transition-all duration-300"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-                        <Calendar className="h-7 w-7 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground text-lg">
-                          {evento.tipoEvento?.nome ?? "Evento"}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {new Date(evento.data).toLocaleDateString("pt-BR", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-                      <div className="text-center">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                          <Music className="h-4 w-4" />
-                          Músicas
-                        </div>
-                        <p className="text-xl sm:text-2xl font-bold text-primary">
-                          {evento.musicas.length}
-                        </p>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                          <Users className="h-4 w-4" />
-                          Equipe
-                        </div>
-                        <p className="text-xl sm:text-2xl font-bold text-secondary">
-                          {evento.integrantes.length}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        {evento.descricao && (
-                          <Badge variant="outline" className="justify-center">
-                            {evento.descricao}
-                          </Badge>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/escalas/${evento.id}`)}
-                        >
-                          Detalhes
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  evento={evento}
+                  onOpen={(id) => navigate(`/escalas/${id}`)}
+                  legenda={formatDataExtenso(evento.data)}
+                  acoes={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => navigate(`/escalas/${evento.id}`)}
+                    >
+                      Detalhes
+                    </Button>
+                  }
+                />
               ))}
             </div>
           </CardContent>

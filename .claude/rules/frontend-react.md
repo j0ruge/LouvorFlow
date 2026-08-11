@@ -221,6 +221,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `Songs.tsx` + `MusicaFiltros.tsx` | Filtros colapsáveis no mobile: chips de intensidade/categoria atrás do botão "Filtros" (Drawer bottom-sheet) com contador de ativos e "Limpar filtros"; desktop mantém chips inline; busca protagonista a 360px |
 | `Dashboard.tsx` | `CardHeader` título+botão: `min-w-0`+`truncate` no `CardTitle`, botão `flex-shrink-0` com label `hidden sm:inline` + `aria-label` (ícone puro no mobile); tag de tipo com `truncate max-w-[7rem]` |
 | `admin/IgrejaUsers.tsx` | `line-clamp-2` no `h1` com o nome da igreja (texto livre de até 255 chars) |
+| `Dashboard.tsx` / `History.tsx` / `Escalas.tsx` | Anatomia da linha de evento unificada em `EventoRow.tsx` (`flex-wrap` joga as ações para a própria linha a 360px); `HistorySkeleton` reescrito para o mesmo formato de linha |
 
 ### Ações destrutivas exigem confirmação
 
@@ -309,6 +310,23 @@ Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
     `stopPropagation` por controle: uma única guarda cobre grip, picker e botão de
     remover de uma vez (DRY) e evita navegação inesperada ao acionar Enter/Espaço num
     controle interno (a11y). Ver `EventoDetail.tsx` (`SortableMusicaCard`).
+  - **`EventoRow.tsx`**: implementação compartilhada desse padrão para linhas de
+    evento (escala), adotada por `Dashboard.tsx`, `History.tsx` e `Escalas.tsx` —
+    as três telas renderizavam a mesma entidade (`EventoIndex`) com anatomias
+    divergentes antes desta unificação. Recebe o objeto de domínio inteiro
+    (`evento: EventoIndex`, não primitivos soltos — mesmo padrão de
+    `SortableMusicaCard` recebendo `musica: MusicaEvento`) e expõe slots
+    (`badges`, `acoes`) para que cada tela componha o que é específico dela sem
+    duplicar a anatomia base. Título segue a cadeia
+    `descricao.trim() || tipoEvento?.nome || "Escala"` — `tipoEvento` já aparece
+    como pill na própria linha, então usá-lo como preferência de título
+    duplicaria informação. `role="button"` só aparece quando `onOpen` é
+    informado (`Escalas.tsx` **não** passa `onOpen`: aquele card tem
+    Editar/Excluir destrutivos no rodapé, e linha inteira clicável ao lado de um
+    botão destrutivo convida ao clique acidental — a tela reaproveita a
+    anatomia, não a interação). O componente cuida do `stopPropagation` do slot
+    `acoes` internamente (Tell, Don't Ask), então o consumidor não repete essa
+    lógica em cada botão que passa.
 
 ## Convenções de Código
 

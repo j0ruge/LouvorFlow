@@ -22,11 +22,8 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
-import {
-  formatDateBlock,
-  getInitials,
-  handleClickableKeyDown,
-} from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
+import { EventoRow } from "@/components/EventoRow";
 
 /**
  * Componente da página de Dashboard com dados reais.
@@ -200,47 +197,13 @@ const Dashboard = () => {
               </p>
             ) : (
               <div className="flex flex-col gap-2.5">
-                {proximasEscalas.map((scale) => {
-                  const { dia, mes } = formatDateBlock(scale.data);
-                  return (
-                    <div
-                      key={scale.id}
-                      className="flex items-center gap-3 p-3 bg-gradient-card border border-border rounded-xl hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/escalas/${scale.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={handleClickableKeyDown(() =>
-                        navigate(`/escalas/${scale.id}`),
-                      )}
-                    >
-                      {/* Bloco de data âmbar */}
-                      <div className="w-[52px] flex-shrink-0 text-center py-1.5 rounded-[10px] bg-primary/10 text-primary">
-                        <div className="font-display text-xl font-bold leading-none tabular-nums">
-                          {dia}
-                        </div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mt-[3px]">
-                          {mes}
-                        </div>
-                      </div>
-                      {/* Corpo */}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-foreground leading-tight truncate">
-                          {scale.descricao || "Evento"}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-[3px] truncate">
-                          {scale.musicas.length} músicas ·{" "}
-                          {scale.integrantes.length} integrantes
-                        </div>
-                      </div>
-                      {/* Tag */}
-                      {scale.tipoEvento && (
-                        <span className="ml-auto flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light truncate max-w-[7rem]">
-                          {scale.tipoEvento.nome}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                {proximasEscalas.map((scale) => (
+                  <EventoRow
+                    key={scale.id}
+                    evento={scale}
+                    onOpen={(id) => navigate(`/escalas/${id}`)}
+                  />
+                ))}
               </div>
             )}
           </CardContent>

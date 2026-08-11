@@ -10,9 +10,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
@@ -21,13 +20,15 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Calendar, Plus, Users, Music, Search } from "lucide-react";
+import { Plus, Users, Music, Search } from "lucide-react";
 import { useEventos, useDeleteEvento } from "@/hooks/use-eventos";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { EventoRow } from "@/components/EventoRow";
 import { useCan } from "@/hooks/use-can";
+import { formatDataExtenso } from "@/lib/utils";
 import type { EventoIndex } from "@/schemas/evento";
 
 /**
@@ -196,38 +197,13 @@ const Escalas = () => {
             className="shadow-soft border-0 hover:shadow-medium transition-all duration-300"
           >
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-                    <Calendar className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">
-                      {new Date(scale.data)
-                        .toLocaleDateString("pt-BR", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                        .replace(/^./, (c) => c.toUpperCase())}
-                    </CardTitle>
-                    {scale.descricao && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {scale.descricao}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {scale.tipoEvento && (
-                  <Badge
-                    variant="default"
-                    className="bg-primary text-primary-foreground self-start sm:self-auto truncate max-w-[10rem]"
-                  >
-                    {scale.tipoEvento.nome}
-                  </Badge>
-                )}
-              </div>
+              {/* Sem `onOpen`: este card já tem Editar/Excluir no rodapé
+                  (ação destrutiva) — tornar a linha inteira clicável ao lado
+                  de um botão destrutivo convidaria ao clique acidental. */}
+              <EventoRow
+                evento={scale}
+                legenda={formatDataExtenso(scale.data, { capitalizar: true })}
+              />
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
