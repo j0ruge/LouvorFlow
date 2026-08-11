@@ -1,8 +1,8 @@
 /**
  * Página de gerenciamento de ACL (Access Control List) de um usuário.
  *
- * Exibe o nome do usuário e permite atribuir/remover roles e permissões
- * individuais via checkboxes. Impede que o usuário logado remova a role
+ * Exibe o nome do usuário e permite atribuir/remover papéis e permissões
+ * individuais via checkboxes. Impede que o usuário logado remova o papel
  * "admin" de si mesmo (prevenção de auto-demoção).
  */
 
@@ -19,11 +19,12 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserAcl, useSetUserAcl, useRoles, usePermissions } from "@/hooks/use-admin";
 import { UserAclFormSchema } from "@/schemas/auth";
+import { formatRoleLabel } from "@/lib/utils";
 
 /**
  * Componente da página de gerenciamento de ACL de um usuário.
  *
- * Carrega a ACL atual do usuário e lista todas as roles e permissões
+ * Carrega a ACL atual do usuário e lista todos os papéis e permissões
  * disponíveis. O administrador pode selecionar/desmarcar itens e salvar.
  *
  * @returns Elemento JSX com a página de gerenciamento de ACL.
@@ -47,7 +48,7 @@ const UserAcl = () => {
   const isSelfEditBlocked = isOwnProfile && !callerIsSuperAdmin;
 
   /**
-   * Inicializa os checkboxes com as roles e permissões atuais do usuário.
+   * Inicializa os checkboxes com os papéis e permissões atuais do usuário.
    * Apenas na primeira carga — refetches não sobrescrevem edições em andamento.
    */
   useEffect(() => {
@@ -59,14 +60,14 @@ const UserAcl = () => {
   }, [userAcl, initialized]);
 
   /**
-   * Alterna a seleção de uma role.
+   * Alterna a seleção de um papel.
    *
-   * @param roleId - UUID da role a ser alternada.
-   * @param roleName - Nome da role (para verificação de auto-demoção).
+   * @param roleId - UUID do papel a ser alternado.
+   * @param roleName - Nome do papel (para verificação de auto-demoção).
    */
   function handleToggleRole(roleId: string, roleName: string) {
     if (isOwnProfile && roleName === "admin" && selectedRoles.includes(roleId)) {
-      toast.error("Você não pode remover a role 'admin' de si mesmo.");
+      toast.error("Você não pode remover o papel 'admin' de si mesmo.");
       return;
     }
 
@@ -150,7 +151,7 @@ const UserAcl = () => {
             ACL de {userAcl?.name ?? "Usuário"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie as roles e permissões deste usuário
+            Gerencie os papéis e permissões deste usuário
           </p>
         </div>
       </div>
@@ -165,10 +166,10 @@ const UserAcl = () => {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-medium">Roles</h2>
+            <h2 className="text-lg font-medium">Papéis</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Selecione as roles que o usuário deve possuir.
+            Selecione os papéis que o usuário deve possuir.
           </p>
         </CardHeader>
         <CardContent>
@@ -192,7 +193,7 @@ const UserAcl = () => {
                         htmlFor={`role-${role.id}`}
                         className={isDisabled ? "text-muted-foreground cursor-not-allowed" : "cursor-pointer"}
                       >
-                        {role.name}
+                        {formatRoleLabel(role.name)}
                       </Label>
                       <p className="text-xs text-muted-foreground">{role.description}</p>
                     </div>
@@ -201,7 +202,7 @@ const UserAcl = () => {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Nenhuma role cadastrada.</p>
+            <p className="text-sm text-muted-foreground">Nenhum papel cadastrado.</p>
           )}
         </CardContent>
       </Card>
@@ -213,7 +214,7 @@ const UserAcl = () => {
             <h2 className="text-lg font-medium">Permissões Individuais</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Permissões atribuídas diretamente ao usuário (além das herdadas por roles).
+            Permissões atribuídas diretamente ao usuário (além das herdadas pelos papéis).
           </p>
         </CardHeader>
         <CardContent>

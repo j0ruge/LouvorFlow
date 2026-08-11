@@ -1,8 +1,8 @@
 /**
  * Página de administração de usuários.
  *
- * Lista todos os usuários em uma tabela com nome, e-mail e badges de roles.
- * Permite criar novos usuários via dialog e acessar o gerenciamento de ACL
+ * Lista todos os usuários em uma tabela com nome, e-mail e badges de papéis.
+ * Permite criar novos usuários via dialog e acessar o gerenciamento de acessos
  * de cada usuário.
  */
 
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { useUsers, useCreateUser } from "@/hooks/use-admin";
 import { CreateUserFormSchema, type CreateUserForm } from "@/schemas/auth";
+import { formatRoleLabel } from "@/lib/utils";
 
 /**
  * Componente da página de administração de usuários.
@@ -202,19 +203,19 @@ const AdminUsers = () => {
                     <div className="flex flex-wrap gap-1">
                       {user.roles.map((role) => (
                         <Badge key={role.id} variant="outline" className="text-xs">
-                          {role.name}
+                          {formatRoleLabel(role.name)}
                         </Badge>
                       ))}
                       {user.roles.length === 0 && (
                         <span className="text-xs text-muted-foreground">
-                          Sem roles
+                          Sem papel definido
                         </span>
                       )}
                     </div>
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link to={`/admin/usuarios/${user.id}/acl`}>
                         <Shield className="mr-1 h-3 w-3" />
-                        Gerenciar ACL
+                        Gerenciar acessos
                       </Link>
                     </Button>
                   </div>
@@ -228,7 +229,7 @@ const AdminUsers = () => {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
-                      <TableHead>Roles</TableHead>
+                      <TableHead>Papéis</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -241,12 +242,12 @@ const AdminUsers = () => {
                           <div className="flex flex-wrap gap-1">
                             {user.roles.map((role) => (
                               <Badge key={role.id} variant="outline" className="text-xs">
-                                {role.name}
+                                {formatRoleLabel(role.name)}
                               </Badge>
                             ))}
                             {user.roles.length === 0 && (
                               <span className="text-xs text-muted-foreground">
-                                Sem roles
+                                Sem papel definido
                               </span>
                             )}
                           </div>
@@ -255,7 +256,7 @@ const AdminUsers = () => {
                           <Button variant="outline" size="sm" asChild>
                             <Link to={`/admin/usuarios/${user.id}/acl`}>
                               <Shield className="mr-1 h-3 w-3" />
-                              Gerenciar ACL
+                              Gerenciar acessos
                             </Link>
                           </Button>
                         </TableCell>

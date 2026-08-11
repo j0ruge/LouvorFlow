@@ -1,9 +1,9 @@
 /**
- * Página de administração de roles (papéis).
+ * Página de administração de papéis.
  *
- * Lista todas as roles em uma tabela com nome, descrição e quantidade
- * de permissões. Permite criar novas roles via dialog e acessar o
- * gerenciamento de permissões de cada role.
+ * Lista todos os papéis em uma tabela com nome, descrição e quantidade
+ * de permissões. Permite criar novos papéis via dialog e acessar o
+ * gerenciamento de permissões de cada papel.
  */
 
 import { useState } from "react";
@@ -36,11 +36,11 @@ import { useRoles, useCreateRole } from "@/hooks/use-admin";
 import { CreateRoleFormSchema, type CreateRoleForm } from "@/schemas/auth";
 
 /**
- * Componente da página de administração de roles.
+ * Componente da página de administração de papéis.
  *
- * Exibe tabela de roles com ações de criação e gerenciamento de permissões.
+ * Exibe tabela de papéis com ações de criação e gerenciamento de permissões.
  *
- * @returns Elemento JSX com a página de administração de roles.
+ * @returns Elemento JSX com a página de administração de papéis.
  */
 const AdminRoles = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -57,7 +57,7 @@ const AdminRoles = () => {
   });
 
   /**
-   * Processa o envio do formulário de criação de role.
+   * Processa o envio do formulário de criação de papel.
    *
    * @param dados - Dados validados do formulário (nome, descrição).
    */
@@ -75,7 +75,7 @@ const AdminRoles = () => {
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Roles
+            Papéis
           </h1>
           <p className="text-muted-foreground mt-1">
             Gerencie os papéis do sistema
@@ -86,12 +86,12 @@ const AdminRoles = () => {
           <DialogTrigger asChild>
             <Button className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft">
               <Plus className="mr-2 h-4 w-4" />
-              Nova Role
+              Novo Papel
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar Nova Role</DialogTitle>
+              <DialogTitle>Criar Novo Papel</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
@@ -147,7 +147,9 @@ const AdminRoles = () => {
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              {roles ? `${roles.length} role(s) cadastrada(s)` : "Carregando..."}
+              {roles
+                ? `${roles.length} ${roles.length === 1 ? "papel cadastrado" : "papéis cadastrados"}`
+                : "Carregando..."}
             </span>
           </div>
         </CardHeader>
@@ -166,7 +168,7 @@ const AdminRoles = () => {
 
           {!isLoading && roles && roles.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhuma role cadastrada.
+              Nenhum papel cadastrado.
             </div>
           )}
 

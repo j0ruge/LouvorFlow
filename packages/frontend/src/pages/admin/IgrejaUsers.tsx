@@ -127,7 +127,7 @@ const IgrejaUsers = () => {
    * Abre a confirmação de desvinculação de um usuário.
    *
    * A desvinculação é destrutiva e sem desfazer — remove o vínculo e, junto
-   * com ele, as roles e permissões daquele usuário na igreja. Por isso passa
+   * com ele, os papéis e permissões daquele usuário na igreja. Por isso passa
    * por confirmação explícita, como as demais ações destrutivas do projeto.
    *
    * @param usuario - Usuário a ser desvinculado.
@@ -415,7 +415,7 @@ const IgrejaUsers = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmação de desvínculo — remove também roles e permissões na igreja */}
+      {/* Confirmação de desvínculo — remove também papéis e permissões na igreja */}
       <DeleteConfirmDialog
         open={confirmingRemoval !== null}
         onOpenChange={(open) => {
@@ -424,7 +424,7 @@ const IgrejaUsers = () => {
         title="Desvincular usuário?"
         description={
           confirmingRemoval
-            ? `${confirmingRemoval.name} (${confirmingRemoval.email}) perderá o acesso a esta igreja, junto com as roles e permissões que tinha nela. Esta ação não pode ser desfeita.`
+            ? `${confirmingRemoval.name} (${confirmingRemoval.email}) perderá o acesso a esta igreja, junto com os papéis e permissões que tinha nela. Esta ação não pode ser desfeita.`
             : ""
         }
         onConfirm={() => {
