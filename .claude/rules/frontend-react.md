@@ -349,7 +349,12 @@ Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
     duplicar a anatomia base. Título segue a cadeia
     `descricao.trim() || tipoEvento?.nome || "Escala"` — `tipoEvento` já aparece
     como pill na própria linha, então usá-lo como preferência de título
-    duplicaria informação. `role="button"` só aparece quando `onOpen` é
+    duplicaria informação. A cadeia vive no helper exportado
+    **`tituloDoEvento(evento)`** (`EventoRow.tsx`): consumidores que precisam do
+    mesmo título fora da linha (`aria-label` de "Duplicar escala X"/"Publicar
+    rascunho X", descrição do diálogo "Publicar sem repertório?") importam o
+    helper em vez de reimplementar o fallback (DRY) — ver `Escalas.tsx` e
+    `History.tsx`. `role="button"` só aparece quando `onOpen` é
     informado (`Escalas.tsx` **não** passa `onOpen`: aquele card tem
     Editar/Excluir destrutivos no rodapé, e linha inteira clicável ao lado de um
     botão destrutivo convida ao clique acidental — a tela reaproveita a

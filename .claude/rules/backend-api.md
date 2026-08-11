@@ -75,7 +75,7 @@ Todas as respostas de erro devem seguir o formato padronizado usando `AppError`:
 
 Controllers **NÃO** usam try-catch. Express 5 suporta async error handling nativo — erros lançados em controllers/services/repositories propagam automaticamente para o error handler centralizado em `app.ts`.
 
-**Erros do Prisma nunca devem escapar crus.** O handler genérico de `app.ts` ecoa `err.message` fora de produção, então um `P2002`/`P2003`/`P2025` não tratado vira um 500 que vaza detalhe interno. Toda escrita sujeita a corrida deve traduzir os códigos conhecidos em `AppError` — ver `eventos.service.handleVersaoSentinel` (versões) e `handleIntegranteSentinel` (vínculo de integrante). Para o caso "linha sumiu durante a operação", prefira `updateMany` + checagem de `count === 0` lançando um sentinela, em vez de `update` (que lança `P2025` cru) — ver `eventos.repository.setMusicaVersaoAtomic`.
+**Erros do Prisma nunca devem escapar crus.** O handler genérico de `app.ts` ecoa `err.message` fora de produção, então um `P2002`/`P2003`/`P2025` não tratado vira um 500 que vaza detalhe interno. Toda escrita sujeita a corrida deve traduzir os códigos conhecidos em `AppError` — ver `eventos.service.handleVersaoSentinel` (versões) e `handleIntegranteSentinel` (vínculo de integrante). Para o caso "linha sumiu durante a operação", prefira `updateMany` + checagem de `count === 0` lançando um sentinela, em vez de `update` (que lança `P2025` cru) — ver `eventos.repository.setMusicaVersaoAtomic` e seu irmão `setMusicaTonalidadeAtomic` (tom por música na escala, F10 — mesmo padrão).
 
 Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`.
 
@@ -259,8 +259,20 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 - **Duplicidade de nome nos domínios de suporte é case-insensitive (decisão D7)**: `artistas`, `categorias`, `funcoes`, `tonalidades` e `tipos-eventos` têm `@@unique([tenant_id, nome|tom])` **case-sensitive** no Postgres — "Hillsong" e "hillsong" coexistiriam sem barreira. `findByNome`/`findByTom` e as variantes `*ExcludingId` desses 5 repositories usam `mode: 'insensitive'`, então `POST`/`PUT` retornam `409` para variação só de caixa. **Efeito em dados legados**: tenants com duplicados por caixa gravados antes desta mudança (ex.: "Grace" e "GRACE", possíveis quando a comparação ainda era case-sensitive) passam a ter edições de qualquer um dos gêmeos bloqueadas por 409 — o `*ExcludingId` exclui só o próprio id, então até um re-save sem alterar o nome colide com o gêmeo; a saída é renomear um dos dois antes de conseguir editar. **Acento não é coberto**: `mode: 'insensitive'` normaliza caixa, não diacríticos — "Adoração" e "Adoracao" continuam sendo nomes distintos no backend. A barreira de acento é client-side, mas hoje existe só no fluxo do `CreatableCombobox` (`normalizeForSearch` suprime a opção "Criar" quando já há uma opção equivalente por acento/caixa); o CRUD direto via `ConfigCrudSection` ainda não tem pré-checagem nenhuma no frontend — chega na fase F5 deste mesmo plano. Não há índice único case-insensitive no banco para esses 5 modelos (ao contrário de `tenants.name`, que tem `tenants_name_lower_key` — ver migração `20260811003000_add_tenants_name_unique_ci`); a checagem no repositório é a única barreira, então duas requisições concorrentes com variação de caixa ainda podem colidir sob corrida (mesma limitação estrutural descrita em "Checagem de unicidade nunca basta sozinha").
 - **Isolamento de tenant em modelos globais**: `Users` é compartilhado entre igrejas, então buscas que alimentam escrita **precisam** filtrar por `tenant_users: { some: { tenant_id } }`. Ver `eventos.repository.findIntegranteById` e `integrantes.repository.findAll`. Sem o filtro, um usuário com `escalas.write` na igreja A consegue vincular à escala alguém que só pertence à igreja B.
 - **Unificação users/integrantes (spec 018)**: A tabela `integrantes` foi removida. Os endpoints `/api/integrantes/*` operam sobre a tabela `Users`. Junction tables: `eventos_users` (antes `eventos_integrantes`), `users_funcoes` (antes `integrantes_funcoes`). O campo `name` do Users é mapeado para `nome` na resposta da API de integrantes.
-- Migrações via `npx prisma migrate dev`. Nunca usar SQL direto para alterar schema.
+- Migrações: toda alteração de schema vira um arquivo em `prisma/migrations/` (nunca SQL avulso fora do histórico de migrações). Ver "Procedimento manual de migração" abaixo — neste ambiente `npx prisma migrate dev` não funciona.
 - Convenção de FK: `fk_nome_entidade` para 1:N, `[entidade]_id` para N:N.
+
+### Procedimento manual de migração (ambiente de dev)
+
+No banco de dev local, `npx prisma migrate dev` **aborta exigindo `migrate reset`** (que apagaria os dados): a tabela `_prisma_migrations` tem drift de checksum herdado da migração Windows→WSL, e o `migrate dev` recusa qualquer mismatch mesmo não relacionado à migração nova. Os arquivos `.sql` em git estão íntegros — o drift é só no registro do banco. Procedimento para criar uma migração **sem reset** (exemplos reais: `20260811140000_add_eventos_musicas_tonalidade`, `20260811140200_add_eventos_status`):
+
+1. Editar `prisma/schema.prisma`.
+2. Criar à mão `prisma/migrations/<YYYYMMDDHHMMSS>_<nome>/migration.sql` com o SQL que o `migrate dev` geraria.
+3. `npx prisma generate` (regenera o client; não toca no banco) e **reiniciar o backend** (ver `dev-workflow.md` §2).
+4. Aplicar o SQL: `./node_modules/.bin/prisma db execute --file <migration.sql> --schema prisma/schema.prisma`.
+5. Registrar no histórico: `./node_modules/.bin/prisma migrate resolve --applied <nome_do_diretorio>`.
+
+**Workaround do rtk**: o hook do rtk quebra `npx prisma db execute` e `npx prisma migrate resolve` (erro `[rtk: No such file or directory]`) — usar o binário direto `./node_modules/.bin/prisma`, ou aplicar o SQL via `docker exec -i louvorflow_db psql`. O arquivo de migração criado assim é o mesmo que o CI/staging aplica em ordem via `migrate deploy`.
 
 ## Manutenção de Documentação
 
