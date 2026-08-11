@@ -68,4 +68,24 @@ describe("ResponsiveFormDialog", () => {
     renderDialog();
     expect(screen.getByText("Título de Teste")).toBeInTheDocument();
   });
+
+  /**
+   * Regressão: campos com `min`/`max` nativos (ex.: BPM em `MusicaForm.tsx`)
+   * disparam a constraint validation do próprio navegador no submit, que
+   * bloqueia o evento *antes* do `onSubmit` (e do resolver Zod) rodar — a
+   * mensagem de erro em PT-BR do `FormMessage` nunca aparece e o botão
+   * "Salvar" parece não fazer nada. Isso também torna registros legados fora
+   * da faixa (ex.: BPM=250 gravado antes do `min`/`max` existir) impossíveis
+   * de editar. `noValidate` no `<form>` devolve o controle da validação ao
+   * Zod, que é a arquitetura de validação do app.
+   */
+  it("renderiza o <form> com o atributo noValidate", () => {
+    useIsMobileMock.mockReturnValue(false);
+    renderDialog();
+    // `DialogContent` renderiza num portal fora do container do `render()`, então
+    // subimos a árvore a partir de um elemento visível (o botão "Salvar") em vez
+    // de usar `container.querySelector`, que não alcança o conteúdo portado.
+    const form = screen.getByRole("button", { name: /salvar/i }).closest("form");
+    expect(form?.noValidate).toBe(true);
+  });
 });

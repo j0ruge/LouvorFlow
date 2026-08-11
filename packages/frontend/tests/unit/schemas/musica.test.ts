@@ -12,6 +12,7 @@ import {
   UpdateMusicaCompleteFormSchema,
   VersaoSchema,
   CreateVersaoFormSchema,
+  UpdateVersaoFormSchema,
 } from '@/schemas/musica';
 
 /** UUID válido para testes. */
@@ -197,6 +198,53 @@ describe('CreateMusicaCompleteFormSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  // ─── Faixa de BPM (30-220, fase F4) ───
+
+  /** BPM abaixo do piso musicalmente plausível (30) deve ser rejeitado. */
+  it('deve rejeitar bpm igual a 29 (abaixo do mínimo)', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      bpm: 29,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  /** BPM no piso da faixa (30) deve ser aceito. */
+  it('deve aceitar bpm igual a 30 (limite mínimo)', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      bpm: 30,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  /** BPM no teto da faixa (220) deve ser aceito. */
+  it('deve aceitar bpm igual a 220 (limite máximo)', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      bpm: 220,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  /** BPM acima do teto da faixa (221) deve ser rejeitado. */
+  it('deve rejeitar bpm igual a 221 (acima do máximo)', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      bpm: 221,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  /** Campo BPM vazio continua opcional mesmo com a nova faixa min/max. */
+  it('deve aceitar bpm como string vazia mesmo com a faixa 30-220', () => {
+    const result = CreateMusicaCompleteFormSchema.safeParse({
+      nome: 'Teste',
+      bpm: '',
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('UpdateMusicaCompleteFormSchema', () => {
@@ -278,6 +326,33 @@ describe('UpdateMusicaCompleteFormSchema', () => {
       funcao_ids: ['invalido'],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+/**
+ * Verifica a faixa de BPM (30-220) no `bpmFormField` compartilhado pelos 4
+ * schemas de formulário que o expõem, espelhando o `it.each` equivalente em
+ * `musicas-body.validators.test.ts` no backend.
+ */
+describe('faixa de bpm (30-220) nos 4 schemas de formulário', () => {
+  /** Schemas de formulário que usam `bpmFormField`, com o payload mínimo válido de cada um. */
+  const SCHEMAS_COM_BPM = [
+    { nome: 'CreateMusicaCompleteFormSchema', schema: CreateMusicaCompleteFormSchema, base: { nome: 'Teste' } },
+    { nome: 'UpdateMusicaCompleteFormSchema', schema: UpdateMusicaCompleteFormSchema, base: { nome: 'Teste' } },
+    { nome: 'CreateVersaoFormSchema', schema: CreateVersaoFormSchema, base: {} },
+    { nome: 'UpdateVersaoFormSchema', schema: UpdateVersaoFormSchema, base: {} },
+  ] as const;
+
+  /** Os limites da faixa (30 e 220) são aceitos nos 4 schemas que expõem bpm. */
+  it.each(SCHEMAS_COM_BPM)('$nome aceita bpm nos limites 30 e 220', ({ schema, base }) => {
+    expect(schema.safeParse({ ...base, bpm: 30 }).success).toBe(true);
+    expect(schema.safeParse({ ...base, bpm: 220 }).success).toBe(true);
+  });
+
+  /** Fora dos limites (29 e 221), os 4 schemas recusam o bpm. */
+  it.each(SCHEMAS_COM_BPM)('$nome recusa bpm fora dos limites (29 e 221)', ({ schema, base }) => {
+    expect(schema.safeParse({ ...base, bpm: 29 }).success).toBe(false);
+    expect(schema.safeParse({ ...base, bpm: 221 }).success).toBe(false);
   });
 });
 

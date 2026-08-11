@@ -60,6 +60,18 @@ interface ResponsiveFormDialogProps {
  * Corpo compartilhado entre Drawer e Dialog: `<form>` com área rolável de
  * campos e rodapé fixo. Reutilizado nos dois ramos para evitar duplicação.
  *
+ * `noValidate` é obrigatório aqui: campos com `min`/`max` nativos (ex.: BPM
+ * em `MusicaForm.tsx`/`VersaoForm.tsx`) disparam a constraint validation do
+ * próprio navegador no submit, que bloqueia o evento *antes* do `onSubmit`
+ * (e, portanto, antes do resolver Zod) rodar — a mensagem de erro em
+ * PT-BR do `FormMessage` nunca aparece e o botão "Salvar" parece não fazer
+ * nada, mesmo editando outro campo. Isso também torna registros legados
+ * fora da faixa (ex.: BPM gravado antes da validação existir) impossíveis
+ * de editar, já que o valor herdado já viola o `min`/`max` no primeiro
+ * render. `min`/`max` continuam no input como affordance visual (setas do
+ * spinner, teclado numérico), mas quem decide se o formulário é válido é
+ * sempre o Zod + `FormMessage` — a arquitetura de validação do app.
+ *
  * @param props - Submit, rodapé e campos do formulário.
  * @returns Elemento `<form>` em coluna flex (corpo rola, rodapé fixa).
  */
@@ -69,7 +81,7 @@ function ResponsiveFormBody({
   children,
 }: Pick<ResponsiveFormDialogProps, "onSubmit" | "footer" | "children">) {
   return (
-    <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
+    <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 sm:px-6">
         {children}
       </div>

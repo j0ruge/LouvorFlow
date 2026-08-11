@@ -6617,7 +6617,9 @@
           },
           "bpm": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string",
@@ -6658,7 +6660,9 @@
           },
           "bpm": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string",
@@ -8085,7 +8089,8 @@
           },
           "bpm": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string"
@@ -8150,7 +8155,8 @@
           },
           "bpm": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string"

@@ -420,6 +420,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                     <FormControl>
                       <Input
                         type="number"
+                        min={30}
+                        max={220}
+                        inputMode="numeric"
                         placeholder="Ex: 120"
                         {...field}
                         value={field.value ?? ""}

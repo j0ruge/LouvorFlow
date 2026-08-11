@@ -230,6 +230,9 @@ export function VersaoForm({
               <FormControl>
                 <Input
                   type="number"
+                  min={30}
+                  max={220}
+                  inputMode="numeric"
                   placeholder="Ex.: 120"
                   {...field}
                 />
