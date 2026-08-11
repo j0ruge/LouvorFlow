@@ -87,9 +87,11 @@ describe('hasContent', () => {
   it('deve ignorar campos não-relevantes (bpm, fk_tonalidade, artista_id, link_versao)', () => {
     const data: CreateMusicaCompleteForm = {
       nome: '',
+      categoria_ids: [],
+      funcao_ids: [],
       fk_tonalidade: 'aaa00001-0000-0000-0000-000000000001',
       artista_id: 'bbb00001-0000-0000-0000-000000000001',
-      bpm: '120',
+      bpm: 120,
       cifras: '',
       lyrics: '',
       link_versao: 'https://example.com',

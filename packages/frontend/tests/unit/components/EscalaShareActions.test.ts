@@ -41,12 +41,14 @@ function makeEvento(): EventoShow {
           id: "v1",
           artista_nome: "Gabriela Rocha",
           link_versao: "https://youtu.be/abc123",
+          cifraclub_url: null,
         },
         versoes_disponiveis: [
           {
             id: "v1",
             artista_nome: "Gabriela Rocha",
             link_versao: "https://youtu.be/abc123",
+            cifraclub_url: null,
           },
         ],
       },

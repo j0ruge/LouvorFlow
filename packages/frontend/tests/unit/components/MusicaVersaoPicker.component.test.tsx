@@ -23,6 +23,7 @@ function criarVersao(overrides: Partial<VersaoMusica> = {}): VersaoMusica {
     id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
     artista_nome: "Artista Teste",
     link_versao: "https://example.com",
+    cifraclub_url: null,
     ...overrides,
   };
 }
