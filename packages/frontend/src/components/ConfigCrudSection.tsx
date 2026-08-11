@@ -8,17 +8,27 @@
  * @typeParam T - Tipo da entidade com ao menos `id` e campo de nome.
  */
 
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, CornerDownLeft, X, Check, Loader2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { cn, normalizeForSearch } from "@/lib/utils";
+
+/** Duração (ms) do destaque visual aplicado ao item recém-criado. */
+const HIGHLIGHT_DURATION_MS = 2000;
 
 /** Configuração de uma entidade para o ConfigCrudSection. */
 interface EntityConfig<T> {
   /** Rótulo exibido para a entidade (ex.: "Artista", "Tag"). */
   label: string;
+  /**
+   * Gênero gramatical do `label` ("m" ou "f"), usado para concordância nas
+   * mensagens geradas pelo componente: placeholder do formulário de criação
+   * ("Novo"/"Nova") e mensagem de erro de duplicado ("um"/"uma").
+   */
+  genero: "m" | "f";
   /** Função para extrair o nome da entidade (campo de exibição). */
   getName: (item: T) => string;
   /** Função para extrair o id da entidade. */
@@ -75,13 +85,66 @@ export function ConfigCrudSection<T>({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  /** Mensagem de erro de duplicidade (checagem client-side, só no formulário de criação). */
+  const [erroCriacao, setErroCriacao] = useState<string | null>(null);
+  /**
+   * Nome normalizado (`normalizeForSearch`) do item recém-criado, usado para
+   * aplicar o destaque visual de 2s. Guarda o nome — não o id — porque
+   * `onCreate` devolve `Promise<void>` e não expõe o id criado; como a
+   * checagem de duplicado abaixo já bloqueia nomes case/acento-insensíveis
+   * iguais, o nome normalizado é chave única o suficiente sem mudar o
+   * contrato de `onCreate`.
+   */
+  const [recemCriado, setRecemCriado] = useState<string | null>(null);
+  const erroCriacaoId = useId();
 
-  /** Inicia a criação de um novo item. */
+  /** Remove o destaque do item recém-criado 2s depois de marcado, com cleanup no unmount/reexecução. */
+  useEffect(() => {
+    if (!recemCriado) return;
+    const timer = setTimeout(() => setRecemCriado(null), HIGHLIGHT_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [recemCriado]);
+
+  /**
+   * Verifica se já existe um item com o mesmo nome, ignorando acento e caixa
+   * (mesma normalização usada na busca). Camada client-side complementar ao
+   * bloqueio 409 case-insensitive do backend — evita a ida-e-volta de rede
+   * para o erro de digitação mais comum (decisão D7).
+   *
+   * @param name - Nome já aparado (trim) a validar contra os itens atuais.
+   * @returns `true` quando já existe um item com o mesmo nome normalizado.
+   */
+  function existeDuplicado(name: string): boolean {
+    const normalizado = normalizeForSearch(name);
+    return (items ?? []).some(
+      (item) => normalizeForSearch(config.getName(item)) === normalizado,
+    );
+  }
+
+  /**
+   * Cria um novo item. Bloqueia duplicados (client-side) antes de chamar
+   * `onCreate`; em caso de rejeição da mutation, preserva o texto digitado —
+   * o hook de mutation (`use-artistas.ts`/`use-support.ts`) já exibiu o
+   * `toast.error`, reexibir a mensagem aqui duplicaria o aviso.
+   */
   async function handleCreate() {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    await onCreate(trimmed);
-    setNewName("");
+    if (existeDuplicado(trimmed)) {
+      const artigo = config.genero === "f" ? "uma" : "um";
+      setErroCriacao(`Já existe ${artigo} ${config.label.toLowerCase()} com esse nome.`);
+      return;
+    }
+    try {
+      await onCreate(trimmed);
+      setNewName("");
+      setErroCriacao(null);
+      setRecemCriado(normalizeForSearch(trimmed));
+    } catch {
+      /* O hook de mutation já exibiu toast.error (use-artistas.ts:46-48,
+         use-support.ts:105-107). Reexibir duplicaria; preservar o texto
+         digitado é o comportamento útil aqui. */
+    }
   }
 
   /** Inicia a edição de um item existente. */
@@ -96,13 +159,25 @@ export function ConfigCrudSection<T>({
     setEditName("");
   }
 
-  /** Salva a edição do item. */
+  /**
+   * Salva a edição do item. Em caso de rejeição da mutation, mantém o modo
+   * de edição aberto com o texto digitado — `cancelEditing()` descartaria o
+   * que o usuário editou. O toast de erro já vem do hook de mutation.
+   *
+   * Escopo consciente: sem checagem de duplicado no rename inline (lacuna
+   * registrada — só o formulário de criação valida no cliente).
+   */
   async function handleUpdate() {
     if (!editingId) return;
     const trimmed = editName.trim();
     if (!trimmed) return;
-    await onUpdate(editingId, trimmed);
-    cancelEditing();
+    try {
+      await onUpdate(editingId, trimmed);
+      cancelEditing();
+    } catch {
+      /* Mesma razão do handleCreate: toast já exibido pelo hook; não chamar
+         cancelEditing() aqui preserva o texto em edição. */
+    }
   }
 
   /** Confirma e executa a exclusão do item selecionado. */
@@ -122,13 +197,18 @@ export function ConfigCrudSection<T>({
         <div className="flex flex-wrap items-center gap-2">
           <Input
             className="flex-1"
-            placeholder={`Novo(a) ${config.label.toLowerCase()}...`}
+            placeholder={`${config.genero === "f" ? "Nova" : "Novo"} ${config.label.toLowerCase()}...`}
             value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+            onChange={(e) => {
+              setNewName(e.target.value);
+              if (erroCriacao) setErroCriacao(null);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleCreate();
             }}
             disabled={isCreating}
+            aria-invalid={erroCriacao ? "true" : undefined}
+            aria-describedby={erroCriacao ? erroCriacaoId : undefined}
           />
           <Button
             size="sm"
@@ -142,6 +222,11 @@ export function ConfigCrudSection<T>({
               <CornerDownLeft className="h-4 w-4" />
             )}
           </Button>
+          {erroCriacao && (
+            <p id={erroCriacaoId} className="w-full text-sm text-destructive">
+              {erroCriacao}
+            </p>
+          )}
         </div>
       )}
 
@@ -161,11 +246,16 @@ export function ConfigCrudSection<T>({
             const id = config.getId(item);
             const name = config.getName(item);
             const isEditingThis = editingId === id;
+            const isRecemCriado = recemCriado !== null && recemCriado === normalizeForSearch(name);
 
             return (
               <div
                 key={id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border gap-2"
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-lg border border-border gap-2",
+                  isRecemCriado &&
+                    "motion-safe:animate-highlight-new motion-reduce:ring-2 motion-reduce:ring-primary/40",
+                )}
               >
                 {isEditingThis ? (
                   <div className="flex items-center gap-2 flex-1">

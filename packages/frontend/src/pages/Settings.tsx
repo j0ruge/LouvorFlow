@@ -139,6 +139,7 @@ const Settings = () => {
               <ConfigCrudSection<Artista>
                 config={{
                   label: "Artista",
+                  genero: "m",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhum artista cadastrado",
@@ -170,6 +171,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Categoria",
+                  genero: "f",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma categoria cadastrada",
@@ -201,6 +203,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Função",
+                  genero: "f",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma função cadastrada",
@@ -233,6 +236,7 @@ const Settings = () => {
               <ConfigCrudSection<Tonalidade>
                 config={{
                   label: "Tonalidade",
+                  genero: "f",
                   getName: (item) => item.tom,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma tonalidade cadastrada",
@@ -264,6 +268,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Tipo de Evento",
+                  genero: "m",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhum tipo de evento cadastrado",
