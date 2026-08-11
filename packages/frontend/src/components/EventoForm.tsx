@@ -38,6 +38,7 @@ import {
 } from "@/schemas/evento";
 import type { EventoIndex } from "@/schemas/evento";
 import { toDatetimeLocalValue, localDatetimeToISO } from "@/lib/utils";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 
 /** Propriedades do componente EventoForm. */
 interface EventoFormProps {
@@ -75,6 +76,16 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
   const { data: tiposEventos, isLoading: tiposLoading, isError: tiposError, error: tiposErrorObj } = useTiposEventos();
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => onOpenChange(false),
+  });
 
   useEffect(
     /**
@@ -158,12 +169,13 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
         }
         onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[425px]"
+        dirtyGuard={guarda}
         footer={
           <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => guarda.pedirFechamento()}
             >
               Cancelar
             </Button>

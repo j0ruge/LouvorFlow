@@ -46,6 +46,7 @@ import {
   UpdateIntegranteFormSchema,
   type UpdateIntegranteForm,
 } from "@/schemas/integrante";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 
 /** Propriedades do componente IntegranteForm. */
 interface IntegranteFormProps {
@@ -94,6 +95,16 @@ export function IntegranteForm({
 
   const isPending =
     createMutation.isPending || updateMutation.isPending || addFuncao.isPending;
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => onOpenChange(false),
+  });
 
   /** Funções disponíveis para adição (excluindo já atribuídas). */
   const funcoesAtribuidas = integrante?.funcoes ?? [];
@@ -211,12 +222,13 @@ export function IntegranteForm({
         }
         onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[425px]"
+        dirtyGuard={guarda}
         footer={
           <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => guarda.pedirFechamento()}
             >
               Cancelar
             </Button>

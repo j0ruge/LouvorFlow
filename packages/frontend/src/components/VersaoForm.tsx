@@ -30,6 +30,7 @@ import {
   type CreateVersaoForm,
 } from "@/schemas/musica";
 import type { Versao } from "@/schemas/musica";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 
 /** Propriedades do componente VersaoForm. */
 interface VersaoFormProps {
@@ -89,6 +90,16 @@ export function VersaoForm({
       cifraclub_url: "",
       intensidade: "",
     },
+  });
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => onOpenChange(false),
   });
 
   useEffect(
@@ -155,12 +166,13 @@ export function VersaoForm({
         }
         onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[500px]"
+        dirtyGuard={guarda}
         footer={
           <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => guarda.pedirFechamento()}
             >
               Cancelar
             </Button>
