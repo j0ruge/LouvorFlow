@@ -27,6 +27,7 @@ paths:
 packages/frontend/src/
 ├── components/
 │   ├── ui/              # Componentes shadcn/ui (NÃO MODIFICAR DIRETAMENTE)
+│   ├── form/            # Wrappers de ui/form.tsx (ex: FieldLabel, RequiredFieldsLegend) — customização sem tocar em ui/*
 │   ├── AppLayout.tsx    # Layout principal (sidebar + header com UserMenu)
 │   ├── AppSidebar.tsx   # Sidebar com menu domínio + seção admin condicional
 │   ├── ProtectedRoute.tsx # Wrapper: redireciona ao login se não autenticado
@@ -54,6 +55,7 @@ packages/frontend/src/
 │   ├── use-admin.ts     # React Query hooks para CRUD admin
 │   ├── use-igrejas.ts   # React Query hooks para igrejas
 │   ├── use-scroll-restoration.ts # Salva/restaura rolagem do container interno; abre páginas no topo
+│   ├── use-focus-shortcut.ts # Atalho de teclado global (padrão "/") que foca/seleciona um input, com guardas de a11y
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
@@ -99,6 +101,13 @@ Consultar esse arquivo antes de criar novos componentes ou alterar padrões de U
 - **Roteamento**: Usar `react-router-dom` v6. Páginas ficam em `pages/`.
 - **Ícones**: Usar `lucide-react`. Não importar ícones de outras bibliotecas.
 - **Toasts/Notificações**: Usar exclusivamente **Sonner** (`import { toast } from "sonner"`). Não usar o sistema de toast do Radix/shadcn (`useToast`, `toaster.tsx`, `toast.tsx`). O componente `<Toaster />` do Sonner já está montado em `App.tsx`. Futuramente o projeto migrará para React Native com `sonner-native`, que possui a mesma API.
+
+## Formulários — Campos Obrigatórios, Erro de Validação e Destaque de Item Novo
+
+- **Campo obrigatório**: usar `FieldLabel` (`components/form/FieldLabel.tsx`) no lugar de `FormLabel` puro quando o campo for obrigatório — wrapper que adiciona `required` e renderiza o asterisco decorativo (`aria-hidden`) + texto `sr-only` "(obrigatório)" para leitores de tela. No topo do formulário, incluir `RequiredFieldsLegend` (`components/form/RequiredFieldsLegend.tsx`) explicando a convenção ("* campo obrigatório"). Nenhum dos dois modifica `ui/form.tsx`.
+- **Erro de validação nos campos**: `input`/`textarea`/`select`/`button` com `aria-invalid="true"` (já setado automaticamente por `FormControl` de `ui/form.tsx` quando há erro do react-hook-form) recebem borda e `box-shadow` destructive via regra única em `@layer components` (`src/index.css`) — não é necessário aplicar classes destructive manualmente por campo.
+- **Destaque de item recém-criado/atualizado**: classe `motion-safe:animate-highlight-new motion-reduce:ring-2 motion-reduce:ring-primary/40` (animação `highlight-new` de `tailwind.config.ts`, box-shadow âmbar que decai em 2s, roda uma vez). Respeita `prefers-reduced-motion` com o fallback estático em `motion-reduce:`.
+- **Atalho de foco na busca**: `useFocusShortcut(ref, tecla = "/")` (`hooks/use-focus-shortcut.ts`) foca e seleciona o conteúdo de um input ao pressionar a tecla configurada. Ignora o atalho com foco em campo editável, com modificador (Ctrl/Cmd/Alt — evita colidir com o Ctrl/Cmd+B da sidebar) pressionado, com `event.repeat`, ou quando há `[role="dialog"][data-state="open"]` na página. Helper `isElementoEditavel` exportado para teste isolado.
 
 ## Segurança — Prevenção de XSS (Cross-Site Scripting)
 

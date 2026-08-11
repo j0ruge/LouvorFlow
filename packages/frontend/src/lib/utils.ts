@@ -147,6 +147,56 @@ export function formatDateBlock(iso: string): { dia: number; mes: string } {
 }
 
 /**
+ * Formata uma data ISO 8601 por extenso em PT-BR (ex: `"27 de março"`).
+ *
+ * Espelha exatamente a regra de fuso horário de `formatDateBlock`: strings
+ * _date-only_ (`YYYY-MM-DD`) são lidas com `timeZone: "UTC"` no formatador;
+ * timestamps com componente de hora usam o fuso local do navegador (omitindo
+ * `timeZone`). Isso evita que o bloco de data (`formatDateBlock`) e esta linha
+ * por extenso divirjam em um dia quando exibidos lado a lado em fusos
+ * ocidentais (ex: Brasil).
+ *
+ * Usa `Intl.DateTimeFormat("pt-BR", …).formatToParts` para extrair dia e mês
+ * separadamente, o que permite capitalizar apenas o nome do mês quando
+ * solicitado — o dia é sempre numérico, então capitalizar a string inteira
+ * não teria efeito visível.
+ *
+ * @param iso - Data em formato ISO 8601 ou parsável pelo construtor `Date`. `null`/`undefined`
+ * são tratados explicitamente como inválidos: `new Date(null)` resolveria para o epoch
+ * (1970-01-01) em vez de lançar ou virar `Invalid Date`, o que mascararia o problema.
+ * @param opcoes - Opções de formatação.
+ * @param opcoes.capitalizar - Quando `true`, capitaliza a primeira letra do
+ * nome do mês (ex: `"27 de Março"`). Padrão: `false` (`"27 de março"`, forma
+ * gramaticalmente correta em PT-BR para uso em texto corrido).
+ * @returns Texto no formato `"{dia} de {mês}"`, ou string vazia se a data for inválida.
+ */
+export function formatDataExtenso(
+  iso: string,
+  { capitalizar = false }: { capitalizar?: boolean } = {},
+): string {
+  if (iso == null) return "";
+
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "";
+
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "long",
+    timeZone: isDateOnly ? "UTC" : undefined,
+  });
+
+  return formatter
+    .formatToParts(date)
+    .map((parte) =>
+      capitalizar && parte.type === "month"
+        ? parte.value.charAt(0).toUpperCase() + parte.value.slice(1)
+        : parte.value,
+    )
+    .join("");
+}
+
+/**
  * Normaliza uma string removendo acentos/diacríticos e baixando o caso
  * para permitir comparação insensível em PT-BR.
  *

@@ -262,3 +262,28 @@ Sidebar: silencioso (same background as canvas, border separation).
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Estado de erro de validação para campos de formulário.
+ * Cobre todos os campos marcados com `aria-invalid="true"` pelo
+ * `FormControl` (ver `ui/form.tsx`) com uma única regra, em vez de repetir
+ * classes destructive em ~30 campos espalhados pelos formulários.
+ *
+ * Vence por especificidade de seletor, não por camada: o Tailwind v3 não
+ * emite `@layer` nativo no CSS final (é só uma marcação de build-time que
+ * organiza a ordem de saída); `@layer components` aqui só serve para deixar
+ * a intenção explícita e agrupar com o restante do design system. Quem
+ * garante a vitória é o seletor `input[aria-invalid="true"]`, que tem
+ * especificidade (0,1,1) — 1 atributo + 1 tipo — maior que a de uma classe
+ * utilitária isolada como `.border-input` (0,1,0). Um utilitário simples
+ * não sobrepõe esta regra.
+ */
+@layer components {
+  input[aria-invalid="true"],
+  textarea[aria-invalid="true"],
+  select[aria-invalid="true"],
+  button[aria-invalid="true"] {
+    border-color: hsl(var(--destructive));
+    box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.12);
+  }
+}
