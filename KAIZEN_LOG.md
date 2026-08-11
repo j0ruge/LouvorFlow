@@ -2,6 +2,50 @@
 
 Registro de melhorias contínuas. Toda entrada tem: o que melhorou, o que aprendemos, o que virou padrão.
 
+## 2026-08-10 — Pedidos da Vanessa: filtros colapsáveis no mobile e ordem alfabética
+
+- **Tipo:** melhoria
+- **Antes:** a 360px (Galaxy S8, alvo primário) a página de Músicas abria com 3 chips de intensidade + 9 chips de categoria sempre visíveis no `CardHeader`, empurrando os resultados da busca para fora da tela — o usuário buscava e não via o que achou. Categorias e artistas voltavam da API em ordem de inserção (`findAll` sem `orderBy`), então `/configuracoes`, os comboboxes de `MusicaForm`/`VersaoForm` e os chips de filtro apareciam embaralhados.
+- **Depois:** no mobile a busca é a protagonista — os chips vivem atrás de um botão "Filtros" com contador de ativos, num bottom-sheet (`Drawer`) com "Ver resultados" e "Limpar filtros"; no desktop os chips seguem inline, sem mudança. Categorias e artistas saem ordenados A→Z em pt-BR, com acentos junto da letra-base.
+- **Padronizado em:** `.claude/rules/frontend-react.md` (regra nº 8 cita `MusicaFiltros.tsx`; nova linha na tabela "Páginas já corrigidas"), `.claude/rules/backend-api.md` (seção "Ordenação de Listas Nomeadas" + diretório `utils/` na árvore), `.claude/rules/dev-workflow.md` (caminhos relativos com subshell, sem caminho de máquina), `packages/backend/docs/openapi.json` (`GET /categorias` e `GET /artistas` com description e example reordenados). Cada arquivo foi aberto e conferido antes de entrar nesta lista.
+
+### Incrementos entregues
+
+| # | Incremento | Verificação |
+|---|---|---|
+| 0 | `loginAsAdmin` em `musicas.spec.ts` | de 0/5 (todos barrados no login) para 3/5; as 2 restantes falham por seed ausente, não por auth |
+| 1 | `jest-dom.d.ts` + `include: ["src","tests"]` + script `typecheck` | `npm run typecheck` de 15 erros para 0; 194 testes seguem verdes; lint sem erro |
+| 2 | `helpers/viewport.ts` extraído | `admin-igrejas` mobile 3/3 PASS, comportamento idêntico; typecheck limpo |
+| 3 | `MusicaFiltros.tsx` + testes | 8 testes FAIL→PASS (o módulo nem resolvia antes); lint + typecheck |
+| 4 | `Songs.tsx` integrado | suíte 202/202; `grep IntensityBars` vazio; verificado a 360px e 1024px |
+| 5 | `musicas-filtros.mobile.spec.ts` | 4/4 PASS no projeto `mobile` |
+| 6 | `ordenacao.ts` + categorias ordenadas | teste com "Ágape/Abertura" FAIL→PASS; smoke `curl` devolve as 9 categorias A→Z |
+| 7 | Artistas ordenados | teste com "Ávine Vinny" FAIL→PASS; smoke `curl` com 3 artistas criados fora de ordem retorna A→Z |
+
+### Desperdícios evitados (cortes conscientes)
+
+- **Superprodução:** nenhuma mudança em repositories, hooks ou schemas; os toggles e o estado de URL de `Songs.tsx` não foram tocados — só a apresentação dos chips. `musicas.repository.ts` não mudou (já ordena no banco por exigência da paginação).
+- **Superprocessamento:** a alternância mobile/desktop é por CSS (`sm:hidden`/`hidden sm:block`), não por `useIsMobile()` — aqui o desktop não usa overlay, então não há troca Drawer↔Popover a fazer em JS.
+- **Estoque:** cada task virou um commit independente e reversível; reverter a Task 4 restaura o layout antigo sem tocar no backend.
+- **Retrabalho:** as 2 falhas de `musicas.spec.ts` (busca por "T031") foram diagnosticadas via API (`?q=T031` devolve 0 itens) e **deixadas em pé** — consertar seed alheio contaminaria o escopo.
+
+### Oportunidades levantadas (fora do escopo, a fazer)
+
+- **A suíte e2e completa é inatingível num único run.** `POST /sessions` tem `rateLimit(max: 10, 15 min)` desde o hardening de segurança, e os ~48 testes chamam `loginAsAdmin` no `beforeEach` — a partir do 10º login tudo responde 429 e falha no `waitForURL`. Specs isolados passam; a suíte inteira, não. Saída natural: `storageState` reaproveitado entre testes (um login por run) — vale um ciclo próprio.
+- **6 specs ainda não autenticam**: `dashboard`, `escala-detalhe`, `escalas`, `integrantes`, `musica-detalhe`, `navigation`.
+- **Seed de dev não tem a música "T031"** que `musicas.spec.ts` procura em 2 casos.
+- **Download do Playwright 1208 trava neste ambiente** (~18 MB de 167 MB, reprodutível em 2 tentativas). Contornado localmente apontando `chromium-1208`/`chromium_headless_shell-1208` por symlink para o build 1228 já presente no cache — workaround de máquina, não versionado.
+- **Ordenação de funções, tipos de evento e tonalidades** segue por definir (tonalidades têm ordem musical, não alfabética — decisão de produto).
+- **e2e ainda não roda no CI** (`ci-frontend.yml` faz só lint + unitários).
+
+### O que aprendemos
+
+- **Um plano com caminho absoluto de máquina é inexecutável na máquina seguinte.** A causa raiz estava na regra (`dev-workflow.md` prescrevia `/c/Users/...`), não no plano — corrigida aqui para subshell + caminho relativo. E o CWD realmente vaza: um `cd packages/frontend` sem parênteses quebrou o comando seguinte nesta própria sessão.
+- **Baseline reportada por outra sessão precisa ser reproduzida antes de virar task.** O plano afirmava que o binário do Playwright estava presente; não estava, e isso custou ~40 min de download travado.
+- **A augmentation "canônica" de uma lib pode não valer para a versão instalada.** `import "@testing-library/jest-dom/vitest"` (jest-dom 6.9.1) faz `declare module 'vitest'` sobre `Assertion` — que no **Vitest 4** saiu do módulo `vitest` e vive em `@vitest/expect`, estendendo a interface vazia `Matchers<T>`. O arquivo entrava no `--listFiles` e mesmo assim os 23 erros continuavam: carregar ≠ aplicar. Augmentar `Matchers` resolveu.
+- **Expandir um gate revela passivo em cascata.** Corrigir `bpm: '120'` → `120` desmascarou um `TS2739` que o erro anterior escondia: o `tsc` reporta um erro por nó, não todos.
+- **`tsx watch` não recarregou de novo.** A API devolvia categorias fora de ordem com o service correto no disco; reiniciar o processo (regra do `dev-workflow.md`) resolveu sem tocar em código. Terceira ocorrência registrada neste log — sintoma de que o watch não é confiável para arquivos novos.
+
 ## 2026-08-09 — Integrantes agrupados por função no compartilhamento da escala
 
 - **Tipo:** melhoria
