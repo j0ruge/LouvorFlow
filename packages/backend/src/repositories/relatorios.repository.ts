@@ -156,6 +156,27 @@ class RelatoriosRepository {
                 musicas: dados.musicas,
             }));
     }
+
+    /**
+     * Conta o total de músicas cadastradas no mês corrente.
+     *
+     * O corte (primeiro dia do mês) é calculado com `Date` nativo, no fuso
+     * horário do servidor — mesma característica de {@link getAtividadeMensal}
+     * (`:119-121`), que já monta seus limites de mês com `new Date(ano, mes, dia)`
+     * local. `Musicas.created_at` é `@db.Timestamp(6)` (sem timezone no Postgres),
+     * então a comparação não sofre conversão de fuso; isso é consistente com o
+     * restante do repositório, não uma regressão nova.
+     *
+     * @returns Total de músicas cujo `created_at` cai no mês corrente.
+     */
+    async countMusicasCriadasNoMes(): Promise<number> {
+        const hoje = new Date();
+        const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+        return getPrisma().musicas.count({
+            where: { created_at: { gte: primeiroDiaDoMes } },
+        });
+    }
 }
 
 export default new RelatoriosRepository();

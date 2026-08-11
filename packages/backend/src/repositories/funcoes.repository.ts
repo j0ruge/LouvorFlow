@@ -14,12 +14,34 @@ class FuncoesRepository {
         });
     }
 
+    /**
+     * Busca uma função pelo nome, ignorando caixa (maiúsculas/minúsculas).
+     *
+     * Usa `mode: 'insensitive'` do Prisma (decisão D7) como barreira de
+     * duplicidade na aplicação — o índice único do banco
+     * (`@@unique([tenant_id, nome])`) é case-sensitive no Postgres. Acentos
+     * continuam distintos: `mode: 'insensitive'` normaliza caixa, não
+     * diacríticos (ex.: "Violão" ≠ "Violao").
+     *
+     * @param nome - Nome da função.
+     * @returns Função encontrada (case-insensitive) ou null.
+     */
     async findByNome(nome: string) {
-        return getPrisma().funcoes.findFirst({ where: { nome } });
+        return getPrisma().funcoes.findFirst({ where: { nome: { equals: nome, mode: 'insensitive' } } });
     }
 
+    /**
+     * Busca uma função pelo nome (case-insensitive), excluindo um ID
+     * específico — usado para validar duplicidade em updates.
+     *
+     * @param nome - Nome a ser buscado.
+     * @param excludeId - ID da função a ser excluída da busca.
+     * @returns Função encontrada ou null.
+     */
     async findByNomeExcludingId(nome: string, excludeId: string) {
-        return getPrisma().funcoes.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().funcoes.findFirst({
+            where: { nome: { equals: nome, mode: 'insensitive' }, NOT: { id: excludeId } },
+        });
     }
 
     /**

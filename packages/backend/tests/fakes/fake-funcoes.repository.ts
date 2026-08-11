@@ -17,9 +17,12 @@ export function createFakeFuncoesRepository() {
   return {
     findAll: async () => data.map(({ id, nome }) => ({ id, nome })),
     findById: async (id: string) => data.find(f => f.id === id) ?? null,
-    findByNome: async (nome: string) => data.find(f => f.nome === nome) ?? null,
+    /** Busca por nome ignorando caixa, espelhando `mode: 'insensitive'` do Prisma real (acentos continuam distintos). */
+    findByNome: async (nome: string) =>
+      data.find(f => f.nome.toLowerCase() === nome.toLowerCase()) ?? null,
+    /** Busca por nome ignorando caixa, excluindo um ID — espelha `mode: 'insensitive'` do Prisma real. */
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
-      data.find(f => f.nome === nome && f.id !== excludeId) ?? null,
+      data.find(f => f.nome.toLowerCase() === nome.toLowerCase() && f.id !== excludeId) ?? null,
     create: async (nome: string, _tenantId?: string) => {
       const funcao = { id: randomUUID(), nome };
       data.push(funcao);

@@ -37,6 +37,15 @@ describe('RelatoriosService', () => {
             expect(result.atividadeMensal).toHaveLength(6);
         });
 
+        /** Deve propagar a contagem de músicas novas no mês vinda do repositório. */
+        it('deve propagar novasMusicasNoMes do repositório', async () => {
+            fakeRepo.configure({ novasMusicasNoMes: 8 });
+
+            const result = await relatoriosService.getResumo();
+
+            expect(result.novasMusicasNoMes).toBe(8);
+        });
+
         /** Deve calcular a média arredondada a 1 casa decimal. */
         it('deve calcular a média arredondada a 1 casa decimal', async () => {
             const result = await relatoriosService.getResumo();
@@ -63,6 +72,7 @@ describe('RelatoriosService', () => {
                 totalAssociacoes: 0,
                 topMusicas: [],
                 atividadeMensal: [],
+                novasMusicasNoMes: 0,
             });
 
             const result = await relatoriosService.getResumo();
@@ -72,6 +82,7 @@ describe('RelatoriosService', () => {
             expect(result.mediaPorEvento).toBe(0);
             expect(result.topMusicas).toEqual([]);
             expect(result.atividadeMensal).toEqual([]);
+            expect(result.novasMusicasNoMes).toBe(0);
         });
 
         /** Deve retornar média 0 quando não há eventos (divisão por zero). */
@@ -135,6 +146,7 @@ describe('RelatoriosService', () => {
             expect(result).toHaveProperty('mediaPorEvento');
             expect(result).toHaveProperty('topMusicas');
             expect(result).toHaveProperty('atividadeMensal');
+            expect(result).toHaveProperty('novasMusicasNoMes');
         });
     });
 });

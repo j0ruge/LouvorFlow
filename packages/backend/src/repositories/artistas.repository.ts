@@ -30,12 +30,35 @@ class ArtistasRepository {
         });
     }
 
+    /**
+     * Busca um artista pelo nome, ignorando caixa (maiúsculas/minúsculas).
+     *
+     * Usa `mode: 'insensitive'` do Prisma (decisão D7) como barreira de
+     * duplicidade na aplicação — o índice único do banco
+     * (`@@unique([tenant_id, nome])`) é case-sensitive no Postgres, então
+     * "Hillsong" e "hillsong" não colidiriam por conta própria. Acentos
+     * continuam distintos: `mode: 'insensitive'` normaliza caixa, não
+     * diacríticos (ex.: "Ávine" ≠ "Avine").
+     *
+     * @param nome - Nome do artista a buscar.
+     * @returns Artista encontrado (case-insensitive) ou null.
+     */
     async findByNome(nome: string) {
-        return getPrisma().artistas.findFirst({ where: { nome } });
+        return getPrisma().artistas.findFirst({ where: { nome: { equals: nome, mode: 'insensitive' } } });
     }
 
+    /**
+     * Busca um artista pelo nome (case-insensitive), excluindo um ID
+     * específico — usado para validar duplicidade em updates.
+     *
+     * @param nome - Nome a ser buscado.
+     * @param excludeId - ID do artista a ser excluído da busca.
+     * @returns Artista encontrado ou null.
+     */
     async findByNomeExcludingId(nome: string, excludeId: string) {
-        return getPrisma().artistas.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().artistas.findFirst({
+            where: { nome: { equals: nome, mode: 'insensitive' }, NOT: { id: excludeId } },
+        });
     }
 
     /**

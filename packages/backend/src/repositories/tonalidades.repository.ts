@@ -14,12 +14,34 @@ class TonalidadesRepository {
         });
     }
 
+    /**
+     * Busca uma tonalidade pelo tom, ignorando caixa (maiúsculas/minúsculas).
+     *
+     * Usa `mode: 'insensitive'` do Prisma (decisão D7) como barreira de
+     * duplicidade na aplicação — o índice único do banco
+     * (`@@unique([tenant_id, tom])`) é case-sensitive no Postgres. Acentos
+     * continuam distintos: `mode: 'insensitive'` normaliza caixa, não
+     * diacríticos.
+     *
+     * @param tom - Tom da tonalidade.
+     * @returns Tonalidade encontrada (case-insensitive) ou null.
+     */
     async findByTom(tom: string) {
-        return getPrisma().tonalidades.findFirst({ where: { tom } });
+        return getPrisma().tonalidades.findFirst({ where: { tom: { equals: tom, mode: 'insensitive' } } });
     }
 
+    /**
+     * Busca uma tonalidade pelo tom (case-insensitive), excluindo um ID
+     * específico — usado para validar duplicidade em updates.
+     *
+     * @param tom - Tom a ser buscado.
+     * @param excludeId - ID da tonalidade a ser excluída da busca.
+     * @returns Tonalidade encontrada ou null.
+     */
     async findByTomExcludingId(tom: string, excludeId: string) {
-        return getPrisma().tonalidades.findFirst({ where: { tom, NOT: { id: excludeId } } });
+        return getPrisma().tonalidades.findFirst({
+            where: { tom: { equals: tom, mode: 'insensitive' }, NOT: { id: excludeId } },
+        });
     }
 
     /**

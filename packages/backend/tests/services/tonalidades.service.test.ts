@@ -67,6 +67,14 @@ describe('TonalidadesService', () => {
         message: 'Já existe uma tonalidade com esse tom',
       });
     });
+
+    /** Decisão D7: duplicidade de tom ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando tom colide apenas na caixa', async () => {
+      await expect(tonalidadesService.create(MOCK_TONALIDADES[0].tom.toLowerCase(), 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma tonalidade com esse tom',
+      });
+    });
   });
 
   // ─── update ──────────────────────────────────────────
@@ -100,6 +108,16 @@ describe('TonalidadesService', () => {
 
     it('deve lançar AppError 409 quando tom já existe em outra tonalidade', async () => {
       await expect(tonalidadesService.update(MOCK_TONALIDADES[0].id, MOCK_TONALIDADES[1].tom)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Tom já existe',
+      });
+    });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando tom já existe em outra tonalidade ignorando caixa', async () => {
+      await expect(
+        tonalidadesService.update(MOCK_TONALIDADES[0].id, MOCK_TONALIDADES[1].tom.toLowerCase())
+      ).rejects.toMatchObject({
         statusCode: 409,
         message: 'Tom já existe',
       });

@@ -30,22 +30,32 @@ class CategoriasRepository {
     }
 
     /**
-     * Busca uma categoria pelo nome exato.
+     * Busca uma categoria pelo nome, ignorando caixa (maiúsculas/minúsculas).
+     *
+     * Usa `mode: 'insensitive'` do Prisma (decisão D7) como barreira de
+     * duplicidade na aplicação — o índice único do banco
+     * (`@@unique([tenant_id, nome])`) é case-sensitive no Postgres. Acentos
+     * continuam distintos: `mode: 'insensitive'` normaliza caixa, não
+     * diacríticos (ex.: "Adoração" ≠ "Adoracao").
+     *
      * @param nome - Nome da categoria.
-     * @returns Categoria encontrada ou null.
+     * @returns Categoria encontrada (case-insensitive) ou null.
      */
     async findByNome(nome: string): Promise<Categorias | null> {
-        return getPrisma().categorias.findFirst({ where: { nome } });
+        return getPrisma().categorias.findFirst({ where: { nome: { equals: nome, mode: 'insensitive' } } });
     }
 
     /**
-     * Busca uma categoria pelo nome, excluindo um ID específico (para validação de duplicatas em update).
+     * Busca uma categoria pelo nome (case-insensitive), excluindo um ID
+     * específico (para validação de duplicatas em update).
      * @param nome - Nome a ser buscado.
      * @param excludeId - ID da categoria a ser excluída da busca.
      * @returns Categoria encontrada ou null.
      */
     async findByNomeExcludingId(nome: string, excludeId: string): Promise<Categorias | null> {
-        return getPrisma().categorias.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().categorias.findFirst({
+            where: { nome: { equals: nome, mode: 'insensitive' }, NOT: { id: excludeId } },
+        });
     }
 
     /**

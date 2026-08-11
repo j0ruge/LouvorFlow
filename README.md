@@ -273,7 +273,7 @@ Base URL: `http://localhost:3000/api`
 | Grupos de funções | `/funcoes-grupos`  | Sim  | `PATCH /reorder`, `PUT /:id/funcoes`   |
 | Tipos de Eventos | `/tipos-eventos`    | Sim  | —                                      |
 | Igrejas          | `/igrejas`          | Sim  | `/users`. Requer role `super-admin`. O tenant de sistema é recusado com 403 |
-| Relatórios       | `/relatorios`       | —    | `GET /resumo` — totais, ranking e atividade mensal |
+| Relatórios       | `/relatorios`       | —    | `GET /resumo` — totais, ranking, atividade mensal e músicas novas no mês |
 | Sessions         | `/sessions`         | —    | Login, refresh token, logout, `select-tenant`, `switch-tenant`. Rotas públicas com rate limit |
 | Users            | `/users`            | Sim  | Requer role `admin`                    |
 | Roles            | `/roles`            | Sim  | `/permissions`. Requer role `admin`    |

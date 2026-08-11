@@ -32,6 +32,7 @@ export interface AtividadeMensal {
  * @property mediaPorEvento - Média de músicas por evento (1 casa decimal)
  * @property topMusicas - Top 5 músicas por frequência
  * @property atividadeMensal - Atividade dos últimos 6 meses
+ * @property novasMusicasNoMes - Total de músicas com `created_at` no mês corrente
  */
 export interface RelatorioResumo {
     totalMusicas: number;
@@ -39,6 +40,7 @@ export interface RelatorioResumo {
     mediaPorEvento: number;
     topMusicas: MusicaRanking[];
     atividadeMensal: AtividadeMensal[];
+    novasMusicasNoMes: number;
 }
 
 export interface IdNome {

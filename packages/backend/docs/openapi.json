@@ -217,7 +217,7 @@
       },
       "post": {
         "summary": "Cadastrar artista",
-        "description": "Cria um novo artista. O nome deve ser único.",
+        "description": "Cria um novo artista. O nome deve ser único (comparação ignora caixa; acentos continuam distintos — \"Ávine\" e \"Avine\" são nomes diferentes).",
         "tags": [
           "Artistas"
         ],
@@ -320,7 +320,7 @@
       },
       "put": {
         "summary": "Atualizar artista",
-        "description": "Atualiza o nome de um artista existente.",
+        "description": "Atualiza o nome de um artista existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Artistas"
         ],
@@ -2933,7 +2933,7 @@
       },
       "post": {
         "summary": "Cadastrar categoria",
-        "description": "Cria uma nova categoria. O nome deve ser único.",
+        "description": "Cria uma nova categoria. O nome deve ser único (comparação ignora caixa; acentos continuam distintos — \"Adoração\" e \"Adoracao\" são nomes diferentes).",
         "tags": [
           "Categorias"
         ],
@@ -3035,6 +3035,7 @@
       },
       "put": {
         "summary": "Atualizar categoria",
+        "description": "Atualiza o nome de uma categoria existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Categorias"
         ],
@@ -3230,7 +3231,7 @@
       },
       "post": {
         "summary": "Cadastrar tonalidade",
-        "description": "Cria uma nova tonalidade. O tom deve ser único.",
+        "description": "Cria uma nova tonalidade. O tom deve ser único (comparação ignora caixa).",
         "tags": [
           "Tonalidades"
         ],
@@ -3332,6 +3333,7 @@
       },
       "put": {
         "summary": "Atualizar tonalidade",
+        "description": "Atualiza o tom de uma tonalidade existente. A checagem de tom duplicado ignora caixa.",
         "tags": [
           "Tonalidades"
         ],
@@ -3503,7 +3505,7 @@
       },
       "post": {
         "summary": "Cadastrar função",
-        "description": "Cria uma nova função/instrumento. O nome deve ser único.",
+        "description": "Cria uma nova função/instrumento. O nome deve ser único (comparação ignora caixa; acentos continuam distintos).",
         "tags": [
           "Funções"
         ],
@@ -3605,6 +3607,7 @@
       },
       "put": {
         "summary": "Atualizar função",
+        "description": "Atualiza o nome de uma função existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Funções"
         ],
@@ -4192,7 +4195,7 @@
       },
       "post": {
         "summary": "Cadastrar tipo de evento",
-        "description": "Cria um novo tipo de evento. O nome deve ser único.",
+        "description": "Cria um novo tipo de evento. O nome deve ser único (comparação ignora caixa; acentos continuam distintos).",
         "tags": [
           "Tipos de Eventos"
         ],
@@ -4294,6 +4297,7 @@
       },
       "put": {
         "summary": "Atualizar tipo de evento",
+        "description": "Atualiza o nome de um tipo de evento existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Tipos de Eventos"
         ],
@@ -6368,7 +6372,7 @@
     "/relatorios/resumo": {
       "get": {
         "summary": "Resumo de relatórios",
-        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas e atividade mensal.",
+        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas, atividade mensal e quantidade de músicas novas no mês corrente.",
         "tags": [
           "Relatórios"
         ],
@@ -8266,6 +8270,10 @@
             "items": {
               "$ref": "#/components/schemas/AtividadeMensal"
             }
+          },
+          "novasMusicasNoMes": {
+            "type": "integer",
+            "description": "Total de músicas cadastradas no mês corrente (created_at >= primeiro dia do mês, fuso do servidor)"
           }
         },
         "required": [
@@ -8273,7 +8281,8 @@
           "totalEventos",
           "mediaPorEvento",
           "topMusicas",
-          "atividadeMensal"
+          "atividadeMensal",
+          "novasMusicasNoMes"
         ]
       }
     },

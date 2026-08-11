@@ -8,9 +8,12 @@ export function createFakeTonalidadesRepository() {
   return {
     findAll: async () => data.map(({ id, tom }) => ({ id, tom })),
     findById: async (id: string) => data.find(t => t.id === id) ?? null,
-    findByTom: async (tom: string) => data.find(t => t.tom === tom) ?? null,
+    /** Busca por tom ignorando caixa, espelhando `mode: 'insensitive'` do Prisma real. */
+    findByTom: async (tom: string) =>
+      data.find(t => t.tom.toLowerCase() === tom.toLowerCase()) ?? null,
+    /** Busca por tom ignorando caixa, excluindo um ID — espelha `mode: 'insensitive'` do Prisma real. */
     findByTomExcludingId: async (tom: string, excludeId: string) =>
-      data.find(t => t.tom === tom && t.id !== excludeId) ?? null,
+      data.find(t => t.tom.toLowerCase() === tom.toLowerCase() && t.id !== excludeId) ?? null,
     create: async (tom: string, _tenantId?: string) => {
       const tonalidade = { id: randomUUID(), tom };
       data.push(tonalidade);

@@ -19,6 +19,8 @@ interface FakeRelatoriosData {
     topMusicas: MusicaRanking[];
     /** Lista de atividade mensal. */
     atividadeMensal: AtividadeMensal[];
+    /** Total de músicas criadas no mês corrente. */
+    novasMusicasNoMes: number;
 }
 
 /** Dados padrão para testes com cenário populado. */
@@ -26,6 +28,7 @@ const DEFAULT_DATA: FakeRelatoriosData = {
     totalMusicas: 50,
     totalEventos: 20,
     totalAssociacoes: 100,
+    novasMusicasNoMes: 8,
     topMusicas: [
         { id: 'id-1', nome: 'Way Maker', vezes: 10 },
         { id: 'id-2', nome: 'Oceans', vezes: 7 },
@@ -61,6 +64,9 @@ export function createFakeRelatoriosRepository(dados?: Partial<FakeRelatoriosDat
 
         /** Retorna o total de associações evento-música configurado. */
         countAssociacoesEventoMusica: async (): Promise<number> => data.totalAssociacoes,
+
+        /** Retorna o total de músicas criadas no mês corrente configurado. */
+        countMusicasCriadasNoMes: async (): Promise<number> => data.novasMusicasNoMes,
 
         /**
          * Retorna as top músicas do ranking configurado, incluindo empates

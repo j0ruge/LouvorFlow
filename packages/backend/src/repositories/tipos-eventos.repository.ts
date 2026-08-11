@@ -14,12 +14,34 @@ class TiposEventosRepository {
         });
     }
 
+    /**
+     * Busca um tipo de evento pelo nome, ignorando caixa (maiúsculas/minúsculas).
+     *
+     * Usa `mode: 'insensitive'` do Prisma (decisão D7) como barreira de
+     * duplicidade na aplicação — o índice único do banco
+     * (`@@unique([tenant_id, nome])`) é case-sensitive no Postgres. Acentos
+     * continuam distintos: `mode: 'insensitive'` normaliza caixa, não
+     * diacríticos (ex.: "Vigília" ≠ "Vigilia").
+     *
+     * @param nome - Nome do tipo de evento.
+     * @returns Tipo de evento encontrado (case-insensitive) ou null.
+     */
     async findByNome(nome: string) {
-        return getPrisma().tipos_Eventos.findFirst({ where: { nome } });
+        return getPrisma().tipos_Eventos.findFirst({ where: { nome: { equals: nome, mode: 'insensitive' } } });
     }
 
+    /**
+     * Busca um tipo de evento pelo nome (case-insensitive), excluindo um ID
+     * específico — usado para validar duplicidade em updates.
+     *
+     * @param nome - Nome a ser buscado.
+     * @param excludeId - ID do tipo de evento a ser excluído da busca.
+     * @returns Tipo de evento encontrado ou null.
+     */
     async findByNomeExcludingId(nome: string, excludeId: string) {
-        return getPrisma().tipos_Eventos.findFirst({ where: { nome, NOT: { id: excludeId } } });
+        return getPrisma().tipos_Eventos.findFirst({
+            where: { nome: { equals: nome, mode: 'insensitive' }, NOT: { id: excludeId } },
+        });
     }
 
     /**
