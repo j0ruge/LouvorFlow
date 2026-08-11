@@ -6,6 +6,11 @@ on:
     paths:
       - 'packages/backend/**'
       - '.github/workflows/cd-staging-backend.yml'
+  # Permite redeploy sob demanda, sem precisar de um commit de fachada em
+  # packages/backend/**. Necessario quando o estado do servidor muda por fora do
+  # pipeline — por exemplo ao trocar o secret DB_URL, quando o deploy precisa
+  # rodar so para regenerar o .env a partir da nova fonte de verdade.
+  workflow_dispatch:
 
 permissions:
   packages: write
