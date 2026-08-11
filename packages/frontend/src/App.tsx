@@ -26,7 +26,7 @@ import { AdminRoute } from "./components/AdminRoute";
 import { SuperAdminRoute } from "./components/SuperAdminRoute";
 import Dashboard from "./pages/Dashboard";
 import Songs from "./pages/Songs";
-import Scales from "./pages/Scales";
+import Escalas from "./pages/Escalas";
 import Members from "./pages/Members";
 import Reports from "./pages/Reports";
 import History from "./pages/History";
@@ -125,7 +125,7 @@ const App = () => (
                 <Route path="/" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
                 <Route path="/musicas" element={<ProtectedPage><Songs /></ProtectedPage>} />
                 <Route path="/musicas/:id" element={<ProtectedPage><SongDetail /></ProtectedPage>} />
-                <Route path="/escalas" element={<ProtectedPage><Scales /></ProtectedPage>} />
+                <Route path="/escalas" element={<ProtectedPage><Escalas /></ProtectedPage>} />
                 <Route path="/escalas/:id" element={<ProtectedPage><EventoDetail /></ProtectedPage>} />
                 <Route path="/integrantes" element={<ProtectedPage><Members /></ProtectedPage>} />
                 <Route path="/configuracoes" element={<ProtectedPage><Settings /></ProtectedPage>} />

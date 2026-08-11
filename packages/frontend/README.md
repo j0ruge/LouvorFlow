@@ -251,7 +251,7 @@ LouvorFlow/
 │   │   ├── Dashboard.tsx         # Dashboard com dados reais (/)
 │   │   ├── Songs.tsx             # Listagem de músicas com busca (/musicas)
 │   │   ├── SongDetail.tsx        # Detalhes da música (/musicas/:id)
-│   │   ├── Scales.tsx            # Gestão de escalas (/escalas)
+│   │   ├── Escalas.tsx          # Gestão de escalas (/escalas)
 │   │   ├── Members.tsx           # Gestão de integrantes com busca (/integrantes)
 │   │   ├── Settings.tsx          # Configurações com abas (/configuracoes)
 │   │   ├── Reports.tsx           # Relatórios e análises (/relatorios)

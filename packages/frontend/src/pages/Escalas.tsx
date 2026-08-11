@@ -74,7 +74,7 @@ function ScaleSkeleton() {
  *
  * @returns Elemento JSX com a página de escalas.
  */
-const Scales = () => {
+const Escalas = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEvento, setEditingEvento] = useState<EventoIndex | null>(null);
   const [deletingEvento, setDeletingEvento] = useState<EventoIndex | null>(null);
@@ -405,4 +405,4 @@ const Scales = () => {
   );
 };
 
-export default Scales;
+export default Escalas;

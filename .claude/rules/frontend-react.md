@@ -196,7 +196,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `Dashboard.tsx` | grid-cols-2 stats + responsive gaps + truncate |
 | `admin/Roles.tsx` | Dual layout cards/table + header responsivo |
 | `admin/Users.tsx` | Dual layout cards/table + header responsivo |
-| `Scales.tsx` | Header justify-between com prefixo sm: |
+| `Escalas.tsx` | Header justify-between com prefixo sm: |
 | `IntegranteForm.tsx` | flex-wrap no select+button de funções; migrado para `ResponsiveFormDialog` |
 | `DateTimePicker.tsx` | Drawer (mobile) / Popover (desktop) + botões Confirmar/Cancelar |
 | `ResponsiveFormDialog.tsx` | Shell de formulário: Drawer (mobile) / Dialog (desktop), header fixo + corpo rolável + footer sticky; corrige botão Salvar escondido e campo em foco atrás do teclado |

@@ -138,7 +138,7 @@ Warm-tinted in light mode (brown shadows, not blue). Dark shadows in dark mode.
 - **Dashboard h1** (front-door): `text-2xl sm:text-3xl md:text-[34px]` — 24 → 30 → 34px.
 - **Sidebar wordmark**: `text-lg sm:text-[22px]` — 18 → 22px.
 
-Páginas internas (`Scales`, `Songs`, `Members`, `Reports`, `Profile`, `History`, `SongDetail`, `admin/*`) mantêm `text-2xl` flat — só a página de aterragem ultrapassa esse tamanho-canônico.
+Páginas internas (`Escalas`, `Songs`, `Members`, `Reports`, `Profile`, `History`, `SongDetail`, `admin/*`) mantêm `text-2xl` flat — só a página de aterragem ultrapassa esse tamanho-canônico.
 
 ## Icon System
 

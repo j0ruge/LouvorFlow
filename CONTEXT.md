@@ -76,6 +76,9 @@ _Avoid_: setlist, playlist, seleção
 
 Registradas para que ninguém as "conserte" por engano — resolvê-las exige renomeação, que o `CLAUDE.md` só autoriza mediante pedido explícito.
 
-- **Escala ≠ Evento, mas a interface usa os dois como sinônimos.** A rota de escalas exibe o detalhe do evento, e a listagem chama-se `Scales`. Pelo glossário acima, *Evento* é a ocasião e *Escala* é a designação de pessoas nela.
-- **`Scales` é tradução incorreta de "escala".** Em inglês, *scale* é escala musical ou escala de medida — a palavra para escala de serviço é *roster*.
+- **Escala ≠ Evento, mas a interface usa os dois como sinônimos.** A listagem em `/escalas` e o detalhe em `/escalas/:id` tratam a ocasião e a designação de pessoas como uma coisa só. Pelo glossário acima, *Evento* é a ocasião e *Escala* é a designação de pessoas nela.
 - **"Função" aparece nos dois planos.** Ministério (Vocal, Violão) e controle de acesso (RBAC) usam a mesma palavra em português. Neste glossário, acesso é sempre **Permissão**.
+
+Resolvidas:
+
+- **`Scales` → `Escalas`** (2026-08-10). O nome da página de listagem era falso cognato: em inglês, *scale* é escala musical ou de medida, e escala de serviço é *roster*. Renomeada a pedido.
