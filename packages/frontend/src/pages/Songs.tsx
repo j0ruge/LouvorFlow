@@ -2,8 +2,10 @@
  * Página de gerenciamento do catálogo de músicas.
  *
  * Estado da lista (page, busca, intensidades, categorias) sincronizado com a
- * URL via `useSearchParams`. Filtros por tempo (intensidade) e por categoria
- * via chips multi-seleção. Busca textual e ambos os filtros executados no backend.
+ * URL via `useSearchParams`. Filtros por intensidade (tempo) e por categoria
+ * via chips multi-seleção: inline no desktop e colapsados atrás do botão
+ * "Filtros" (bottom-sheet) no mobile, mantendo a busca como protagonista.
+ * Busca textual e ambos os filtros executados no backend.
  */
 
 import { useState, useEffect } from "react";
@@ -19,7 +21,7 @@ import { useCategorias } from "@/hooks/use-categorias";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { MusicaForm } from "@/components/MusicaForm";
-import { IntensityBars } from "@/components/IntensidadeSelector";
+import { MusicaFiltrosChips, MusicaFiltrosDrawer } from "@/components/MusicaFiltros";
 import { INTENSIDADE_OPTIONS, type Intensidade } from "@/components/intensidade-options";
 import { useCan } from "@/hooks/use-can";
 import { handleClickableKeyDown } from "@/lib/utils";
@@ -230,6 +232,23 @@ const Songs = () => {
   };
 
   /**
+   * Remove todos os filtros de chips (categorias e intensidades) da URL,
+   * preservando a busca textual e resetando para a página 1.
+   */
+  const limparFiltros = () => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("categorias");
+        next.delete("intensidades");
+        next.set("page", "1");
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
+  /**
    * Navega ao detalhe preservando a URL atual em `location.state.from`.
    *
    * @param id - UUID da música a abrir.
@@ -286,7 +305,7 @@ const Songs = () => {
 
       <Card className="shadow-soft border-0">
         <CardHeader className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -297,75 +316,29 @@ const Songs = () => {
                 onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
+            {/* Mobile: filtros colapsados atrás do botão (bottom-sheet). */}
+            <div className="sm:hidden">
+              <MusicaFiltrosDrawer
+                categorias={categoriasList ?? []}
+                categoriaIds={categoriaIds}
+                intensidades={intensidades}
+                onToggleCategoria={toggleCategoria}
+                onToggleIntensidade={toggleIntensidade}
+                onLimpar={limparFiltros}
+              />
+            </div>
           </div>
 
-          {/* Filtro por tempo (intensidade) — primeiras opções, acima das categorias. */}
-          {INTENSIDADE_OPTIONS.length > 0 && (
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Filtrar por intensidade (tempo)"
-            >
-              {INTENSIDADE_OPTIONS.map((opt) => {
-                const active = intensidades.includes(opt.value);
-                return (
-                  <Badge
-                    key={opt.value}
-                    variant={active ? "default" : "outline"}
-                    className={
-                      "cursor-pointer select-none gap-1.5 transition-colors " +
-                      (active
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-primary/10")
-                    }
-                    role="button"
-                    aria-pressed={active}
-                    tabIndex={0}
-                    onClick={() => toggleIntensidade(opt.value)}
-                    onKeyDown={handleClickableKeyDown(() =>
-                      toggleIntensidade(opt.value),
-                    )}
-                  >
-                    <IntensityBars bars={opt.bars} className="h-3.5 w-3.5" />
-                    {opt.label}
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
-
-          {categoriasList && categoriasList.length > 0 && (
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Filtrar por categoria"
-            >
-              {categoriasList.map((cat) => {
-                const active = categoriaIds.includes(cat.id);
-                return (
-                  <Badge
-                    key={cat.id}
-                    variant={active ? "default" : "outline"}
-                    className={
-                      "cursor-pointer select-none transition-colors " +
-                      (active
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-primary/10")
-                    }
-                    role="button"
-                    aria-pressed={active}
-                    tabIndex={0}
-                    onClick={() => toggleCategoria(cat.id)}
-                    onKeyDown={handleClickableKeyDown(() =>
-                      toggleCategoria(cat.id),
-                    )}
-                  >
-                    {cat.nome}
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
+          {/* Desktop: chips inline, sempre visíveis (comportamento atual). */}
+          <div className="hidden sm:block">
+            <MusicaFiltrosChips
+              categorias={categoriasList ?? []}
+              categoriaIds={categoriaIds}
+              intensidades={intensidades}
+              onToggleCategoria={toggleCategoria}
+              onToggleIntensidade={toggleIntensidade}
+            />
+          </div>
         </CardHeader>
 
         <CardContent>
