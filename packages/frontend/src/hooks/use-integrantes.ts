@@ -95,11 +95,15 @@ export function useUpdateIntegrante() {
 /**
  * Hook para excluir um integrante via mutation.
  *
- * Invalida a query de listagem e exibe toast de sucesso/erro.
+ * Invalida a query de listagem e exibe toast de sucesso/erro. Com
+ * `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`), em que o feedback é o toast
+ * com a ação "Desfazer". O toast de erro permanece em ambos os modos.
  *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de integrante.
  */
-export function useDeleteIntegrante() {
+export function useDeleteIntegrante(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -107,7 +111,9 @@ export function useDeleteIntegrante() {
     onSuccess: (data, id) => {
       queryClient.invalidateQueries({ queryKey: ["integrantes"] });
       queryClient.removeQueries({ queryKey: ["integrantes", id] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);

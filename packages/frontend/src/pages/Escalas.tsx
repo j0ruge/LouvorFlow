@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Plus, Users, Music, Search } from "lucide-react";
 import { useEventos, useDeleteEvento } from "@/hooks/use-eventos";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
@@ -83,7 +84,12 @@ const Escalas = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
-  const deleteEvento = useDeleteEvento();
+  /** Mutation silenciosa: o feedback de exclusão é o toast com "Desfazer" do useUndoableDelete. */
+  const deleteEvento = useDeleteEvento({ silent: true });
+  /** Exclusão com janela de desfazer: adia o DELETE ~5s e filtra os pendentes da lista. */
+  const { agendar: agendarExclusao, estaPendente } = useUndoableDelete({
+    excluir: deleteEvento.mutateAsync,
+  });
   const { can: canWrite, isLoading: isLoadingPermissao } = useCan("escalas.write");
 
   /**
@@ -121,12 +127,17 @@ const Escalas = () => {
   /**
    * Separa as escalas em próximas (data >= início do dia) e passadas,
    * aplicando o filtro de busca. Próximas ordenadas por data ASC.
-   * Passadas ordenadas por data DESC.
+   * Passadas ordenadas por data DESC. Escalas com exclusão pendente
+   * (janela de desfazer) são filtradas da exibição sem tocar no cache —
+   * um "Desfazer" as devolve na posição original.
    */
   const { upcoming, past } = useMemo(() => {
     if (!scales) return { upcoming: [], past: [] };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    /** Esconde as escalas com exclusão agendada (aguardando a janela de desfazer). */
+    const visiveis = scales.filter((s) => !estaPendente(s.id));
 
     const q = searchQuery.trim().toLowerCase();
 
@@ -150,17 +161,17 @@ const Escalas = () => {
       });
     }
 
-    const upcomingList = scales
+    const upcomingList = visiveis
       .filter((s) => new Date(s.data) >= today)
       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    const pastList = scales
+    const pastList = visiveis
       .filter((s) => new Date(s.data) < today)
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
     return {
       upcoming: applySearch(upcomingList),
       past: applySearch(pastList),
     };
-  }, [scales, searchQuery]);
+  }, [scales, searchQuery, estaPendente]);
 
   /** Abre o formulário em modo edição para o evento informado. */
   function handleEdit(evento: EventoIndex) {
@@ -174,12 +185,15 @@ const Escalas = () => {
     if (!open) setEditingEvento(null);
   }
 
-  /** Confirma e executa a exclusão do evento selecionado. */
+  /**
+   * Confirma a exclusão do evento selecionado agendando-a com janela de
+   * desfazer: o card some da lista na hora, mas o DELETE real só dispara
+   * quando a janela do toast expirar (ou no desmonte da página).
+   */
   function handleConfirmDelete() {
     if (!deletingEvento) return;
-    deleteEvento.mutate(deletingEvento.id, {
-      onSuccess: () => setDeletingEvento(null),
-    });
+    agendarExclusao(deletingEvento.id, "Escala excluída.");
+    setDeletingEvento(null);
   }
 
   /**
@@ -383,9 +397,11 @@ const Escalas = () => {
           if (!open) setDeletingEvento(null);
         }}
         title="Excluir Escala"
-        description="Os vínculos com músicas e integrantes desta escala serão removidos. Deseja continuar?"
+        description="Os vínculos com músicas e integrantes desta escala serão removidos. Você poderá desfazer nos próximos segundos."
         onConfirm={handleConfirmDelete}
-        isLoading={deleteEvento.isPending}
+        /* Sem isLoading: `agendar` é síncrono (o diálogo fecha antes de
+           qualquer pending) e um DELETE adiado de OUTRO item deixaria o
+           botão em "Excluindo..." por uma request alheia. */
       />
     </div>
   );

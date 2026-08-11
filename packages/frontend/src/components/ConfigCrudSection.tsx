@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, CornerDownLeft, X, Check, Loader2 } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { cn, normalizeForSearch } from "@/lib/utils";
 
 /** Duração (ms) do destaque visual aplicado ao item recém-criado. */
@@ -57,8 +58,6 @@ interface ConfigCrudSectionProps<T> {
   isCreating?: boolean;
   /** Indica se uma operação de atualização está em andamento. */
   isUpdating?: boolean;
-  /** Indica se uma operação de exclusão está em andamento. */
-  isDeleting?: boolean;
   /** Quando `true`, oculta controles de criação, edição e exclusão (modo somente-leitura). */
   readOnly?: boolean;
 }
@@ -78,7 +77,6 @@ export function ConfigCrudSection<T>({
   onDelete,
   isCreating = false,
   isUpdating = false,
-  isDeleting = false,
   readOnly = false,
 }: ConfigCrudSectionProps<T>) {
   const [newName, setNewName] = useState("");
@@ -97,6 +95,15 @@ export function ConfigCrudSection<T>({
    */
   const [recemCriado, setRecemCriado] = useState<string | null>(null);
   const erroCriacaoId = useId();
+  /**
+   * Exclusão com janela de desfazer: adia o `onDelete` real ~5s enquanto o
+   * toast com "Desfazer" está visível e esconde o item pendente da lista.
+   * Vive aqui (e não no `Settings.tsx`) porque este componente é quem
+   * conhece os `items` a filtrar — o pai só fornece o executor `onDelete`.
+   */
+  const { agendar: agendarExclusao, estaPendente } = useUndoableDelete({
+    excluir: onDelete,
+  });
 
   /** Remove o destaque do item recém-criado 2s depois de marcado, com cleanup no unmount/reexecução. */
   useEffect(() => {
@@ -180,15 +187,30 @@ export function ConfigCrudSection<T>({
     }
   }
 
-  /** Confirma e executa a exclusão do item selecionado. */
-  async function handleConfirmDelete() {
+  /**
+   * Confirma a exclusão do item selecionado agendando-a com janela de
+   * desfazer: o item some da lista na hora, mas o `onDelete` real só dispara
+   * quando a janela do toast expirar (ou no desmonte da seção — trocar de
+   * aba em Configurações desmonta o `TabsContent` e faz o flush). A copy do
+   * toast concorda em gênero com o rótulo da entidade ("Artista excluído.",
+   * "Categoria excluída.").
+   */
+  function handleConfirmDelete() {
     if (!deleteTarget) return;
-    try {
-      await onDelete(deleteTarget.id);
-    } finally {
-      setDeleteTarget(null);
-    }
+    const participio = config.genero === "f" ? "excluída" : "excluído";
+    agendarExclusao(deleteTarget.id, `${config.label} ${participio}.`);
+    setDeleteTarget(null);
   }
+
+  /**
+   * Itens visíveis na lista: esconde os que estão com exclusão pendente
+   * (janela de desfazer). A checagem de duplicado (`existeDuplicado`)
+   * continua usando `items` completo de propósito — durante a janela o item
+   * ainda existe no backend e recriar o mesmo nome levaria a um 409.
+   */
+  const itensVisiveis = (items ?? []).filter(
+    (item) => !estaPendente(config.getId(item)),
+  );
 
   return (
     <div className="space-y-4">
@@ -235,14 +257,14 @@ export function ConfigCrudSection<T>({
         <p className="text-sm text-muted-foreground text-center py-4">
           Carregando...
         </p>
-      ) : !items || items.length === 0 ? (
+      ) : itensVisiveis.length === 0 ? (
         <EmptyState
           title={config.emptyTitle}
           description={config.emptyDescription}
         />
       ) : (
         <div className="space-y-2">
-          {items.map((item) => {
+          {itensVisiveis.map((item) => {
             const id = config.getId(item);
             const name = config.getName(item);
             const isEditingThis = editingId === id;
@@ -328,9 +350,11 @@ export function ConfigCrudSection<T>({
           if (!open) setDeleteTarget(null);
         }}
         title={`Excluir ${config.label}`}
-        description={`Tem certeza que deseja excluir "${deleteTarget?.name}"? Essa ação não pode ser desfeita.`}
+        description={`Tem certeza que deseja excluir "${deleteTarget?.name ?? ""}"? Você poderá desfazer nos próximos segundos.`}
         onConfirm={handleConfirmDelete}
-        isLoading={isDeleting}
+        /* Sem isLoading: `agendar` é síncrono (o diálogo fecha antes de
+           qualquer pending) e um DELETE adiado de OUTRO item deixaria o
+           botão em "Excluindo..." por uma request alheia. */
       />
     </div>
   );

@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Plus, Search, Mail, Phone, Trash2, Link2, ListChecks } from "lucide-react";
 import { useIntegrantes, useDeleteIntegrante } from "@/hooks/use-integrantes";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCan } from "@/hooks/use-can";
 import { EmptyState } from "@/components/EmptyState";
@@ -82,7 +83,12 @@ const Members = () => {
   const [inviteListOpen, setInviteListOpen] = useState(false);
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const { data: members, isLoading, isError, error, refetch } = useIntegrantes();
-  const deleteMutation = useDeleteIntegrante();
+  /** Mutation silenciosa: o feedback de exclusão é o toast com "Desfazer" do useUndoableDelete. */
+  const deleteMutation = useDeleteIntegrante({ silent: true });
+  /** Exclusão com janela de desfazer: adia o DELETE ~5s e filtra os pendentes da lista. */
+  const { agendar: agendarExclusao, estaPendente } = useUndoableDelete({
+    excluir: deleteMutation.mutateAsync,
+  });
   const { user } = useAuth();
   const { can: canWrite } = useCan("integrantes.write");
 
@@ -97,13 +103,18 @@ const Members = () => {
 
   const isSearching = debouncedTerm.length > 0;
 
-  /** Aplica filtragem client-side por nome (case-insensitive). */
+  /**
+   * Aplica filtragem client-side por nome (case-insensitive) e esconde os
+   * integrantes com exclusão pendente (janela de desfazer) — sem tocar no
+   * cache, um "Desfazer" os devolve na posição original.
+   */
   const filteredMembers = useMemo(() => {
     if (!members) return [];
-    if (!isSearching) return members;
+    const visiveis = members.filter((m) => !estaPendente(m.id));
+    if (!isSearching) return visiveis;
     const term = debouncedTerm.toLowerCase();
-    return members.filter((m) => m.nome.toLowerCase().includes(term));
-  }, [members, debouncedTerm, isSearching]);
+    return visiveis.filter((m) => m.nome.toLowerCase().includes(term));
+  }, [members, debouncedTerm, isSearching, estaPendente]);
 
   /** Abre o formulário no modo criação, limpando o id de edição. */
   function handleOpenCreateForm() {
@@ -132,13 +143,15 @@ const Members = () => {
     if (!open) setEditingId(null);
   }
 
-  /** Confirma e executa a exclusão do integrante selecionado. */
+  /**
+   * Confirma a exclusão do integrante selecionado agendando-a com janela de
+   * desfazer: o card some da lista na hora, mas o DELETE real só dispara
+   * quando a janela do toast expirar (ou no desmonte da página).
+   */
   function handleConfirmDelete() {
-    if (deletingMember) {
-      deleteMutation.mutate(deletingMember.id, {
-        onSuccess: () => setDeletingMember(null),
-      });
-    }
+    if (!deletingMember) return;
+    agendarExclusao(deletingMember.id, "Integrante removido.");
+    setDeletingMember(null);
   }
 
   return (
@@ -313,9 +326,11 @@ const Members = () => {
           if (!open) setDeletingMember(null);
         }}
         title={`Remover ${deletingMember?.nome ?? "integrante"}`}
-        description="Essa ação não pode ser desfeita. O integrante será removido permanentemente do ministério."
+        description="O integrante será removido do ministério. Você poderá desfazer nos próximos segundos."
         onConfirm={handleConfirmDelete}
-        isLoading={deleteMutation.isPending}
+        /* Sem isLoading: `agendar` é síncrono (o diálogo fecha antes de
+           qualquer pending) e um DELETE adiado de OUTRO item deixaria o
+           botão em "Excluindo..." por uma request alheia. */
       />
 
       {canWrite && (

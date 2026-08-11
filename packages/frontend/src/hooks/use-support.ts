@@ -131,15 +131,21 @@ export function useUpdateCategoria() {
 /**
  * Hook para excluir uma categoria via mutation.
  *
+ * Com `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`); o toast de erro permanece.
+ *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de categoria.
  */
-export function useDeleteCategoria() {
+export function useDeleteCategoria(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteCategoria(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["categorias"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -193,16 +199,22 @@ export function useUpdateFuncao() {
 /**
  * Hook para excluir uma função via mutation.
  *
+ * Com `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`); o toast de erro permanece.
+ *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de função.
  */
-export function useDeleteFuncao() {
+export function useDeleteFuncao(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteFuncao(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["funcoes"] });
       queryClient.invalidateQueries({ queryKey: ["funcoes-grupos"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -254,15 +266,21 @@ export function useUpdateTonalidade() {
 /**
  * Hook para excluir uma tonalidade via mutation.
  *
+ * Com `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`); o toast de erro permanece.
+ *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de tonalidade.
  */
-export function useDeleteTonalidade() {
+export function useDeleteTonalidade(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTonalidade(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tonalidades"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -314,15 +332,21 @@ export function useUpdateTipoEvento() {
 /**
  * Hook para excluir um tipo de evento via mutation.
  *
+ * Com `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`); o toast de erro permanece.
+ *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de tipo de evento.
  */
-export function useDeleteTipoEvento() {
+export function useDeleteTipoEvento(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTipoEvento(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tipos-eventos"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);

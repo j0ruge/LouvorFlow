@@ -62,7 +62,7 @@ export function useCreateIgreja() {
     mutationFn: (data: { name: string }) => createIgreja(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "igrejas"] });
-      toast.success("Igreja criada com sucesso");
+      toast.success("Igreja criada com sucesso.");
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -73,8 +73,12 @@ export function useCreateIgreja() {
 /**
  * Hook para atualizar os dados de uma igreja via mutation.
  *
- * Invalida as queries de listagem e detalhe da igreja,
- * e exibe toast de sucesso/erro.
+ * Invalida as queries de listagem e detalhe da igreja e exibe toast de
+ * sucesso/erro. A copy do toast é específica por operação, derivada das
+ * próprias variables da mutation: alternância de status anuncia
+ * "desativada"/"reativada"; edição de dados anuncia "atualizada". A tela
+ * (`admin/Igrejas.tsx`) NÃO deve tocar toast próprio — este hook é a única
+ * fonte do aviso (correção do toast duplicado, fase F9).
  *
  * @returns Resultado do useMutation para atualização de igreja.
  */
@@ -84,10 +88,23 @@ export function useUpdateIgreja() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateIgrejaForm }) =>
       updateIgreja(id, data),
-    onSuccess: (_result, { id }) => {
+    /**
+     * Callback de sucesso: invalida os caches e anuncia a operação com copy
+     * específica segundo o `data.status` enviado.
+     *
+     * @param _result - Resposta da API (não utilizada).
+     * @param variables - Variáveis da mutation (`id` e `data` enviados).
+     */
+    onSuccess: (_result, { id, data }) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "igrejas"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "igrejas", id] });
-      toast.success("Igreja atualizada com sucesso");
+      toast.success(
+        data.status === "inactive"
+          ? "Igreja desativada com sucesso."
+          : data.status === "active"
+            ? "Igreja reativada com sucesso."
+            : "Igreja atualizada com sucesso.",
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);

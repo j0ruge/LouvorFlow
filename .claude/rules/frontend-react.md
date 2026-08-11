@@ -57,6 +57,7 @@ packages/frontend/src/
 │   ├── use-scroll-restoration.ts # Salva/restaura rolagem do container interno; abre páginas no topo
 │   ├── use-focus-shortcut.ts # Atalho de teclado global (padrão "/") que foca/seleciona um input, com guardas de a11y
 │   ├── use-dirty-form-guard.ts # Máquina de estados da guarda de alterações não salvas (veil "Descartar alterações?")
+│   ├── use-undoable-delete.ts # Exclusão com janela de desfazer client-side (~5s): adia o DELETE, toast com "Desfazer", Set de pendentes filtra a lista
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
@@ -232,12 +233,24 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 
 ### Ações destrutivas exigem confirmação
 
-Toda ação destrutiva e sem desfazer passa por **`DeleteConfirmDialog`** — nunca dispara direto do `onClick`. Vale também para o que não é "excluir" no nome, mas tem efeito equivalente:
+Toda ação destrutiva passa por **`DeleteConfirmDialog`** — nunca dispara direto do `onClick`. A confirmação permanece **mesmo nas exclusões que ganharam janela de desfazer** (ver seção seguinte). Vale também para o que não é "excluir" no nome, mas tem efeito equivalente:
 
 - **Desativar igreja** (`admin/Igrejas.tsx`): bloqueia login e renovação de sessão de todos os membros daquela igreja. Reativar é inócuo e segue imediato — só o lado destrutivo confirma.
 - **Desvincular usuário de igreja** (`admin/IgrejaUsers.tsx`): remove o vínculo e, em cascata, as roles e permissões daquele usuário no tenant.
 
 A descrição do diálogo deve dizer **o que se perde**, não apenas "esta ação não pode ser desfeita", e identificar o alvo pelo nome.
+
+### Exclusão com desfazer (undo client-side)
+
+As exclusões de **Escalas**, **Integrantes** e das entidades auxiliares de **Configurações** usam `useUndoableDelete` (`hooks/use-undoable-delete.ts`): a confirmação do `DeleteConfirmDialog` **permanece**, mas o DELETE real é adiado ~5s enquanto um toast com a ação "Desfazer" está visível. Regras do padrão:
+
+1. **Mutation silenciosa**: os hooks de delete (`useDeleteEvento`, `useDeleteIntegrante`, `useDeleteArtista` e os 4 deletes de `use-support.ts`) aceitam `{ silent?: boolean }` — com `silent: true` o toast de sucesso do hook é suprimido (o feedback é o toast com "Desfazer"); o `toast.error` permanece. Parâmetro opcional: call sites existentes (ex.: `EventoDetail.tsx`) seguem intactos com o toast padrão.
+2. **`Set` local de pendentes, nunca mutação do cache do React Query**: a lista renderizada filtra por `!estaPendente(id)`. Mexer no cache seria frágil (qualquer `invalidateQueries` de outra mutation traria o item de volta no meio da janela); com o `Set`, o item restaura na posição original de graça — a ordem da lista real nunca foi tocada.
+3. **"Desfazer" não emite segundo toast**: o item reaparecer na lista É o feedback. **Desfazer tardio**: o sonner pausa o countdown do toast no hover, mas o `setTimeout` do hook não — se o clique chegar depois do DELETE ter iniciado (id já fora do Map), o hook emite `toast.error("A exclusão já foi concluída e não pôde ser desfeita.")` e NÃO restaura o item (restaurar causaria flicker no refetch).
+4. **`await` no DELETE antes de desmarcar** (`finally`): evita o item "piscar" de volta entre o DELETE e o refetch. Quando o DELETE inicia (timer ou flush), o toast correspondente é dispensado via `toast.dismiss(toastId)` — sem "Desfazer" morto sobrando na tela.
+5. **Flush no desmonte**: trocar de rota (ou de aba em Configurações — o `TabsContent` desmonta) cancela os timers, dispensa os toasts (o toaster do sonner é global e sobreviveria à navegação) e dispara imediatamente o DELETE dos pendentes. **Risco aceito (D2)**: fechar a aba do navegador dentro da janela perde o DELETE — o item reaparece no próximo load.
+6. **Copy do diálogo**: onde há undo, a descrição diz "Você poderá desfazer nos próximos segundos." em vez de "Essa ação não pode ser desfeita." — ajustado no **ponto de uso**, nunca no `DeleteConfirmDialog` global (telas sem undo, como `admin/IgrejaUsers.tsx`, mantêm a copy de irreversibilidade).
+7. **Undo NÃO se aplica a Igrejas**: desativação é reversível por natureza (botão "Reativar"). Ali a fase F9 corrigiu apenas o toast duplicado — a tela `admin/Igrejas.tsx` **não** toca `toast`; o aviso (com copy específica "desativada"/"reativada"/"atualizada" derivada de `data.status`) vive só em `useUpdateIgreja`.
 
 ### Arraste (dnd-kit) — checklist de acessibilidade
 

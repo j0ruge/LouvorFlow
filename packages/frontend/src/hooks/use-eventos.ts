@@ -119,11 +119,16 @@ export function useUpdateEvento() {
 /**
  * Hook para excluir um evento via mutation.
  *
- * Invalida a query de listagem e remove a query do detalhe.
+ * Invalida a query de listagem e remove a query do detalhe. Com
+ * `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`), em que o feedback é o toast
+ * com a ação "Desfazer" e um segundo toast aqui duplicaria o aviso. O toast
+ * de erro permanece em ambos os modos.
  *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de evento.
  */
-export function useDeleteEvento() {
+export function useDeleteEvento(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -132,7 +137,9 @@ export function useDeleteEvento() {
       queryClient.invalidateQueries({ queryKey: ["eventos"] });
       queryClient.removeQueries({ queryKey: ["eventos", id] });
       queryClient.invalidateQueries({ queryKey: ["relatorios"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);

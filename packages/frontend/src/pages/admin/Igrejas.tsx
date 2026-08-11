@@ -19,7 +19,6 @@ import {
   PowerOff,
   Loader2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +145,9 @@ const AdminIgrejas = () => {
   /**
    * Processa o envio do formulário de criação de nova igreja.
    *
+   * Os toasts de sucesso/erro vivem no hook (`useCreateIgreja`) — repeti-los
+   * aqui duplicava o aviso na tela. Este callback cuida só do estado local.
+   *
    * @param dados - Dados validados do formulário (nome da igreja).
    */
   function onCreateSubmit(dados: CreateIgrejaForm) {
@@ -153,16 +155,15 @@ const AdminIgrejas = () => {
       onSuccess: () => {
         createForm.reset();
         setCreateDialogOpen(false);
-        toast.success("Igreja criada com sucesso.");
-      },
-      onError: (err) => {
-        toast.error(err instanceof Error ? err.message : "Erro ao criar igreja.");
       },
     });
   }
 
   /**
    * Processa o envio do formulário de edição de uma igreja existente.
+   *
+   * Os toasts de sucesso/erro vivem no hook (`useUpdateIgreja`) — repeti-los
+   * aqui duplicava o aviso na tela. Este callback cuida só do estado local.
    *
    * @param dados - Dados validados do formulário (nome da igreja).
    */
@@ -175,10 +176,6 @@ const AdminIgrejas = () => {
           editForm.reset();
           setEditDialogOpen(false);
           setEditingIgreja(null);
-          toast.success("Igreja atualizada com sucesso.");
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Erro ao atualizar igreja.");
         },
       },
     );
@@ -198,6 +195,10 @@ const AdminIgrejas = () => {
   /**
    * Aplica a mudança de status de uma igreja.
    *
+   * Os toasts vivem no hook (`useUpdateIgreja`), que escolhe a copy
+   * específica ("desativada"/"reativada") a partir de `data.status` —
+   * repeti-los aqui duplicava o aviso na tela.
+   *
    * @param igreja - Igreja a ter o status alternado.
    * @param newStatus - Novo status a persistir.
    */
@@ -206,17 +207,7 @@ const AdminIgrejas = () => {
     updateMutation.mutate(
       { id: igreja.id, data: { status: newStatus } },
       {
-        onSuccess: () => {
-          toast.success(
-            newStatus === "inactive"
-              ? "Igreja desativada com sucesso."
-              : "Igreja reativada com sucesso.",
-          );
-          setDeactivatingIgreja(null);
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Erro ao alterar status.");
-        },
+        onSuccess: () => setDeactivatingIgreja(null),
         onSettled: () => setTogglingIgrejaId(null),
       },
     );
