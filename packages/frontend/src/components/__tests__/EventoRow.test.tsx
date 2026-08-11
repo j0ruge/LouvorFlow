@@ -21,6 +21,7 @@ const eventoBase: EventoIndex = {
   tipoEvento: null,
   musicas: [],
   integrantes: [],
+  status: "publicada",
 };
 
 /**

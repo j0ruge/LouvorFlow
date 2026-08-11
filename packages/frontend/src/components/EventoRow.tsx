@@ -37,6 +37,23 @@ interface EventoRowProps {
 }
 
 /**
+ * Resolve o título exibível de um evento (escala) pela cadeia de fallback
+ * `descricao.trim() || tipoEvento?.nome || "Escala"`.
+ *
+ * `EventoRow` é o dono desta regra (é o título que ele renderiza); o helper
+ * é exportado para que consumidores que precisam do mesmo título fora da
+ * linha (ex.: `aria-label` de ações por item, descrição de dialogs) não
+ * dupliquem a cadeia — `tipoEvento` já aparece como pill na própria linha,
+ * então usá-lo como preferência de título duplicaria a informação.
+ *
+ * @param evento - Evento (escala) cujo título será resolvido.
+ * @returns Título humano do evento.
+ */
+export function tituloDoEvento(evento: EventoIndex): string {
+  return evento.descricao.trim() || evento.tipoEvento?.nome || "Escala";
+}
+
+/**
  * Pluraliza uma contagem em PT-BR, escolhendo a forma singular ou plural.
  *
  * @param quantidade - Quantidade a exibir.
@@ -87,7 +104,7 @@ export function EventoRow({
   className,
 }: EventoRowProps) {
   const { dia, mes } = formatDateBlock(evento.data);
-  const titulo = evento.descricao.trim() || evento.tipoEvento?.nome || "Escala";
+  const titulo = tituloDoEvento(evento);
   const temTagsAoLadoDoTitulo = Boolean(evento.tipoEvento) || Boolean(badges);
 
   /** Aciona `onOpen` com o id do evento, quando informado. */

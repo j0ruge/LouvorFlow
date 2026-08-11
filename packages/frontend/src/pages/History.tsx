@@ -1,24 +1,28 @@
 /**
  * Página de histórico de escalas realizadas.
  *
- * Busca eventos reais da API via React Query, filtra apenas os com data
+ * Busca eventos reais da API via React Query, filtra apenas escalas
+ * publicadas (rascunhos vivem só na aba Rascunhos de Escalas) com data
  * anterior ou igual à data atual, e exibe em ordem cronológica decrescente.
- * Cada evento é renderizado com `EventoRow` (linha inteira clicável, mais o
- * botão "Detalhes" no slot de ações). Inclui estados de carregamento
- * (skeleton), erro e vazio.
+ * Cada evento é renderizado com `EventoRow` (linha inteira clicável, mais os
+ * botões "Duplicar" — para quem tem `escalas.write` — e "Detalhes" no slot
+ * de ações). Inclui estados de carregamento (skeleton), erro e vazio.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { History as HistoryIcon } from "lucide-react";
+import { History as HistoryIcon, Copy } from "lucide-react";
 import { useEventos } from "@/hooks/use-eventos";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
-import { EventoRow } from "@/components/EventoRow";
+import { EventoRow, tituloDoEvento } from "@/components/EventoRow";
+import { EventoForm } from "@/components/EventoForm";
+import { useCan } from "@/hooks/use-can";
 import { formatDataExtenso } from "@/lib/utils";
+import type { EventoIndex } from "@/schemas/evento";
 
 /**
  * Componente de skeleton para a linha de evento durante carregamento.
@@ -57,17 +61,25 @@ function HistorySkeleton() {
 const History = () => {
   const navigate = useNavigate();
   const { data: eventos, isLoading, isError, error, refetch } = useEventos();
+  /** Permissão de escrita em escalas — gatilha a ação "Duplicar" por linha. */
+  const { can: canWrite } = useCan("escalas.write");
+  /** Escala de origem da duplicação em andamento (abre o EventoForm em modo duplicar). */
+  const [duplicandoEvento, setDuplicandoEvento] = useState<EventoIndex | null>(null);
 
   /**
-   * Filtra eventos com data anterior ou igual à data atual e ordena
-   * por data decrescente (mais recentes primeiro).
+   * Filtra eventos publicados (rascunhos não entram no histórico) com data
+   * anterior ou igual à data atual e ordena por data decrescente (mais
+   * recentes primeiro).
    */
   const pastEvents = useMemo(() => {
     if (!eventos) return [];
     const today = new Date();
     today.setHours(23, 59, 59, 999);
     return eventos
-      .filter((evento) => new Date(evento.data) <= today)
+      .filter(
+        (evento) =>
+          evento.status === "publicada" && new Date(evento.data) <= today,
+      )
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
   }, [eventos]);
 
@@ -131,14 +143,30 @@ const History = () => {
                   onOpen={(id) => navigate(`/escalas/${id}`)}
                   legenda={formatDataExtenso(evento.data)}
                   acoes={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full sm:w-auto"
-                      onClick={() => navigate(`/escalas/${evento.id}`)}
-                    >
-                      Detalhes
-                    </Button>
+                    <>
+                      {canWrite && (
+                        /* Ícone puro no mobile (label `hidden sm:inline`):
+                           dois botões dividem a largura da linha a 360px. */
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => setDuplicandoEvento(evento)}
+                          aria-label={`Duplicar escala ${tituloDoEvento(evento)}`}
+                        >
+                          <Copy className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Duplicar</span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full sm:w-auto"
+                        onClick={() => navigate(`/escalas/${evento.id}`)}
+                      >
+                        Detalhes
+                      </Button>
+                    </>
                   }
                 />
               ))}
@@ -146,6 +174,15 @@ const History = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Formulário em modo duplicar — aberto pela ação "Duplicar" de uma linha. */}
+      <EventoForm
+        open={!!duplicandoEvento}
+        onOpenChange={(open) => {
+          if (!open) setDuplicandoEvento(null);
+        }}
+        duplicarDe={duplicandoEvento}
+      />
     </div>
   );
 };

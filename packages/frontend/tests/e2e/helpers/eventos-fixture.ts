@@ -222,3 +222,119 @@ export async function criarEventoComMusica(): Promise<EventoComMusicaFixture> {
 
   return { eventoId, descricao, musicaId, musicaNome, tomGlobal, outroTom, limpar };
 }
+
+/**
+ * Escala futura de teste criada via API para os specs da lista de Escalas
+ * (`escalas.spec.ts` e `escalas.mobile.spec.ts`), mais utilitários de
+ * limpeza — os fluxos de duplicar/rascunho criam eventos NOVOS pela UI, cujo
+ * id o spec não conhece, então a limpeza varre por descrição.
+ */
+export interface EscalaFuturaFixture {
+  /** UUID do evento criado. */
+  id: string;
+  /** Descrição única do evento (sufixo de timestamp), título da linha e prefixo das derivadas. */
+  descricao: string;
+  /** Nome do tipo de evento usado (pré-preenchido no dialog de duplicação). */
+  tipoNome: string;
+  /**
+   * Cria via API um rascunho futuro (sem músicas) com a descrição dada —
+   * usada pelos specs que exercitam o fluxo de publicação. Prefixar a
+   * descrição com a da suíte garante a varredura no `limpar`.
+   *
+   * @param descricao - Descrição/título do rascunho.
+   * @returns UUID do rascunho criado.
+   */
+  criarRascunho: (descricao: string) => Promise<string>;
+  /**
+   * Exclui via API todos os eventos cuja descrição contém o texto dado —
+   * usada para varrer cópias/rascunhos criados pela UI durante os testes.
+   *
+   * @param texto - Trecho da descrição a casar (ex.: o prefixo único da suíte).
+   */
+  excluirPorDescricao: (texto: string) => Promise<void>;
+  /** Varre todos os eventos com o prefixo da suíte e libera o contexto de API. Chamar em `afterAll`. */
+  limpar: () => Promise<void>;
+}
+
+/**
+ * Autentica como admin e cria uma escala publicada com data futura (7 dias à
+ * frente) e descrição única, para os specs de Escalas exercitarem as ações
+ * do card (Editar/Excluir/Duplicar/Detalhes), a duplicação e o fluxo de
+ * rascunho sem depender de dados ambientes do banco de dev.
+ *
+ * @returns O evento criado, o nome do tipo usado e as rotinas de limpeza.
+ */
+export async function criarEscalaFutura(): Promise<EscalaFuturaFixture> {
+  const api = await playwrightRequest.newContext({
+    baseURL: "http://localhost:8080",
+  });
+
+  const loginResponse = await api.post("/api/sessions", {
+    data: { email: "admin@louvorflow.com", password: "Admin@123" },
+  });
+  const { token } = await loginResponse.json();
+  const auth = { Authorization: `Bearer ${token}` };
+
+  /** Reaproveita o primeiro tipo de evento já semeado no tenant (ordem não é garantida pela API). */
+  const tiposResponse = await api.get("/api/tipos-eventos", { headers: auth });
+  const tipos: Array<{ id: string; nome: string }> = await tiposResponse.json();
+  const { id: fk_tipo_evento, nome: tipoNome } = tipos[0];
+
+  const descricao = `E2E Escalas ${Date.now()}`;
+  const data = new Date(Date.now() + 7 * UM_DIA_MS).toISOString();
+  const eventoResponse = await api.post("/api/eventos", {
+    headers: auth,
+    data: { data, fk_tipo_evento, descricao },
+  });
+  const { evento } = await eventoResponse.json();
+  const id: string = evento.id;
+
+  /**
+   * Cria via API um rascunho futuro (sem músicas) com a descrição dada.
+   *
+   * @param descricaoRascunho - Descrição/título do rascunho.
+   * @returns UUID do rascunho criado.
+   */
+  async function criarRascunho(descricaoRascunho: string): Promise<string> {
+    const response = await api.post("/api/eventos", {
+      headers: auth,
+      data: {
+        data: new Date(Date.now() + 3 * UM_DIA_MS).toISOString(),
+        fk_tipo_evento,
+        descricao: descricaoRascunho,
+        status: "rascunho",
+      },
+    });
+    const body = await response.json();
+    return body.evento.id;
+  }
+
+  /**
+   * Exclui via API todos os eventos cuja descrição contém o texto dado.
+   *
+   * @param texto - Trecho da descrição a casar.
+   */
+  async function excluirPorDescricao(texto: string): Promise<void> {
+    const listaResponse = await api.get("/api/eventos", { headers: auth });
+    const eventos: Array<{ id: string; descricao: string }> =
+      await listaResponse.json();
+    for (const e of eventos) {
+      if (e.descricao.includes(texto)) {
+        await api.delete(`/api/eventos/${e.id}`, { headers: auth });
+      }
+    }
+  }
+
+  /**
+   * Varre todos os eventos com o prefixo único da suíte (o original e os
+   * criados pela UI: cópias e rascunhos) e libera o contexto de API.
+   *
+   * @returns Promise resolvida quando a limpeza terminar.
+   */
+  async function limpar(): Promise<void> {
+    await excluirPorDescricao(descricao);
+    await api.dispose();
+  }
+
+  return { id, descricao, tipoNome, criarRascunho, excluirPorDescricao, limpar };
+}

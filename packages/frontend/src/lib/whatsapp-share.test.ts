@@ -26,6 +26,7 @@ function makeFullEvento(): EventoShow {
     data: "2026-04-13T19:00:00.000Z",
     descricao: "Culto de domingo",
     tipoEvento: { id: "tipo-001", nome: "Culto Dominical" },
+    status: "publicada",
     musicas: [
       {
         id: "m1",
@@ -473,6 +474,7 @@ describe("formatEscalaWhatsApp", () => {
   it("deve renderizar escala vazia com headers (0) e sem corpo", () => {
     const evento: EventoShow = {
       id: "evt-empty",
+      status: "publicada",
       data: "2026-04-13T19:00:00.000Z",
       descricao: "",
       tipoEvento: { id: "tipo-001", nome: "Ensaio" },
@@ -497,6 +499,7 @@ describe("formatEscalaWhatsApp", () => {
   it("deve formatar a data no header como DD/MM/AAAA HH:mm em itálico", () => {
     const evento: EventoShow = {
       id: "evt-date",
+      status: "publicada",
       data: "2026-12-25T10:30:00.000Z",
       descricao: "",
       tipoEvento: { id: "tipo-001", nome: "Natal" },
@@ -520,6 +523,7 @@ describe("formatEscalaWhatsApp", () => {
   it('deve usar "Evento" como fallback quando tipoEvento é null', () => {
     const evento: EventoShow = {
       id: "evt-no-type",
+      status: "publicada",
       data: "2026-04-13T19:00:00.000Z",
       descricao: "",
       tipoEvento: null,
@@ -580,6 +584,7 @@ describe("copyEscalaToClipboard", () => {
 
     const evento: EventoShow = {
       id: "evt-copy",
+      status: "publicada",
       data: "2026-04-13T19:00:00.000Z",
       descricao: "",
       tipoEvento: { id: "tipo-001", nome: "Culto" },
@@ -601,6 +606,7 @@ describe("copyEscalaToClipboard", () => {
 
     const evento: EventoShow = {
       id: "evt-fail",
+      status: "publicada",
       data: "2026-04-13T19:00:00.000Z",
       descricao: "",
       tipoEvento: { id: "tipo-001", nome: "Culto" },

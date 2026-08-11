@@ -59,18 +59,31 @@ const Dashboard = () => {
     [integrantes],
   );
 
-  /** Total de escalas. */
-  const totalEscalas = eventos?.length ?? 0;
+  /**
+   * Escalas publicadas — rascunhos ficam fora do Dashboard por inteiro
+   * (tile "Escalas" E lista de próximas), coerente com os relatórios do
+   * backend, que também os excluem. Derivar a lista uma vez mantém o tile e
+   * a lista sempre alinhados ao mesmo critério.
+   */
+  const escalasPublicadas = useMemo(
+    () => eventos?.filter((e) => e.status === "publicada") ?? [],
+    [eventos],
+  );
 
-  /** Próximas escalas filtradas por data futura e ordenadas. */
+  /** Total de escalas publicadas exibido no tile "Escalas". */
+  const totalEscalas = escalasPublicadas.length;
+
+  /**
+   * Próximas escalas: apenas publicadas (rascunhos vivem só na aba
+   * Rascunhos de Escalas), com data futura, ordenadas por data ASC.
+   */
   const proximasEscalas = useMemo(() => {
-    if (!eventos) return [];
     const agora = new Date();
-    return eventos
+    return escalasPublicadas
       .filter((e) => new Date(e.data) >= agora)
       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
       .slice(0, 4);
-  }, [eventos]);
+  }, [escalasPublicadas]);
 
   /**
    * Um `isLoading` por stat (em vez de um agregado cobrindo os 4 cards):

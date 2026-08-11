@@ -12,6 +12,7 @@ import {
   getEvento,
   createEvento,
   updateEvento,
+  duplicarEvento,
   deleteEvento,
   addMusicaToEvento,
   removeMusicaFromEvento,
@@ -86,6 +87,48 @@ export function useCreateEvento() {
       queryClient.invalidateQueries({ queryKey: ["relatorios"] });
       toast.success(data.msg);
     },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para duplicar uma escala existente via mutation.
+ *
+ * Invalida a listagem de eventos e os relatórios (mesmo padrão de
+ * `useCreateEvento` — a cópia nasce `publicada` e entra nas contagens) e
+ * exibe toast de sucesso/erro.
+ *
+ * @returns Resultado do useMutation para duplicação de escala.
+ */
+export function useDuplicarEvento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    /**
+     * Executa o POST de duplicação da escala.
+     *
+     * @param args - Objeto com `id` da escala de origem e `dados` da cópia.
+     * @returns Promise com a resposta da API (`EventoCreateResponse`).
+     */
+    mutationFn: ({ id, dados }: { id: string; dados: CreateEventoForm }) =>
+      duplicarEvento(id, dados),
+    /**
+     * Callback de sucesso: invalida listagem e relatórios e exibe toast.
+     *
+     * @param data - Resposta da API com mensagem e evento criado.
+     */
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos"] });
+      queryClient.invalidateQueries({ queryKey: ["relatorios"] });
+      toast.success(data.msg);
+    },
+    /**
+     * Callback de erro: exibe toast com a mensagem do erro.
+     *
+     * @param error - Erro lançado pelo `mutationFn`.
+     */
     onError: (error: Error) => {
       toast.error(error.message);
     },

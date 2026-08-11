@@ -87,6 +87,28 @@ export async function updateEvento(
 }
 
 /**
+ * Duplica uma escala existente: cria um novo evento copiando da origem o
+ * repertório (ordem, versões e tons) e a equipe.
+ *
+ * `fk_tipo_evento` e `descricao` são opcionais no backend (omitidos, herdam
+ * da origem); a cópia nasce sempre com status `publicada`.
+ *
+ * @param id - UUID do evento de origem.
+ * @param dados - Dados da cópia (`data` obrigatória; tipo/descrição opcionais).
+ * @returns Resposta da API com mensagem e o evento criado.
+ */
+export async function duplicarEvento(
+  id: string,
+  dados: CreateEventoForm,
+): Promise<EventoCreateResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${id}/duplicar`, {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+  return EventoCreateResponseSchema.parse(data);
+}
+
+/**
  * Remove um evento pelo id.
  *
  * @param id - UUID do evento a ser removido.

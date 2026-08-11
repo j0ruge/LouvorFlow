@@ -39,7 +39,7 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 ## Funcionalidades
 
 - **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM, letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
-- **Escalas de culto** — Criação, edição e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento.
+- **Escalas de culto** — Criação, edição, duplicação e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento. Duplicar copia repertório e equipe da escala original (o usuário revisa a data). Escalas podem nascer como **rascunho** ("Salvar rascunho"): ficam visíveis só na aba Rascunhos (fora do Dashboard, Histórico e relatórios) até serem publicadas — publicar sem repertório pede confirmação.
 - **Gerenciamento de integrantes** — Cadastro de membros com atribuição e remoção de funções (voz, guitarra, teclado, etc.).
 - **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente, recebendo o papel `integrante` (membro básico, sem permissões administrativas).
 - **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Grupos de funções, Tonalidades e Tipos de Evento.

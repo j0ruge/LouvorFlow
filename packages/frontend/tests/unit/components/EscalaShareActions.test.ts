@@ -28,6 +28,7 @@ import {
 function makeEvento(): EventoShow {
   return {
     id: "evt-share",
+    status: "publicada",
     data: "2026-04-13T19:00:00.000Z",
     descricao: "Culto teste",
     tipoEvento: { id: "tipo-001", nome: "Culto" },

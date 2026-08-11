@@ -731,6 +731,7 @@ export function EventoDetail() {
           tipoEvento: evento.tipoEvento,
           musicas: evento.musicas.map((m) => ({ id: m.id, nome: m.nome })),
           integrantes: evento.integrantes.map((i) => ({ id: i.id, nome: i.nome })),
+          status: evento.status,
         }}
       />
 
