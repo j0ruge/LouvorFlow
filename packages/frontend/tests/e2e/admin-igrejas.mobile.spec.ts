@@ -7,28 +7,9 @@
  * a página não gera rolagem horizontal.
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/login";
-
-/**
- * Verifica que a página não transborda horizontalmente no viewport atual.
- *
- * A regra mobile do projeto proíbe depender de scroll horizontal; esta é a
- * checagem objetiva equivalente. Tolera 1px de arredondamento de layout.
- *
- * @param page - Instância da página do Playwright.
- */
-async function expectSemOverflowHorizontal(page: Page): Promise<void> {
-  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    clientWidth: document.documentElement.clientWidth,
-  }));
-
-  expect(
-    scrollWidth,
-    `página transborda ${scrollWidth - clientWidth}px além do viewport de ${clientWidth}px`,
-  ).toBeLessThanOrEqual(clientWidth + 1);
-}
+import { expectSemOverflowHorizontal } from "./helpers/viewport";
 
 test.describe("Mobile — Igrejas (360×740)", () => {
   test.beforeEach(async ({ page }) => {
