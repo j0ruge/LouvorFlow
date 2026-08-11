@@ -221,6 +221,30 @@ export async function setMusicaVersao(
 }
 
 /**
+ * Define ou limpa o tom próprio (override) de uma música numa escala.
+ *
+ * @param eventoId - UUID do evento.
+ * @param musicaId - UUID da música.
+ * @param fkTonalidade - UUID da tonalidade desejada para esta escala, ou `null`
+ * para remover o override e voltar ao tom global da música.
+ * @returns Resposta da API com mensagem (`AssociationResponse`).
+ */
+export async function setMusicaTonalidade(
+  eventoId: string,
+  musicaId: string,
+  fkTonalidade: string | null,
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(
+    `/eventos/${eventoId}/musicas/${musicaId}/tonalidade`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ fk_tonalidade: fkTonalidade }),
+    },
+  );
+  return AssociationResponseSchema.parse(data);
+}
+
+/**
  * Associa um integrante a um evento, opcionalmente selecionando funções específicas.
  *
  * @param eventoId - UUID do evento.

@@ -36,6 +36,7 @@ function makeEvento(): EventoShow {
         id: "m1",
         nome: "Lugar Secreto",
         tonalidade: { id: "t1", tom: "G" },
+        tonalidade_musica: { id: "t1", tom: "G" },
         ordem: 1,
         versao_selecionada: {
           id: "v1",

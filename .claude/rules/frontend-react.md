@@ -230,6 +230,11 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `admin/IgrejaUsers.tsx` | `line-clamp-2` no `h1` com o nome da igreja (texto livre de até 255 chars) |
 | `Dashboard.tsx` / `History.tsx` / `Escalas.tsx` | Anatomia da linha de evento unificada em `EventoRow.tsx` (`flex-wrap` joga as ações para a própria linha a 360px); `HistorySkeleton` reescrito para o mesmo formato de linha |
 | `admin/Users.tsx` / `admin/Roles.tsx` / `admin/Permissions.tsx` / `admin/Igrejas.tsx` / `admin/IgrejaUsers.tsx` | Formulários migrados de `Dialog` cru para `ResponsiveFormDialog` (bottom-sheet no mobile) com `FieldLabel required` + `RequiredFieldsLegend` + `aria-required` e guarda de alterações não salvas |
+| `MusicaTomPicker.tsx` | Popover com grid de tons (`grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto`, `PopoverContent w-64 max-w-[calc(100vw-2rem)] p-3`) em vez de lista vertical — um tenant com 24 tons (seed padrão) em coluna única estouraria a altura do S8; itens `min-h-11` (44px) |
+
+### Popover com muitas opções: grid + tile em vez de lista vertical
+
+`MusicaTomPicker.tsx` (irmão de `MusicaVersaoPicker.tsx`, seleção de tom por música na escala) é a referência para overlays com **muitas** opções curtas (tons musicais, poucos caracteres cada): em vez da lista vertical de `RadioGroupItem` + `Label` lado a lado (padrão de `MusicaVersaoPicker.tsx`, adequado para poucas opções com texto longo, como nomes de artista), usa um `grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto` de "tiles" — cada opção é um `Label` estilizado como botão (`min-h-11`, destaque `border-primary bg-primary/10` quando selecionado) envolvendo um `RadioGroupItem` com `className="sr-only"` (o clique no `<label>` visível é repassado ao input oculto pelo comportamento nativo do HTML; testado em e2e com `page.getByText(tom, { exact: true }).click()`, funciona igual com toque). Com o seed padrão de 24 tonalidades, uma lista vertical estouraria a altura do S8 (740px); o grid de 3 colunas cabe em poucas linhas.
 
 ### Ações destrutivas exigem confirmação
 

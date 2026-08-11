@@ -37,7 +37,15 @@ export type VersaoMusica = z.infer<typeof VersaoMusicaSchema>;
 export const MusicaEventoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
+  /** Tom efetivo nesta escala: override do evento ?? tom global da música (`tonalidade_musica`). */
   tonalidade: TonalidadeSchema.nullable(),
+  /**
+   * Tom global de referência da música, independente de override na escala.
+   * Padrão defensivo (`nullable().default(null)`, mesmo padrão de `cifraclub_url`
+   * acima): evita quebrar o parse da resposta inteira caso o backend ainda não
+   * envie este campo durante uma janela de deploy.
+   */
+  tonalidade_musica: TonalidadeSchema.nullable().default(null),
   ordem: z.number().int(),
   versao_selecionada: VersaoMusicaSchema.nullable(),
   versoes_disponiveis: z.array(VersaoMusicaSchema),

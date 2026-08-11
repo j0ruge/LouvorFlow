@@ -17,6 +17,7 @@ import {
   removeMusicaFromEvento,
   reorderMusicas,
   setMusicaVersao,
+  setMusicaTonalidade,
   addIntegranteToEvento,
   removeIntegranteFromEvento,
   getCifraclubPlaylist,
@@ -283,6 +284,62 @@ export function useSetMusicaVersao(eventoId: string) {
       if (!variables.silent) {
         toast.success(data.msg);
       }
+    },
+    /**
+     * Callback de erro: exibe toast com a mensagem do erro.
+     *
+     * @param error - Erro lançado pelo `mutationFn`.
+     */
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+/**
+ * Hook para definir o tom próprio (override) de uma música numa escala.
+ *
+ * Invalida o detalhe do evento e a playlist CifraClub — a playlist embute o
+ * tom efetivo no fragmento `#key=N` da URL de cada cifra, então sem essa
+ * segunda invalidação o `CifraclubPlaylistDialog` mostraria a transposição do
+ * tom antigo até a query expirar por conta própria. **Nota de oportunidade**:
+ * `useSetMusicaVersao` (acima) tem a mesma lacuna — a versão selecionada
+ * também afeta a playlist (`link_versao`/cifra) e não invalida essa query.
+ * Registrado aqui de propósito; não corrigido porque está fora do escopo
+ * desta fase (tom por evento) e não foi pedido.
+ *
+ * @param eventoId - UUID do evento para invalidação de cache.
+ * @returns Resultado do useMutation para definição de tom.
+ */
+export function useSetMusicaTonalidade(eventoId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    /**
+     * Executa a chamada PATCH para atualizar o tom da música nesta escala.
+     *
+     * @param args - Objeto com `musicaId` e `fkTonalidade` (UUID ou null).
+     * @returns Promise com a resposta da API (`AssociationResponse`).
+     */
+    mutationFn: ({
+      musicaId,
+      fkTonalidade,
+    }: {
+      musicaId: string;
+      fkTonalidade: string | null;
+    }) => setMusicaTonalidade(eventoId, musicaId, fkTonalidade),
+    /**
+     * Callback de sucesso: invalida o detalhe do evento e a playlist CifraClub,
+     * e dispara toast de sucesso.
+     *
+     * @param data - Resposta da API (`AssociationResponse`).
+     */
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["eventos", eventoId] });
+      queryClient.invalidateQueries({
+        queryKey: ["eventos", eventoId, "cifraclub-playlist"],
+      });
+      toast.success(data.msg);
     },
     /**
      * Callback de erro: exibe toast com a mensagem do erro.

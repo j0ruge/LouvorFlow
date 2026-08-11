@@ -31,6 +31,7 @@ function makeFullEvento(): EventoShow {
         id: "m1",
         nome: "Lugar Secreto",
         tonalidade: { id: "t1", tom: "G" },
+        tonalidade_musica: { id: "t1", tom: "G" },
         ordem: 1,
         versao_selecionada: {
           id: "v1",
@@ -51,6 +52,7 @@ function makeFullEvento(): EventoShow {
         id: "m2",
         nome: "Grande É o Senhor",
         tonalidade: { id: "t2", tom: "D" },
+        tonalidade_musica: { id: "t2", tom: "D" },
         ordem: 2,
         versao_selecionada: {
           id: "v2",
@@ -71,6 +73,7 @@ function makeFullEvento(): EventoShow {
         id: "m3",
         nome: "Nada Além do Sangue",
         tonalidade: { id: "t3", tom: "E" },
+        tonalidade_musica: { id: "t3", tom: "E" },
         ordem: 3,
         versao_selecionada: {
           id: "v3",
@@ -206,6 +209,7 @@ describe("formatEscalaWhatsApp", () => {
         id: "m1",
         nome: "Canto Livre",
         tonalidade: null,
+        tonalidade_musica: null,
         ordem: 1,
         versao_selecionada: null,
         versoes_disponiveis: [],
@@ -218,6 +222,34 @@ describe("formatEscalaWhatsApp", () => {
     expect(result).not.toMatch(/1\. Canto Livre \(/);
   });
 
+  /**
+   * Verifica que a mensagem usa o tom EFETIVO da escala (`musica.tonalidade`),
+   * não o tom global de referência (`musica.tonalidade_musica`), quando a
+   * escala definiu um tom próprio para a música (F11 — `MusicaTomPicker`).
+   * `formatEscalaWhatsApp` já lê apenas `musica.tonalidade` — o comportamento
+   * é correto por construção; este teste prova isso contra regressão.
+   */
+  it("deve usar o tom efetivo da escala, não o tom global, quando eles divergem", () => {
+    const evento = makeFullEvento();
+    evento.musicas = [
+      {
+        id: "m1",
+        nome: "Lugar Secreto",
+        // Override do evento (D): diverge do tom global da música (G).
+        tonalidade: { id: "t-d", tom: "D" },
+        tonalidade_musica: { id: "t1", tom: "G" },
+        ordem: 1,
+        versao_selecionada: null,
+        versoes_disponiveis: [],
+      },
+    ];
+    evento.integrantes = [];
+
+    const result = formatEscalaWhatsApp(evento);
+    expect(result).toContain("1. Lugar Secreto (D)");
+    expect(result).not.toContain("(G)");
+  });
+
   /** Verifica que música com versao_selecionada null não renderiza linha de link. */
   it("deve omitir linha de link quando versao_selecionada é null", () => {
     const evento = makeFullEvento();
@@ -226,6 +258,7 @@ describe("formatEscalaWhatsApp", () => {
         id: "m1",
         nome: "Lugar Secreto",
         tonalidade: { id: "t1", tom: "G" },
+        tonalidade_musica: { id: "t1", tom: "G" },
         ordem: 1,
         versao_selecionada: null,
         versoes_disponiveis: [],
@@ -251,6 +284,7 @@ describe("formatEscalaWhatsApp", () => {
         id: "m1",
         nome: "Lugar Secreto",
         tonalidade: { id: "t1", tom: "G" },
+        tonalidade_musica: { id: "t1", tom: "G" },
         ordem: 1,
         versao_selecionada: {
           id: "v1",
