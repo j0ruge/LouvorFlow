@@ -2,6 +2,22 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Revisão 2 (2026-08-10)
+
+A revisão 1 foi escrita em outra máquina e **não é executável neste ambiente**. Esta revisão corrige isso e incorpora as decisões tomadas na sessão de grill + kaizen. Os números de task citados no `2026-08-10-pedidos-vanessa-ux-grill.md` referem-se à **revisão 1** — a tabela de equivalência está em "Notas de Execução".
+
+Decisões desta revisão:
+
+1. **Caminhos relativos.** Todo comando roda a partir da raiz do repo; `cd` só dentro de subshell — `(cd packages/frontend && …)`. Nenhum caminho absoluto de máquina no plano.
+2. **Task 0 da rev. 1 removida.** O `import React` em `MusicaDetail.cifraclub-edit.test.tsx` era desnecessário: a suíte está **verde** neste ambiente (194 passed / 0 failed) porque `vite.config.ts:21` usa `@vitejs/plugin-react-swc`, com JSX runtime automático.
+3. **Helper de overflow extraído** para `tests/e2e/helpers/viewport.ts` em vez de duplicado — refactor pontual autorizado explicitamente (exigência do `CLAUDE.md`).
+4. **Vocabulário.** O texto visível do drawer usa **"intensidade"**; o `aria-label="Filtrar por intensidade (tempo)"` fica intacto (o e2e depende da string exata).
+5. **`typecheck` do frontend criado neste pool**, cobrindo `src` **e** `tests`.
+6. **`musicas.spec.ts` passa a autenticar** — sem isso o gate "e2e PASS" era inatingível.
+7. **Escopo da ordenação**: só categorias e artistas.
+8. **Uma entrada única no `KAIZEN_LOG.md`**, na task final.
+9. **`.claude/rules/dev-workflow.md:44-45` corrigido** — a regra fixava um caminho de máquina em arquivo versionado, causa raiz do problema nº 1.
+
 **Goal:** No mobile, colapsar os chips de filtro da página de Músicas atrás de um botão "Filtros" (bottom-sheet), deixando a busca por texto como protagonista; e garantir ordem alfabética pt-BR nas listagens de categorias e artistas.
 
 **Architecture:** Problema 1 — os chips de intensidade + categorias (hoje sempre visíveis em `Songs.tsx`, `flex-wrap` — 3 chips de intensidade + todas as categorias do tenant: 9 no seed padrão, mais as criadas pela igreja) são extraídos para um componente `MusicaFiltros.tsx` com dois modos: chips inline no desktop (`hidden sm:block`, comportamento atual preservado) e `Drawer` bottom-sheet no mobile atrás de um botão com contador de filtros ativos (regra nº 8 de `.claude/rules/frontend-react.md` e seção "Overlay Pattern" de `packages/frontend/.interface-design/system.md`: overlay para filtros, nunca conteúdo inline que desloca a lista). A alternância mobile/desktop é por CSS (`sm:hidden`/`hidden sm:block`), não por `useIsMobile()` como na referência `DateTimePicker.tsx` — decisão deliberada: aqui o desktop não usa overlay (chips inline), então não há troca Drawer↔Popover a fazer em JS; o CSS evita flash de primeira renderização do hook e o conteúdo do drawer só monta quando aberto (sem duplicação na árvore de acessibilidade). Problema 2 — `categorias.repository.findAll()` e `artistas.repository.findAll()` não têm ordenação (causa raiz confirmada); a ordenação entra **no service** com `Intl.Collator('pt-BR')` — determinística, imune ao collation do banco e testável com os fakes existentes. Músicas **não mudam**: já ordenam no banco (`musicas.repository.ts:40`, `orderBy: { nome: 'asc' }`) e o collation do banco de dev (`en_US.utf8`, container `louvorflow_db`) foi verificado em 2026-08-10 ordenando acentos junto da letra-base (`Abertura, Adoração, Ágape, água, Zelo`).
@@ -12,21 +28,26 @@
 
 - **Mobile-first inviolável**: target primário Galaxy S8 (360×740). Nenhuma task de frontend está completa sem verificação em viewport 360px (sem overflow horizontal, sem largura fixa sem breakpoint, sem texto cortado) e 1024px.
 - **Docstrings JSDoc em PT-BR** em TODO código novo ou modificado — incluindo callbacks de teste (`it`, `describe`), handlers e utilitários.
-- **Não refatorar** além do escopo destes 2 problemas (regra do `CLAUDE.md`).
+- **Não refatorar** além do escopo destes 2 problemas (regra do `CLAUDE.md`). Exceção autorizada nesta revisão: a extração do helper de viewport (Task 2).
 - **Elegância**: preferir overlay (Drawer) a deslocamento de conteúdo; consultar `packages/frontend/.interface-design/system.md`.
 - **openapi.json sincronizado**: mudança de contrato (ordenação garantida) documentada em `packages/backend/docs/openapi.json`.
-- **Git sempre da raiz do repo**: usar `git -C /home/joruge/repos/LouvorFlow ...` em todos os comandos git.
+- **Caminhos relativos, sempre a partir da raiz do repo.** Comandos de package rodam em subshell para o CWD não vazar entre passos: `(cd packages/frontend && npm run test)`. Comandos `git` rodam da raiz com caminho relativo: `git add packages/frontend/src/...`. **Nunca** usar caminho absoluto de máquina — foi o que inutilizou a revisão 1.
+- **Gate de tipos do frontend**: não existe antes da Task 1. A partir dela, os gates de frontend são `npm run test && npm run lint && npm run typecheck`. O backend já tem `npm run typecheck`.
 - **Markdown**: todo fenced code block com identificador de linguagem (MD040).
-- **Frontend sem `typecheck`** (verificado 2026-08-10): `packages/frontend/package.json` não tem script `typecheck`, e `npx tsc -p tsconfig.app.json --noEmit` acusa erros pré-existentes de tipos do jest-dom nos testes — não invocar typecheck no frontend; os gates são `npm run test` + `npm run lint` (+ build do Vite). O backend tem `npm run typecheck` normalmente.
 - Componentes `ui/` do shadcn **não** são modificados; wrappers ficam em `components/`.
 
 ---
 
 ## File Structure
 
-**Task 0 (gate de verificação):**
+**Bloco de destravamento (Tasks 0-2):**
 
-- Modify: `packages/frontend/tests/unit/components/MusicaDetail.cifraclub-edit.test.tsx` — conserta teste pré-existente quebrado (falta `import React`); pré-requisito dos gates "tudo PASS" das Tasks 2 e 6.
+- Modify: `packages/frontend/tests/e2e/musicas.spec.ts` — autenticação (`loginAsAdmin`), destrava o gate e2e desktop.
+- Create: `packages/frontend/src/types/jest-dom.d.ts` — augmentation de tipos dos matchers do jest-dom.
+- Modify: `packages/frontend/tsconfig.app.json` — `include` passa a cobrir `tests`.
+- Modify: `packages/frontend/package.json` — script `typecheck`.
+- Create: `packages/frontend/tests/e2e/helpers/viewport.ts` — `expectSemOverflowHorizontal` compartilhado.
+- Modify: `packages/frontend/tests/e2e/admin-igrejas.mobile.spec.ts` — passa a importar o helper.
 
 **Problema 1 (frontend):**
 
@@ -46,41 +67,228 @@
 - Modify: `packages/backend/docs/openapi.json` — descriptions/examples de `GET /categorias` e `GET /artistas`.
 - Modify: `.claude/rules/backend-api.md` — diretório `utils/` + convenção de ordenação.
 
+**Fechamento:**
+
+- Modify: `KAIZEN_LOG.md` — entrada única do ciclo.
+- Modify: `.claude/rules/dev-workflow.md` — regra de caminho corrigida.
+
 **Sem mudança (verificado, não mexer):** `musicas.repository.ts` (já ordena), `use-categorias.ts`/`use-artistas.ts` (herdam a ordem do backend — beneficia `Settings.tsx`, `MusicaForm`, `VersaoForm`, `MusicaDetail` automaticamente), `categorias.repository.ts`/`artistas.repository.ts` (ordenação mora no service).
 
 ---
 
-## Task 0: Reparar o gate de verificação — teste pré-existente quebrado
+## Task 0: Destravar o gate e2e — autenticar `musicas.spec.ts`
 
 **Files:**
 
-- Modify: `packages/frontend/tests/unit/components/MusicaDetail.cifraclub-edit.test.tsx`
+- Modify: `packages/frontend/tests/e2e/musicas.spec.ts`
 
-**Contexto (verificado em 2026-08-10):** a suíte unitária do frontend está vermelha na baseline — `MusicaDetail.cifraclub-edit.test.tsx` falha deterministicamente com `ReferenceError: React is not defined` na linha 96 (primeiro JSX; 193 passed / 1 failed). Causa: arquivos sob `tests/unit/` ficam fora do `tsconfig.app.json` (`include: ["src"]`), então o esbuild do Vitest usa o runtime clássico de JSX, que exige `React` no escopo; o peer que passa (`MusicaVersaoPicker.component.test.tsx:14`) importa `React` explicitamente. Sem este conserto, os gates "tudo PASS" das Tasks 2 e 6 são inatingíveis. É reparo de teste (1 linha), não refactor de produção.
+**Contexto (verificado em 2026-08-10):** o spec navega direto para `/musicas` sem autenticar. Com `ProtectedRoute`, ele é redirecionado ao login e falha — a suíte desktop está **vermelha por construção**, e o `KAIZEN_LOG.md` já registra isso ("8 dos 10 specs E2E não autenticam"). Sem este conserto, os gates e2e das Tasks 5 e 8 seriam impossíveis de satisfazer. O padrão a copiar é o de `configuracoes.spec.ts:11-15`.
 
-- [ ] **Step 1: Adicionar o import**
-
-Em `packages/frontend/tests/unit/components/MusicaDetail.cifraclub-edit.test.tsx`, adicionar imediatamente antes da linha `import { describe, it, expect, vi, beforeEach } from "vitest";`:
-
-```tsx
-import React from "react";
-```
-
-- [ ] **Step 2: Rodar — deve PASSAR**
-
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npx vitest run tests/unit/components/MusicaDetail.cifraclub-edit.test.tsx`
-Expected: PASS (1 teste). Se ainda falhar por outro motivo, **PARAR e reportar ao JorUge** antes de seguir — o teste é de regressão do payload `cifraclub_url` e uma falha pós-import pode indicar bug real em `MusicaDetail` (outro pool).
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 1: Registrar a baseline (antes de mexer)**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/frontend/tests/unit/components/MusicaDetail.cifraclub-edit.test.tsx
-git -C /home/joruge/repos/LouvorFlow commit -m "test(musicas): conserta ReferenceError de React no teste de edicao cifraclub"
+(cd packages/frontend && npx playwright test --project=chromium musicas.spec.ts)
+```
+
+Anotar quantos testes falham e com que erro. Serve de "antes" para o Check e para a entrada do `KAIZEN_LOG.md`.
+
+- [ ] **Step 2: Adicionar a autenticação**
+
+Em `packages/frontend/tests/e2e/musicas.spec.ts`, adicionar o import junto do `@playwright/test`:
+
+```typescript
+import { loginAsAdmin } from "./helpers/login";
+```
+
+E inserir como primeiro filho do `test.describe("Músicas", …)`:
+
+```typescript
+  /** Autentica antes de cada teste — `/musicas` é rota protegida. */
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+  });
+```
+
+- [ ] **Step 3: Rodar — deve PASSAR**
+
+```bash
+(cd packages/frontend && npx playwright test --project=chromium musicas.spec.ts)
+```
+
+Expected: todos os testes PASS (exige backend + frontend no ar). **Jidoka**: se algum teste continuar vermelho por motivo alheio à autenticação (locator desatualizado, dado de seed ausente), PARAR e reportar — é outro pool, e consertá-lo aqui contamina o escopo da Vanessa.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/frontend/tests/e2e/musicas.spec.ts
+git commit -m "test(e2e): autentica spec de musicas para destravar o gate desktop"
 ```
 
 ---
 
-## Task 1: Frontend — componente `MusicaFiltros` (chips + drawer)
+## Task 1: Gate de tipos do frontend
+
+**Files:**
+
+- Create: `packages/frontend/src/types/jest-dom.d.ts`
+- Modify: `packages/frontend/tsconfig.app.json`
+- Modify: `packages/frontend/package.json`
+
+**Contexto (medido em 2026-08-10):** o frontend não tem **nenhum** gate de tipos — Vite/esbuild não checa e o ESLint não tem regras type-aware. `npx tsc -p tsconfig.app.json --noEmit` acusa **15 erros, todos `TS2339`, todos a mesma causa**: os matchers do jest-dom (`toBeInTheDocument`, `toHaveAttribute`) não estão augmentados no `Assertion` do vitest. Estão em `CifraclubPlaylistDialog.test.tsx` (6), `IntensidadeSelector.test.tsx` (5) e `ResponsiveFormDialog.test.tsx` (4). A causa é `tests/setup.ts:10-13`, que faz `expect.extend(matchers)` — correto em runtime (194 testes verdes), invisível para o TypeScript.
+
+**Interfaces:**
+
+- Produces: script `npm run typecheck` no frontend, consumido como gate pelas Tasks 3, 4 e 8.
+
+- [ ] **Step 1: Medir o passivo real de `tests/` (antes de decidir)**
+
+```bash
+(cd packages/frontend && npx tsc -p tsconfig.app.json --noEmit 2>&1 | tail -30)
+```
+
+Anotar os 15 erros conhecidos. Depois aplicar o Step 2 e **repetir a medição** — a expansão do `include` para `tests/` traz 24 arquivos novos (11 specs e2e, `helpers/login.ts`, `setup.ts`, 11 unitários).
+
+**Jidoka — stop-condition explícita:** se a expansão revelar erros de causa-raiz **diferente** do jest-dom (tipos do Playwright, `strictNullChecks` nos specs antigos) em volume que estoure o escopo deste pool, **PARAR e reportar ao JorUge** em vez de sair consertando. A decisão de absorver ou adiar é dele.
+
+- [ ] **Step 2: Criar a augmentation de tipos**
+
+Criar `packages/frontend/src/types/jest-dom.d.ts`:
+
+```typescript
+/**
+ * Augmentation de tipos dos matchers do `@testing-library/jest-dom`.
+ *
+ * O `tests/setup.ts` registra os matchers em runtime via `expect.extend`, o que
+ * funciona mas não informa nada ao TypeScript — daí os erros `TS2339` em
+ * `toBeInTheDocument`/`toHaveAttribute`. Este import é só de tipos (sem efeito
+ * em runtime) e estende a interface `Assertion` do vitest para toda a suíte.
+ */
+
+import "@testing-library/jest-dom/vitest";
+```
+
+- [ ] **Step 3: Ampliar o `include` e criar o script**
+
+Em `packages/frontend/tsconfig.app.json`, trocar:
+
+```json
+  "include": ["src"]
+```
+
+por:
+
+```json
+  "include": ["src", "tests"]
+```
+
+Em `packages/frontend/package.json`, adicionar ao bloco `scripts`, logo após `"lint"`:
+
+```json
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+```
+
+- [ ] **Step 4: Rodar — deve sair com 0 erros**
+
+```bash
+(cd packages/frontend && npm run typecheck)
+```
+
+Expected: saída vazia, exit code 0.
+
+- [ ] **Step 5: Confirmar que nada quebrou em runtime**
+
+```bash
+(cd packages/frontend && npm run test && npm run lint)
+```
+
+Expected: 194 testes PASS, lint limpo.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add packages/frontend/src/types/jest-dom.d.ts packages/frontend/tsconfig.app.json packages/frontend/package.json
+git commit -m "chore(frontend): gate de tipos com typecheck cobrindo src e tests"
+```
+
+---
+
+## Task 2: Extrair o helper de viewport dos e2e
+
+**Files:**
+
+- Create: `packages/frontend/tests/e2e/helpers/viewport.ts`
+- Modify: `packages/frontend/tests/e2e/admin-igrejas.mobile.spec.ts`
+
+**Contexto:** `admin-igrejas.mobile.spec.ts:21-31` já contém `expectSemOverflowHorizontal`. O spec da Task 5 precisa da mesma checagem; duplicá-lo criaria duas cópias literais. A extração é o refactor pontual autorizado nesta revisão.
+
+**Interfaces:**
+
+- Produces: `expectSemOverflowHorizontal(page: Page): Promise<void>` em `tests/e2e/helpers/viewport.ts`, consumido por `admin-igrejas.mobile.spec.ts` e (Task 5) `musicas-filtros.mobile.spec.ts`.
+
+- [ ] **Step 1: Criar o helper**
+
+Criar `packages/frontend/tests/e2e/helpers/viewport.ts` movendo o corpo existente **sem alterá-lo**:
+
+```typescript
+/**
+ * Helpers de viewport para os testes E2E.
+ *
+ * Centraliza as checagens objetivas da regra mobile-first do projeto, usadas
+ * por todos os specs `*.mobile.spec.ts`.
+ */
+
+import { expect, type Page } from "@playwright/test";
+
+/**
+ * Verifica que a página não transborda horizontalmente no viewport atual.
+ *
+ * A regra mobile do projeto proíbe depender de scroll horizontal; esta é a
+ * checagem objetiva equivalente. Tolera 1px de arredondamento de layout.
+ *
+ * @param page - Instância da página do Playwright.
+ */
+export async function expectSemOverflowHorizontal(page: Page): Promise<void> {
+  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+
+  expect(
+    scrollWidth,
+    `página transborda ${scrollWidth - clientWidth}px além do viewport de ${clientWidth}px`,
+  ).toBeLessThanOrEqual(clientWidth + 1);
+}
+```
+
+- [ ] **Step 2: Consumir no spec existente**
+
+Em `packages/frontend/tests/e2e/admin-igrejas.mobile.spec.ts`: remover a função local (linhas 13-31, incluindo a docstring) e adicionar o import após o de `loginAsAdmin`:
+
+```typescript
+import { expectSemOverflowHorizontal } from "./helpers/viewport";
+```
+
+Se o `type Page` deixar de ser usado no spec, remover também da lista de imports do `@playwright/test`.
+
+- [ ] **Step 3: Rodar — comportamento idêntico**
+
+```bash
+(cd packages/frontend && npx playwright test --project=mobile admin-igrejas)
+(cd packages/frontend && npm run typecheck)
+```
+
+Expected: mesmos testes PASS de antes (refactor puro, zero mudança de comportamento); typecheck limpo.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/frontend/tests/e2e/helpers/viewport.ts packages/frontend/tests/e2e/admin-igrejas.mobile.spec.ts
+git commit -m "refactor(e2e): extrai expectSemOverflowHorizontal para helper compartilhado"
+```
+
+---
+
+## Task 3: Frontend — componente `MusicaFiltros` (chips + drawer)
 
 **Files:**
 
@@ -253,11 +461,14 @@ describe("MusicaFiltrosDrawer", () => {
 });
 ```
 
-Nota (risco conhecido, precedente conferido em 2026-08-10): `ResponsiveFormDialog.test.tsx` prova que o **conteúdo** do Drawer (vaul) renderiza no jsdom, mas o faz com `open` controlado e `useIsMobile` mockado — a abertura via **clique no `DrawerTrigger`** não tem precedente na suíte. O setup global (`tests/setup.ts`) já polyfilla `matchMedia` e `ResizeObserver`. Se o clique não montar o conteúdo no jsdom, **não alterar o componente para servir ao teste**: mover os casos de abertura/limpar para o e2e mobile (Task 3, navegador real) e manter no unitário `MusicaFiltrosChips` + o rótulo/contador do gatilho (asseráveis sem abrir o sheet).
+Nota (risco conhecido, precedente conferido em 2026-08-10): `ResponsiveFormDialog.test.tsx` prova que o **conteúdo** do Drawer (vaul) renderiza no jsdom, mas o faz com `open` controlado e `useIsMobile` mockado — a abertura via **clique no `DrawerTrigger`** não tem precedente na suíte. O setup global (`tests/setup.ts`) já polyfilla `matchMedia` e `ResizeObserver`. Se o clique não montar o conteúdo no jsdom, **não alterar o componente para servir ao teste**: mover os casos de abertura/limpar para o e2e mobile (Task 5, navegador real) e manter no unitário `MusicaFiltrosChips` + o rótulo/contador do gatilho (asseráveis sem abrir o sheet).
 
 - [ ] **Step 2: Rodar os testes — devem FALHAR (módulo inexistente)**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npx vitest run src/components/__tests__/MusicaFiltros.test.tsx`
+```bash
+(cd packages/frontend && npx vitest run src/components/__tests__/MusicaFiltros.test.tsx)
+```
+
 Expected: FAIL — `Cannot find module '@/components/MusicaFiltros'` (ou equivalente).
 
 - [ ] **Step 3: Implementar o componente**
@@ -449,7 +660,7 @@ export function MusicaFiltrosDrawer({
       <DrawerContent className="max-h-[85vh]">
         <DrawerHeader className="text-left">
           <DrawerTitle>Filtros</DrawerTitle>
-          <DrawerDescription>Refine por tempo e categoria.</DrawerDescription>
+          <DrawerDescription>Refine por intensidade e categoria.</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-2">
           <MusicaFiltrosChips {...chipProps} />
@@ -472,24 +683,30 @@ export function MusicaFiltrosDrawer({
 
 - [ ] **Step 4: Rodar os testes — devem PASSAR**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npx vitest run src/components/__tests__/MusicaFiltros.test.tsx`
+```bash
+(cd packages/frontend && npx vitest run src/components/__tests__/MusicaFiltros.test.tsx)
+```
+
 Expected: PASS (8 testes).
 
-- [ ] **Step 5: Lint**
+- [ ] **Step 5: Lint e typecheck**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npm run lint`
-Expected: PASS. (O frontend não tem script `typecheck` — ver Global Constraints; os tipos do componente novo são exercitados pelos testes do Step 4.)
+```bash
+(cd packages/frontend && npm run lint && npm run typecheck)
+```
+
+Expected: PASS nos dois.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/frontend/src/components/MusicaFiltros.tsx packages/frontend/src/components/__tests__/MusicaFiltros.test.tsx
-git -C /home/joruge/repos/LouvorFlow commit -m "feat(musicas): componente MusicaFiltros com chips compartilhados e drawer mobile"
+git add packages/frontend/src/components/MusicaFiltros.tsx packages/frontend/src/components/__tests__/MusicaFiltros.test.tsx
+git commit -m "feat(musicas): componente MusicaFiltros com chips compartilhados e drawer mobile"
 ```
 
 ---
 
-## Task 2: Frontend — integrar `MusicaFiltros` em `Songs.tsx`
+## Task 4: Frontend — integrar `MusicaFiltros` em `Songs.tsx`
 
 **Files:**
 
@@ -498,8 +715,8 @@ git -C /home/joruge/repos/LouvorFlow commit -m "feat(musicas): componente Musica
 
 **Interfaces:**
 
-- Consumes: `MusicaFiltrosChips`, `MusicaFiltrosDrawer` (Task 1), com as props exatas definidas em `MusicaFiltrosProps`/`MusicaFiltrosDrawerProps`.
-- Produces: comportamento — a 360px os grupos `role="group"` ficam ocultos e existe um botão com `aria-label` iniciado por "Filtros" (a Task 3 depende desses seletores).
+- Consumes: `MusicaFiltrosChips`, `MusicaFiltrosDrawer` (Task 3), com as props exatas definidas em `MusicaFiltrosProps`/`MusicaFiltrosDrawerProps`.
+- Produces: comportamento — a 360px os grupos `role="group"` ficam ocultos e existe um botão com `aria-label` iniciado por "Filtros" (a Task 5 depende desses seletores).
 
 - [ ] **Step 1: Atualizar docstring da página (linhas 1-7)**
 
@@ -510,7 +727,7 @@ Substituir por:
  * Página de gerenciamento do catálogo de músicas.
  *
  * Estado da lista (page, busca, intensidades, categorias) sincronizado com a
- * URL via `useSearchParams`. Filtros por tempo (intensidade) e por categoria
+ * URL via `useSearchParams`. Filtros por intensidade (tempo) e por categoria
  * via chips multi-seleção: inline no desktop e colapsados atrás do botão
  * "Filtros" (bottom-sheet) no mobile, mantendo a busca como protagonista.
  * Busca textual e ambos os filtros executados no backend.
@@ -599,15 +816,18 @@ Trocar todo o bloco de `<CardHeader className="space-y-4">` até seu `</CardHead
         </CardHeader>
 ```
 
-- [ ] **Step 5: Testes + lint + conferência de import morto**
+- [ ] **Step 5: Testes + lint + typecheck + conferência de import morto**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npm run test && npm run lint`
-Expected: tudo PASS (pressupõe a Task 0 concluída — a baseline tinha 1 falha pré-existente).
+```bash
+(cd packages/frontend && npm run test && npm run lint && npm run typecheck)
+```
+
+Expected: tudo PASS.
 
 Nenhum gate automático acusa import sem uso neste repo (`@typescript-eslint/no-unused-vars` está `"off"` em `eslint.config.js:23` e o tsconfig tem `noUnusedLocals: false`), então conferir manualmente que o Step 2 foi feito:
 
 ```bash
-grep -n "IntensityBars" /home/joruge/repos/LouvorFlow/packages/frontend/src/pages/Songs.tsx
+grep -n "IntensityBars" packages/frontend/src/pages/Songs.tsx
 ```
 
 Expected: nenhuma ocorrência.
@@ -631,13 +851,13 @@ Com backend e frontend rodando (`npm run dev` em cada package), abrir `/musicas`
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/frontend/src/pages/Songs.tsx .claude/rules/frontend-react.md
-git -C /home/joruge/repos/LouvorFlow commit -m "feat(musicas): filtros colapsaveis em bottom-sheet no mobile, busca protagonista"
+git add packages/frontend/src/pages/Songs.tsx .claude/rules/frontend-react.md
+git commit -m "feat(musicas): filtros colapsaveis em bottom-sheet no mobile, busca protagonista"
 ```
 
 ---
 
-## Task 3: Frontend — e2e mobile dos filtros colapsáveis
+## Task 5: Frontend — e2e mobile dos filtros colapsáveis
 
 **Files:**
 
@@ -645,7 +865,7 @@ git -C /home/joruge/repos/LouvorFlow commit -m "feat(musicas): filtros colapsave
 
 **Interfaces:**
 
-- Consumes: `loginAsAdmin` (`tests/e2e/helpers/login.ts`); seletores produzidos pela Task 2 (`role="group"` com aria-labels "Filtrar por intensidade (tempo)"/"Filtrar por categoria"; botão com aria-label iniciado por "Filtros"; drawer com `role="dialog"`). O sufixo `.mobile.spec.ts` roteia o spec para o projeto `mobile` do Playwright (Galaxy S8, 360×740).
+- Consumes: `loginAsAdmin` (`tests/e2e/helpers/login.ts`); `expectSemOverflowHorizontal` (`tests/e2e/helpers/viewport.ts`, Task 2); seletores produzidos pela Task 4 (`role="group"` com aria-labels "Filtrar por intensidade (tempo)"/"Filtrar por categoria"; botão com aria-label iniciado por "Filtros"; drawer com `role="dialog"`). O sufixo `.mobile.spec.ts` roteia o spec para o projeto `mobile` do Playwright (Galaxy S8, 360×740).
 - Produces: cobertura automatizada da regra mobile (cards/overlay visíveis, sem overflow horizontal).
 
 - [ ] **Step 1: Criar o spec**
@@ -660,26 +880,9 @@ git -C /home/joruge/repos/LouvorFlow commit -m "feat(musicas): filtros colapsave
  * página não gera rolagem horizontal.
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "./helpers/login";
-
-/**
- * Verifica que a página não transborda horizontalmente no viewport atual.
- * Tolera 1px de arredondamento de layout.
- *
- * @param page - Instância da página do Playwright.
- */
-async function expectSemOverflowHorizontal(page: Page): Promise<void> {
-  const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    clientWidth: document.documentElement.clientWidth,
-  }));
-
-  expect(
-    scrollWidth,
-    `página transborda ${scrollWidth - clientWidth}px além do viewport de ${clientWidth}px`,
-  ).toBeLessThanOrEqual(clientWidth + 1);
-}
+import { expectSemOverflowHorizontal } from "./helpers/viewport";
 
 test.describe("Mobile — Músicas: filtros colapsáveis (360×740)", () => {
   /** Autentica e abre a página de Músicas antes de cada caso. */
@@ -740,19 +943,23 @@ test.describe("Mobile — Músicas: filtros colapsáveis (360×740)", () => {
 
 - [ ] **Step 2: Rodar (exige backend + frontend no ar)**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/frontend && npx playwright test --project=mobile musicas-filtros`
-Expected: 4 testes PASS. Rodar também o desktop para garantir que nada quebrou: `npx playwright test --project=chromium musicas.spec.ts` — PASS (os chips inline continuam visíveis a 1280px).
+```bash
+(cd packages/frontend && npx playwright test --project=mobile musicas-filtros)
+(cd packages/frontend && npx playwright test --project=chromium musicas.spec.ts)
+```
+
+Expected: 4 testes PASS no mobile; o spec desktop continua PASS (chips inline visíveis a 1280px) — a Task 0 já o deixou verde, então aqui o critério é **nenhuma regressão**.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/frontend/tests/e2e/musicas-filtros.mobile.spec.ts
-git -C /home/joruge/repos/LouvorFlow commit -m "test(e2e): cobertura mobile dos filtros colapsaveis de musicas"
+git add packages/frontend/tests/e2e/musicas-filtros.mobile.spec.ts
+git commit -m "test(e2e): cobertura mobile dos filtros colapsaveis de musicas"
 ```
 
 ---
 
-## Task 4: Backend — ordenação pt-BR de categorias
+## Task 6: Backend — ordenação pt-BR de categorias
 
 **Files:**
 
@@ -765,7 +972,7 @@ git -C /home/joruge/repos/LouvorFlow commit -m "test(e2e): cobertura mobile dos 
 **Interfaces:**
 
 - Consumes: `categoriasRepository.findAll(): Promise<{ id: string; nome: string }[]>` (inalterado).
-- Produces: `compararNomesPtBr(a: string, b: string): number` em `src/utils/ordenacao.ts` (a Task 5 reutiliza); `categoriasService.listAll()` passa a devolver o array ordenado por `nome` (pt-BR).
+- Produces: `compararNomesPtBr(a: string, b: string): number` em `src/utils/ordenacao.ts` (a Task 7 reutiliza); `categoriasService.listAll()` passa a devolver o array ordenado por `nome` (pt-BR).
 
 **Decisão de arquitetura:** a ordenação mora no **service** (não em `orderBy` no repository) porque (1) o resultado fica determinístico independentemente do collation do banco — um Postgres com locale `C` ordenaria "Ágape" depois de "Zelo"; (2) os testes unitários usam fake repositories, então só a ordenação em service é verificável pela suíte existente. Listas paginadas (músicas) são a exceção: ordenam no banco por exigência da paginação (já implementado).
 
@@ -795,7 +1002,10 @@ O caso cobre acentuação de verdade: um sort ingênuo por code point colocaria 
 
 - [ ] **Step 2: Rodar — deve FALHAR**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/backend && npx vitest run tests/services/categorias.service.test.ts`
+```bash
+(cd packages/backend && npx vitest run tests/services/categorias.service.test.ts)
+```
+
 Expected: FAIL no novo caso (ordem de inserção, não alfabética).
 
 - [ ] **Step 3: Criar o utilitário de ordenação**
@@ -851,7 +1061,10 @@ Substituir o método `listAll` (linhas 9-15) por:
 
 - [ ] **Step 5: Rodar — deve PASSAR (e typecheck)**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/backend && npx vitest run tests/services/categorias.service.test.ts && npm run typecheck`
+```bash
+(cd packages/backend && npx vitest run tests/services/categorias.service.test.ts && npm run typecheck)
+```
+
 Expected: PASS.
 
 - [ ] **Step 6: Atualizar OpenAPI (`GET /categorias`)**
@@ -886,13 +1099,13 @@ Em `packages/backend/docs/openapi.json`, na entrada `"/categorias"` → `"get"` 
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/backend/src/utils/ordenacao.ts packages/backend/src/services/categorias.service.ts packages/backend/tests/services/categorias.service.test.ts packages/backend/docs/openapi.json .claude/rules/backend-api.md
-git -C /home/joruge/repos/LouvorFlow commit -m "feat(categorias): listagem em ordem alfabetica pt-BR"
+git add packages/backend/src/utils/ordenacao.ts packages/backend/src/services/categorias.service.ts packages/backend/tests/services/categorias.service.test.ts packages/backend/docs/openapi.json .claude/rules/backend-api.md
+git commit -m "feat(categorias): listagem em ordem alfabetica pt-BR"
 ```
 
 ---
 
-## Task 5: Backend — ordenação pt-BR de artistas
+## Task 7: Backend — ordenação pt-BR de artistas
 
 **Files:**
 
@@ -902,7 +1115,7 @@ git -C /home/joruge/repos/LouvorFlow commit -m "feat(categorias): listagem em or
 
 **Interfaces:**
 
-- Consumes: `compararNomesPtBr(a: string, b: string): number` (`src/utils/ordenacao.ts`, criado na Task 4); `artistasRepository.findAll(): Promise<{ id: string; nome: string }[]>` (inalterado).
+- Consumes: `compararNomesPtBr(a: string, b: string): number` (`src/utils/ordenacao.ts`, criado na Task 6); `artistasRepository.findAll(): Promise<{ id: string; nome: string }[]>` (inalterado).
 - Produces: `artistasService.listAll()` devolve o array ordenado por `nome` (pt-BR) — herdado por `Settings.tsx` (aba Artistas) e pelos comboboxes de artista (`MusicaForm`/`VersaoForm`) sem mudança de frontend.
 
 - [ ] **Step 1: Escrever o teste (falhando)**
@@ -931,7 +1144,10 @@ Em `packages/backend/tests/services/artistas.service.test.ts`, adicionar dentro 
 
 - [ ] **Step 2: Rodar — deve FALHAR**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/backend && npx vitest run tests/services/artistas.service.test.ts`
+```bash
+(cd packages/backend && npx vitest run tests/services/artistas.service.test.ts)
+```
+
 Expected: FAIL no novo caso.
 
 - [ ] **Step 3: Ordenar no service**
@@ -957,7 +1173,10 @@ Substituir o método `listAll` (linhas 5-7) por:
 
 - [ ] **Step 4: Rodar — deve PASSAR (e typecheck)**
 
-Run: `cd /home/joruge/repos/LouvorFlow/packages/backend && npx vitest run tests/services/artistas.service.test.ts && npm run typecheck`
+```bash
+(cd packages/backend && npx vitest run tests/services/artistas.service.test.ts && npm run typecheck)
+```
+
 Expected: PASS.
 
 - [ ] **Step 5: Atualizar OpenAPI (`GET /artistas`)**
@@ -975,24 +1194,27 @@ Em `packages/backend/docs/openapi.json`, na entrada `"/artistas"` → `"get"` (~
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /home/joruge/repos/LouvorFlow add packages/backend/src/services/artistas.service.ts packages/backend/tests/services/artistas.service.test.ts packages/backend/docs/openapi.json
-git -C /home/joruge/repos/LouvorFlow commit -m "feat(artistas): listagem em ordem alfabetica pt-BR"
+git add packages/backend/src/services/artistas.service.ts packages/backend/tests/services/artistas.service.test.ts packages/backend/docs/openapi.json
+git commit -m "feat(artistas): listagem em ordem alfabetica pt-BR"
 ```
 
 ---
 
-## Task 6: Verificação final integrada
+## Task 8: Verificação final, padronização e registro Kaizen
 
-**Files:** nenhum novo — verificação e sincronização final.
+**Files:**
+
+- Modify: `KAIZEN_LOG.md`
+- Modify: `.claude/rules/dev-workflow.md`
 
 - [ ] **Step 1: Suítes completas dos dois packages**
 
 ```bash
-cd /home/joruge/repos/LouvorFlow/packages/backend && npm run test && npm run typecheck && npm run lint
-cd /home/joruge/repos/LouvorFlow/packages/frontend && npm run test && npm run typecheck && npm run lint
+(cd packages/backend && npm run test && npm run typecheck && npm run lint)
+(cd packages/frontend && npm run test && npm run typecheck && npm run lint)
 ```
 
-Expected: tudo PASS.
+Expected: tudo PASS. O `typecheck` do frontend existe desde a Task 1.
 
 - [ ] **Step 2: Smoke test da API (ordem alfabética de ponta a ponta)**
 
@@ -1022,22 +1244,53 @@ Obs.: `useCategorias` tem `staleTime` de 5 min — recarregar a página (ou agua
 - [ ] **Step 4: e2e completo (desktop + mobile)**
 
 ```bash
-cd /home/joruge/repos/LouvorFlow/packages/frontend && npx playwright test
+(cd packages/frontend && npx playwright test)
 ```
 
-Expected: projetos `chromium` e `mobile` PASS (exige backend + frontend no ar; e2e ainda não roda no CI — pendência conhecida documentada nas rules).
+Expected: `musicas.spec.ts`, `musicas-filtros.mobile.spec.ts` e `admin-igrejas*` PASS. Os **7 specs que ainda não autenticam** (`dashboard`, `escalas`, `escala-detalhe`, `integrantes`, `musica-detalhe`, `navigation` e demais) continuam vermelhos — dívida pré-existente registrada no `KAIZEN_LOG.md`, fora do escopo deste pool. Critério: **nenhuma falha nova** em relação à baseline da Task 0.
 
-- [ ] **Step 5: Sincronização de documentação (gate de finalização do CLAUDE.md)**
+- [ ] **Step 5: Corrigir a regra de caminho (`.claude/rules/dev-workflow.md`)**
+
+Causa raiz do problema que inutilizou a revisão 1: a seção 4 fixa um caminho absoluto de máquina (`/c/Users/pc_admin/source/repos/LouvorFlow`) num arquivo versionado, então toda troca de ambiente a invalida. Substituir as duas formas prescritas nas linhas 44-45 por:
+
+```markdown
+**Regra**: comandos `git` rodam **da raiz do repositório**, com caminhos relativos à raiz. Para rodar algo dentro de um package sem que o CWD vaze para o próximo comando, use subshell:
+
+1. **Subshell para comandos de package**: `(cd packages/backend && yarn run test)` — os parênteses isolam o `cd`.
+2. **Git sempre relativo à raiz**: `git add packages/backend/src/...`
+
+**Nunca** escrever caminho absoluto de máquina em plano, script ou regra: o repositório já viveu em `/c/Users/.../source/repos/`, `/home/joruge/repos/` e `/home/pc_admin/repos/`, e todo caminho fixo quebra na migração seguinte.
+```
+
+- [ ] **Step 6: Registrar o ciclo no `KAIZEN_LOG.md`**
+
+Adicionar **uma** entrada no topo (após o cabeçalho), seguindo o formato da entrada de 2026-08-09: Antes / Depois / **Padronizado em** / tabela "Incrementos entregues" (uma linha por task 0-7, com a verificação de cada) / "Desperdícios evitados" / "Oportunidades levantadas" / "O que aprendemos".
+
+Conteúdo obrigatório:
+
+- **Antes/Depois**: chips sempre visíveis empurrando os resultados para fora da tela a 360px → busca protagonista com filtros em bottom-sheet; categorias e artistas em ordem de inserção → ordem alfabética pt-BR.
+- **Padronizado em**: `.claude/rules/frontend-react.md` (padrão de overlay de filtros), `.claude/rules/backend-api.md` (ordenação de listas nomeadas + diretório `utils/`), `.claude/rules/dev-workflow.md` (caminhos relativos), `packages/backend/docs/openapi.json`. **Abrir cada arquivo e confirmar que a mudança está lá antes de escrever o nome dele** — se ainda não foi feito, escrever "pendente".
+- **Oportunidades levantadas**: (a) os 7 specs e2e restantes que ainda não autenticam; (b) o que sobrou da expansão do `typecheck` para `tests/`, se algo foi adiado na Task 1; (c) ordenação de funções, tipos de evento e tonalidades (tonalidades têm ordem musical, não alfabética — decisão de produto); (d) e2e ainda não roda no CI.
+- **O que aprendemos**: um plano com caminho absoluto de máquina é inexecutável na máquina seguinte — a causa raiz estava na regra, não no plano; e "baseline vermelha" reportada por outra sessão precisa ser reproduzida no ambiente atual antes de virar task (a Task 0 da revisão 1 consertava um problema que não existia aqui).
+
+- [ ] **Step 7: Sincronização de documentação (gate de finalização do `CLAUDE.md`)**
 
 Confirmar:
 
-- Docstrings JSDoc PT-BR em todo código criado/modificado (componente, página, util, services, testes, spec e2e).
-- `packages/backend/docs/openapi.json` com as duas descriptions/examples atualizados (Tasks 4-5).
-- `.claude/rules/frontend-react.md` (Task 2) e `.claude/rules/backend-api.md` (Task 4) atualizados.
+- Docstrings JSDoc PT-BR em todo código criado/modificado (componente, página, util, services, testes, specs e2e, helper de viewport, `jest-dom.d.ts`).
+- `packages/backend/docs/openapi.json` com as duas descriptions/examples atualizados (Tasks 6-7).
+- `.claude/rules/frontend-react.md` (Task 4), `.claude/rules/backend-api.md` (Task 6) e `.claude/rules/dev-workflow.md` (Step 5) atualizados.
 - `CLAUDE.md`: sem mudança de stack/estrutura de monorepo — **não** alterar.
-- `README.md`: verificado em 2026-08-10 — não descreve o comportamento dos filtros nem a ordenação das listas (só Roadmap); nenhuma atualização necessária. Reconferir com `grep -n -i "filtro\|categoria" /home/joruge/repos/LouvorFlow/README.md` (se continuar sem ocorrências de feature, nada a fazer).
+- `README.md`: verificado em 2026-08-10 — não descreve o comportamento dos filtros nem a ordenação das listas (só Roadmap); nenhuma atualização necessária. Reconferir com `grep -n -i "filtro\|categoria" README.md`.
 
-- [ ] **Step 6 (pós-deploy em staging): conferir collation do banco de staging**
+- [ ] **Step 8: Commit**
+
+```bash
+git add KAIZEN_LOG.md .claude/rules/dev-workflow.md
+git commit -m "docs(kaizen): registra ciclo dos pedidos da Vanessa e corrige regra de caminho"
+```
+
+- [ ] **Step 9 (pós-deploy em staging): conferir collation do banco de staging**
 
 A ordenação de **músicas** depende do collation do Postgres (ordena no banco por causa da paginação). No dev está `en_US.utf8` (correto). Ao fazer o deploy destas mudanças em staging (host do runner: `root@192.168.0.6`), rodar no host:
 
@@ -1050,10 +1303,46 @@ Regra de decisão: `en_US.utf8`/`pt_BR.utf8` → nada a fazer. `C`/`POSIX` (comu
 
 ---
 
+## Checklist Kaizen (PDCA)
+
+### Do + Check — um incremento por vez, Jidoka em cada
+
+| ✔ | # | Incremento | Critério de Check |
+|---|---|---|---|
+| [ ] | 0 | `loginAsAdmin` em `musicas.spec.ts` | baseline registrada → spec PASS no projeto `chromium` |
+| [ ] | 1 | `jest-dom.d.ts` + `include: ["src","tests"]` + script `typecheck` | `npm run typecheck` com 0 erros; 194 testes ainda PASS; lint limpo |
+| [ ] | 2 | `helpers/viewport.ts` extraído | `admin-igrejas` mobile PASS sem mudança de comportamento; typecheck limpo |
+| [ ] | 3 | `MusicaFiltros.tsx` + testes | 8 testes PASS (FAIL→PASS); lint + typecheck |
+| [ ] | 4 | `Songs.tsx` integrado | suíte completa PASS; `grep IntensityBars` vazio; visual 360px **e** 1024px conferido |
+| [ ] | 5 | `musicas-filtros.mobile.spec.ts` | 4 testes PASS no projeto `mobile`; desktop sem regressão |
+| [ ] | 6 | `ordenacao.ts` + categorias ordenadas | teste novo FAIL→PASS; typecheck; openapi atualizado |
+| [ ] | 7 | Artistas ordenados | teste novo FAIL→PASS; typecheck; openapi atualizado |
+| [ ] | 8 | Verificação final + Kaizen log + regra de caminho | suítes, smoke `curl`, e2e sem falha nova, docs sincronizadas |
+
+### Act — gates de finalização do `CLAUDE.md`
+
+- [ ] Docstrings JSDoc em PT-BR em **todo** código novo ou modificado, incluindo callbacks de teste (`describe`, `it`).
+- [ ] `packages/backend/docs/openapi.json` refletindo as duas mudanças de contrato.
+- [ ] `.claude/rules/frontend-react.md`, `.claude/rules/backend-api.md` e `.claude/rules/dev-workflow.md` atualizados.
+- [ ] `CLAUDE.md` — sem mudança necessária (confirmar, não alterar).
+- [ ] `README.md` — reconferido, sem mudança necessária.
+- [ ] `KAIZEN_LOG.md` com a entrada única do ciclo, cada "Padronizado em" **verificado abrindo o arquivo**.
+- [ ] Responsividade mobile verificada a **360px** e 1024px em toda tela tocada (`/musicas`, `/configuracoes`, `MusicaForm`).
+- [ ] Nenhum refactor fora do escopo (única exceção autorizada: helper de viewport, Task 2).
+- [ ] Nenhum caminho absoluto de máquina introduzido em código, script ou doc.
+
+### Gate final
+
+- [ ] `/clear` e então `/codereview:codereview` — iterar até **nota A** em todas as dimensões.
+
+---
+
 ## Notas de Execução
 
-- **Ordem das tasks**: 1 → 2 → 3 (frontend, encadeadas) e 4 → 5 (backend; a 5 consome o util criado na 4). O bloco 4-5 é independente do 1-3 e pode ser executado antes, se preferir. A Task 6 é sempre a última.
+- **Equivalência com o grill report** (que numera pela revisão 1): Task 1 → **3**, Task 2 → **4**, Task 3 → **5**, Task 4 → **6**, Task 5 → **7**, Task 6 → **8**. A Task 0 da revisão 1 (`import React`) foi **removida**; as Tasks 0, 1 e 2 desta revisão são novas.
+- **Ordem das tasks**: 0 → 1 → 2 (destravamento dos gates; independentes entre si, mas todas antes do resto) → 3 → 4 → 5 (frontend, encadeadas) e 6 → 7 (backend; a 7 consome o util criado na 6). O bloco 6-7 é independente do 3-5 e pode ser executado antes, se preferir. A Task 8 é sempre a última.
 - **Causa raiz confirmada no código (2026-08-10)**: Problema 1 em `Songs.tsx:302-368` (chips sempre visíveis no `CardHeader`); Problema 2 em `categorias.repository.ts:14-18` e `artistas.repository.ts:4-8` (`findAll` sem ordenação). Músicas já ordenadas (`musicas.repository.ts:40`) com collation de dev verificado.
+- **Baseline verificada neste ambiente (2026-08-10)**: suíte unitária do frontend **194 passed / 0 failed**; backend `categorias`/`artistas` **32/32 PASS**; `Intl.Collator('pt-BR')` produz exatamente os arrays esperados pelos testes das Tasks 6-7; binário do Playwright presente (`chromium_headless_shell-1208`, e a config roda `headless: true`).
 - **Escopo enxuto**: nenhuma mudança em repositories, hooks ou schemas; os toggles/URL state de `Songs.tsx` não mudam — só a apresentação dos chips.
-- **DRY**: os chips existem uma única vez (`MusicaFiltrosChips`), consumidos pelo desktop inline e pelo drawer mobile.
-- **Reversibilidade (kaizen)**: cada commit é independente e reversível; reverter a Task 2 restaura o layout atual sem afetar o backend, e vice-versa.
+- **DRY**: os chips existem uma única vez (`MusicaFiltrosChips`), consumidos pelo desktop inline e pelo drawer mobile; a checagem de overflow existe uma única vez (`helpers/viewport.ts`).
+- **Reversibilidade (kaizen)**: cada commit é independente e reversível; reverter a Task 4 restaura o layout atual sem afetar o backend, e vice-versa.
