@@ -6,8 +6,14 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { loginAsAdmin } from "./helpers/login";
 
 test.describe("Músicas", () => {
+  /** Autentica antes de cada teste — `/musicas` é rota protegida. */
+  test.beforeEach(async ({ page }) => {
+    await loginAsAdmin(page);
+  });
+
   test("deve listar músicas do servidor", async ({ page }) => {
     await page.goto("/musicas");
     await expect(page.getByRole("heading", { name: "Músicas" })).toBeVisible();
