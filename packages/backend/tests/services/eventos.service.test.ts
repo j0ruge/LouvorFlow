@@ -37,6 +37,12 @@ describe('EventosService', () => {
       expect(result[0]).toHaveProperty('musicas');
       expect(result[0]).toHaveProperty('integrantes');
     });
+
+    /** Cada evento listado expõe o status de publicação da escala (decisão D5). */
+    it('deve expor o campo status nos eventos listados', async () => {
+      const result = await eventosService.listAll();
+      expect(result[0].status).toBe('publicada');
+    });
   });
 
   // ─── getById ────────────────────────────────────────────
@@ -47,6 +53,12 @@ describe('EventosService', () => {
       expect(result).toHaveProperty('tipoEvento');
       expect(result.musicas[0]).toHaveProperty('tonalidade');
       expect(result.integrantes[0]).toHaveProperty('funcoes');
+    });
+
+    /** O detalhe do evento expõe o status de publicação da escala (decisão D5). */
+    it('deve expor o campo status no detalhe do evento', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      expect(result.status).toBe('publicada');
     });
 
     it('deve lançar AppError 400 quando id não é enviado', async () => {
@@ -191,6 +203,25 @@ describe('EventosService', () => {
         message: 'Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)',
       });
     });
+
+    /** D5: sem `status` no body, o evento nasce `publicada` (DEFAULT do banco, espelhado no fake). */
+    it('deve criar evento com status publicada por padrão', async () => {
+      const resultado = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+      }, 'tenant-fake-id');
+      expect(resultado.status).toBe('publicada');
+    });
+
+    /** F13 cria escalas em preparação: `status: 'rascunho'` opcional aceito no create. */
+    it('deve criar evento com status rascunho quando enviado', async () => {
+      const resultado = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+        status: 'rascunho',
+      }, 'tenant-fake-id');
+      expect(resultado.status).toBe('rascunho');
+    });
   });
 
   // ─── update ─────────────────────────────────────────────
@@ -226,6 +257,187 @@ describe('EventosService', () => {
       await expect(eventosService.update(MOCK_EVENTOS[0].id, {})).rejects.toMatchObject({
         statusCode: 400,
         message: 'Ao menos um campo deve ser enviado para atualização',
+      });
+    });
+
+    /** Publicar = PUT com `{ status: 'publicada' }` (D5) — transição rascunho → publicada sem endpoint dedicado. */
+    it('deve transicionar status de rascunho para publicada via update', async () => {
+      const rascunho = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+        status: 'rascunho',
+      }, 'tenant-fake-id');
+      expect(rascunho.status).toBe('rascunho');
+
+      const publicada = await eventosService.update(rascunho.id, { status: 'publicada' });
+      expect(publicada.status).toBe('publicada');
+    });
+  });
+
+  // ─── duplicar ───────────────────────────────────────────
+  describe('duplicar', () => {
+    /** Data da cópia usada em todos os cenários de duplicação. */
+    const NOVA_DATA = '2026-06-07T10:00:00Z';
+
+    /** Origem inexistente deve retornar 404 antes de qualquer escrita. */
+    it('deve lançar AppError 404 quando o evento de origem não existe', async () => {
+      await expect(
+        eventosService.duplicar(NON_EXISTENT_ID, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Data ausente é rejeitada com 400 sem tocar o banco. */
+    it('deve lançar AppError 400 quando data não é enviada', async () => {
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, {}, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Data do evento é obrigatória',
+      });
+    });
+
+    /** `parseDataEvento` compartilhado: ano fora de 1900–9999 é rejeitado também na duplicação. */
+    it('deve lançar AppError 400 quando o ano da data está fora de 1900–9999', async () => {
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: '1899-12-31T00:00:00Z' }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Ano da data do evento deve estar entre 1900 e 9999',
+      });
+    });
+
+    /** O repertório copiado preserva ordem, tom próprio da escala (override) e versão selecionada. */
+    it('deve copiar o repertório preservando ordem, tom próprio e versão selecionada', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const detalhe = await eventosService.getById(copia!.id);
+
+      expect(detalhe.musicas).toHaveLength(2);
+
+      const primeira = detalhe.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001')!;
+      expect(primeira.ordem).toBe(1);
+      expect(primeira.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(primeira.versao_selecionada).toMatchObject({ id: 'jjj00002-0000-0000-0000-000000000001' });
+
+      const segunda = detalhe.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002')!;
+      expect(segunda.ordem).toBe(2);
+      expect(segunda.versao_selecionada).toBeNull();
+      expect(segunda.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+    });
+
+    /** As funções copiadas são as escolhidas para o evento de origem, não as funções globais atuais do integrante. */
+    it('deve copiar integrantes com as funções do evento, não as funções globais', async () => {
+      /** Vincula o user 1 (duas funções globais) ao evento 3 com apenas UMA função selecionada. */
+      const funcaoEscolhida = MOCK_INTEGRANTES_FUNCOES[0].funcao_id;
+      await eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoEscolhida], TENANT_A_ID);
+
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[2].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const integrantes = await eventosService.listIntegrantes(copia!.id);
+
+      const copiado = integrantes.find(i => i.id === MOCK_INTEGRANTES[0].id);
+      expect(copiado).toBeDefined();
+      expect(copiado!.funcoes).toHaveLength(1);
+      expect(copiado!.funcoes[0].id).toBe(funcaoEscolhida);
+    });
+
+    /** `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; o status da cópia nasce `publicada`. */
+    it('deve herdar fk_tipo_evento e descricao da origem quando omitidos', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID);
+
+      expect(copia!.tipoEvento).toEqual({ id: MOCK_EVENTOS[0].fk_tipo_evento, nome: MOCK_TIPOS_EVENTOS[0].nome });
+      expect(copia!.descricao).toBe(MOCK_EVENTOS[0].descricao);
+      expect(copia!.status).toBe('publicada');
+      expect(new Date(copia!.data).toISOString()).toBe(new Date(NOVA_DATA).toISOString());
+    });
+
+    /** `fk_tipo_evento` e `descricao` enviados sobrescrevem os herdados da origem. */
+    it('deve sobrescrever fk_tipo_evento e descricao quando enviados', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, {
+        data: NOVA_DATA,
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[1].id,
+        descricao: 'Cópia ajustada',
+      }, TENANT_A_ID);
+
+      expect(copia!.tipoEvento).toEqual({ id: MOCK_TIPOS_EVENTOS[1].id, nome: MOCK_TIPOS_EVENTOS[1].nome });
+      expect(copia!.descricao).toBe('Cópia ajustada');
+    });
+
+    /** Origem sem músicas nem integrantes: a duplicação cria apenas o evento. */
+    it('deve criar apenas o evento quando a origem não tem músicas nem integrantes', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[1].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const detalhe = await eventosService.getById(copia!.id);
+
+      expect(detalhe.musicas).toEqual([]);
+      expect(detalhe.integrantes).toEqual([]);
+    });
+
+    /** Deve traduzir P2002 (unique constraint) em AppError 409 para corridas de escrita concorrente. */
+    it('deve traduzir erro Prisma P2002 para AppError 409 "Registro duplicado"', async () => {
+      const p2002Error = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['tenant_id', 'evento_id', 'musicas_id'] },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2002Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Registro duplicado',
+      });
+    });
+
+    /**
+     * Deve traduzir P2003 na FK de tipo de evento (sobrescrita com UUID inexistente)
+     * para AppError 404. O mock replica o formato real do Prisma 6 no Postgres:
+     * `meta.constraint` com o nome da constraint do banco.
+     */
+    it('deve traduzir erro Prisma P2003 em fk_tipo_evento para AppError 404 "Tipo de evento não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos', constraint: 'eventos_fk_tipo_evento_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: NON_EXISTENT_ID }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de user (integrante removido durante a cópia) para AppError 404. */
+    it('deve traduzir erro Prisma P2003 em fk_user_id para AppError 404 "Integrante não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Users', constraint: 'eventos_users_fk_user_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Integrante não encontrado',
+      });
+    });
+
+    /** Constraint não mapeada (ex.: tenant_id) cai no 404 genérico, sem vazar detalhe interno. */
+    it('deve traduzir P2003 de constraint desconhecida para AppError 404 "Recurso referenciado não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos', constraint: 'eventos_tenant_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Recurso referenciado não encontrado',
       });
     });
   });

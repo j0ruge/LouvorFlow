@@ -7,6 +7,25 @@
 
 import type { MusicaRanking, AtividadeMensal } from '../../src/types/index.js';
 
+/** Nomes abreviados dos meses em português (espelha o repositório real). */
+const MESES_PT = [
+    'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+] as const;
+
+/**
+ * Evento simulado para derivação dos indicadores baseados em evento.
+ * Permite testar o filtro D5 (rascunho não conta) do repositório real.
+ */
+interface FakeEventoRelatorio {
+    /** Data do evento. */
+    data: Date;
+    /** Status de publicação da escala (`rascunho` não conta nos indicadores). */
+    status: 'rascunho' | 'publicada';
+    /** Músicas escaladas no evento (uma associação por item). */
+    musicas: { id: string; nome: string }[];
+}
+
 /** Dados configuráveis para o fake repository de relatórios. */
 interface FakeRelatoriosData {
     /** Total de músicas cadastradas. */
@@ -21,6 +40,14 @@ interface FakeRelatoriosData {
     atividadeMensal: AtividadeMensal[];
     /** Total de músicas criadas no mês corrente. */
     novasMusicasNoMes: number;
+    /**
+     * Dataset opcional de eventos. Quando presente, os quatro indicadores
+     * baseados em evento (total, associações, ranking e atividade mensal)
+     * são **derivados** dele aplicando o mesmo filtro do repositório real
+     * (`data ≤ hoje` e `status = 'publicada'`, decisão D5), em vez de usar
+     * os números configurados acima.
+     */
+    eventos: FakeEventoRelatorio[] | null;
 }
 
 /** Dados padrão para testes com cenário populado. */
@@ -29,6 +56,7 @@ const DEFAULT_DATA: FakeRelatoriosData = {
     totalEventos: 20,
     totalAssociacoes: 100,
     novasMusicasNoMes: 8,
+    eventos: null,
     topMusicas: [
         { id: 'id-1', nome: 'Way Maker', vezes: 10 },
         { id: 'id-2', nome: 'Oceans', vezes: 7 },
@@ -55,40 +83,106 @@ const DEFAULT_DATA: FakeRelatoriosData = {
 export function createFakeRelatoriosRepository(dados?: Partial<FakeRelatoriosData>) {
     let data: FakeRelatoriosData = { ...DEFAULT_DATA, ...dados };
 
+    /**
+     * Retorna os eventos contabilizáveis do dataset: `data ≤ hoje` e
+     * `status = 'publicada'` — o mesmo filtro D5 do repositório real.
+     * Retorna `null` quando não há dataset (usa os números configurados).
+     */
+    function eventosContabilizaveis(): FakeEventoRelatorio[] | null {
+        if (!data.eventos) return null;
+        const hoje = new Date();
+        return data.eventos.filter(e => e.data <= hoje && e.status === 'publicada');
+    }
+
     return {
         /** Retorna o total de músicas configurado. */
         countMusicas: async (): Promise<number> => data.totalMusicas,
 
-        /** Retorna o total de eventos realizados configurado. */
-        countEventosRealizados: async (): Promise<number> => data.totalEventos,
+        /**
+         * Retorna o total de eventos realizados: derivado do dataset (filtro
+         * D5 — rascunho não conta) quando configurado, ou o número fixo.
+         */
+        countEventosRealizados: async (): Promise<number> => {
+            const eventos = eventosContabilizaveis();
+            return eventos ? eventos.length : data.totalEventos;
+        },
 
-        /** Retorna o total de associações evento-música configurado. */
-        countAssociacoesEventoMusica: async (): Promise<number> => data.totalAssociacoes,
+        /**
+         * Retorna o total de associações evento-música: derivado do dataset
+         * (só eventos `publicada` passados) quando configurado, ou o número fixo.
+         */
+        countAssociacoesEventoMusica: async (): Promise<number> => {
+            const eventos = eventosContabilizaveis();
+            return eventos
+                ? eventos.reduce((soma, e) => soma + e.musicas.length, 0)
+                : data.totalAssociacoes;
+        },
 
         /** Retorna o total de músicas criadas no mês corrente configurado. */
         countMusicasCriadasNoMes: async (): Promise<number> => data.novasMusicasNoMes,
 
         /**
-         * Retorna as top músicas do ranking configurado, incluindo empates
-         * na fronteira do corte (espelha a lógica do repositório real).
+         * Retorna as top músicas, incluindo empates na fronteira do corte
+         * (espelha a lógica do repositório real). Com dataset configurado,
+         * o ranking é derivado apenas dos eventos `publicada` passados —
+         * aparições em rascunhos não contam (D5).
          *
          * @param limit - Quantidade mínima de músicas no ranking.
          */
         getTopMusicas: async (limit: number): Promise<MusicaRanking[]> => {
-            if (data.topMusicas.length === 0) return [];
-            const cutoff = data.topMusicas.length >= limit
-                ? data.topMusicas[limit - 1].vezes
+            const eventos = eventosContabilizaveis();
+            let ranking: MusicaRanking[];
+
+            if (eventos) {
+                const contagem = new Map<string, MusicaRanking>();
+                for (const evento of eventos) {
+                    for (const musica of evento.musicas) {
+                        const atual = contagem.get(musica.id) ?? { id: musica.id, nome: musica.nome, vezes: 0 };
+                        atual.vezes += 1;
+                        contagem.set(musica.id, atual);
+                    }
+                }
+                ranking = Array.from(contagem.values()).sort((a, b) => {
+                    if (b.vezes !== a.vezes) return b.vezes - a.vezes;
+                    return a.nome.localeCompare(b.nome, 'pt-BR');
+                });
+            } else {
+                ranking = data.topMusicas;
+            }
+
+            if (ranking.length === 0) return [];
+            const cutoff = ranking.length >= limit
+                ? ranking[limit - 1].vezes
                 : 0;
-            return data.topMusicas.filter(m => m.vezes >= cutoff);
+            return ranking.filter(m => m.vezes >= cutoff);
         },
 
         /**
-         * Retorna a atividade mensal configurada.
+         * Retorna a atividade mensal: derivada do dataset (só eventos
+         * `publicada` passados, agrupados por mês) quando configurado, ou
+         * a lista fixa.
          *
          * @param _meses - Quantidade de meses (ignorado no fake).
          */
-        getAtividadeMensal: async (_meses: number): Promise<AtividadeMensal[]> =>
-            data.atividadeMensal,
+        getAtividadeMensal: async (_meses: number): Promise<AtividadeMensal[]> => {
+            const eventos = eventosContabilizaveis();
+            if (!eventos) return data.atividadeMensal;
+
+            const mesMap = new Map<string, { eventos: number; musicas: number; sortKey: number }>();
+            for (const evento of eventos) {
+                const d = new Date(evento.data);
+                const chave = `${MESES_PT[d.getMonth()]} ${d.getFullYear()}`;
+                const sortKey = d.getFullYear() * 100 + d.getMonth();
+                const atual = mesMap.get(chave) ?? { eventos: 0, musicas: 0, sortKey };
+                atual.eventos += 1;
+                atual.musicas += evento.musicas.length;
+                mesMap.set(chave, atual);
+            }
+
+            return Array.from(mesMap.entries())
+                .sort((a, b) => a[1].sortKey - b[1].sortKey)
+                .map(([mes, valores]) => ({ mes, eventos: valores.eventos, musicas: valores.musicas }));
+        },
 
         /**
          * Configura novos dados para o fake repository.

@@ -95,6 +95,14 @@ Calcular a próxima posição lendo o máximo e gravando `+1` é read-modify-wri
 
 `eventos.repository.createMusica` abre a transação com `SELECT id FROM eventos WHERE id = $1 FOR UPDATE`, serializando as inserções daquele evento: a segunda requisição espera a primeira concluir e só então lê o máximo já atualizado.
 
+### Cópias compostas rodam server-side, numa transação única
+
+Duplicar uma entidade com sub-recursos (escala = evento + repertório + integrantes + funções) é um **endpoint dedicado** (`POST /eventos/:eventoId/duplicar` → `eventos.repository.duplicarEvento`), nunca uma composição de chamadas no cliente. Três razões: (1) atomicidade — 1 POST + N POSTs no cliente deixa cópia parcial se falhar no meio; (2) fidelidade — a cópia grava `Eventos_Users_Funcoes` direto, sem a revalidação contra funções **globais atuais** que `addIntegrante` faz (um integrante que trocou de função desde a escala original viraria 400); (3) custo — sem N round-trips serializados pelo lock de `MAX(ordem)+1`. O `tx` derivado de `getPrisma()` preserva o `$extends` de tenant, então as leituras da origem já chegam filtradas. Campos omitidos no body (`fk_tipo_evento`, `descricao`) herdam da origem; a cópia nasce com `status` DEFAULT `publicada`.
+
+### Status de publicação de escalas (decisão D5)
+
+`eventos.status` é o enum `EventoStatus` (`rascunho` | `publicada`, DEFAULT `publicada`, índice `[tenant_id, status]`). `rascunho` é a escala em preparação — não deve ser comunicada à equipe nem contar como "próxima escala". **Publicar = `PUT /api/eventos/:id` com `{ status: 'publicada' }`** — não há endpoint dedicado. `create` aceita `status` opcional (F13 cria rascunhos); `data` continua NOT NULL mesmo em rascunho. A validação de data (ISO 8601 + ano 1900–9999) vive em `parseDataEvento` (`eventos.service.ts`), compartilhada por `create`/`update`/`duplicar`.
+
 ### Projeção Prisma compartilhada, tipo derivado
 
 Quando mais de um caminho carrega a **mesma** forma de entidade, o `include`/`select` mora num módulo só e o tipo é **derivado** dele com `Prisma.<Model>GetPayload<{ include: ReturnType<typeof fn> }>` — nunca uma interface reescrita à mão espelhando a query.

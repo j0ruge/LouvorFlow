@@ -254,24 +254,38 @@ export const MOCK_MUSICAS_FUNCOES = [
 ];
 
 // ─── Eventos ─────────────────────────────────────────────
-export const MOCK_EVENTOS = [
+/**
+ * Eventos mock com status de publicação (`rascunho` | `publicada`).
+ * Todos nascem `publicada` — o comportamento clássico e DEFAULT do banco;
+ * testes de rascunho criam eventos próprios via service.
+ */
+export const MOCK_EVENTOS: {
+  id: string;
+  data: Date;
+  fk_tipo_evento: string;
+  descricao: string;
+  status: 'rascunho' | 'publicada';
+}[] = [
   {
     id: 'hhh00001-0000-0000-0000-000000000001',
     data: new Date('2026-03-01T10:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000001',
     descricao: 'Culto de domingo pela manhã',
+    status: 'publicada',
   },
   {
     id: 'hhh00001-0000-0000-0000-000000000002',
     data: new Date('2026-03-05T19:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000002',
     descricao: 'Ensaio semanal da banda',
+    status: 'publicada',
   },
   {
     id: 'hhh00001-0000-0000-0000-000000000003',
     data: new Date('2026-04-10T08:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000003',
     descricao: 'Conferência de louvor anual',
+    status: 'publicada',
   },
 ];
 

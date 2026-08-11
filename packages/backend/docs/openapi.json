@@ -2015,6 +2015,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000001",
                     "data": "2026-02-16T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Manhã",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2044,6 +2045,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000002",
                     "data": "2026-02-18T19:30:00.000Z",
                     "descricao": "Culto de Quarta - Oração",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000002",
                       "nome": "Culto de Quarta"
@@ -2113,6 +2115,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000003",
                     "data": "2026-02-23T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Noite",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2166,6 +2169,7 @@
                   "id": "22222222-bbbb-4000-9000-000000000001",
                   "data": "2026-02-16T19:00:00.000Z",
                   "descricao": "Culto de Domingo - Manhã",
+                  "status": "publicada",
                   "tipoEvento": {
                     "id": "33333333-cccc-4000-a000-000000000001",
                     "nome": "Culto de Domingo"
@@ -2282,6 +2286,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000001",
                     "data": "2026-02-16T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Manhã (Especial de Louvor)",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2339,6 +2344,79 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/eventos/{eventoId}/duplicar": {
+      "post": {
+        "summary": "Duplicar escala",
+        "description": "Cria uma nova escala copiando da origem o repertório (ordem, tom próprio da escala e versão selecionada) e os integrantes com as funções escolhidas para o evento (não as funções globais atuais de cada integrante). Executa em transação única no servidor — sem risco de cópia parcial. `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; a cópia nasce com status `publicada`.",
+        "tags": [
+          "Eventos"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoDuplicarInput"
+              },
+              "example": {
+                "data": "2026-03-01T19:00:00.000Z",
+                "descricao": "Culto de Domingo - Noite (cópia)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Escala duplicada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoCreateResponse"
+                },
+                "example": {
+                  "msg": "Escala duplicada com sucesso",
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000004",
+                    "data": "2026-03-01T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Noite (cópia)",
+                    "status": "publicada",
+                    "tipoEvento": {
+                      "id": "33333333-cccc-4000-a000-000000000001",
+                      "nome": "Culto de Domingo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -6461,7 +6539,7 @@
     "/relatorios/resumo": {
       "get": {
         "summary": "Resumo de relatórios",
-        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas, atividade mensal e quantidade de músicas novas no mês corrente.",
+        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas, atividade mensal e quantidade de músicas novas no mês corrente. Os indicadores baseados em evento (total de escalas, média, ranking e atividade mensal) consideram apenas escalas com status `publicada` — rascunhos são escalas em preparação e não contam.",
         "tags": [
           "Relatórios"
         ],
@@ -7170,6 +7248,14 @@
           "descricao": {
             "type": "string"
           },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
+          },
           "tipoEvento": {
             "nullable": true,
             "allOf": [
@@ -7195,6 +7281,7 @@
           "id",
           "data",
           "descricao",
+          "status",
           "musicas",
           "integrantes"
         ]
@@ -7212,6 +7299,14 @@
           },
           "descricao": {
             "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
           },
           "tipoEvento": {
             "nullable": true,
@@ -7238,6 +7333,7 @@
           "id",
           "data",
           "descricao",
+          "status",
           "musicas",
           "integrantes"
         ]
@@ -7257,6 +7353,14 @@
             "type": "string",
             "default": "",
             "description": "Opcional. Quando omitida, o evento é criado com descrição vazia."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão. Opcional; omitido, o evento é criado como `publicada`."
           }
         },
         "required": [
@@ -7277,8 +7381,38 @@
           },
           "descricao": {
             "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão. Publicar uma escala rascunho é enviar `{ \"status\": \"publicada\" }` neste endpoint."
           }
         }
+      },
+      "EventoDuplicarInput": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data do novo evento em formato ISO 8601."
+          },
+          "fk_tipo_evento": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Opcional. Quando omitido, herda o tipo de evento da origem."
+          },
+          "descricao": {
+            "type": "string",
+            "description": "Opcional. Quando omitida, herda a descrição da origem."
+          }
+        },
+        "required": [
+          "data"
+        ]
       },
       "EventoCreateResponse": {
         "type": "object",
@@ -7299,6 +7433,14 @@
               },
               "descricao": {
                 "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "rascunho",
+                  "publicada"
+                ],
+                "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
               },
               "tipoEvento": {
                 "$ref": "#/components/schemas/IdNome"

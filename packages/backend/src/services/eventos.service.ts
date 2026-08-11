@@ -6,6 +6,7 @@ import type {
     EventoIndexRaw,
     EventoShowRaw,
     EventoMusicaDetailRaw,
+    EventoStatus,
     IdTom,
     MusicaEvento,
     VersaoMusicaShowRaw,
@@ -13,6 +14,32 @@ import type {
     CifraclubPlaylistItem,
     CifraclubPlaylistResponse,
 } from '../types/index.js';
+
+/**
+ * Valida e converte a data de um evento (string ISO 8601) em `Date`.
+ *
+ * Regra única compartilhada por `create`, `update` e `duplicar` — o formato
+ * deve ser parseável e o ano deve estar na faixa 1900–9999 (limite do
+ * `timestamptz` exposto pela API).
+ *
+ * @param data - Data em formato ISO 8601 (ex: `2026-02-14T10:00:00Z`)
+ * @returns `Date` validado
+ * @throws {AppError} 400 — formato inválido ou ano fora da faixa 1900–9999
+ */
+function parseDataEvento(data: string): Date {
+    const timestamp = Date.parse(String(data));
+
+    if (isNaN(timestamp)) {
+        throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
+    }
+
+    const parsedYear = new Date(timestamp).getFullYear();
+    if (parsedYear < 1900 || parsedYear > 9999) {
+        throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
+    }
+
+    return new Date(timestamp);
+}
 
 /**
  * Achata uma versão crua (`Artistas_Musicas` projetada) no formato consumido pela API.
@@ -95,6 +122,7 @@ function formatEventoIndex(e: EventoIndexRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        status: e.status,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
         integrantes: e.Eventos_Users.map(i => {
@@ -118,6 +146,7 @@ function formatEventoShow(e: EventoShowRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        status: e.status,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => {
             const musica = m.eventos_musicas_musicas_id_fkey;
@@ -163,45 +192,32 @@ class EventosService {
     /**
      * Cria um novo evento vinculado ao tenant informado.
      *
-     * @param body - Dados do evento (data, fk_tipo_evento, descricao)
+     * @param body - Dados do evento (data, fk_tipo_evento, descricao e status opcional — omitido, o banco aplica o DEFAULT `publicada`)
      * @param tenantId - ID do tenant ao qual o evento pertence
-     * @returns Evento criado com tipo de evento populado
+     * @returns Evento criado com tipo de evento populado e status
      */
-    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
-        const { data, fk_tipo_evento, descricao } = body;
+    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string; status?: EventoStatus }, tenantId: string) {
+        const { data, fk_tipo_evento, descricao, status } = body;
         const errors: string[] = [];
 
         if (!data) errors.push("Data do evento é obrigatória");
         if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
-
-        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
-        const timestamp = data ? Date.parse(String(data)) : NaN;
-
-        if (data && isNaN(timestamp)) {
-            errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
-        }
-
-        if (data && !isNaN(timestamp)) {
-            const parsedYear = new Date(timestamp).getFullYear();
-            if (parsedYear < 1900 || parsedYear > 9999) {
-                errors.push("Ano da data do evento deve estar entre 1900 e 9999");
-            }
-        }
-
         if (errors.length > 0) throw new AppError(errors[0], 400, errors);
 
-        const parsedDate = new Date(data!);
+        const parsedDate = parseDataEvento(data!);
 
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
             descricao: descricao ?? "",
+            status,
         }, tenantId);
 
         return {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            status: evento.status,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -209,38 +225,28 @@ class EventosService {
     /**
      * Atualiza um evento existente pelo ID com os campos informados.
      *
+     * Publicar uma escala rascunho é este mesmo endpoint com `{ status: 'publicada' }`
+     * — não há endpoint dedicado de publicação (decisão D5).
+     *
      * @param id - UUID do evento a atualizar
-     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`); ausência mantém o valor atual.
-     * @returns Evento atualizado com tipo de evento populado
+     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`, `status`); ausência mantém o valor atual.
+     * @returns Evento atualizado com tipo de evento populado e status
      * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
      * @throws {AppError} 404 se o evento não existir
      */
-    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
+    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string; status?: EventoStatus }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
         const existente = await eventosRepository.findByIdSimple(id);
         if (!existente) throw new AppError("O evento não foi encontrado ou não existe", 404);
 
-        const { data, fk_tipo_evento, descricao } = body;
-
-        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
-        const timestamp = data !== undefined ? Date.parse(String(data)) : NaN;
-
-        if (data !== undefined && isNaN(timestamp)) {
-            throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
-        }
-
-        if (data !== undefined && !isNaN(timestamp)) {
-            const parsedYear = new Date(timestamp).getFullYear();
-            if (parsedYear < 1900 || parsedYear > 9999) {
-                throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
-            }
-        }
+        const { data, fk_tipo_evento, descricao, status } = body;
 
         const updateData: Prisma.EventosUncheckedUpdateInput = {};
-        if (data !== undefined) updateData.data = new Date(data);
+        if (data !== undefined) updateData.data = parseDataEvento(data);
         if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
         if (descricao !== undefined) updateData.descricao = descricao;
+        if (status !== undefined) updateData.status = status;
 
         if (Object.keys(updateData).length === 0) {
             throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
@@ -252,6 +258,7 @@ class EventosService {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            status: evento.status,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -265,6 +272,107 @@ class EventosService {
 
         await eventosRepository.delete(id);
         return evento;
+    }
+
+    /**
+     * Duplica uma escala existente para uma nova data.
+     *
+     * A cópia é server-side (endpoint dedicado, não composição no cliente) por
+     * três razões: atomicidade (a transação do repositório evita cópia parcial),
+     * fidelidade das funções (copia `Eventos_Users_Funcoes` do evento de origem
+     * direto, sem a revalidação contra funções globais que `addIntegrante` faz
+     * — um integrante que trocou de função desde a escala original não vira 400)
+     * e custo (sem N round-trips serializados no `MAX(ordem)+1` de `createMusica`).
+     *
+     * `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; o
+     * `status` do novo evento fica com o DEFAULT `publicada` do banco.
+     *
+     * @param origemId - UUID do evento a duplicar
+     * @param body - `data` obrigatória (ISO 8601) e sobrescritas opcionais de `fk_tipo_evento`/`descricao`
+     * @param tenantId - ID do tenant ao qual a cópia pertence
+     * @returns Evento criado com tipo de evento populado e status
+     * @throws {AppError} 400 — data ausente/inválida ou ano fora de 1900–9999
+     * @throws {AppError} 404 — evento de origem inexistente no tenant, ou tipo de evento sobrescrito inexistente
+     */
+    async duplicar(origemId: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
+        if (!body.data) throw new AppError("Data do evento é obrigatória", 400);
+        const parsedDate = parseDataEvento(body.data);
+
+        const origem = await eventosRepository.findByIdSimple(origemId);
+        if (!origem) throw new AppError("Evento não encontrado", 404);
+
+        /**
+         * O catch traduz erros Prisma da transação de cópia (ex.: `fk_tipo_evento`
+         * sobrescrito inexistente, ou origem alterada por outra requisição entre a
+         * leitura e a gravação) — sem ele escapariam como 500 cru.
+         */
+        try {
+            const evento = await eventosRepository.duplicarEvento(origemId, {
+                data: parsedDate,
+                fk_tipo_evento: body.fk_tipo_evento ?? origem.fk_tipo_evento,
+                descricao: body.descricao ?? origem.descricao,
+            }, tenantId);
+
+            return {
+                id: evento.id,
+                data: evento.data,
+                descricao: evento.descricao,
+                status: evento.status,
+                tipoEvento: evento.eventos_fk_tipo_evento_fkey
+            };
+        } catch (error) {
+            this.handleDuplicarSentinel(error);
+        }
+    }
+
+    /**
+     * Converte erros Prisma conhecidos da transação de duplicação em `AppError`.
+     *
+     * O P2003 distingue qual referência falhou pelos nomes reais das constraints
+     * no banco (verificados via `pg_constraint`): `eventos_fk_tipo_evento_fkey`,
+     * `eventos_musicas_fk_artistas_musicas_fkey`, `eventos_musicas_fk_tonalidade_fkey`,
+     * `eventos_musicas_musicas_id_fkey`, `eventos_users_fk_user_id_fkey` e
+     * `eventos_users_funcoes_funcao_id_fkey`. Constraints não mapeadas (ex.:
+     * `tenant_id`) caem no 404 genérico para não vazar detalhe interno.
+     *
+     * @param error - Erro capturado de `duplicarEvento`
+     * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
+     */
+    private handleDuplicarSentinel(error: unknown): never {
+        const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
+
+        if (error instanceof Error && 'code' in error) {
+            /** P2002 — colisão de unique numa corrida com outra escrita concorrente. */
+            if (prismaError.code === 'P2002') {
+                throw new AppError('Registro duplicado', 409);
+            }
+
+            /** P2003 — FK inválida: distingue qual referência falhou pela constraint. */
+            if (prismaError.code === 'P2003') {
+                const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
+                if (field.includes('fk_tipo_evento')) {
+                    throw new AppError('Tipo de evento não encontrado', 404);
+                }
+                if (field.includes('fk_artistas_musicas')) {
+                    throw new AppError('Versão não encontrada', 404);
+                }
+                if (field.includes('fk_tonalidade')) {
+                    throw new AppError('Tonalidade não encontrada', 404);
+                }
+                if (field.includes('musicas_id')) {
+                    throw new AppError('Música não encontrada', 404);
+                }
+                if (field.includes('fk_user_id')) {
+                    throw new AppError('Integrante não encontrado', 404);
+                }
+                if (field.includes('funcao_id')) {
+                    throw new AppError('Função não encontrada', 404);
+                }
+                throw new AppError('Recurso referenciado não encontrado', 404);
+            }
+        }
+
+        throw error;
     }
 
     // --- CifraClub Playlist ---

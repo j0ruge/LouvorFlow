@@ -100,6 +100,7 @@ export function createFakeEventosRepository() {
     id: evento.id,
     data: evento.data,
     descricao: evento.descricao,
+    status: evento.status,
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
@@ -130,6 +131,7 @@ export function createFakeEventosRepository() {
     id: evento.id,
     data: evento.data,
     descricao: evento.descricao,
+    status: evento.status,
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
@@ -179,21 +181,32 @@ export function createFakeEventosRepository() {
 
     findByIdSimple: async (id: string) => eventosData.find(e => e.id === id) ?? null,
 
-    /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
-    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
+    /**
+     * Cria um evento em memória (parâmetro _tenantId ignorado no fake).
+     * `status` omitido assume `publicada` — espelha o DEFAULT do banco.
+     */
+    create: async (
+      data: { data: Date; fk_tipo_evento: string; descricao: string; status?: 'rascunho' | 'publicada' },
+      _tenantId?: string,
+    ) => {
       const evento = {
         id: randomUUID(),
-        ...data,
+        data: data.data,
+        fk_tipo_evento: data.fk_tipo_evento,
+        descricao: data.descricao,
+        status: data.status ?? ('publicada' as const),
       };
       eventosData.push(evento);
       return {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        status: evento.status,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
       };
     },
 
+    /** Atualiza um evento em memória e devolve a projeção de escrita (com status). */
     update: async (id: string, updateData: Record<string, unknown>) => {
       const evento = eventosData.find(e => e.id === id);
       if (!evento) return null;
@@ -202,7 +215,65 @@ export function createFakeEventosRepository() {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        status: evento.status,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
+      };
+    },
+
+    /**
+     * Duplica uma escala em memória espelhando a transação do repositório real:
+     * cria o novo evento (status DEFAULT `publicada`), copia o repertório
+     * (ordem, versão selecionada e tom próprio) e os integrantes com as funções
+     * do evento de origem (`eventos_users_funcoes`), não as globais.
+     *
+     * @param origemId - ID do evento a copiar
+     * @param dados - Dados do novo evento já resolvidos pelo service
+     * @param _tenantId - Ignorado no fake
+     * @returns Projeção de escrita do evento criado (com status e tipo populado)
+     */
+    duplicarEvento: async (
+      origemId: string,
+      dados: { data: Date; fk_tipo_evento: string; descricao: string },
+      _tenantId?: string,
+    ) => {
+      const novo = {
+        id: randomUUID(),
+        data: dados.data,
+        fk_tipo_evento: dados.fk_tipo_evento,
+        descricao: dados.descricao,
+        status: 'publicada' as const,
+      };
+      eventosData.push(novo);
+
+      for (const em of eventosMusicas.filter(m => m.evento_id === origemId)) {
+        eventosMusicas.push({
+          id: randomUUID(),
+          evento_id: novo.id,
+          musicas_id: em.musicas_id,
+          ordem: em.ordem,
+          fk_artistas_musicas: em.fk_artistas_musicas,
+          fk_tonalidade: em.fk_tonalidade,
+        });
+      }
+
+      for (const ei of eventosIntegrantes.filter(i => i.evento_id === origemId)) {
+        const novoVinculo = { id: randomUUID(), evento_id: novo.id, fk_user_id: ei.fk_user_id };
+        eventosIntegrantes.push(novoVinculo);
+        for (const euf of eventosUsersFuncoes.filter(f => f.evento_user_id === ei.id)) {
+          eventosUsersFuncoes.push({
+            id: randomUUID(),
+            evento_user_id: novoVinculo.id,
+            funcao_id: euf.funcao_id,
+          });
+        }
+      }
+
+      return {
+        id: novo.id,
+        data: novo.data,
+        descricao: novo.descricao,
+        status: novo.status,
+        eventos_fk_tipo_evento_fkey: getTipoEvento(novo.fk_tipo_evento),
       };
     },
 

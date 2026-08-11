@@ -49,6 +49,16 @@ export interface IdNome {
 }
 
 /**
+ * Status de publicação de uma escala.
+ *
+ * `rascunho` é a escala em preparação (não comunicada à equipe nem contada
+ * como "próxima escala"); `publicada` é o comportamento clássico de todo
+ * evento. União literal idêntica ao enum `EventoStatus` do Prisma —
+ * estruturalmente intercambiável com `$Enums.EventoStatus`.
+ */
+export type EventoStatus = 'rascunho' | 'publicada';
+
+/**
  * Dados de entrada para criação completa de música (música + versão opcional).
  *
  * @property nome - Nome da música (obrigatório)
@@ -239,6 +249,7 @@ export interface Musica {
  * @property id - Identificador único do evento
  * @property data - Data do evento
  * @property descricao - Descrição do evento
+ * @property status - Status de publicação da escala (`rascunho` | `publicada`)
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id e nome)
  * @property Eventos_Users - Users vinculados (cada item contém id e nome)
@@ -247,6 +258,7 @@ export interface EventoIndexRaw {
     id: string;
     data: Date;
     descricao: string;
+    status: EventoStatus;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
     Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
@@ -345,6 +357,7 @@ export interface EventoShowIntegranteRaw {
  * @property id - Identificador único do evento
  * @property data - Data do evento
  * @property descricao - Descrição do evento
+ * @property status - Status de publicação da escala (`rascunho` | `publicada`)
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id, nome e tonalidade)
  * @property Eventos_Users - Users vinculados com funções selecionadas para o evento
@@ -353,6 +366,7 @@ export interface EventoShowRaw {
     id: string;
     data: Date;
     descricao: string;
+    status: EventoStatus;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: {
         id: string;
@@ -416,6 +430,7 @@ export const EVENTO_INDEX_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    status: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -451,6 +466,7 @@ export const EVENTO_SHOW_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    status: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },

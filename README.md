@@ -266,7 +266,7 @@ Base URL: `http://localhost:3000/api`
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
 | Integrantes      | `/integrantes`      | Sim  | `/funcoes`                             |
 | Convites         | `/convites`         | Parcial | Gerar, listar, revogar (auth). Validar, aceitar (público) |
-| Eventos          | `/eventos`          | Sim  | `/musicas`, `/integrantes`             |
+| Eventos          | `/eventos`          | Sim  | `/musicas`, `/integrantes`, `POST /:eventoId/duplicar`. Campo `status` (`rascunho`/`publicada`) |
 | Tags             | `/tags`             | Sim  | —                                      |
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
 | Funções          | `/funcoes`          | Sim  | —                                      |
@@ -316,6 +316,9 @@ DELETE /api/musicas/:musicaId/funcoes/:funcaoId
 GET    /api/integrantes/:integranteId/funcoes
 POST   /api/integrantes/:integranteId/funcoes
 DELETE /api/integrantes/:integranteId/funcoes/:funcaoId
+
+# Duplicar escala (server-side, transação única: repertório + equipe com funções do evento)
+POST   /api/eventos/:eventoId/duplicar
 
 # Músicas e integrantes de um evento
 GET    /api/eventos/:eventoId/musicas
