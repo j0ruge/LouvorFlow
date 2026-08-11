@@ -166,7 +166,7 @@
     "/artistas": {
       "get": {
         "summary": "Listar todos os artistas",
-        "description": "Retorna a lista completa de artistas cadastrados.",
+        "description": "Retorna a lista completa de artistas cadastrados, em ordem alfabética (pt-BR).",
         "tags": [
           "Artistas"
         ],
@@ -187,16 +187,16 @@
                     "nome": "Aline Barros"
                   },
                   {
+                    "id": "a1b2c3d4-1111-4000-a000-000000000004",
+                    "nome": "Diante do Trono"
+                  },
+                  {
                     "id": "a1b2c3d4-1111-4000-a000-000000000002",
                     "nome": "Fernandinho"
                   },
                   {
                     "id": "a1b2c3d4-1111-4000-a000-000000000003",
                     "nome": "Gabriela Rocha"
-                  },
-                  {
-                    "id": "a1b2c3d4-1111-4000-a000-000000000004",
-                    "nome": "Diante do Trono"
                   }
                 ]
               }

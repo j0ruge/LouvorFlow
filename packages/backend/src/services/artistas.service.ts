@@ -1,9 +1,15 @@
 import { AppError } from '../errors/AppError.js';
 import artistasRepository from '../repositories/artistas.repository.js';
+import { compararNomesPtBr } from '../utils/ordenacao.js';
 
 class ArtistasService {
+    /**
+     * Lista todos os artistas em ordem alfabética (pt-BR).
+     * @returns Array de artistas (id e nome) ordenado por nome.
+     */
     async listAll() {
-        return artistasRepository.findAll();
+        const artistas = await artistasRepository.findAll();
+        return [...artistas].sort((a, b) => compararNomesPtBr(a.nome, b.nome));
     }
 
     async getById(id: string) {

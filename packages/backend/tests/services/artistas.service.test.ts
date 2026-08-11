@@ -22,6 +22,22 @@ describe('ArtistasService', () => {
       expect(result).toHaveLength(MOCK_ARTISTAS.length);
       expect(result[0]).toHaveProperty('nome');
     });
+
+    /** Deve ordenar por nome em pt-BR, com acentos junto da letra-base. */
+    it('deve retornar artistas em ordem alfabética pt-BR', async () => {
+      await artistasService.create('Ávine Vinny', 'tenant-fake-id');
+      await artistasService.create('Davi Sacer', 'tenant-fake-id');
+
+      const result = await artistasService.listAll();
+
+      expect(result.map((a) => a.nome)).toEqual([
+        'Aline Barros',
+        'Ávine Vinny',
+        'Davi Sacer',
+        'Fernandinho',
+        'Gabriela Rocha',
+      ]);
+    });
   });
 
   // ─── getById ─────────────────────────────────────────
