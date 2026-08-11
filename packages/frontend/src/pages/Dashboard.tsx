@@ -2,8 +2,9 @@
  * Página principal do Dashboard.
  *
  * Exibe dados reais do servidor: total de músicas, escalas, integrantes,
- * e próximas escalas. Layout fiel ao handoff de design (Sora + tiles
- * âmbar + bloco de data nas próximas escalas).
+ * novas músicas cadastradas no mês (via `useRelatorioResumo`) e próximas
+ * escalas. Layout fiel ao handoff de design (Sora + tiles âmbar + bloco de
+ * data nas próximas escalas).
  */
 
 import { useMemo } from "react";
@@ -22,6 +23,7 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
+import { useRelatorioResumo } from "@/hooks/use-relatorios";
 import { getInitials } from "@/lib/utils";
 import { EventoRow } from "@/components/EventoRow";
 
@@ -38,6 +40,7 @@ const Dashboard = () => {
   });
   const { data: eventos, isLoading: eventosLoading } = useEventos();
   const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
+  const { data: resumo, isLoading: resumoLoading } = useRelatorioResumo();
 
   /** Total de músicas extraído dos metadados de paginação. */
   const totalMusicas = musicasData?.meta.total ?? 0;
@@ -69,8 +72,11 @@ const Dashboard = () => {
       .slice(0, 4);
   }, [eventos]);
 
-  const isLoading = musicasLoading || eventosLoading || integrantesLoading;
-
+  /**
+   * Um `isLoading` por stat (em vez de um agregado cobrindo os 4 cards):
+   * cada card revela o valor assim que a própria query resolve, sem ficar
+   * preso atrás da mais lenta das quatro.
+   */
   const stats = [
     {
       title: "Músicas",
@@ -80,6 +86,7 @@ const Dashboard = () => {
       tintGradient: "from-primary to-primary-light",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: musicasLoading,
     },
     {
       title: "Escalas",
@@ -89,6 +96,7 @@ const Dashboard = () => {
       tintGradient: "from-secondary to-accent",
       iconBg: "bg-accent/10",
       iconColor: "text-accent",
+      isLoading: eventosLoading,
     },
     {
       title: "Integrantes",
@@ -98,15 +106,17 @@ const Dashboard = () => {
       tintGradient: "from-accent to-primary",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: integrantesLoading,
     },
     {
-      title: "Eventos",
-      value: proximasEscalas.length,
+      title: "Novas Músicas",
+      value: resumo?.novasMusicasNoMes ?? 0,
       icon: TrendingUp,
-      description: "Futuros agendados",
+      description: "Adicionadas no mês",
       tintGradient: "from-primary-light to-secondary",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: resumoLoading,
     },
   ];
 
@@ -150,7 +160,7 @@ const Dashboard = () => {
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground pr-10">
               {stat.title}
             </h3>
-            {isLoading ? (
+            {stat.isLoading ? (
               <Skeleton className="h-8 w-16 mt-1.5" />
             ) : (
               <div className="font-display text-3xl font-bold leading-none text-foreground tabular-nums mt-1">
