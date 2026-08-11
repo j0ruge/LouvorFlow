@@ -18,6 +18,7 @@ import {
     eventoIdParamSchema,
     eventoMusicaParamsSchema,
     reorderMusicasBodySchema,
+    setMusicaTonalidadeBodySchema,
     setMusicaVersaoBodySchema,
     updateEventoBodySchema,
 } from '../validators/eventos.validators.js';
@@ -65,6 +66,14 @@ router.patch(
     can(['escalas.write']),
     validateRequest({ params: eventoMusicaParamsSchema, body: setMusicaVersaoBodySchema }),
     eventosController.setMusicaVersao,
+);
+router.patch(
+    '/:eventoId/musicas/:musicaId/tonalidade',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoMusicaParamsSchema, body: setMusicaTonalidadeBodySchema }),
+    eventosController.setMusicaTonalidade,
 );
 router.delete(
     '/:eventoId/musicas/:musicaId',

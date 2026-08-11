@@ -41,6 +41,17 @@ function listVersoesShowByMusica(musicaId: string) {
     .filter(Boolean);
 }
 
+/**
+ * Constrói a projeção `{ id, tom }` de uma tonalidade a partir do ID.
+ * Retorna `null` se o ID não existir ou for nulo — espelha o select
+ * `{ id, tom }` das projeções reais de tonalidade.
+ */
+function buildTonalidadeShow(tonalidadeId: string | null | undefined) {
+  if (!tonalidadeId) return null;
+  const tonalidade = MOCK_TONALIDADES.find(t => t.id === tonalidadeId);
+  return tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null;
+}
+
 /** Representa um registro na tabela eventos_users_funcoes (funções selecionadas por evento). */
 interface EventoUserFuncao {
   id: string;
@@ -125,17 +136,17 @@ export function createFakeEventosRepository() {
       .sort((a, b) => a.ordem - b.ordem)
       .map(em => {
         const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-        const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
         return {
           id: em.id,
           ordem: em.ordem,
           eventos_musicas_musicas_id_fkey: {
             id: musica.id,
             nome: musica.nome,
-            musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+            musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
             Artistas_Musicas: listVersoesShowByMusica(musica.id),
           },
           eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
+          eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
         };
       }),
     Eventos_Users: eventosIntegrantes
@@ -208,22 +219,25 @@ export function createFakeEventosRepository() {
 
     // --- Musicas (eventos_musicas) ---
 
-    /** Retorna as músicas vinculadas a um evento, ordenadas pelo campo ordem. */
+    /**
+     * Retorna as músicas vinculadas a um evento, ordenadas pelo campo ordem,
+     * projetando o tom global da música e o tom próprio da escala (override).
+     */
     findMusicas: async (eventoId: string) =>
       eventosMusicas
         .filter(em => em.evento_id === eventoId)
         .sort((a, b) => a.ordem - b.ordem)
         .map(em => {
           const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-          const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
           return {
             id: em.id,
             ordem: em.ordem,
             eventos_musicas_musicas_id_fkey: {
               id: musica.id,
               nome: musica.nome,
-              musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+              musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
             },
+            eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
           };
         }),
 
@@ -242,6 +256,7 @@ export function createFakeEventosRepository() {
         musicas_id: musicasId,
         ordem: maxOrdem + 1,
         fk_artistas_musicas: artistas_musicas_id ?? null,
+        fk_tonalidade: null,
       };
       eventosMusicas.push(record);
       return record;
@@ -325,6 +340,24 @@ export function createFakeEventosRepository() {
     },
 
     /**
+     * Valida e persiste atomicamente o tom próprio de uma música na escala.
+     * Espelha o repositório real: tonalidade inexistente e vínculo removido
+     * viram sentinelas traduzidas pelo service.
+     *
+     * @param eventoMusicaId - ID do registro em eventos_musicas
+     * @param fk_tonalidade - UUID da tonalidade ou `null` para voltar ao tom global
+     */
+    setMusicaTonalidadeAtomic: async (eventoMusicaId: string, fk_tonalidade: string | null) => {
+      if (fk_tonalidade !== null) {
+        const tonalidade = MOCK_TONALIDADES.find(t => t.id === fk_tonalidade);
+        if (!tonalidade) throw new Error('TONALIDADE_NOT_FOUND');
+      }
+      const record = eventosMusicas.find(em => em.id === eventoMusicaId);
+      if (!record) throw new Error('EVENTO_MUSICA_NOT_FOUND');
+      record.fk_tonalidade = fk_tonalidade;
+    },
+
+    /**
      * Projeta uma única música no formato de detalhe de evento, sem recarregar o evento inteiro.
      * Usado por addMusica/setMusicaVersao para responder apenas a música afetada.
      *
@@ -336,17 +369,17 @@ export function createFakeEventosRepository() {
       const em = eventosMusicas.find(x => x.evento_id === eventoId && x.musicas_id === musicasId);
       if (!em) return null;
       const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-      const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
       return {
         id: em.id,
         ordem: em.ordem,
         eventos_musicas_musicas_id_fkey: {
           id: musica.id,
           nome: musica.nome,
-          musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+          musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
           Artistas_Musicas: listVersoesShowByMusica(musica.id),
         },
         eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
+        eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
       };
     },
 

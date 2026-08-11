@@ -2145,7 +2145,7 @@
     "/eventos/{id}": {
       "get": {
         "summary": "Buscar evento por ID",
-        "description": "Retorna os dados completos de um evento, incluindo músicas com tonalidade e integrantes com as funções selecionadas para o evento (via eventos_users_funcoes).",
+        "description": "Retorna os dados completos de um evento, incluindo músicas com tom efetivo da escala (`tonalidade` = override do evento ?? tom global; `tonalidade_musica` = tom global de referência) e integrantes com as funções selecionadas para o evento (via eventos_users_funcoes).",
         "tags": [
           "Eventos"
         ],
@@ -2176,6 +2176,10 @@
                       "nome": "Rendido Estou",
                       "ordem": 1,
                       "tonalidade": {
+                        "id": "c3d4e5f6-3333-4000-c000-000000000001",
+                        "tom": "A"
+                      },
+                      "tonalidade_musica": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000007",
                         "tom": "G"
                       }
@@ -2185,6 +2189,10 @@
                       "nome": "Ninguém Explica Deus",
                       "ordem": 2,
                       "tonalidade": {
+                        "id": "c3d4e5f6-3333-4000-c000-000000000004",
+                        "tom": "D"
+                      },
+                      "tonalidade_musica": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000004",
                         "tom": "D"
                       }
@@ -2355,7 +2363,7 @@
     "/eventos/{eventoId}/musicas": {
       "get": {
         "summary": "Listar músicas de um evento",
-        "description": "Retorna as músicas escaladas para um evento com suas tonalidades.",
+        "description": "Retorna as músicas escaladas para um evento. `tonalidade` carrega o tom efetivo da escala (override do evento ou, na ausência dele, o tom global da música) e `tonalidade_musica` o tom global de referência.",
         "tags": [
           "Eventos - Músicas"
         ],
@@ -2381,6 +2389,10 @@
                     "nome": "Rendido Estou",
                     "ordem": 1,
                     "tonalidade": {
+                      "id": "c3d4e5f6-3333-4000-c000-000000000001",
+                      "tom": "A"
+                    },
+                    "tonalidade_musica": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000007",
                       "tom": "G"
                     }
@@ -2390,6 +2402,10 @@
                     "nome": "Ninguém Explica Deus",
                     "ordem": 2,
                     "tonalidade": {
+                      "id": "c3d4e5f6-3333-4000-c000-000000000004",
+                      "tom": "D"
+                    },
+                    "tonalidade_musica": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000004",
                       "tom": "D"
                     }
@@ -2584,6 +2600,79 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/eventos/{eventoId}/musicas/{musicaId}/tonalidade": {
+      "patch": {
+        "summary": "Atualizar tom de uma música no evento",
+        "description": "Define ou limpa o tom próprio da música nesta escala (override do tom global). Enviar `fk_tonalidade: null` remove o override e a música volta a usar o tom global de `musicas.fk_tonalidade`.",
+        "tags": [
+          "Eventos - Músicas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/MusicaIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fk_tonalidade": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "UUID da tonalidade desejada para esta escala, ou null para voltar ao tom global da música"
+                  }
+                },
+                "required": [
+                  "fk_tonalidade"
+                ]
+              },
+              "example": {
+                "fk_tonalidade": "c3d4e5f6-3333-4000-c000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tom atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Tom atualizado"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -6891,6 +6980,16 @@
           },
           "tonalidade": {
             "nullable": true,
+            "description": "Tom efetivo nesta escala: o tom próprio definido para o evento ou, na ausência de override, o tom global da música",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tonalidade"
+              }
+            ]
+          },
+          "tonalidade_musica": {
+            "nullable": true,
+            "description": "Tom global da música (referência). Difere de `tonalidade` quando a escala definiu um tom próprio",
             "allOf": [
               {
                 "$ref": "#/components/schemas/Tonalidade"

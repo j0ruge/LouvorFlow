@@ -82,7 +82,10 @@ class EventosRepository {
 
     // --- Musicas (eventos_musicas) ---
 
-    /** Retorna as músicas vinculadas a um evento com tonalidade, ordenadas pelo campo ordem. */
+    /**
+     * Retorna as músicas vinculadas a um evento ordenadas pelo campo ordem,
+     * projetando o tom global da música e o tom próprio da escala (override).
+     */
     async findMusicas(eventoId: string) {
         return getPrisma().eventos_Musicas.findMany({
             where: { evento_id: eventoId },
@@ -97,6 +100,9 @@ class EventosRepository {
                             select: { id: true, tom: true }
                         }
                     }
+                },
+                eventos_musicas_fk_tonalidade_fkey: {
+                    select: { id: true, tom: true }
                 }
             },
             orderBy: { ordem: 'asc' }
@@ -237,6 +243,44 @@ class EventosRepository {
     }
 
     /**
+     * Valida e persiste atomicamente o tom próprio de uma música no evento.
+     *
+     * Executa em transação: revalida que a `Tonalidades` alvo ainda existe no tenant
+     * ativo, depois grava o FK. Protege contra TOCTOU entre uma validação prévia e a
+     * gravação (ex.: tonalidade deletada por outro request nesse intervalo). Não há
+     * checagem "pertence à música": tonalidade é um catálogo global do tenant.
+     *
+     * @param eventoMusicaId - ID do registro em `Eventos_Musicas`
+     * @param fk_tonalidade - UUID da tonalidade desejada, ou `null` para voltar ao tom global
+     * @throws Error "TONALIDADE_NOT_FOUND" — tonalidade inexistente no tenant ativo
+     * @throws Error "EVENTO_MUSICA_NOT_FOUND" — vínculo música-evento removido durante a operação
+     */
+    async setMusicaTonalidadeAtomic(eventoMusicaId: string, fk_tonalidade: string | null) {
+        return getPrisma().$transaction(async (tx) => {
+            if (fk_tonalidade !== null) {
+                const tonalidade = await tx.tonalidades.findUnique({
+                    where: { id: fk_tonalidade },
+                    select: { id: true }
+                });
+                if (!tonalidade) throw new Error('TONALIDADE_NOT_FOUND');
+            }
+
+            /**
+             * `updateMany` + checagem de `count` em vez de `update`: se a música
+             * for desvinculada do evento por outra requisição entre a validação e
+             * esta escrita, `update` lançaria P2025 cru — que viraria um 500. Com
+             * `updateMany`, a corrida vira um sentinela tratado como 404.
+             */
+            const { count } = await tx.eventos_Musicas.updateMany({
+                where: { id: eventoMusicaId },
+                data: { fk_tonalidade }
+            });
+
+            if (count === 0) throw new Error('EVENTO_MUSICA_NOT_FOUND');
+        });
+    }
+
+    /**
      * Reordena as músicas de um evento atribuindo posições sequenciais (1..N)
      * conforme a ordem dos IDs recebidos. Executa em transação para garantir atomicidade.
      *
@@ -339,6 +383,9 @@ class EventosRepository {
                             select: { id: true, nome: true }
                         }
                     }
+                },
+                eventos_musicas_fk_tonalidade_fkey: {
+                    select: { id: true, tom: true }
                 }
             }
         });

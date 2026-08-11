@@ -125,6 +125,10 @@ model Eventos {
   @@map("eventos")
 }
 
+/// Vínculo entre evento e música escalada. `fk_tonalidade` guarda o tom
+/// próprio da música nesta escala; `NULL` significa "usa o tom global de
+/// `musicas.fk_tonalidade`" — assim uma mudança no tom global continua
+/// propagando para as escalas que não definiram override.
 model Eventos_Musicas {
   id                                       String            @id @default(uuid()) @db.Uuid
   evento_id                                String            @db.Uuid
@@ -132,17 +136,20 @@ model Eventos_Musicas {
   tenant_id                                String            @db.Uuid
   ordem                                    Int               @default(0)
   fk_artistas_musicas                      String?           @db.Uuid
+  fk_tonalidade                            String?           @db.Uuid
   created_at                               DateTime          @default(now()) @db.Timestamp(6)
   updated_at                               DateTime          @updatedAt @db.Timestamp(6)
   tenant                                   Tenant            @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   eventos_musicas_evento_id_fkey           Eventos           @relation(fields: [evento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   eventos_musicas_musicas_id_fkey          Musicas           @relation(fields: [musicas_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   eventos_musicas_artistas_musicas_fkey    Artistas_Musicas? @relation("EventosMusicasSelectedVersion", fields: [fk_artistas_musicas], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  eventos_musicas_fk_tonalidade_fkey       Tonalidades?      @relation(fields: [fk_tonalidade], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([tenant_id, evento_id, musicas_id])
   @@index([tenant_id])
   @@index([evento_id, ordem])
   @@index([fk_artistas_musicas])
+  @@index([fk_tonalidade])
   @@map("eventos_musicas")
 }
 
@@ -312,13 +319,14 @@ model Tipos_Eventos {
 }
 
 model Tonalidades {
-  id         String    @id @default(uuid()) @db.Uuid
-  tom        String
-  tenant_id  String    @db.Uuid
-  created_at DateTime  @default(now()) @db.Timestamp(6)
-  updated_at DateTime  @updatedAt @db.Timestamp(6)
-  tenant     Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  Musicas    Musicas[]
+  id              String            @id @default(uuid()) @db.Uuid
+  tom             String
+  tenant_id       String            @db.Uuid
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @updatedAt @db.Timestamp(6)
+  tenant          Tenant            @relation(fields: [tenant_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  Musicas         Musicas[]
+  Eventos_Musicas Eventos_Musicas[]
 
   @@unique([tenant_id, tom], map: "tonalidades_tenant_tom_unico")
   @@index([tenant_id])

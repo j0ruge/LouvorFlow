@@ -6,6 +6,7 @@ import type {
     EventoIndexRaw,
     EventoShowRaw,
     EventoMusicaDetailRaw,
+    IdTom,
     MusicaEvento,
     VersaoMusicaShowRaw,
     VersaoMusicaEvento,
@@ -44,6 +45,28 @@ function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | nu
 }
 
 /**
+ * Resolve o par de tonalidades de uma música escalada.
+ *
+ * `tonalidade` carrega o tom **efetivo** (override da escala ?? tom global da
+ * música) e `tonalidade_musica` preserva o tom global como referência. Resolver
+ * aqui mantém corretos todos os consumidores que leem `tonalidade.tom`
+ * (mensagem de WhatsApp, transposição CifraClub, badge do detalhe) sem tocá-los.
+ *
+ * @param override - Tom próprio da escala (`eventos_musicas.fk_tonalidade`) ou `null`
+ * @param global - Tom global da música (`musicas.fk_tonalidade`) ou `null`
+ * @returns Objeto com `tonalidade` (efetiva) e `tonalidade_musica` (global)
+ */
+function flattenTonalidades(
+    override: IdTom | null,
+    global: IdTom | null,
+): { tonalidade: IdTom | null; tonalidade_musica: IdTom | null } {
+    return {
+        tonalidade: override ?? global,
+        tonalidade_musica: global,
+    };
+}
+
+/**
  * Achata um registro `Eventos_Musicas` projetado em `findEventoMusicaDetail` no formato MusicaEvento.
  *
  * @param raw - Registro cru com a música, tonalidade e versões aninhadas
@@ -54,7 +77,7 @@ function flattenEventoMusicaDetail(raw: EventoMusicaDetailRaw): MusicaEvento {
     return {
         id: musica.id,
         nome: musica.nome,
-        tonalidade: musica.musicas_fk_tonalidade_fkey,
+        ...flattenTonalidades(raw.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
         ordem: raw.ordem,
         versao_selecionada: flattenVersao(raw.eventos_musicas_artistas_musicas_fkey),
         versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
@@ -101,7 +124,7 @@ function formatEventoShow(e: EventoShowRaw) {
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ...flattenTonalidades(m.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
                 ordem: m.ordem,
                 versao_selecionada: flattenVersao(m.eventos_musicas_artistas_musicas_fkey),
                 versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
@@ -263,7 +286,12 @@ class EventosService {
 
         const playlist: CifraclubPlaylistItem[] = evento.Eventos_Musicas.map(em => {
             const musica = em.eventos_musicas_musicas_id_fkey;
-            const tom = musica.musicas_fk_tonalidade_fkey?.tom ?? null;
+            /** Tom efetivo da escala (override do evento ?? tom global da música). */
+            const { tonalidade } = flattenTonalidades(
+                em.eventos_musicas_fk_tonalidade_fkey,
+                musica.musicas_fk_tonalidade_fkey,
+            );
+            const tom = tonalidade?.tom ?? null;
 
             let cifraclubUrl: string | null = null;
             let artistaNome = '';
@@ -329,7 +357,10 @@ class EventosService {
 
     // --- Musicas ---
 
-    /** Lista as músicas vinculadas a um evento com tonalidade e posição, ordenadas por ordem. */
+    /**
+     * Lista as músicas vinculadas a um evento com tom efetivo e posição, ordenadas por ordem.
+     * `tonalidade` carrega o tom efetivo da escala e `tonalidade_musica` o tom global.
+     */
     async listMusicas(eventoId: string) {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
@@ -340,7 +371,7 @@ class EventosService {
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ...flattenTonalidades(m.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
                 ordem: m.ordem
             };
         });
@@ -350,9 +381,12 @@ class EventosService {
      * Converte erros sentinela lançados pelo repositório (dentro das transações atômicas)
      * e erros Prisma de constraint violation para `AppError` com o statusCode correto.
      *
-     * Trata erros sentinela (`VERSAO_NOT_FOUND`, `VERSAO_WRONG_MUSICA`), erros de FK
-     * (`P2003`) distinguindo qual FK falhou via `error.meta.field_name`, e erros de
-     * unique constraint (`P2002`) para corridas de duplicação concorrente.
+     * Trata erros sentinela (`VERSAO_NOT_FOUND`, `VERSAO_WRONG_MUSICA`,
+     * `TONALIDADE_NOT_FOUND`), erros de FK (`P2003`) distinguindo qual FK falhou via
+     * `error.meta.constraint` (formato real do Prisma 6 no Postgres, ex.:
+     * `"eventos_musicas_fk_tonalidade_fkey"`; `error.meta.field_name` é mantido
+     * apenas como fallback defensivo para variações de versão do Prisma), e erros
+     * de unique constraint (`P2002`) para corridas de duplicação concorrente.
      *
      * @param error - Erro capturado de uma operação atômica
      * @throws {AppError} Sempre — re-lança o erro convertido ou propaga desconhecidos
@@ -365,12 +399,15 @@ class EventosService {
             if (error.message === 'VERSAO_WRONG_MUSICA') {
                 throw new AppError('A versão informada não pertence a esta música', 400);
             }
+            if (error.message === 'TONALIDADE_NOT_FOUND') {
+                throw new AppError('Tonalidade não encontrada', 404);
+            }
             if (error.message === 'EVENTO_MUSICA_NOT_FOUND') {
                 throw new AppError('Música não encontrada neste evento', 404);
             }
         }
 
-        const prismaError = error as { code?: string; meta?: { field_name?: string } };
+        const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
 
         // P2002 (unique constraint) — corrida de duplicação concorrente entre
         // findMusicaDuplicate e createMusica.
@@ -380,9 +417,17 @@ class EventosService {
 
         // P2003 (FK violation) — distingue qual FK falhou para retornar mensagem adequada.
         if (error instanceof Error && 'code' in error && prismaError.code === 'P2003') {
-            const field = prismaError.meta?.field_name ?? '';
+            /**
+             * O Prisma 6 reporta a FK violada em `meta.constraint` (nome da
+             * constraint no banco); `field_name` fica como fallback defensivo
+             * para variações de versão do Prisma.
+             */
+            const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
             if (field.includes('fk_artistas_musicas')) {
                 throw new AppError('Versão não encontrada', 404);
+            }
+            if (field.includes('fk_tonalidade')) {
+                throw new AppError('Tonalidade não encontrada', 404);
             }
             if (field.includes('evento_id')) {
                 throw new AppError('Evento não encontrado', 404);
@@ -458,6 +503,37 @@ class EventosService {
 
         try {
             await eventosRepository.setMusicaVersaoAtomic(eventoMusica.id, musicaId, artistas_musicas_id);
+        } catch (error) {
+            this.handleVersaoSentinel(error);
+        }
+
+        const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicaId);
+        if (!detail) throw new AppError("Falha ao recuperar música atualizada", 500);
+        return flattenEventoMusicaDetail(detail);
+    }
+
+    /**
+     * Define ou limpa o tom próprio de uma música em um evento (override do tom global).
+     *
+     * A validação da tonalidade + escrita rodam dentro de uma única transação para
+     * eliminar o TOCTOU entre "tonalidade existe" e "FK gravado". `null` remove o
+     * override e a música volta a seguir o tom global de `musicas.fk_tonalidade`.
+     *
+     * @param eventoId - ID do evento
+     * @param musicaId - ID da música no evento
+     * @param fk_tonalidade - UUID da tonalidade desejada, ou `null` para voltar ao tom global
+     * @returns MusicaEvento formatada com `tonalidade` efetiva e `tonalidade_musica` global
+     * @throws {AppError} 404 — Se o evento, o vínculo evento-música ou a tonalidade não existir
+     */
+    async setMusicaTonalidade(eventoId: string, musicaId: string, fk_tonalidade: string | null) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const eventoMusica = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
+        if (!eventoMusica) throw new AppError("Música não encontrada no evento", 404);
+
+        try {
+            await eventosRepository.setMusicaTonalidadeAtomic(eventoMusica.id, fk_tonalidade);
         } catch (error) {
             this.handleVersaoSentinel(error);
         }

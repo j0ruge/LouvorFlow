@@ -73,6 +73,16 @@ class EventosController {
         res.status(200).json({ msg: "Versão atualizada" });
     }
 
+    /** Define ou limpa o tom próprio de uma música no evento (override do tom global). */
+    async setMusicaTonalidade(req: Request<{ eventoId: string; musicaId: string }>, res: Response): Promise<void> {
+        await eventosService.setMusicaTonalidade(
+            req.params.eventoId,
+            req.params.musicaId,
+            req.body.fk_tonalidade
+        );
+        res.status(200).json({ msg: "Tom atualizado" });
+    }
+
     /** Remove o vínculo entre um evento e uma música. */
     async removeMusica(req: Request<{ eventoId: string; musicaId: string }>, res: Response): Promise<void> {
         await eventosService.removeMusica(req.params.eventoId, req.params.musicaId);

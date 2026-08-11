@@ -294,7 +294,8 @@ export interface VersaoMusicaEvento {
  *
  * @property id - Identificador único da música (UUID)
  * @property nome - Nome da música
- * @property tonalidade - Tonalidade associada ou `null`
+ * @property tonalidade - Tom efetivo nesta escala (override do evento ?? tom global da música) ou `null`
+ * @property tonalidade_musica - Tom global da música ou `null` — difere de `tonalidade` quando a escala definiu tom próprio
  * @property ordem - Posição da música na escala (1..N)
  * @property versao_selecionada - Versão escolhida pelo líder para esta escala ou `null`
  * @property versoes_disponiveis - Lista de todas as versões cadastradas para a música
@@ -303,6 +304,7 @@ export interface MusicaEvento {
     id: string;
     nome: string;
     tonalidade: IdTom | null;
+    tonalidade_musica: IdTom | null;
     ordem: number;
     versao_selecionada: VersaoMusicaEvento | null;
     versoes_disponiveis: VersaoMusicaEvento[];
@@ -316,12 +318,14 @@ export interface MusicaEvento {
  * @property ordem - Posição da música na escala
  * @property eventos_musicas_musicas_id_fkey - Música associada com tonalidade e versões disponíveis
  * @property eventos_musicas_artistas_musicas_fkey - Versão atualmente selecionada ou `null`
+ * @property eventos_musicas_fk_tonalidade_fkey - Tom próprio da música nesta escala ou `null` (usa o tom global)
  */
 export interface EventoMusicaDetailRaw {
     id: string;
     ordem: number;
     eventos_musicas_musicas_id_fkey: EventoShowMusica;
     eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
+    eventos_musicas_fk_tonalidade_fkey: IdTom | null;
 }
 
 /**
@@ -355,6 +359,7 @@ export interface EventoShowRaw {
         ordem: number;
         eventos_musicas_musicas_id_fkey: EventoShowMusica;
         eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
+        eventos_musicas_fk_tonalidade_fkey: IdTom | null;
     }[];
     Eventos_Users: EventoShowIntegranteRaw[];
 }
@@ -482,6 +487,9 @@ export const EVENTO_SHOW_SELECT = {
                         select: { id: true, nome: true }
                     }
                 }
+            },
+            eventos_musicas_fk_tonalidade_fkey: {
+                select: { id: true, tom: true }
             }
         },
         orderBy: { ordem: 'asc' as const }

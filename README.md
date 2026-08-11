@@ -320,6 +320,7 @@ DELETE /api/integrantes/:integranteId/funcoes/:funcaoId
 # Músicas e integrantes de um evento
 GET    /api/eventos/:eventoId/musicas
 POST   /api/eventos/:eventoId/musicas
+PATCH  /api/eventos/:eventoId/musicas/:musicaId/tonalidade   # Tom da música nesta escala (null = volta ao tom global)
 DELETE /api/eventos/:eventoId/musicas/:musicaId
 GET    /api/eventos/:eventoId/integrantes
 POST   /api/eventos/:eventoId/integrantes

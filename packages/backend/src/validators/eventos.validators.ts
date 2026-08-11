@@ -36,6 +36,15 @@ export const setMusicaVersaoBodySchema = z.object({
 });
 
 /**
+ * Schema de validação do body para atualização do tom de uma música no evento.
+ *
+ * @property fk_tonalidade - UUID da tonalidade desejada para esta escala, ou `null` para voltar ao tom global da música
+ */
+export const setMusicaTonalidadeBodySchema = z.object({
+    fk_tonalidade: z.string().uuid('fk_tonalidade deve ser um UUID válido').nullable(),
+});
+
+/**
  * Schema de validação dos params `eventoId` e `musicaId` nas rotas de junção evento-música.
  *
  * @property eventoId - UUID do evento

@@ -9,6 +9,7 @@ import {
   MOCK_EVENTOS_MUSICAS,
   MOCK_EVENTOS_INTEGRANTES,
   MOCK_ARTISTAS_MUSICAS,
+  MOCK_TONALIDADES,
   NON_EXISTENT_ID,
   TENANT_A_ID,
   TENANT_B_ID,
@@ -116,6 +117,22 @@ describe('EventosService', () => {
         link_versao: null,
         cifraclub_url: null,
       });
+    });
+
+    /** `tonalidade` deve carregar o tom efetivo (override da escala) e `tonalidade_musica` o tom global. */
+    it('deve retornar tonalidade efetiva (override) e tonalidade_musica global quando a escala tem tom próprio', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      const comOverride = result.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001');
+      expect(comOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(comOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+    });
+
+    /** Sem override, `tonalidade` deve cair no tom global da música (efetivo = global). */
+    it('deve retornar tonalidade igual ao tom global quando a escala não tem override', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      const semOverride = result.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(semOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+      expect(semOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
     });
   });
 
@@ -248,6 +265,29 @@ describe('EventosService', () => {
         message: 'Evento não encontrado',
       });
     });
+
+    /**
+     * Regressão do `#key=N`: a transposição deve usar o tom do evento (override)
+     * e não o tom global da música. A música 1 tem tom global G (índice 10) mas
+     * tom próprio A na escala (índice cromático 0) — a URL deve terminar em #key=0.
+     */
+    it('deve aplicar #key com o tom do evento quando a escala tem tom próprio', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const comOverride = result.playlist.find(p => p.musica_id === 'ggg00001-0000-0000-0000-000000000001');
+      expect(comOverride).toBeDefined();
+      expect(comOverride!.tom).toBe('A');
+      expect(comOverride!.tom_final).toBe('A');
+      expect(comOverride!.tom_ajustado).toBe(true);
+      expect(comOverride!.cifraclub_url).toMatch(/#key=0$/);
+    });
+
+    /** Sem override, a transposição continua usando o tom global da música. */
+    it('deve aplicar o tom global no #key quando a escala não tem tom próprio', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const semOverride = result.playlist.find(p => p.musica_id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(semOverride).toBeDefined();
+      expect(semOverride!.tom).toBe('D');
+    });
   });
 
   // ─── delete ─────────────────────────────────────────────
@@ -282,6 +322,17 @@ describe('EventosService', () => {
       expect(result[0]).toHaveProperty('id');
       expect(result[0]).toHaveProperty('nome');
       expect(result[0]).toHaveProperty('tonalidade');
+      expect(result[0]).toHaveProperty('tonalidade_musica');
+    });
+
+    /** `tonalidade` deve carregar o tom efetivo (override) e `tonalidade_musica` o tom global. */
+    it('deve retornar tonalidade efetiva e tonalidade_musica global na listagem', async () => {
+      const result = await eventosService.listMusicas(MOCK_EVENTOS[0].id);
+      const comOverride = result.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001');
+      const semOverride = result.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(comOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(comOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+      expect(semOverride!.tonalidade).toEqual(semOverride!.tonalidade_musica);
     });
 
     it('deve lançar AppError 404 quando evento não existe', async () => {
@@ -397,8 +448,69 @@ describe('EventosService', () => {
       });
     });
 
-    /** Deve traduzir P2003 em fk_artistas_musicas para AppError 404 "Versão não encontrada". */
+    /**
+     * Deve traduzir P2003 na FK de versão para AppError 404 "Versão não encontrada".
+     * O mock replica o formato real do Prisma 6 no Postgres: `meta.constraint`
+     * com o nome da constraint do banco (não existe `meta.field_name`).
+     */
     it('deve traduzir erro Prisma P2003 em fk_artistas_musicas para AppError 404 "Versão não encontrada"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_fk_artistas_musicas_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id', 'versao-fake')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Versão não encontrada',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de evento (formato real `meta.constraint`) para AppError 404 "Evento não encontrado". */
+    it('deve traduzir erro Prisma P2003 em evento_id para AppError 404 "Evento não encontrado"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_evento_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de música (formato real `meta.constraint`) para AppError 404 "Música não encontrada". */
+    it('deve traduzir erro Prisma P2003 em musicas_id para AppError 404 "Música não encontrada"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_musicas_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Música não encontrada',
+      });
+    });
+
+    /**
+     * Fallback defensivo: versões do Prisma que reportem `meta.field_name`
+     * (em vez de `meta.constraint`) também devem ser traduzidas corretamente.
+     */
+    it('deve traduzir P2003 via fallback meta.field_name para AppError 404 "Versão não encontrada"', async () => {
       const eventoId = MOCK_EVENTOS[1].id;
       const musicaId = MOCK_MUSICAS_BASE[0].id;
       const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
@@ -412,42 +524,6 @@ describe('EventosService', () => {
       ).rejects.toMatchObject({
         statusCode: 404,
         message: 'Versão não encontrada',
-      });
-    });
-
-    /** Deve traduzir P2003 em evento_id para AppError 404 "Evento não encontrado". */
-    it('deve traduzir erro Prisma P2003 em evento_id para AppError 404 "Evento não encontrado"', async () => {
-      const eventoId = MOCK_EVENTOS[1].id;
-      const musicaId = MOCK_MUSICAS_BASE[0].id;
-      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
-        code: 'P2003',
-        meta: { field_name: 'evento_id' },
-      });
-      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
-
-      await expect(
-        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
-      ).rejects.toMatchObject({
-        statusCode: 404,
-        message: 'Evento não encontrado',
-      });
-    });
-
-    /** Deve traduzir P2003 em musicas_id para AppError 404 "Música não encontrada". */
-    it('deve traduzir erro Prisma P2003 em musicas_id para AppError 404 "Música não encontrada"', async () => {
-      const eventoId = MOCK_EVENTOS[1].id;
-      const musicaId = MOCK_MUSICAS_BASE[0].id;
-      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
-        code: 'P2003',
-        meta: { field_name: 'musicas_id' },
-      });
-      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
-
-      await expect(
-        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
-      ).rejects.toMatchObject({
-        statusCode: 404,
-        message: 'Música não encontrada',
       });
     });
 
@@ -587,6 +663,96 @@ describe('EventosService', () => {
       });
     });
 
+  });
+
+  // ─── setMusicaTonalidade ────────────────────────────────
+  describe('setMusicaTonalidade', () => {
+    /** Deve definir o tom próprio da escala e retornar tonalidade efetiva ≠ tom global. */
+    it('deve definir o tom da escala e retornar tonalidade efetiva com tonalidade_musica global', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaId = MOCK_MUSICAS_BASE[1].id; // tom global D, sem override
+      const tonalidadeE = MOCK_TONALIDADES[4]; // E
+
+      const result = await eventosService.setMusicaTonalidade(eventoId, musicaId, tonalidadeE.id);
+      expect(result.id).toBe(musicaId);
+      expect(result.tonalidade).toEqual({ id: tonalidadeE.id, tom: 'E' });
+      expect(result.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+    });
+
+    /** Enviar `null` deve remover o override e a música volta ao tom global. */
+    it('deve voltar ao tom global quando fk_tonalidade é null', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id; // tem override A no mock
+
+      const result = await eventosService.setMusicaTonalidade(eventoId, musicaId, null);
+      expect(result.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+      expect(result.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+    });
+
+    /** Deve lançar AppError 404 quando o evento não existe no tenant ativo. */
+    it('deve lançar AppError 404 quando evento não existe', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(NON_EXISTENT_ID, MOCK_MUSICAS_BASE[0].id, null)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Deve lançar AppError 404 quando o vínculo evento-música não existe. */
+    it('deve lançar AppError 404 quando eventos_musicas não existe para o par', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, null)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Música não encontrada no evento',
+      });
+    });
+
+    /** Deve lançar AppError 404 quando a tonalidade não existe no tenant ativo. */
+    it('deve lançar AppError 404 quando tonalidade não existe', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    /**
+     * Deve traduzir P2003 em fk_tonalidade (corrida com deleção da tonalidade) para 404.
+     * O mock replica o formato real do Prisma 6 no Postgres (`meta.constraint`).
+     */
+    it('deve traduzir erro Prisma P2003 em fk_tonalidade para AppError 404 "Tonalidade não encontrada"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_fk_tonalidade_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'setMusicaTonalidadeAtomic').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, MOCK_TONALIDADES[0].id)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    /**
+     * Cobre a guard contra race condition: se o vínculo evento-música some entre
+     * `setMusicaTonalidadeAtomic` e `findEventoMusicaDetail`, o serviço lança
+     * AppError 500 em vez de quebrar com `detail!`.
+     */
+    it('deve lançar AppError 500 quando findEventoMusicaDetail retorna null após setMusicaTonalidadeAtomic', async () => {
+      vi.spyOn(fakeRepo, 'findEventoMusicaDetail').mockResolvedValueOnce(null);
+
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, null)
+      ).rejects.toMatchObject({
+        statusCode: 500,
+        message: 'Falha ao recuperar música atualizada',
+      });
+    });
   });
 
   // ─── removeMusica ───────────────────────────────────────
