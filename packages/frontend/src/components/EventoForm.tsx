@@ -20,6 +20,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
 import {
   Select,
   SelectContent,
@@ -185,13 +187,19 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
           </>
         }
       >
+            <RequiredFieldsLegend />
             <FormField
               control={form.control}
               name="data"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data *</FormLabel>
+                  <FieldLabel required>Data</FieldLabel>
                   <FormControl>
+                    {/*
+                      `aria-required` não é aplicado aqui: o DateTimePicker não
+                      encaminha props ao controle interno (dívida de a11y
+                      registrada em .claude/rules/frontend-react.md).
+                    */}
                     <DateTimePicker
                       value={field.value}
                       onChange={field.onChange}
@@ -207,14 +215,14 @@ export function EventoForm({ open, onOpenChange, evento }: EventoFormProps) {
               name="fk_tipo_evento"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Evento *</FormLabel>
+                  <FieldLabel required>Tipo de Evento</FieldLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
                     disabled={tiposLoading}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger aria-required>
                         <SelectValue placeholder="Selecione o tipo" />
                       </SelectTrigger>
                     </FormControl>

@@ -31,6 +31,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -350,15 +352,17 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           </>
         }
       >
-              {/* Nome */}
+              <RequiredFieldsLegend />
+
+              {/* Nome — único campo obrigatório (decisão D6: Artista continua opcional) */}
               <FormField
                 control={form.control}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FieldLabel required>Nome</FieldLabel>
                     <FormControl>
-                      <Input placeholder="Nome da música" {...field} />
+                      <Input placeholder="Nome da música" aria-required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

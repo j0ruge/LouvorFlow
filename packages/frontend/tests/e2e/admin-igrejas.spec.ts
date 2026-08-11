@@ -72,9 +72,21 @@ test.describe("Admin — Igrejas", () => {
     /** Desativa a primeira igreja. */
     await page.getByRole("button", { name: "Desativar" }).first().click();
 
-    /** Verifica toast de sucesso e badge "Inativa". */
+    /**
+     * A desativação é destrutiva (bloqueia o acesso de todos os membros) e
+     * passa pelo `DeleteConfirmDialog` — o spec original antecede essa
+     * confirmação e clicava direto.
+     */
+    await expect(page.getByRole("alertdialog")).toBeVisible();
+    await page.getByRole("button", { name: "Sim, excluir" }).click();
+
+    /**
+     * Verifica toast de sucesso e badge "Inativa" — escopado à tabela, porque
+     * o layout dual renderiza os cards mobile (ocultos a 1280px) antes dela e
+     * um `getByText(...).first()` global resolveria para um badge invisível.
+     */
     await expect(page.getByText("Igreja desativada com sucesso")).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText("Inativa").first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("table").getByText("Inativa").first()).toBeVisible({ timeout: 5_000 });
 
     /** Verifica que o botão mudou para "Reativar". */
     await expect(page.getByRole("button", { name: "Reativar" }).first()).toBeVisible();

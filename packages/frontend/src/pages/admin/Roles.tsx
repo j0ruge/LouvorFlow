@@ -2,8 +2,9 @@
  * Página de administração de papéis.
  *
  * Lista todos os papéis em uma tabela com nome, descrição e quantidade
- * de permissões. Permite criar novos papéis via dialog e acessar o
- * gerenciamento de permissões de cada papel.
+ * de permissões. Permite criar novos papéis via `ResponsiveFormDialog`
+ * (Drawer no mobile, Dialog no desktop) e acessar o gerenciamento de
+ * permissões de cada papel.
  */
 
 import { useState } from "react";
@@ -14,7 +15,6 @@ import { Loader2, Plus, Shield, Key } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,12 +26,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 import { useRoles, useCreateRole } from "@/hooks/use-admin";
 import { CreateRoleFormSchema, type CreateRoleForm } from "@/schemas/auth";
 
@@ -47,13 +51,27 @@ const AdminRoles = () => {
   const { data: roles, isLoading } = useRoles();
   const createMutation = useCreateRole();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateRoleForm>({
+  const form = useForm<CreateRoleForm>({
     resolver: zodResolver(CreateRoleFormSchema),
+    defaultValues: { name: "", description: "" },
+  });
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   *
+   * O `reset()` vive no `aoFechar` (não no `aoDescartar`): todo fechamento
+   * limpa o formulário — inclusive o fechamento "limpo" após um submit
+   * inválido, em que `isDirty` é false mas `formState.errors` persistiria e
+   * reabrir mostraria erros fantasma. Idempotente com o formulário limpo.
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => {
+      form.reset();
+      setDialogOpen(false);
+    },
   });
 
   /**
@@ -64,7 +82,7 @@ const AdminRoles = () => {
   function onSubmit(dados: CreateRoleForm) {
     createMutation.mutate(dados, {
       onSuccess: () => {
-        reset();
+        form.reset();
         setDialogOpen(false);
       },
     });
@@ -82,64 +100,13 @@ const AdminRoles = () => {
           </p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft">
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Papel
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Novo Papel</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="role-name">Nome</Label>
-                <Input
-                  id="role-name"
-                  placeholder="Ex: editor, moderator"
-                  {...register("name")}
-                />
-                {errors.name && (
-                  <p className="text-xs text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role-description">Descrição</Label>
-                <Input
-                  id="role-description"
-                  placeholder="Descrição do papel"
-                  {...register("description")}
-                />
-                {errors.description && (
-                  <p className="text-xs text-destructive">{errors.description.message}</p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-gradient-primary hover:opacity-90 transition-opacity"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Criar
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button
+          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Papel
+        </Button>
       </div>
 
       <Card className="shadow-soft border-0">
@@ -240,6 +207,76 @@ const AdminRoles = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de criação de papel (Drawer no mobile, Dialog no desktop) */}
+      <Form {...form}>
+        <ResponsiveFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          title="Criar Novo Papel"
+          description="Preencha os dados do novo papel do sistema."
+          onSubmit={form.handleSubmit(onSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guarda}
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => guarda.pedirFechamento()}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-primary hover:opacity-90 transition-opacity"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Criar
+              </Button>
+            </>
+          }
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: editor, moderator"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Descrição</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Descrição do papel"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
     </div>
   );
 };

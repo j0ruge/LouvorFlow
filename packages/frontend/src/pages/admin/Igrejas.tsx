@@ -23,7 +23,6 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -35,12 +34,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 import {
   useIgrejas,
   useCreateIgreja,
@@ -106,6 +109,38 @@ const AdminIgrejas = () => {
   const editForm = useForm<CreateIgrejaForm>({
     resolver: zodResolver(CreateIgrejaFormSchema),
     defaultValues: { name: "" },
+  });
+
+  /**
+   * Guarda de alterações não salvas do dialog de criação: fechar por
+   * Esc/backdrop/X/Cancelar com o formulário sujo exibe o veil de confirmação.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   *
+   * O `reset()` vive no `aoFechar` (não no `aoDescartar`): todo fechamento
+   * limpa o formulário — inclusive o fechamento "limpo" após um submit
+   * inválido, em que `isDirty` é false mas `formState.errors` persistiria e
+   * reabrir mostraria erros fantasma. Idempotente com o formulário limpo.
+   */
+  const guardaCriacao = useDirtyFormGuard({
+    temAlteracoes: createForm.formState.isDirty,
+    aoFechar: () => {
+      createForm.reset();
+      setCreateDialogOpen(false);
+    },
+  });
+
+  /**
+   * Guarda de alterações não salvas do dialog de edição. O `aoFechar` absorve
+   * a limpeza que antes vivia no `onOpenChange` do Dialog: além de fechar,
+   * reseta o formulário e limpa `editingIgreja`.
+   */
+  const guardaEdicao = useDirtyFormGuard({
+    temAlteracoes: editForm.formState.isDirty,
+    aoFechar: () => {
+      editForm.reset();
+      setEditingIgreja(null);
+      setEditDialogOpen(false);
+    },
   });
 
   /**
@@ -398,34 +433,22 @@ const AdminIgrejas = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de criação */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Igreja</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Nome</Label>
-              <Input
-                id="create-name"
-                placeholder="Nome da igreja ou organização"
-                {...createForm.register("name")}
-              />
-              {createForm.formState.errors.name && (
-                <p className="text-xs text-destructive">
-                  {createForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
+      {/* Dialog de criação (Drawer no mobile, Dialog no desktop) */}
+      <Form {...createForm}>
+        <ResponsiveFormDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          title="Nova Igreja"
+          description="Preencha os dados da nova igreja ou organização."
+          onSubmit={createForm.handleSubmit(onCreateSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guardaCriacao}
+          footer={
+            <>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  createForm.reset();
-                  setCreateDialogOpen(false);
-                }}
+                onClick={() => guardaCriacao.pedirFechamento()}
               >
                 Cancelar
               </Button>
@@ -439,49 +462,46 @@ const AdminIgrejas = () => {
                 ) : null}
                 Criar
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de edição */}
-      <Dialog
-        open={editDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            editForm.reset();
-            setEditingIgreja(null);
+            </>
           }
-          setEditDialogOpen(open);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Igreja</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome</Label>
-              <Input
-                id="edit-name"
-                placeholder="Nome da igreja ou organização"
-                {...editForm.register("name")}
-              />
-              {editForm.formState.errors.name && (
-                <p className="text-xs text-destructive">
-                  {editForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={createForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome da igreja ou organização"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
+
+      {/* Dialog de edição (Drawer no mobile, Dialog no desktop) */}
+      <Form {...editForm}>
+        <ResponsiveFormDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          title="Editar Igreja"
+          description="Altere o nome da igreja ou organização."
+          onSubmit={editForm.handleSubmit(onEditSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guardaEdicao}
+          footer={
+            <>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  editForm.reset();
-                  setEditDialogOpen(false);
-                  setEditingIgreja(null);
-                }}
+                onClick={() => guardaEdicao.pedirFechamento()}
               >
                 Cancelar
               </Button>
@@ -495,10 +515,29 @@ const AdminIgrejas = () => {
                 ) : null}
                 Salvar
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </>
+          }
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={editForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome da igreja ou organização"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
 
       {/* Confirmação de desativação — bloqueia o acesso de todos os membros */}
       <DeleteConfirmDialog

@@ -20,6 +20,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
 import {
   Select,
   SelectContent,
@@ -247,14 +249,15 @@ export function IntegranteForm({
           </p>
         ) : (
           <>
+              <RequiredFieldsLegend />
               <FormField
                 control={form.control}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FieldLabel required>Nome</FieldLabel>
                     <FormControl>
-                      <Input placeholder="Nome completo" {...field} />
+                      <Input placeholder="Nome completo" aria-required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -265,11 +268,12 @@ export function IntegranteForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>E-mail</FormLabel>
+                    <FieldLabel required>E-mail</FieldLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="email@exemplo.com"
+                        aria-required
                         {...field}
                       />
                     </FormControl>
@@ -282,9 +286,10 @@ export function IntegranteForm({
                 name="senha"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
+                    {/* Senha só é obrigatória na criação — na edição, vazio mantém a atual. */}
+                    <FieldLabel required={!isEditing}>
                       Senha{isEditing ? " (opcional)" : ""}
-                    </FormLabel>
+                    </FieldLabel>
                     <FormControl>
                       <PasswordInput
                         placeholder={
@@ -292,6 +297,7 @@ export function IntegranteForm({
                             ? "Deixe em branco para manter"
                             : "Mínimo 6 caracteres"
                         }
+                        aria-required={!isEditing}
                         {...field}
                       />
                     </FormControl>
