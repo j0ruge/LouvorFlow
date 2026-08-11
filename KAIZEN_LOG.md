@@ -2,6 +2,29 @@
 
 Registro de melhorias contínuas. Toda entrada tem: o que melhorou, o que aprendemos, o que virou padrão.
 
+## 2026-08-11 — Auditoria UX (Nielsen): 14 fases, do handoff ao fechamento
+
+- **Tipo:** melhoria
+- **Antes:** handoff de design pedia ~20 correções de usabilidade, parte já existente, parte factualmente errada; sem dirty-form guard, sem undo de exclusão, sem tom por evento, sem duplicar escala, sem rascunho; 3 telas com anatomias divergentes da mesma entidade; 4 telas admin fora do padrão responsivo; 5 specs e2e quebrados; bug real de unhandled rejection no CRUD de Configurações.
+- **Depois:** 16 commits na `feature/ux-audit-nielsen` cobrindo 14 fases (F0–F15): copy PT-BR do admin, BPM 30–220 em 4 camadas, guard de alterações não salvas (4 saídas interceptadas, Radix + vaul), campos obrigatórios + 5 telas admin no `ResponsiveFormDialog`, undo client-side de 5s, tom por evento (migração + picker), duplicar escala + rascunho (migração + UI), EventoRow unificado, busca/filtros/atalho `/` em Músicas, contador de novas músicas, duplicados case-insensitive. Backend 578/578, frontend 339/339, e2e mobile 31/31, chromium 58 verdes (16 falhas restantes: 2 do seed T031 + 14 de specs sem auth pré-existentes, intocados). Cada fase passou por revisão de spec + revisão de qualidade com re-verificação.
+- **Padronizado em:** `.claude/rules/frontend-react.md` (guard sem `!isPending`, formulário único + exceção sem-RHF, dívida a11y dos 4 comboboxes, EventoRow/`tituloDoEvento`, undo com 7 regras, chips removíveis, diálogo de decisão com saída neutra no touch, modo derivado de props), `.claude/rules/backend-api.md` (D7 case-insensitive com dados legados, cópia server-side, status D5, procedimento manual de migração com workaround do rtk, `setMusicaTonalidadeAtomic` nos sentinelas), `packages/backend/docs/openapi.json` (BPM, `/tonalidade`, `/duplicar`, `status`, `novasMusicasNoMes`), `README.md` (features e rotas novas), MEMORY (rate-limit e2e, DELETE ausente no admin, padrão DateTimePicker). Cada arquivo foi aberto e conferido na auditoria da F15 antes de entrar nesta lista; typecheck e branch reconferidos pelo coordenador.
+
+### Desperdícios evitados (cortes conscientes)
+
+- **Superprodução:** a §4 do plano vetou ~10 "correções fantasma" do handoff (toasts que já existiam, modal de convites já pronto, repertório ordenável já implementado, expiração "7 dias" que na verdade é 2h); Artista continuou opcional (D6); rename inline sem checagem de duplicado (lacuna consciente); Songs sem undo (não tem exclusão).
+- **Superprocessamento:** undo client-side com `Set` local em vez de soft-delete no backend (D2) e em vez de mutação do cache do React Query; highlight chaveado por nome normalizado em vez de mudar o contrato de `onCreate`.
+- **Defeito não andou:** 8 correções de causa raiz feitas dentro do ciclo em vez de viradas dívida — validação nativa engolindo submit (`noValidate`), guard desarmado durante submit in-flight, foco roubado pelo `inert`, corrida do desfazer tardio (hover do sonner), parse morto de P2003, cópia "rasgada" sob Read Committed, relatórios contando rascunhos, erros fantasma de RHF ao reabrir dialog.
+
+### O que aprendemos
+
+- `min`/`max` nativos em `<input type=number>` bloqueiam o submit ANTES do Zod — form compartilhado precisa de `noValidate`.
+- O sonner pausa o countdown do toast no hover, mas `setTimeout` não — todo undo por toast precisa de guard de "já confirmou".
+- Prisma 6 emite `meta.constraint` no P2003 (não `field_name`) — mocks com o formato errado dão confiança falsa.
+- `mode: 'insensitive'` cobre caixa, não acento; `$transaction` multi-leitura precisa de `RepeatableRead` para snapshot consistente.
+- `inert` aplicado no mesmo commit que monta um overlay rouba o foco antes de qualquer effect — capturar `activeElement` no EVENTO.
+- Tailwind v3 não emite `@layer` nativo — a precedência vem de especificidade de seletor, não de camada.
+- A suíte chromium completa é inatingível num run único (rate-limit de login em memória) — rodar em lotes com `touch packages/backend/index.ts`; a solução real (storageState) segue pendente.
+
 ## 2026-08-10 — Pedidos da Vanessa: filtros colapsáveis no mobile e ordem alfabética
 
 - **Tipo:** melhoria
