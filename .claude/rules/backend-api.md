@@ -31,6 +31,7 @@ packages/backend/
 │   ├── config/           # Configurações (auth.ts com requireSecret())
 │   ├── validators/       # Schemas Zod (auth.validators.ts)
 │   ├── errors/          # AppError (erro padronizado)
+│   ├── utils/           # Utilitários puros (ex.: ordenação pt-BR com Intl.Collator)
 │   └── types/           # Interfaces TypeScript
 │       └── auth/        # Types de auth
 ├── prisma/
@@ -190,6 +191,11 @@ Quando o backend usa Prisma com junction tables (M:N), o controller **DEVE** tra
 1. **Junction table → flat**: Prisma M:N retorna `{ role: { id, name } }`. O controller DEVE achatar para `{ id, name }` usando `flattenUserRelations()` ou `flattenRolePermissions()` de `src/types/auth.types.ts`.
 2. **Campos computados**: `avatar_url` não existe no banco. TODO endpoint que retorna User DEVE computar: `avatar_url = avatar ? "${APP_API_URL}/files/${avatar}" : null`.
 3. **Timestamps em relações**: Selects Prisma de relações M:N devem incluir `created_at` e `updated_at` nos nested objects.
+
+## Ordenação de Listas Nomeadas
+
+- Listas completas retornadas por services (categorias, artistas) são ordenadas **no service** com `compararNomesPtBr` (`src/utils/ordenacao.ts`, `Intl.Collator('pt-BR')`) — determinístico, imune ao collation do banco e testável com os fakes.
+- Listas **paginadas** (músicas) ordenam no banco (`orderBy: { nome: 'asc' }` no repository) — a paginação exige ordenação na query. O collation do banco deve ordenar acentos junto da letra-base (verificado `en_US.utf8` no dev em 2026-08-10; conferir `SELECT datcollate FROM pg_database WHERE datname = current_database();` ao provisionar novos ambientes — collation `C`/`POSIX`, comum em imagens alpine, quebraria a ordem de nomes acentuados).
 
 ## Convenções de Código
 

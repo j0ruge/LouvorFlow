@@ -1,5 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import categoriasRepository from '../repositories/categorias.repository.js';
+import { compararNomesPtBr } from '../utils/ordenacao.js';
 
 /**
  * Serviço com regras de negócio para categorias.
@@ -7,11 +8,12 @@ import categoriasRepository from '../repositories/categorias.repository.js';
  */
 class CategoriasService {
     /**
-     * Lista todas as categorias.
-     * @returns Array de categorias (id e nome).
+     * Lista todas as categorias em ordem alfabética (pt-BR).
+     * @returns Array de categorias (id e nome) ordenado por nome.
      */
     async listAll() {
-        return categoriasRepository.findAll();
+        const categorias = await categoriasRepository.findAll();
+        return [...categorias].sort((a, b) => compararNomesPtBr(a.nome, b.nome));
     }
 
     /**

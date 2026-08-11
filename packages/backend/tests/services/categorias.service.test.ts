@@ -27,6 +27,22 @@ describe('CategoriasService', () => {
       expect(result[0]).toHaveProperty('id');
       expect(result[0]).toHaveProperty('nome');
     });
+
+    /** Deve ordenar por nome em pt-BR, com acentos junto da letra-base. */
+    it('deve retornar categorias em ordem alfabética pt-BR', async () => {
+      await categoriasService.create('Ágape', 'tenant-fake-id');
+      await categoriasService.create('Abertura', 'tenant-fake-id');
+
+      const result = await categoriasService.listAll();
+
+      expect(result.map((c) => c.nome)).toEqual([
+        'Abertura',
+        'Adoração',
+        'Ágape',
+        'Celebração',
+        'Natal',
+      ]);
+    });
   });
 
   // ─── getById ─────────────────────────────────────────

@@ -2878,7 +2878,7 @@
     "/categorias": {
       "get": {
         "summary": "Listar todas as categorias",
-        "description": "Retorna a lista completa de categorias para classificação de músicas.",
+        "description": "Retorna a lista completa de categorias para classificação de músicas, em ordem alfabética (pt-BR).",
         "tags": [
           "Categorias"
         ],
@@ -2899,8 +2899,8 @@
                     "nome": "Adoração"
                   },
                   {
-                    "id": "d4e5f6a7-4444-4000-d000-000000000002",
-                    "nome": "Louvor"
+                    "id": "d4e5f6a7-4444-4000-d000-000000000005",
+                    "nome": "Avivamento"
                   },
                   {
                     "id": "d4e5f6a7-4444-4000-d000-000000000003",
@@ -2911,8 +2911,8 @@
                     "nome": "Intimidade"
                   },
                   {
-                    "id": "d4e5f6a7-4444-4000-d000-000000000005",
-                    "nome": "Avivamento"
+                    "id": "d4e5f6a7-4444-4000-d000-000000000002",
+                    "nome": "Louvor"
                   }
                 ]
               }
