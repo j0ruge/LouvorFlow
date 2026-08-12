@@ -106,6 +106,20 @@ const Escalas = () => {
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
   /** Mutation de atualização, usada para publicar rascunhos (`{ status: "publicada" }`). */
   const updateEvento = useUpdateEvento();
+  /**
+   * Rascunhos cuja publicação está em voo.
+   *
+   * `updateEvento.isPending` é global à página: usá-lo no `disabled` do botão
+   * desabilitaria "Publicar" de TODOS os rascunhos enquanto um único PUT
+   * estivesse pendente. Mesmo cuidado que o fluxo de exclusão já tinha.
+   *
+   * É um `Set`, e não um id único: nada impede o usuário de publicar A e, antes
+   * de A liquidar, publicar B — com um único id, o `setPublicandoId(B)`
+   * apagaria A e reabilitaria o botão de A ainda em voo.
+   */
+  const [publicandoIds, setPublicandoIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   /** Mutation silenciosa: o feedback de exclusão é o toast com "Desfazer" do useUndoableDelete. */
   const deleteEvento = useDeleteEvento({ silent: true });
   /** Exclusão com janela de desfazer: adia o DELETE ~5s e filtra os pendentes da lista. */
@@ -233,7 +247,19 @@ const Escalas = () => {
    * @param id - UUID do rascunho a publicar.
    */
   function publicar(id: string) {
-    updateEvento.mutate({ id, dados: { status: "publicada" } });
+    setPublicandoIds((atual) => new Set(atual).add(id));
+    updateEvento.mutate(
+      { id, dados: { status: "publicada" } },
+      {
+        onSettled: () =>
+          setPublicandoIds((atual) => {
+            if (!atual.has(id)) return atual;
+            const proximo = new Set(atual);
+            proximo.delete(id);
+            return proximo;
+          }),
+      },
+    );
   }
 
   /**
@@ -329,7 +355,7 @@ const Escalas = () => {
                       size="sm"
                       className="w-full sm:w-auto"
                       onClick={() => handlePublicar(scale)}
-                      disabled={updateEvento.isPending}
+                      disabled={publicandoIds.has(scale.id)}
                       aria-label={`Publicar rascunho ${tituloDoEvento(scale)}`}
                     >
                       <Send className="mr-1 h-4 w-4" />

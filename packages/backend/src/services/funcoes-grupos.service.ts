@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import funcoesGruposRepository from '../repositories/funcoes-grupos.repository.js';
 
 /** Formato de um grupo conforme retornado pelo repositório (relação Prisma `Funcoes`). */
@@ -54,7 +55,10 @@ class FuncoesGruposService {
         if (existente) throw new AppError("Já existe um grupo com esse nome", 409);
 
         const ordem = await funcoesGruposRepository.maxOrdem() + 1;
-        const grupo = await funcoesGruposRepository.create(nome, tenantId, ordem);
+        const grupo = await comBarreiraDeDuplicidade(
+            "Já existe um grupo com esse nome",
+            () => funcoesGruposRepository.create(nome, tenantId, ordem),
+        );
         return toApiShape(grupo);
     }
 
@@ -77,7 +81,10 @@ class FuncoesGruposService {
         const duplicado = await funcoesGruposRepository.findByNomeExcludingId(nome, id);
         if (duplicado) throw new AppError("Nome de grupo já existe", 409);
 
-        const grupo = await funcoesGruposRepository.update(id, nome);
+        const grupo = await comBarreiraDeDuplicidade(
+            "Nome de grupo já existe",
+            () => funcoesGruposRepository.update(id, nome),
+        );
         return toApiShape(grupo);
     }
 

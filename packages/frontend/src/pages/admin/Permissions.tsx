@@ -136,22 +136,43 @@ const AdminPermissions = () => {
           )}
 
           {!isLoading && permissions && permissions.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Cards no mobile: nomes de permissão são tokens snake_case sem
+                  espaço, que não quebram linha e forçariam scroll horizontal na
+                  tabela a 360px. Mesmo dual layout de Users/Roles/Igrejas. */}
+              <div className="space-y-3 sm:hidden">
                 {permissions.map((permission) => (
-                  <TableRow key={permission.id}>
-                    <TableCell className="font-medium">{permission.name}</TableCell>
-                    <TableCell>{permission.description}</TableCell>
-                  </TableRow>
+                  <div
+                    key={permission.id}
+                    className="p-4 rounded-lg border border-border space-y-1"
+                  >
+                    <p className="font-medium break-words">{permission.name}</p>
+                    <p className="text-sm text-muted-foreground break-words">
+                      {permission.description}
+                    </p>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {permissions.map((permission) => (
+                      <TableRow key={permission.id}>
+                        <TableCell className="font-medium">{permission.name}</TableCell>
+                        <TableCell>{permission.description}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

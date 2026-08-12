@@ -244,8 +244,15 @@ export function ConfigCrudSection<T>({
               <CornerDownLeft className="h-4 w-4" />
             )}
           </Button>
+          {/*
+            `role="alert"` além do `aria-describedby`: o erro aparece sem que o
+            foco mude de lugar (Enter no próprio input, ou clique no botão de
+            confirmar, que deixa o foco no botão e não no input descrito). Sem a
+            live region, o leitor de tela não reanuncia a descrição e o usuário
+            fica sem retorno nenhum da duplicidade.
+          */}
           {erroCriacao && (
-            <p id={erroCriacaoId} className="w-full text-sm text-destructive">
+            <p role="alert" id={erroCriacaoId} className="w-full text-sm text-destructive">
               {erroCriacao}
             </p>
           )}

@@ -34,7 +34,14 @@ const RolePermissions = () => {
   const setPermissionsMutation = useSetRolePermissions();
 
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [initialized, setInitialized] = useState(false);
+  /**
+   * Papel já semeado nos checkboxes — guarda o `roleId`, não um booleano.
+   *
+   * O React Router reaproveita a instância do componente quando só o parâmetro
+   * da URL muda: com um latch booleano, ir de `/roles/A/permissoes` para
+   * `/roles/B/permissoes` sem desmontar manteria as permissões de A na tela.
+   */
+  const [inicializadoPara, setInicializadoPara] = useState<string | null>(null);
 
   const isLoading = isLoadingRoles || isLoadingPermissions;
 
@@ -48,14 +55,16 @@ const RolePermissions = () => {
 
   /**
    * Inicializa os checkboxes com as permissões atuais do papel.
-   * Apenas na primeira carga — refetches não sobrescrevem edições em andamento.
+   *
+   * Uma vez por papel — refetches não sobrescrevem edições em andamento, mas
+   * trocar de papel na mesma instância do componente re-semeia.
    */
   useEffect(() => {
-    if (currentRole && !initialized) {
+    if (currentRole && roleId && inicializadoPara !== roleId) {
       setSelectedPermissions(currentRole.permissions.map((p) => p.id));
-      setInitialized(true);
+      setInicializadoPara(roleId);
     }
-  }, [currentRole, initialized]);
+  }, [currentRole, roleId, inicializadoPara]);
 
   /**
    * Alterna a seleção de uma permissão.
@@ -120,12 +129,12 @@ const RolePermissions = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/admin/roles">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Voltar para lista de papéis">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent line-clamp-2">
             Permissões de {currentRole?.name ?? "Papel"}
           </h1>
           <p className="text-muted-foreground mt-1">

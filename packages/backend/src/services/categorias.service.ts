@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import categoriasRepository from '../repositories/categorias.repository.js';
 import { compararNomesPtBr } from '../utils/ordenacao.js';
 
@@ -45,7 +46,10 @@ class CategoriasService {
         const existente = await categoriasRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe uma categoria com esse nome", 409);
 
-        return categoriasRepository.create(nome, tenantId);
+        return comBarreiraDeDuplicidade(
+            "Já existe uma categoria com esse nome",
+            () => categoriasRepository.create(nome, tenantId),
+        );
     }
 
     /**
@@ -66,7 +70,10 @@ class CategoriasService {
         const duplicado = await categoriasRepository.findByNomeExcludingId(nome, id);
         if (duplicado) throw new AppError("Nome da categoria já existe", 409);
 
-        return categoriasRepository.update(id, nome);
+        return comBarreiraDeDuplicidade(
+            "Nome da categoria já existe",
+            () => categoriasRepository.update(id, nome),
+        );
     }
 
     /**

@@ -230,12 +230,22 @@ export function createFakeEventosRepository() {
      * @param dados - Dados do novo evento já resolvidos pelo service
      * @param _tenantId - Ignorado no fake
      * @returns Projeção de escrita do evento criado (com status e tipo populado)
+     * @throws Error "ORIGEM_NOT_FOUND" — origem ausente do dataset
      */
     duplicarEvento: async (
       origemId: string,
       dados: { data: Date; fk_tipo_evento: string; descricao: string },
       _tenantId?: string,
     ) => {
+      /**
+       * Espelha a revalidação da origem dentro da transação real: se o evento
+       * sumir entre a checagem do service e a cópia, o repositório lança o
+       * sentinela em vez de devolver uma escala vazia.
+       */
+      if (!eventosData.some(e => e.id === origemId)) {
+        throw new Error('ORIGEM_NOT_FOUND');
+      }
+
       const novo = {
         id: randomUUID(),
         data: dados.data,
@@ -456,6 +466,21 @@ export function createFakeEventosRepository() {
 
     findMusicaById: async (musicasId: string) =>
       MOCK_MUSICAS_BASE.find(m => m.id === musicasId) ?? null,
+
+    /**
+     * Busca um tipo de evento pelo ID no catálogo mock do tenant.
+     *
+     * O dataset mock representa um único tenant, então "não existe no catálogo"
+     * é o equivalente ao `null` que o filtro de tenant do `getPrisma()` devolve
+     * para um id de outra igreja.
+     *
+     * @param id - UUID do tipo de evento
+     * @returns Objeto com o id, ou `null` se não existir no catálogo
+     */
+    findTipoEventoById: async (id: string) => {
+      const tipo = MOCK_TIPOS_EVENTOS.find(te => te.id === id);
+      return tipo ? { id: tipo.id } : null;
+    },
 
     /**
      * Busca uma versão (Artistas_Musicas) pelo ID nos dados mock.

@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import funcoesRepository from '../repositories/funcoes.repository.js';
 
 class FuncoesService {
@@ -29,7 +30,10 @@ class FuncoesService {
         const existente = await funcoesRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe uma função com esse nome", 409);
 
-        return funcoesRepository.create(nome, tenantId);
+        return comBarreiraDeDuplicidade(
+            "Já existe uma função com esse nome",
+            () => funcoesRepository.create(nome, tenantId),
+        );
     }
 
     async update(id: string, nome?: string) {
@@ -43,7 +47,10 @@ class FuncoesService {
         const duplicado = await funcoesRepository.findByNomeExcludingId(nome, id);
         if (duplicado) throw new AppError("Nome de função já existe", 409);
 
-        return funcoesRepository.update(id, nome);
+        return comBarreiraDeDuplicidade(
+            "Nome de função já existe",
+            () => funcoesRepository.update(id, nome),
+        );
     }
 
     async delete(id: string) {

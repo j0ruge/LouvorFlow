@@ -67,13 +67,27 @@ const AdminIgrejas = () => {
   /** Igreja aguardando confirmação de desativação (null = nenhum diálogo aberto). */
   const [deactivatingIgreja, setDeactivatingIgreja] = useState<Igreja | null>(null);
   /**
-   * Igreja cuja alternância de status está em voo.
+   * Igrejas cuja alternância de status está em voo.
    *
    * `updateMutation.isPending` sozinho é global: desabilitaria o botão de todas
    * as linhas (e também o "Salvar" do diálogo de edição, que usa a mesma
    * mutation) enquanto uma única linha era alternada.
+   *
+   * É um `Set`, e não um id único: "Reativar" não passa por confirmação, então
+   * nada impede reativar A e, antes de A liquidar, reativar B — com um único
+   * id, B apagaria A e reabilitaria o botão de A ainda em voo.
    */
-  const [togglingIgrejaId, setTogglingIgrejaId] = useState<string | null>(null);
+  const [togglingIgrejaIds, setTogglingIgrejaIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  /**
+   * Salvamento do formulário de edição em voo.
+   *
+   * Pelo mesmo motivo do `togglingIgrejaIds`, e na direção oposta: o "Salvar"
+   * do diálogo não pode ler `updateMutation.isPending` cru, ou uma alternância
+   * de status de outra linha o deixaria desabilitado.
+   */
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   const {
     data: todasIgrejas,
@@ -169,6 +183,7 @@ const AdminIgrejas = () => {
    */
   function onEditSubmit(dados: CreateIgrejaForm) {
     if (!editingIgreja) return;
+    setSalvandoEdicao(true);
     updateMutation.mutate(
       { id: editingIgreja.id, data: dados },
       {
@@ -177,6 +192,7 @@ const AdminIgrejas = () => {
           setEditDialogOpen(false);
           setEditingIgreja(null);
         },
+        onSettled: () => setSalvandoEdicao(false),
       },
     );
   }
@@ -203,12 +219,18 @@ const AdminIgrejas = () => {
    * @param newStatus - Novo status a persistir.
    */
   function aplicarStatus(igreja: Igreja, newStatus: "active" | "inactive") {
-    setTogglingIgrejaId(igreja.id);
+    setTogglingIgrejaIds((atual) => new Set(atual).add(igreja.id));
     updateMutation.mutate(
       { id: igreja.id, data: { status: newStatus } },
       {
         onSuccess: () => setDeactivatingIgreja(null),
-        onSettled: () => setTogglingIgrejaId(null),
+        onSettled: () =>
+          setTogglingIgrejaIds((atual) => {
+            if (!atual.has(igreja.id)) return atual;
+            const proximo = new Set(atual);
+            proximo.delete(igreja.id);
+            return proximo;
+          }),
       },
     );
   }
@@ -336,9 +358,9 @@ const AdminIgrejas = () => {
                         size="sm"
                         className="w-full"
                         onClick={() => handleToggleStatus(igreja)}
-                        disabled={togglingIgrejaId === igreja.id}
+                        disabled={togglingIgrejaIds.has(igreja.id)}
                       >
-                        {togglingIgrejaId === igreja.id ? (
+                        {togglingIgrejaIds.has(igreja.id) ? (
                           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                         ) : igreja.status === "active" ? (
                           <PowerOff className="mr-1 h-3 w-3" />
@@ -401,9 +423,9 @@ const AdminIgrejas = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleToggleStatus(igreja)}
-                              disabled={togglingIgrejaId === igreja.id}
+                              disabled={togglingIgrejaIds.has(igreja.id)}
                             >
-                              {togglingIgrejaId === igreja.id ? (
+                              {togglingIgrejaIds.has(igreja.id) ? (
                                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               ) : igreja.status === "active" ? (
                                 <PowerOff className="mr-1 h-3 w-3" />
@@ -499,9 +521,9 @@ const AdminIgrejas = () => {
               <Button
                 type="submit"
                 className="bg-gradient-primary hover:opacity-90 transition-opacity"
-                disabled={updateMutation.isPending}
+                disabled={salvandoEdicao}
               >
-                {updateMutation.isPending ? (
+                {salvandoEdicao ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
                 Salvar
@@ -545,7 +567,12 @@ const AdminIgrejas = () => {
         onConfirm={() => {
           if (deactivatingIgreja) aplicarStatus(deactivatingIgreja, "inactive");
         }}
-        isLoading={updateMutation.isPending}
+        /* Mesma razão do `disabled` das linhas: `updateMutation.isPending` é
+           compartilhado, e a alternância de outra igreja deixaria este diálogo
+           em "carregando" por uma requisição alheia. */
+        isLoading={
+          deactivatingIgreja ? togglingIgrejaIds.has(deactivatingIgreja.id) : false
+        }
       />
     </div>
   );

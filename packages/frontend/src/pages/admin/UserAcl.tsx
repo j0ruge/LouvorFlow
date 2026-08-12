@@ -39,7 +39,15 @@ const UserAcl = () => {
 
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [initialized, setInitialized] = useState(false);
+  /**
+   * Usuário já semeado nos checkboxes — guarda o `userId`, não um booleano.
+   *
+   * O React Router reaproveita a instância do componente quando só o parâmetro
+   * da URL muda: com um latch booleano, ir de `/usuarios/A/acl` para
+   * `/usuarios/B/acl` sem desmontar manteria a ACL de A na tela. Mesma correção
+   * já aplicada em `useScrollRestoration`.
+   */
+  const [inicializadoPara, setInicializadoPara] = useState<string | null>(null);
 
   const isLoading = isLoadingAcl || isLoadingRoles || isLoadingPermissions;
   const isOwnProfile = currentUser?.id === userId;
@@ -49,15 +57,17 @@ const UserAcl = () => {
 
   /**
    * Inicializa os checkboxes com os papéis e permissões atuais do usuário.
-   * Apenas na primeira carga — refetches não sobrescrevem edições em andamento.
+   *
+   * Uma vez por usuário — refetches não sobrescrevem edições em andamento, mas
+   * trocar de usuário na mesma instância do componente re-semeia.
    */
   useEffect(() => {
-    if (userAcl && !initialized) {
+    if (userAcl && userId && inicializadoPara !== userId) {
       setSelectedRoles(userAcl.roles.map((r) => r.id));
       setSelectedPermissions(userAcl.permissions.map((p) => p.id));
-      setInitialized(true);
+      setInicializadoPara(userId);
     }
-  }, [userAcl, initialized]);
+  }, [userAcl, userId, inicializadoPara]);
 
   /**
    * Alterna a seleção de um papel.
@@ -142,12 +152,12 @@ const UserAcl = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/admin/usuarios">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Voltar para lista de usuários">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent line-clamp-2">
             ACL de {userAcl?.name ?? "Usuário"}
           </h1>
           <p className="text-muted-foreground mt-1">

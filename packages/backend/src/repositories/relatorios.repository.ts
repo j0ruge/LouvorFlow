@@ -172,18 +172,20 @@ class RelatoriosRepository {
     /**
      * Conta o total de músicas cadastradas no mês corrente.
      *
-     * O corte (primeiro dia do mês) é calculado com `Date` nativo, no fuso
-     * horário do servidor — mesma característica de {@link getAtividadeMensal}
-     * (`:119-121`), que já monta seus limites de mês com `new Date(ano, mes, dia)`
-     * local. `Musicas.created_at` é `@db.Timestamp(6)` (sem timezone no Postgres),
-     * então a comparação não sofre conversão de fuso; isso é consistente com o
-     * restante do repositório, não uma regressão nova.
+     * O corte (primeiro dia do mês) é montado em **UTC**, não no fuso do
+     * servidor. `Musicas.created_at` é `@db.Timestamp(6)` — sem timezone: o
+     * Postgres guarda os dígitos que `now()` produziu e o Prisma serializa um
+     * `Date` do JS pela sua representação UTC. Com `new Date(ano, mes, 1)` local
+     * o corte sairia deslocado do fuso do processo (num servidor em UTC-3, as
+     * três primeiras horas do dia 1º ficariam de fora). Note que isso difere de
+     * {@link getAtividadeMensal}, que filtra `Eventos.data` — um
+     * `@db.Timestamptz`, convertido para instante real pelo próprio Postgres.
      *
-     * @returns Total de músicas cujo `created_at` cai no mês corrente.
+     * @returns Total de músicas cujo `created_at` cai no mês corrente (UTC).
      */
     async countMusicasCriadasNoMes(): Promise<number> {
         const hoje = new Date();
-        const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const primeiroDiaDoMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
 
         return getPrisma().musicas.count({
             where: { created_at: { gte: primeiroDiaDoMes } },

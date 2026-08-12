@@ -94,6 +94,7 @@ class EventosRepository {
      * @param dados - Dados do novo evento (data, tipo, descrição) já resolvidos pelo service
      * @param tenantId - ID do tenant ao qual os registros pertencem
      * @returns Evento criado com tipo de evento populado e status
+     * @throws Error "ORIGEM_NOT_FOUND" — origem excluída entre a validação do service e a transação
      */
     async duplicarEvento(
         origemId: string,
@@ -101,6 +102,20 @@ class EventosRepository {
         tenantId: string,
     ) {
         return getPrisma().$transaction(async (tx) => {
+            /**
+             * Revalida a origem **dentro** da transação. A checagem do service
+             * acontece antes dela abrir: se o evento for excluído nesse intervalo,
+             * a cascata leva junto `Eventos_Musicas`/`Eventos_Users` e as duas
+             * leituras abaixo voltariam vazias — nada na cópia aponta de volta
+             * para `origemId`, então o Postgres não recusaria nada e o usuário
+             * receberia 201 com uma escala vazia em vez de 404.
+             */
+            const origem = await tx.eventos.findUnique({
+                where: { id: origemId },
+                select: { id: true },
+            });
+            if (!origem) throw new Error('ORIGEM_NOT_FOUND');
+
             const musicas = await tx.eventos_Musicas.findMany({
                 where: { evento_id: origemId },
                 select: { musicas_id: true, ordem: true, fk_artistas_musicas: true, fk_tonalidade: true },
@@ -132,6 +147,16 @@ class EventosRepository {
                 });
             }
 
+            /**
+             * Laço sequencial de propósito — `Promise.all` aqui NÃO paralelizaria
+             * nada: uma transação interativa do Prisma roda todas as queries na
+             * mesma conexão, então as inserções sairiam enfileiradas do mesmo
+             * jeito, trocando a falha imediata do integrante problemático por uma
+             * rejeição em lote (e, sob carga, pelo risco de `P2028 Transaction
+             * already closed`). O par create + createMany é sequencial por
+             * dependência: o `createMany` das funções precisa do `id` gerado pelo
+             * `create` (ver a nota sobre `createManyAndReturn` acima).
+             */
             for (const integrante of integrantes) {
                 const eventoUser = await tx.eventos_Users.create({
                     data: { evento_id: novo.id, fk_user_id: integrante.fk_user_id, tenant_id: tenantId },
@@ -408,6 +433,28 @@ class EventosRepository {
     /** Busca uma música pelo ID (valida existência antes de vincular). */
     async findMusicaById(musicasId: string) {
         return getPrisma().musicas.findUnique({ where: { id: musicasId } });
+    }
+
+    /**
+     * Busca um tipo de evento pelo ID **no tenant ativo** (valida existência
+     * antes de gravá-lo como FK do evento).
+     *
+     * A FK `eventos_fk_tipo_evento_fkey` é validada pelo Postgres apenas por
+     * existência do `id` — ela não conhece `tenant_id`. Sem esta checagem, um
+     * usuário com `escalas.write` na igreja A que conheça o UUID de um
+     * `Tipos_Eventos` da igreja B conseguiria referenciá-lo em
+     * `create`/`update`/`duplicar`, e a resposta devolveria o nome do tipo da
+     * igreja B. `getPrisma()` injeta o filtro de tenant, então um id de outro
+     * tenant volta como `null`. Mesma guarda de `findIntegranteById`.
+     *
+     * @param id - UUID do tipo de evento
+     * @returns Tipo de evento encontrado no tenant ativo ou `null`
+     */
+    async findTipoEventoById(id: string) {
+        return getPrisma().tipos_Eventos.findUnique({
+            where: { id },
+            select: { id: true },
+        });
     }
 
     /**

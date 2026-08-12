@@ -131,12 +131,18 @@ export const MESES_ABREV = [
  * mostraria 26 ao receber `2026-03-27`).
  *
  * Em caso de data inválida, retorna `{ dia: NaN, mes: "" }` para evitar
- * `undefined` no DOM.
+ * `undefined` no DOM. A guarda de nulo é explícita porque `new Date(null)`
+ * resolve para a época (1970) em vez de `Invalid Date` — sem ela, esta função
+ * renderizaria "1 Jan" onde `formatDataExtenso`, que já tem a mesma guarda,
+ * devolveria string vazia; as duas precisam divergir nunca (ver docstring de
+ * `formatDataExtenso`).
  *
  * @param iso - Data em formato ISO 8601 ou parsável pelo construtor `Date`.
  * @returns Objeto com `dia` (1-31, ou `NaN` se inválida) e `mes` (3 letras).
  */
 export function formatDateBlock(iso: string): { dia: number; mes: string } {
+  if (iso == null) return { dia: NaN, mes: "" };
+
   const date = new Date(iso);
   if (isNaN(date.getTime())) return { dia: NaN, mes: "" };
 

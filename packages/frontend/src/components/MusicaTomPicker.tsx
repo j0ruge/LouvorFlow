@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Guitar } from "lucide-react";
@@ -70,7 +71,7 @@ export function MusicaTomPicker({
   const [open, setOpen] = useState(false);
   /** Liga o título do popover ao `radiogroup`, que não tem nome acessível próprio. */
   const tituloId = useId();
-  const { data: tonalidades, isLoading } = useTonalidades();
+  const { data: tonalidades, isLoading, isError, refetch } = useTonalidades();
 
   const efetivoId = tonalidadeEfetiva?.id ?? null;
   const globalId = tonalidadeMusica?.id ?? null;
@@ -153,6 +154,25 @@ export function MusicaTomPicker({
             <p className="col-span-3 py-2 text-center text-xs text-muted-foreground">
               Carregando tons...
             </p>
+          )}
+
+          {/* Sem este ramo, uma falha na busca deixaria a grade só com o
+              sentinela "tom global" — indistinguível de um tenant que ainda não
+              cadastrou tonalidade nenhuma, e sem caminho de recuperação. */}
+          {isError && (
+            <div className="col-span-3 space-y-2 py-2 text-center">
+              <p role="alert" className="text-xs text-destructive">
+                Não foi possível carregar os tons.
+              </p>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={() => void refetch()}
+              >
+                Tentar novamente
+              </Button>
+            </div>
           )}
 
           {(tonalidades ?? []).map((tom) => (

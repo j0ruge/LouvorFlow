@@ -7,14 +7,15 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { EMAIL_ADMIN, SENHA_ADMIN } from "./helpers/credenciais";
 import { loginAsAdmin } from "./helpers/login";
 
 test.describe("Login", () => {
   /** Verifica que o login com credenciais corretas redireciona ao Dashboard. */
   test("deve realizar login com credenciais válidas", async ({ page }) => {
     await page.goto("/login");
-    await page.getByRole("textbox", { name: "E-mail" }).fill("admin@louvorflow.com");
-    await page.getByRole("textbox", { name: "Senha" }).fill("Admin@123");
+    await page.getByRole("textbox", { name: "E-mail" }).fill(EMAIL_ADMIN);
+    await page.getByRole("textbox", { name: "Senha" }).fill(SENHA_ADMIN);
     await page.getByRole("button", { name: "Entrar" }).click();
 
     await expect(page).toHaveURL("/", { timeout: 10_000 });

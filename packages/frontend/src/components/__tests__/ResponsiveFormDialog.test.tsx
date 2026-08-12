@@ -45,6 +45,7 @@ function renderDialog(onSubmit: () => void = () => {}) {
   );
 }
 
+/** Shell de formulário responsivo: Drawer no mobile, Dialog no desktop. */
 describe("ResponsiveFormDialog", () => {
   /** Reseta o mock de viewport entre os casos. */
   beforeEach(() => {
@@ -138,6 +139,7 @@ function HarnessComGuard({ temAlteracoes }: HarnessComGuardProps) {
   );
 }
 
+/** Integração do shell com a guarda de alterações não salvas. */
 describe("ResponsiveFormDialog + dirtyGuard", () => {
   /** Reseta o mock de viewport entre os casos. */
   beforeEach(() => {

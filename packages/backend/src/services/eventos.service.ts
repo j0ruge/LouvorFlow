@@ -15,6 +15,70 @@ import type {
     CifraclubPlaylistResponse,
 } from '../types/index.js';
 
+/** Mensagem e status HTTP em que um erro conhecido de escrita é traduzido. */
+interface TraducaoDeErro {
+    /** Texto devolvido ao cliente no corpo do `AppError`. */
+    mensagem: string;
+    /** Código HTTP correspondente. */
+    status: number;
+}
+
+/**
+ * Tabela de tradução de um caminho de escrita: sentinelas do repositório e
+ * substrings de constraint reconhecidas no `P2003`.
+ */
+interface MapaDeTraducao {
+    /** Mensagens sentinela lançadas pelo repositório (`throw new Error('X')`) dentro da transação. */
+    sentinelas?: Record<string, TraducaoDeErro>;
+    /** Substrings de nome de constraint, avaliadas na ordem declarada. */
+    fks?: Array<{ contem: string; mensagem: string }>;
+}
+
+/**
+ * Traduz os erros de uma escrita sujeita a corrida em `AppError`.
+ *
+ * Regra do projeto: erro do Prisma nunca escapa cru — o handler genérico de
+ * `app.ts` ecoa `err.message` fora de produção, então um `P2002`/`P2003` não
+ * tratado vira 500 com detalhe interno. As três transações de eventos
+ * (duplicação, versão/tom de música e vínculo de integrante) repetiam a mesma
+ * estrutura variando só a tabela de mensagens; aqui a estrutura mora num lugar
+ * só e cada chamador declara apenas o que é seu (DRY).
+ *
+ * O `P2003` é distinguido por `meta.constraint` (formato do Prisma 6 no
+ * Postgres); `meta.field_name` fica como fallback defensivo para variações de
+ * versão. Constraint não mapeada cai no 404 genérico para não vazar detalhe
+ * interno.
+ *
+ * @param error - Erro capturado da transação
+ * @param mapa - Sentinelas e constraints reconhecidas por este caminho de escrita
+ * @throws {AppError} Erro traduzido, quando reconhecido
+ * @throws {unknown} O erro original, quando não reconhecido
+ */
+function traduzirErroDeEscrita(error: unknown, mapa: MapaDeTraducao): never {
+    if (error instanceof Error) {
+        const sentinela = mapa.sentinelas?.[error.message];
+        if (sentinela) throw new AppError(sentinela.mensagem, sentinela.status);
+    }
+
+    const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
+
+    if (error instanceof Error && 'code' in error) {
+        /** P2002 — colisão de unique numa corrida com outra escrita concorrente. */
+        if (prismaError.code === 'P2002') {
+            throw new AppError('Registro duplicado', 409);
+        }
+
+        /** P2003 — FK inválida: distingue qual referência falhou pela constraint. */
+        if (prismaError.code === 'P2003') {
+            const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
+            const conhecida = mapa.fks?.find(fk => field.includes(fk.contem));
+            throw new AppError(conhecida?.mensagem ?? 'Recurso referenciado não encontrado', 404);
+        }
+    }
+
+    throw error;
+}
+
 /**
  * Valida e converte a data de um evento (string ISO 8601) em `Date`.
  *
@@ -205,6 +269,7 @@ class EventosService {
         if (errors.length > 0) throw new AppError(errors[0], 400, errors);
 
         const parsedDate = parseDataEvento(data!);
+        await this.assertTipoEventoDoTenant(fk_tipo_evento!);
 
         const evento = await eventosRepository.create({
             data: parsedDate,
@@ -244,7 +309,10 @@ class EventosService {
 
         const updateData: Prisma.EventosUncheckedUpdateInput = {};
         if (data !== undefined) updateData.data = parseDataEvento(data);
-        if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
+        if (fk_tipo_evento !== undefined) {
+            await this.assertTipoEventoDoTenant(fk_tipo_evento);
+            updateData.fk_tipo_evento = fk_tipo_evento;
+        }
         if (descricao !== undefined) updateData.descricao = descricao;
         if (status !== undefined) updateData.status = status;
 
@@ -261,6 +329,22 @@ class EventosService {
             status: evento.status,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
+    }
+
+    /**
+     * Garante que o tipo de evento informado existe **no tenant ativo**.
+     *
+     * A FK do banco só valida existência do `id`, sem conhecer `tenant_id`: sem
+     * esta checagem, um id de `Tipos_Eventos` de outra igreja seria aceito por
+     * `create`/`update`/`duplicar` e o nome dele voltaria na resposta. Mesma
+     * revalidação que `setMusicaTonalidadeAtomic` já faz para `fk_tonalidade`.
+     *
+     * @param fkTipoEvento - UUID do tipo de evento informado no body
+     * @throws {AppError} 404 — tipo de evento inexistente no tenant ativo
+     */
+    private async assertTipoEventoDoTenant(fkTipoEvento: string) {
+        const tipo = await eventosRepository.findTipoEventoById(fkTipoEvento);
+        if (!tipo) throw new AppError("Tipo de evento não encontrado", 404);
     }
 
     /** Remove um evento existente pelo ID. */
@@ -292,7 +376,7 @@ class EventosService {
      * @param tenantId - ID do tenant ao qual a cópia pertence
      * @returns Evento criado com tipo de evento populado e status
      * @throws {AppError} 400 — data ausente/inválida ou ano fora de 1900–9999
-     * @throws {AppError} 404 — evento de origem inexistente no tenant, ou tipo de evento sobrescrito inexistente
+     * @throws {AppError} 404 — evento de origem inexistente no tenant (inclusive se for excluído durante a cópia), ou tipo de evento sobrescrito inexistente no tenant
      */
     async duplicar(origemId: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
         if (!body.data) throw new AppError("Data do evento é obrigatória", 400);
@@ -300,6 +384,10 @@ class EventosService {
 
         const origem = await eventosRepository.findByIdSimple(origemId);
         if (!origem) throw new AppError("Evento não encontrado", 404);
+
+        if (body.fk_tipo_evento !== undefined) {
+            await this.assertTipoEventoDoTenant(body.fk_tipo_evento);
+        }
 
         /**
          * O catch traduz erros Prisma da transação de cópia (ex.: `fk_tipo_evento`
@@ -339,40 +427,19 @@ class EventosService {
      * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
      */
     private handleDuplicarSentinel(error: unknown): never {
-        const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
-
-        if (error instanceof Error && 'code' in error) {
-            /** P2002 — colisão de unique numa corrida com outra escrita concorrente. */
-            if (prismaError.code === 'P2002') {
-                throw new AppError('Registro duplicado', 409);
-            }
-
-            /** P2003 — FK inválida: distingue qual referência falhou pela constraint. */
-            if (prismaError.code === 'P2003') {
-                const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
-                if (field.includes('fk_tipo_evento')) {
-                    throw new AppError('Tipo de evento não encontrado', 404);
-                }
-                if (field.includes('fk_artistas_musicas')) {
-                    throw new AppError('Versão não encontrada', 404);
-                }
-                if (field.includes('fk_tonalidade')) {
-                    throw new AppError('Tonalidade não encontrada', 404);
-                }
-                if (field.includes('musicas_id')) {
-                    throw new AppError('Música não encontrada', 404);
-                }
-                if (field.includes('fk_user_id')) {
-                    throw new AppError('Integrante não encontrado', 404);
-                }
-                if (field.includes('funcao_id')) {
-                    throw new AppError('Função não encontrada', 404);
-                }
-                throw new AppError('Recurso referenciado não encontrado', 404);
-            }
-        }
-
-        throw error;
+        traduzirErroDeEscrita(error, {
+            sentinelas: {
+                ORIGEM_NOT_FOUND: { mensagem: 'Evento não encontrado', status: 404 },
+            },
+            fks: [
+                { contem: 'fk_tipo_evento', mensagem: 'Tipo de evento não encontrado' },
+                { contem: 'fk_artistas_musicas', mensagem: 'Versão não encontrada' },
+                { contem: 'fk_tonalidade', mensagem: 'Tonalidade não encontrada' },
+                { contem: 'musicas_id', mensagem: 'Música não encontrada' },
+                { contem: 'fk_user_id', mensagem: 'Integrante não encontrado' },
+                { contem: 'funcao_id', mensagem: 'Função não encontrada' },
+            ],
+        });
     }
 
     // --- CifraClub Playlist ---
@@ -500,54 +567,20 @@ class EventosService {
      * @throws {AppError} Sempre — re-lança o erro convertido ou propaga desconhecidos
      */
     private handleVersaoSentinel(error: unknown): never {
-        if (error instanceof Error) {
-            if (error.message === 'VERSAO_NOT_FOUND') {
-                throw new AppError('Versão não encontrada', 404);
-            }
-            if (error.message === 'VERSAO_WRONG_MUSICA') {
-                throw new AppError('A versão informada não pertence a esta música', 400);
-            }
-            if (error.message === 'TONALIDADE_NOT_FOUND') {
-                throw new AppError('Tonalidade não encontrada', 404);
-            }
-            if (error.message === 'EVENTO_MUSICA_NOT_FOUND') {
-                throw new AppError('Música não encontrada neste evento', 404);
-            }
-        }
-
-        const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
-
-        // P2002 (unique constraint) — corrida de duplicação concorrente entre
-        // findMusicaDuplicate e createMusica.
-        if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
-            throw new AppError('Registro duplicado', 409);
-        }
-
-        // P2003 (FK violation) — distingue qual FK falhou para retornar mensagem adequada.
-        if (error instanceof Error && 'code' in error && prismaError.code === 'P2003') {
-            /**
-             * O Prisma 6 reporta a FK violada em `meta.constraint` (nome da
-             * constraint no banco); `field_name` fica como fallback defensivo
-             * para variações de versão do Prisma.
-             */
-            const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
-            if (field.includes('fk_artistas_musicas')) {
-                throw new AppError('Versão não encontrada', 404);
-            }
-            if (field.includes('fk_tonalidade')) {
-                throw new AppError('Tonalidade não encontrada', 404);
-            }
-            if (field.includes('evento_id')) {
-                throw new AppError('Evento não encontrado', 404);
-            }
-            if (field.includes('musicas_id')) {
-                throw new AppError('Música não encontrada', 404);
-            }
-            // FK desconhecida — propaga como 404 genérico para não vazar detalhes internos.
-            throw new AppError('Recurso referenciado não encontrado', 404);
-        }
-
-        throw error;
+        traduzirErroDeEscrita(error, {
+            sentinelas: {
+                VERSAO_NOT_FOUND: { mensagem: 'Versão não encontrada', status: 404 },
+                VERSAO_WRONG_MUSICA: { mensagem: 'A versão informada não pertence a esta música', status: 400 },
+                TONALIDADE_NOT_FOUND: { mensagem: 'Tonalidade não encontrada', status: 404 },
+                EVENTO_MUSICA_NOT_FOUND: { mensagem: 'Música não encontrada neste evento', status: 404 },
+            },
+            fks: [
+                { contem: 'fk_artistas_musicas', mensagem: 'Versão não encontrada' },
+                { contem: 'fk_tonalidade', mensagem: 'Tonalidade não encontrada' },
+                { contem: 'evento_id', mensagem: 'Evento não encontrado' },
+                { contem: 'musicas_id', mensagem: 'Música não encontrada' },
+            ],
+        });
     }
 
     /**
@@ -788,28 +821,12 @@ class EventosService {
      * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
      */
     private handleIntegranteSentinel(error: unknown): never {
-        const prismaError = error as { code?: string; meta?: { field_name?: string } };
-
-        if (error instanceof Error && 'code' in error) {
-            /** P2002 — corrida com outra vinculação do mesmo integrante no evento. */
-            if (prismaError.code === 'P2002') {
-                throw new AppError('Registro duplicado', 409);
-            }
-
-            /** P2003 — FK inválida: função ou evento removido entre a validação e a gravação. */
-            if (prismaError.code === 'P2003') {
-                const field = prismaError.meta?.field_name ?? '';
-                if (field.includes('funcao_id')) {
-                    throw new AppError('Função não encontrada', 404);
-                }
-                if (field.includes('evento_id')) {
-                    throw new AppError('Evento não encontrado', 404);
-                }
-                throw new AppError('Recurso referenciado não encontrado', 404);
-            }
-        }
-
-        throw error;
+        traduzirErroDeEscrita(error, {
+            fks: [
+                { contem: 'funcao_id', mensagem: 'Função não encontrada' },
+                { contem: 'evento_id', mensagem: 'Evento não encontrado' },
+            ],
+        });
     }
 
     /** Remove o vínculo entre um evento e um integrante. */

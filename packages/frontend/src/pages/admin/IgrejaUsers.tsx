@@ -406,7 +406,10 @@ const IgrejaUsers = () => {
           ) : isErrorAllUsers ? (
             <div className="flex items-center gap-2 text-sm text-destructive">
               <span>{errorAllUsers?.message ?? 'Erro ao carregar usuários.'}</span>
-              <Button variant="link" size="sm" onClick={() => refetchAllUsers()}>
+              {/* `type="button"` explícito: o conteúdo agora vive dentro do
+                  <form> do ResponsiveFormDialog, onde o padrão do HTML seria
+                  submit — recarregar a lista dispararia o envio do formulário. */}
+              <Button type="button" variant="link" size="sm" onClick={() => refetchAllUsers()}>
                 Tentar novamente
               </Button>
             </div>

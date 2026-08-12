@@ -27,9 +27,7 @@ import {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-
-/** Credenciais do admin semeado, usadas por toda a suíte E2E. */
-const CREDENCIAIS_ADMIN = { email: "admin@louvorflow.com", password: "Admin@123" };
+import { CREDENCIAIS_ADMIN } from "./credenciais";
 
 /**
  * Base das chamadas de API dos fixtures: o dev server do Vite (8080), que

@@ -24,7 +24,7 @@ import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
 import { useRelatorioResumo } from "@/hooks/use-relatorios";
-import { getInitials } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { EventoRow } from "@/components/EventoRow";
 
 /**
@@ -34,13 +34,18 @@ import { EventoRow } from "@/components/EventoRow";
  */
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { data: musicasData, isLoading: musicasLoading } = useMusicas({
-    page: 1,
-    limit: 1,
-  });
-  const { data: eventos, isLoading: eventosLoading } = useEventos();
-  const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
-  const { data: resumo, isLoading: resumoLoading } = useRelatorioResumo();
+  const {
+    data: musicasData,
+    isLoading: musicasLoading,
+    isError: musicasError,
+  } = useMusicas({ page: 1, limit: 1 });
+  const { data: eventos, isLoading: eventosLoading, isError: eventosError } = useEventos();
+  const {
+    data: integrantes,
+    isLoading: integrantesLoading,
+    isError: integrantesError,
+  } = useIntegrantes();
+  const { data: resumo, isLoading: resumoLoading, isError: resumoError } = useRelatorioResumo();
 
   /** Total de músicas extraído dos metadados de paginação. */
   const totalMusicas = musicasData?.meta.total ?? 0;
@@ -89,6 +94,10 @@ const Dashboard = () => {
    * Um `isLoading` por stat (em vez de um agregado cobrindo os 4 cards):
    * cada card revela o valor assim que a própria query resolve, sem ficar
    * preso atrás da mais lenta das quatro.
+   *
+   * O `isError` acompanha pelo mesmo motivo de granularidade — e porque sem
+   * ele o fallback `?? 0` renderizaria um zero indistinguível de "este
+   * ministério realmente não tem nenhum", escondendo a falha da requisição.
    */
   const stats = [
     {
@@ -100,6 +109,7 @@ const Dashboard = () => {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       isLoading: musicasLoading,
+      isError: musicasError,
     },
     {
       title: "Escalas",
@@ -110,6 +120,7 @@ const Dashboard = () => {
       iconBg: "bg-accent/10",
       iconColor: "text-accent",
       isLoading: eventosLoading,
+      isError: eventosError,
     },
     {
       title: "Integrantes",
@@ -120,6 +131,7 @@ const Dashboard = () => {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       isLoading: integrantesLoading,
+      isError: integrantesError,
     },
     {
       title: "Novas Músicas",
@@ -130,6 +142,7 @@ const Dashboard = () => {
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       isLoading: resumoLoading,
+      isError: resumoError,
     },
   ];
 
@@ -175,13 +188,25 @@ const Dashboard = () => {
             </h3>
             {stat.isLoading ? (
               <Skeleton className="h-8 w-16 mt-1.5" />
+            ) : stat.isError ? (
+              <div
+                className="font-display text-3xl font-bold leading-none text-muted-foreground mt-1"
+                aria-hidden="true"
+              >
+                —
+              </div>
             ) : (
               <div className="font-display text-3xl font-bold leading-none text-foreground tabular-nums mt-1">
                 {stat.value}
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              {stat.description}
+            <p
+              className={cn(
+                "text-xs mt-1",
+                stat.isError ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {stat.isError ? "Não foi possível carregar" : stat.description}
             </p>
           </div>
         ))}

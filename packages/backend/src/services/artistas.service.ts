@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import artistasRepository from '../repositories/artistas.repository.js';
 import { compararNomesPtBr } from '../utils/ordenacao.js';
 
@@ -35,7 +36,10 @@ class ArtistasService {
         const artistaExistente = await artistasRepository.findByNome(nome);
         if (artistaExistente) throw new AppError("Já existe um artista com esse nome", 409);
 
-        const novoArtista = await artistasRepository.create(nome, tenantId);
+        const novoArtista = await comBarreiraDeDuplicidade(
+            "Já existe um artista com esse nome",
+            () => artistasRepository.create(nome, tenantId),
+        );
         return { id: novoArtista.id, nome: novoArtista.nome };
     }
 
@@ -50,7 +54,10 @@ class ArtistasService {
         const duplicado = await artistasRepository.findByNomeExcludingId(nome, id);
         if (duplicado) throw new AppError("Nome do artista já existe", 409);
 
-        const artista = await artistasRepository.update(id, nome);
+        const artista = await comBarreiraDeDuplicidade(
+            "Nome do artista já existe",
+            () => artistasRepository.update(id, nome),
+        );
         return { id: artista.id, nome: artista.nome };
     }
 

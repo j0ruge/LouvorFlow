@@ -59,6 +59,7 @@ function opcoesDoToast(indice = 0): OpcoesToastCapturadas {
   return toastSuccess.mock.calls[indice][1] as unknown as OpcoesToastCapturadas;
 }
 
+/** Exclusão com janela de desfazer: timers, toasts e ciclo de vida. */
 describe("useUndoableDelete", () => {
   /** Ativa fake timers e zera os mocks antes de cada teste. */
   beforeEach(() => {
@@ -348,5 +349,40 @@ describe("useUndoableDelete", () => {
     expect(excluir).toHaveBeenCalledTimes(1);
     expect(excluir).toHaveBeenCalledWith("b2");
     expect(result.current.estaPendente("b2")).toBe(false);
+  });
+
+  /**
+   * Com o DELETE já em voo o id saiu do Map de timers mas ainda está pendente:
+   * reagendar nessa janela produziria um segundo DELETE do mesmo item.
+   */
+  it("agendar e ignorado enquanto o DELETE do mesmo id esta em voo", async () => {
+    /** Trava o DELETE aberto para manter o id na janela "confirmando". */
+    let liberar!: () => void;
+    const excluir = vi.fn(
+      () => new Promise<void>((resolve) => { liberar = resolve; }),
+    );
+    const { result } = renderHook(() => useUndoableDelete({ excluir }));
+
+    act(() => result.current.agendar("a1", "Item excluído."));
+
+    /** Fim da janela: o DELETE dispara e fica pendurado na Promise. */
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(excluir).toHaveBeenCalledTimes(1);
+    expect(result.current.estaPendente("a1")).toBe(true);
+
+    /** Segunda tentativa no meio do voo: não agenda nada, nem novo toast. */
+    const toastsAntes = toastSuccess.mock.calls.length;
+    act(() => result.current.agendar("a1", "Item excluído."));
+    expect(toastSuccess).toHaveBeenCalledTimes(toastsAntes);
+
+    await act(async () => {
+      liberar();
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(excluir).toHaveBeenCalledTimes(1);
+    expect(result.current.estaPendente("a1")).toBe(false);
   });
 });

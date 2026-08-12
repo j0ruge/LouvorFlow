@@ -2134,6 +2134,20 @@
           "403": {
             "$ref": "#/components/responses/ForbiddenError"
           },
+          "404": {
+            "description": "Tipo de evento não encontrado no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Tipo de evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
@@ -2306,7 +2320,18 @@
             "$ref": "#/components/responses/ForbiddenError"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "description": "Evento não encontrado, ou `fk_tipo_evento` inexistente no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Tipo de evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -2425,7 +2450,18 @@
             "$ref": "#/components/responses/ForbiddenError"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "description": "Evento de origem não encontrado (inclusive se removido durante a cópia), ou `fk_tipo_evento` sobrescrito inexistente no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -8514,7 +8550,7 @@
           },
           "novasMusicasNoMes": {
             "type": "integer",
-            "description": "Total de músicas cadastradas no mês corrente (created_at >= primeiro dia do mês, fuso do servidor)"
+            "description": "Total de músicas cadastradas no mês corrente (created_at >= primeiro dia do mês, em UTC)"
           }
         },
         "required": [

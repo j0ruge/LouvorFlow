@@ -96,6 +96,17 @@ export function useUndoableDelete({
   /** Exclusões agendadas por id (timer + toast), para cancelamento no desfazer/flush. */
   const timersRef = useRef<Map<string, ExclusaoAgendada>>(new Map());
   /**
+   * Ids cujo DELETE já está em voo.
+   *
+   * `timersRef` cobre a janela de desfazer, mas o id sai dele assim que o
+   * DELETE dispara e só sai de `pendentes` quando a Promise liquida. Nesse
+   * intervalo o hook ficaria sem nenhuma defesa: um `agendar` do mesmo id
+   * agendaria um segundo DELETE para algo já em exclusão. Hoje isso não
+   * acontece porque todo consumidor esconde a linha com `!estaPendente(id)`,
+   * mas a garantia é do hook — não de quem o usa.
+   */
+  const confirmandoRef = useRef<Set<string>>(new Set());
+  /**
    * Ref sempre atualizada do executor de exclusão: o cleanup do flush roda
    * uma única vez no desmonte e precisa enxergar a versão mais recente sem
    * reexecutar o efeito a cada render.
@@ -133,12 +144,14 @@ export function useUndoableDelete({
     async (id: string) => {
       const agendada = timersRef.current.get(id);
       timersRef.current.delete(id);
+      confirmandoRef.current.add(id);
       if (agendada) toast.dismiss(agendada.toastId);
       try {
         await excluirRef.current(id);
       } catch {
         /* toast de erro já emitido pelo onError da mutation */
       } finally {
+        confirmandoRef.current.delete(id);
         desmarcar(id);
       }
     },
@@ -177,6 +190,13 @@ export function useUndoableDelete({
   /** Implementação de `agendar` (ver contrato em `UndoableDelete`). */
   const agendar = useCallback(
     (id: string, mensagem: string) => {
+      /**
+       * DELETE do mesmo id já em voo: ignorar. Agendar aqui produziria um
+       * segundo DELETE para um item que a API já removeu — o 404 viraria um
+       * `toast.error` que o usuário não sabe explicar.
+       */
+      if (confirmandoRef.current.has(id)) return;
+
       /**
        * Defesa contra reagendamento do mesmo id: cancela o timer anterior e
        * dispensa o toast antigo — sem isso, dois "Desfazer" vivos apontariam

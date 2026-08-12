@@ -84,14 +84,32 @@ export function createFakeRelatoriosRepository(dados?: Partial<FakeRelatoriosDat
     let data: FakeRelatoriosData = { ...DEFAULT_DATA, ...dados };
 
     /**
-     * Retorna os eventos contabilizáveis do dataset: `data ≤ hoje` e
-     * `status = 'publicada'` — o mesmo filtro D5 do repositório real.
+     * Retorna os eventos contabilizáveis do dataset: `status = 'publicada'`,
+     * `data ≤ hoje` e — quando `meses` é informado — `data ≥ início da janela`,
+     * espelhando o `gte: inicioMes` / `lte: hoje` do repositório real.
+     *
+     * Sem o limite inferior, um evento de dois anos atrás entraria na
+     * "atividade mensal" do fake e sairia da query real: nenhum teste sobre
+     * este fake conseguiria pegar uma regressão no janelamento.
+     *
      * Retorna `null` quando não há dataset (usa os números configurados).
+     *
+     * @param meses - Tamanho da janela em meses; omitido, não aplica limite inferior.
      */
-    function eventosContabilizaveis(): FakeEventoRelatorio[] | null {
+    function eventosContabilizaveis(meses?: number): FakeEventoRelatorio[] | null {
         if (!data.eventos) return null;
         const hoje = new Date();
-        return data.eventos.filter(e => e.data <= hoje && e.status === 'publicada');
+        const inicioMes =
+            meses === undefined
+                ? null
+                : new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1);
+
+        return data.eventos.filter(
+            e =>
+                e.status === 'publicada'
+                && e.data <= hoje
+                && (inicioMes === null || e.data >= inicioMes),
+        );
     }
 
     return {
@@ -159,13 +177,13 @@ export function createFakeRelatoriosRepository(dados?: Partial<FakeRelatoriosDat
 
         /**
          * Retorna a atividade mensal: derivada do dataset (só eventos
-         * `publicada` passados, agrupados por mês) quando configurado, ou
-         * a lista fixa.
+         * `publicada` passados e dentro da janela de `meses`, agrupados por
+         * mês) quando configurado, ou a lista fixa.
          *
-         * @param _meses - Quantidade de meses (ignorado no fake).
+         * @param meses - Quantidade de meses para trás a partir do mês atual.
          */
-        getAtividadeMensal: async (_meses: number): Promise<AtividadeMensal[]> => {
-            const eventos = eventosContabilizaveis();
+        getAtividadeMensal: async (meses: number): Promise<AtividadeMensal[]> => {
+            const eventos = eventosContabilizaveis(meses);
             if (!eventos) return data.atividadeMensal;
 
             const mesMap = new Map<string, { eventos: number; musicas: number; sortKey: number }>();

@@ -196,9 +196,9 @@ export async function criarEventoComMusica(): Promise<EventoComMusicaFixture> {
   });
 
   /**
-   * Remove o evento (e o vínculo com a música) e depois a própria música, e
-   * A ordem importa: o evento precisa ser removido
-   * antes da música, já que o vínculo aponta para ela.
+   * Remove o evento (e o vínculo com a música) e depois a própria música.
+   * A ordem importa: o evento precisa ser removido antes da música, já que o
+   * vínculo aponta para ela.
    *
    * @returns Promise resolvida quando a limpeza terminar.
    */

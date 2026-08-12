@@ -122,6 +122,18 @@ export function EventoRow({
       onClick={onOpen ? abrir : undefined}
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
+      /*
+        `role="button"` calcula o nome acessível "a partir do conteúdo": sem um
+        rótulo explícito, o texto dos botões do slot `acoes` (Duplicar,
+        Detalhes, Publicar) entra no nome da linha e é anunciado duas vezes —
+        uma como parte da linha, outra ao chegar em cada botão. Combinação real
+        em `History.tsx`, que passa `onOpen` e `acoes` juntos.
+        `legenda` é opcional (o `Dashboard.tsx` não a passa), então entra pelo
+        filtro — interpolá-la direto anunciaria a palavra "undefined".
+      */
+      aria-label={
+        onOpen ? [titulo, legenda].filter(Boolean).join(", ") : undefined
+      }
       onKeyDown={
         onOpen
           ? (e) => {

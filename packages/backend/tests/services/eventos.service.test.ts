@@ -23,12 +23,21 @@ vi.mock('../../src/repositories/eventos.repository.js', () => ({
 
 const { default: eventosService } = await import('../../src/services/eventos.service.js');
 
+/** Suíte do service de eventos (escalas) sobre repositórios falsos. */
 describe('EventosService', () => {
   beforeEach(() => {
     fakeRepo.reset();
+    /**
+     * Restaura os spies antes de cada teste: um `mockRejectedValueOnce` que o
+     * teste dono não chegou a consumir (porque uma validação anterior
+     * curto-circuitou) sobreviveria no fake e seria consumido pelo teste
+     * seguinte, deslocando as falhas em cascata.
+     */
+    vi.restoreAllMocks();
   });
 
   // ─── listAll ────────────────────────────────────────────
+  /** Listagem de eventos com tipo, músicas e integrantes achatados. */
   describe('listAll', () => {
     it('deve retornar eventos formatados com tipoEvento, musicas e integrantes', async () => {
       const result = await eventosService.listAll();
@@ -46,6 +55,7 @@ describe('EventosService', () => {
   });
 
   // ─── getById ────────────────────────────────────────────
+  /** Detalhe de um evento, incluindo validação de ID e ausência. */
   describe('getById', () => {
     it('deve retornar evento detalhado pelo id', async () => {
       const result = await eventosService.getById(MOCK_EVENTOS[0].id);
@@ -149,6 +159,7 @@ describe('EventosService', () => {
   });
 
   // ─── create ─────────────────────────────────────────────
+  /** Criação de evento: obrigatoriedades, data, status e escopo de tenant. */
   describe('create', () => {
     it('deve criar evento com dados válidos', async () => {
       const result = await eventosService.create({
@@ -222,10 +233,36 @@ describe('EventosService', () => {
       }, 'tenant-fake-id');
       expect(resultado.status).toBe('rascunho');
     });
+
+    /**
+     * A FK do banco valida só existência do id, sem conhecer `tenant_id`: sem a
+     * checagem no service, o id de um `Tipos_Eventos` de outra igreja seria
+     * gravado e o nome dele voltaria na resposta.
+     */
+    it('deve lançar AppError 404 quando fk_tipo_evento não existe no tenant', async () => {
+      await expect(eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: NON_EXISTENT_ID,
+      }, 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
   });
 
   // ─── update ─────────────────────────────────────────────
+  /** Atualização de evento, incluindo transição de rascunho para publicada. */
   describe('update', () => {
+    /** Mesma guarda de tenant do `create`, no caminho de atualização. */
+    it('deve lançar AppError 404 quando fk_tipo_evento não existe no tenant', async () => {
+      await expect(
+        eventosService.update(MOCK_EVENTOS[0].id, { fk_tipo_evento: NON_EXISTENT_ID })
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
+
     it('deve atualizar evento com dados válidos', async () => {
       const result = await eventosService.update(MOCK_EVENTOS[0].id, { descricao: 'Descrição atualizada' });
       expect(result.descricao).toBe('Descrição atualizada');
@@ -275,6 +312,7 @@ describe('EventosService', () => {
   });
 
   // ─── duplicar ───────────────────────────────────────────
+  /** Duplicação de escala: validações, corridas e tradução de erro do Prisma. */
   describe('duplicar', () => {
     /** Data da cópia usada em todos os cenários de duplicação. */
     const NOVA_DATA = '2026-06-07T10:00:00Z';
@@ -390,9 +428,41 @@ describe('EventosService', () => {
     });
 
     /**
-     * Deve traduzir P2003 na FK de tipo de evento (sobrescrita com UUID inexistente)
-     * para AppError 404. O mock replica o formato real do Prisma 6 no Postgres:
-     * `meta.constraint` com o nome da constraint do banco.
+     * Sobrescrever `fk_tipo_evento` com um id fora do catálogo do tenant deve
+     * parar em 404 **antes** da transação — a FK do banco valida só existência
+     * do id, então sem essa checagem o tipo de outra igreja seria aceito.
+     */
+    it('deve lançar AppError 404 quando fk_tipo_evento sobrescrito não existe no tenant', async () => {
+      const duplicarSpy = vi.spyOn(fakeRepo, 'duplicarEvento');
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: NON_EXISTENT_ID }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+      expect(duplicarSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Origem excluída entre a validação do service e a transação vira 404, não
+     * uma cópia vazia com 201 — o repositório lança o sentinela `ORIGEM_NOT_FOUND`.
+     */
+    it('deve lançar AppError 404 quando a origem é removida durante a cópia', async () => {
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(new Error('ORIGEM_NOT_FOUND'));
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /**
+     * Deve traduzir P2003 na FK de tipo de evento (removido entre a validação e
+     * a gravação) para AppError 404. O mock replica o formato real do Prisma 6
+     * no Postgres: `meta.constraint` com o nome da constraint do banco.
      */
     it('deve traduzir erro Prisma P2003 em fk_tipo_evento para AppError 404 "Tipo de evento não encontrado"', async () => {
       const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
@@ -402,7 +472,7 @@ describe('EventosService', () => {
       vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
 
       await expect(
-        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: NON_EXISTENT_ID }, TENANT_A_ID)
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id }, TENANT_A_ID)
       ).rejects.toMatchObject({
         statusCode: 404,
         message: 'Tipo de evento não encontrado',
@@ -443,6 +513,7 @@ describe('EventosService', () => {
   });
 
   // ─── getCifraclubPlaylist ───────────────────────────────
+  /** Montagem da playlist CifraClub com o tom efetivo de cada música. */
   describe('getCifraclubPlaylist', () => {
     /** Deve montar a playlist com stats coerentes (total = com_link + sem_link). */
     it('deve montar a playlist com stats coerentes', async () => {
@@ -503,6 +574,7 @@ describe('EventosService', () => {
   });
 
   // ─── delete ─────────────────────────────────────────────
+  /** Remoção de evento e validação de existência. */
   describe('delete', () => {
     it('deve remover um evento existente', async () => {
       const result = await eventosService.delete(MOCK_EVENTOS[0].id);
@@ -527,6 +599,7 @@ describe('EventosService', () => {
   });
 
   // ─── listMusicas ────────────────────────────────────────
+  /** Listagem do repertório de um evento, ordenado por posição. */
   describe('listMusicas', () => {
     it('deve retornar músicas do evento com tonalidade', async () => {
       const result = await eventosService.listMusicas(MOCK_EVENTOS[0].id);
@@ -556,6 +629,7 @@ describe('EventosService', () => {
   });
 
   // ─── addMusica ──────────────────────────────────────────
+  /** Vínculo de música ao evento, com versão opcional e duplicidade. */
   describe('addMusica', () => {
     /** Deve vincular música ao evento com ordem automática (próxima posição). */
     it('deve vincular música ao evento com ordem automática', async () => {
@@ -759,6 +833,7 @@ describe('EventosService', () => {
   });
 
   // ─── setMusicaVersao ────────────────────────────────────
+  /** Troca da versão selecionada de uma música na escala. */
   describe('setMusicaVersao', () => {
     /** Deve atualizar a versão selecionada e retornar MusicaEvento formatada. */
     it('deve definir versão e retornar MusicaEvento com versao_selecionada preenchida', async () => {
@@ -878,6 +953,7 @@ describe('EventosService', () => {
   });
 
   // ─── setMusicaTonalidade ────────────────────────────────
+  /** Tom próprio da música na escala (override do tom global). */
   describe('setMusicaTonalidade', () => {
     /** Deve definir o tom próprio da escala e retornar tonalidade efetiva ≠ tom global. */
     it('deve definir o tom da escala e retornar tonalidade efetiva com tonalidade_musica global', async () => {
@@ -968,6 +1044,7 @@ describe('EventosService', () => {
   });
 
   // ─── removeMusica ───────────────────────────────────────
+  /** Remoção de música do evento e reindexação das posições. */
   describe('removeMusica', () => {
     /** Deve remover música vinculada e recalcular ordem das restantes. */
     it('deve remover música vinculada', async () => {
@@ -994,6 +1071,7 @@ describe('EventosService', () => {
   });
 
   // ─── reorderMusicas ────────────────────────────────────
+  /** Reordenação do repertório do evento. */
   describe('reorderMusicas', () => {
     /** Deve reordenar músicas do evento com IDs na nova ordem. */
     it('deve reordenar músicas de um evento existente', async () => {
@@ -1037,6 +1115,7 @@ describe('EventosService', () => {
   });
 
   // ─── listIntegrantes ────────────────────────────────────
+  /** Listagem dos integrantes escalados com suas funções. */
   describe('listIntegrantes', () => {
     it('deve retornar integrantes do evento com funções', async () => {
       const result = await eventosService.listIntegrantes(MOCK_EVENTOS[0].id);
@@ -1055,6 +1134,7 @@ describe('EventosService', () => {
   });
 
   // ─── addIntegrante ──────────────────────────────────────
+  /** Vínculo de integrante ao evento, com funções e escopo de tenant. */
   describe('addIntegrante', () => {
     /** Deve vincular integrante ao evento usando todas as funções globais quando funcao_ids não é fornecido. */
     it('deve vincular integrante ao evento com todas as funções quando funcao_ids não fornecido', async () => {
@@ -1134,6 +1214,7 @@ describe('EventosService', () => {
   });
 
   // ─── removeIntegrante ───────────────────────────────────
+  /** Remoção do vínculo entre evento e integrante. */
   describe('removeIntegrante', () => {
     it('deve remover integrante vinculado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];

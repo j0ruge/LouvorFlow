@@ -95,9 +95,16 @@ const Songs = () => {
    * `z.array(uuidSchema)` e devolve 400 ao primeiro token inválido, o que
    * jogaria a página inteira no `ErrorState` por causa de um link velho ou
    * editado à mão. Descartar o token inválido degrada para "sem esse filtro".
+   *
+   * O `Set` remove repetições: `?categorias=<uuid>,<uuid>` geraria duas
+   * entradas idênticas em `descreverFiltrosAtivos`, colidindo na `key` do React
+   * (badge duplicado que não some ao ser removido) e inflando o contador de
+   * filtros ativos do Drawer.
    */
   const categoriaIds = categoriasParam
-    ? categoriasParam.split(",").filter((v) => UUID_REGEX.test(v))
+    ? Array.from(
+        new Set(categoriasParam.split(",").filter((v) => UUID_REGEX.test(v))),
+      )
     : [];
   const intensidadesParam = searchParams.get("intensidades") ?? "";
   /**
@@ -425,7 +432,12 @@ const Songs = () => {
                 {normalizedQ && (
                   <>
                     {" "}
-                    para <span className="text-foreground">“{normalizedQ}”</span>
+                    {/* `break-words`: o termo é texto livre do usuário e pode
+                        vir sem espaço (token/URL colado), estourando 360px. */}
+                    para{" "}
+                    <span className="text-foreground break-words">
+                      “{normalizedQ}”
+                    </span>
                   </>
                 )}
               </span>

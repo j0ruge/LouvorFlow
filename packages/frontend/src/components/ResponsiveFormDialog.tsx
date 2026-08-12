@@ -241,16 +241,22 @@ export function ResponsiveFormDialog({
     );
   }
 
-  /**
-   * Resíduo conhecido e aceito: o `<DialogPrimitive.Close>` (o X) do
-   * `ui/dialog.tsx` é irmão do wrapper inerte e continua focável com o veil
-   * aberto — clicá-lo só re-dispara `pedirFechamento()` (idempotente).
-   */
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn(
           "flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0",
+          /*
+            O `<DialogPrimitive.Close>` (o X) do `ui/dialog.tsx` é IRMÃO do
+            wrapper inerte, então `inert`/`aria-hidden` não o alcançam: o veil
+            só o cobria por z-index, e o `FocusScope` do Radix — que monta a
+            lista de tabbables pela focabilidade real do DOM — continuava
+            parando nele. Resultado: uma terceira parada invisível no ciclo de
+            Tab do alertdialog. `display:none` o tira da árvore de foco de vez.
+            É o único <button> filho direto do content (o formulário vive no
+            <div> abaixo), então o seletor não pega mais nada.
+          */
+          veilAberto && "[&>button]:hidden",
           contentClassName,
         )}
       >

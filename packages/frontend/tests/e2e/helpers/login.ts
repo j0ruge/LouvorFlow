@@ -6,6 +6,7 @@
  */
 
 import { expect, type Page } from "@playwright/test";
+import { EMAIL_ADMIN, SENHA_ADMIN } from "./credenciais";
 
 /** Igreja usada pelos testes — a semeada por `seeds/admin.ts`. */
 const IGREJA_PADRAO = "Igreja Padrão";
@@ -26,8 +27,8 @@ const IGREJA_PADRAO = "Igreja Padrão";
  */
 export async function loginAsAdmin(page: Page): Promise<void> {
   await page.goto("/login");
-  await page.getByRole("textbox", { name: "E-mail" }).fill("admin@louvorflow.com");
-  await page.getByRole("textbox", { name: "Senha" }).fill("Admin@123");
+  await page.getByRole("textbox", { name: "E-mail" }).fill(EMAIL_ADMIN);
+  await page.getByRole("textbox", { name: "Senha" }).fill(SENHA_ADMIN);
   await page.getByRole("button", { name: "Entrar" }).click();
 
   await page.waitForURL(/\/(selecionar-igreja)?$/, { timeout: 10_000 });
