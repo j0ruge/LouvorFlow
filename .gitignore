@@ -43,6 +43,9 @@ dist-ssr
 # Snapshots avulsos do Playwright na raiz
 /cifraclub-list-page.yml
 
+# Estado de autenticação da suíte E2E (tokens de sessão local)
+packages/frontend/tests/e2e/.auth/
+
 # MCP server config (contém credenciais locais)
 .mcp.json
 

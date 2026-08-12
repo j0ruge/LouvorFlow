@@ -20,18 +20,13 @@
  * `helpers/eventos-fixture.ts` e `configuracoes-crud.spec.ts`.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import {
   criarIgrejaParaVinculo,
   type IgrejaVinculoFixture,
 } from "./helpers/igreja-fixture";
 
 test.describe("Admin — Formulários migrados (campos obrigatórios)", () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   /**
    * Submeter o formulário de usuário vazio exibe as três mensagens Zod,
    * marca o primeiro campo com `aria-invalid` e foco, e digitar limpa o erro.
@@ -181,10 +176,9 @@ test.describe("Admin — IgrejaUsers (vínculo sem react-hook-form)", () => {
   /** Igreja vazia criada via API para o teste corrente, desfeita no `afterEach`. */
   let fixture: IgrejaVinculoFixture;
 
-  /** Cria a igreja de teste via API e autentica na UI. */
+  /** Cria a igreja de teste via API antes de cada caso. */
   test.beforeEach(async ({ page }) => {
     fixture = await criarIgrejaParaVinculo();
-    await loginAsAdmin(page);
   });
 
   /** Desfaz o que o teste criou: vínculos feitos via UI + a própria igreja. */

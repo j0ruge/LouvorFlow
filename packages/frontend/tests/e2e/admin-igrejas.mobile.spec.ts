@@ -7,13 +7,11 @@
  * a página não gera rolagem horizontal.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 
 test.describe("Mobile — Igrejas (360×740)", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/admin/igrejas");
     await expect(page.getByRole("heading", { name: "Igrejas" })).toBeVisible();
   });

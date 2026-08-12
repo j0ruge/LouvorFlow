@@ -15,8 +15,8 @@
  * escala aparece primeiro em `/escalas`.
  *
  * **Consertos pré-existentes**: a versão anterior deste spec (1) não
- * autenticava (`loginAsAdmin` ausente — a rota protegida redirecionava para
- * `/login` e o teste nunca encontrava o conteúdo esperado) e (2) procurava um
+ * autenticava (a rota protegida redirecionava para `/login` e o teste nunca
+ * encontrava o conteúdo esperado — hoje a sessão vem de `./fixtures`) e (2) procurava um
  * botão "Ver Detalhes" que não existe no DOM (o rótulo real é "Detalhes"). Em
  * vez de só trocar o texto do botão, o `beforeEach` passou a navegar direto
  * para `/escalas/:id` com o id conhecido da fixture — elimina por completo a
@@ -37,8 +37,7 @@
  * verificar a mensagem informativa, como já fazia o de integrantes.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import {
   criarEventoComMusica,
   type EventoComMusicaFixture,
@@ -56,9 +55,8 @@ test.afterAll(async () => {
   await fixture.limpar();
 });
 
-/** Autentica e abre diretamente o detalhe da escala de teste antes de cada caso. */
+/** Abre diretamente o detalhe da escala de teste antes de cada caso. */
 test.beforeEach(async ({ page }) => {
-  await loginAsAdmin(page);
   await page.goto(`/escalas/${fixture.eventoId}`);
   await expect(page.getByText("Detalhes da Escala")).toBeVisible({
     timeout: 10_000,

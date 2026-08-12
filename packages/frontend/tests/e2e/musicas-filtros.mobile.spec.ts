@@ -7,14 +7,12 @@
  * página não gera rolagem horizontal.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 
 test.describe("Mobile — Músicas: filtros colapsáveis (360×740)", () => {
-  /** Autentica e abre a página de Músicas antes de cada caso. */
+  /** Abre a página de Músicas antes de cada caso. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/musicas");
     await expect(page.getByRole("heading", { name: "Músicas" })).toBeVisible();
   });

@@ -9,8 +9,8 @@
  * folha presa fora da tela. Com o formulário limpo, o backdrop fecha direto.
  */
 
-import { test, expect, type Locator } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
+import type { Locator } from "@playwright/test";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 
 /**
@@ -38,12 +38,11 @@ async function aguardarFolhaEstavel(folha: Locator): Promise<void> {
 
 test.describe("Mobile — guarda de alterações não salvas (360×740)", () => {
   /**
-   * Autentica, abre a página de Escalas e o bottom-sheet "Nova Escala".
+   * Abre a página de Escalas e o bottom-sheet "Nova Escala".
    * `.first()` porque, com a lista vazia, o EmptyState renderiza um segundo
    * botão "Nova Escala" além do botão do header.
    */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/escalas");
     await page.getByRole("button", { name: "Nova Escala" }).first().click();
     await expect(

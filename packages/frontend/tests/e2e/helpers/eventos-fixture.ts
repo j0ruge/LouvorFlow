@@ -20,9 +20,14 @@
  * Usa `/api/*` sobre o `baseURL` do frontend (porta 8080): o Vite dev
  * server já faz proxy de `/api` para o backend (`vite.config.ts`), o mesmo
  * caminho que o app real usa a partir do browser.
+ *
+ * O contexto de API vem de `obterSessaoAdmin()` e é **compartilhado**: cada
+ * fixture autenticar por conta própria consumia uma das 10 requisições que o
+ * `POST /api/sessions` permite por 15 min. Por isso `limpar()` não chama
+ * `api.dispose()`.
  */
 
-import { request as playwrightRequest } from "@playwright/test";
+import { obterSessaoAdmin } from "./sessao";
 import { formatDataExtenso } from "@/lib/utils";
 
 /** Um dia em milissegundos, para deslocar datas de eventos no passado. */
@@ -59,7 +64,7 @@ export interface EventosHistoricoFixture {
    * assertar um nome hardcoded (ex.: "Culto de Domingo") seria frágil.
    */
   tipoNome: string;
-  /** Remove os dois eventos criados e libera o contexto de API. Chamar em `afterAll`. */
+  /** Remove os dois eventos criados. Chamar em `afterAll`. */
   limpar: () => Promise<void>;
 }
 
@@ -72,15 +77,7 @@ export interface EventosHistoricoFixture {
  * para remover os dados ao final da suíte.
  */
 export async function criarEventosHistorico(): Promise<EventosHistoricoFixture> {
-  const api = await playwrightRequest.newContext({
-    baseURL: "http://localhost:8080",
-  });
-
-  const loginResponse = await api.post("/api/sessions", {
-    data: { email: "admin@louvorflow.com", password: "Admin@123" },
-  });
-  const { token } = await loginResponse.json();
-  const auth = { Authorization: `Bearer ${token}` };
+  const { api, auth } = await obterSessaoAdmin();
 
   /** Reaproveita o primeiro tipo de evento já semeado no tenant (ordem não é garantida pela API). */
   const tiposResponse = await api.get("/api/tipos-eventos", { headers: auth });
@@ -113,14 +110,13 @@ export async function criarEventosHistorico(): Promise<EventosHistoricoFixture> 
   const antigo = await criar(`E2E Historico Antigo ${sufixo}`, 15);
 
   /**
-   * Remove os dois eventos criados e libera o contexto de API.
+   * Remove os dois eventos criados.
    *
    * @returns Promise resolvida quando a limpeza terminar.
    */
   async function limpar(): Promise<void> {
     await api.delete(`/api/eventos/${recente.id}`, { headers: auth });
     await api.delete(`/api/eventos/${antigo.id}`, { headers: auth });
-    await api.dispose();
   }
 
   return { recente, antigo, tipoNome, limpar };
@@ -147,7 +143,7 @@ export interface EventoComMusicaFixture {
   tomGlobal: { id: string; tom: string };
   /** Segundo tom do catálogo do tenant, distinto de `tomGlobal` — usado para definir o override. */
   outroTom: { id: string; tom: string };
-  /** Remove a música e o evento criados e libera o contexto de API. Chamar em `afterAll`. */
+  /** Remove a música e o evento criados. Chamar em `afterAll`. */
   limpar: () => Promise<void>;
 }
 
@@ -161,15 +157,7 @@ export interface EventoComMusicaFixture {
  * e a função `limpar` para remover os dados ao final da suíte.
  */
 export async function criarEventoComMusica(): Promise<EventoComMusicaFixture> {
-  const api = await playwrightRequest.newContext({
-    baseURL: "http://localhost:8080",
-  });
-
-  const loginResponse = await api.post("/api/sessions", {
-    data: { email: "admin@louvorflow.com", password: "Admin@123" },
-  });
-  const { token } = await loginResponse.json();
-  const auth = { Authorization: `Bearer ${token}` };
+  const { api, auth } = await obterSessaoAdmin();
 
   const tonalidadesResponse = await api.get("/api/tonalidades", { headers: auth });
   const tonalidades: Array<{ id: string; tom: string }> = await tonalidadesResponse.json();
@@ -209,7 +197,7 @@ export async function criarEventoComMusica(): Promise<EventoComMusicaFixture> {
 
   /**
    * Remove o evento (e o vínculo com a música) e depois a própria música, e
-   * libera o contexto de API. A ordem importa: o evento precisa ser removido
+   * A ordem importa: o evento precisa ser removido
    * antes da música, já que o vínculo aponta para ela.
    *
    * @returns Promise resolvida quando a limpeza terminar.
@@ -217,7 +205,6 @@ export async function criarEventoComMusica(): Promise<EventoComMusicaFixture> {
   async function limpar(): Promise<void> {
     await api.delete(`/api/eventos/${eventoId}`, { headers: auth });
     await api.delete(`/api/musicas/${musicaId}`, { headers: auth });
-    await api.dispose();
   }
 
   return { eventoId, descricao, musicaId, musicaNome, tomGlobal, outroTom, limpar };
@@ -252,7 +239,7 @@ export interface EscalaFuturaFixture {
    * @param texto - Trecho da descrição a casar (ex.: o prefixo único da suíte).
    */
   excluirPorDescricao: (texto: string) => Promise<void>;
-  /** Varre todos os eventos com o prefixo da suíte e libera o contexto de API. Chamar em `afterAll`. */
+  /** Varre todos os eventos com o prefixo da suíte. Chamar em `afterAll`. */
   limpar: () => Promise<void>;
 }
 
@@ -265,15 +252,7 @@ export interface EscalaFuturaFixture {
  * @returns O evento criado, o nome do tipo usado e as rotinas de limpeza.
  */
 export async function criarEscalaFutura(): Promise<EscalaFuturaFixture> {
-  const api = await playwrightRequest.newContext({
-    baseURL: "http://localhost:8080",
-  });
-
-  const loginResponse = await api.post("/api/sessions", {
-    data: { email: "admin@louvorflow.com", password: "Admin@123" },
-  });
-  const { token } = await loginResponse.json();
-  const auth = { Authorization: `Bearer ${token}` };
+  const { api, auth } = await obterSessaoAdmin();
 
   /** Reaproveita o primeiro tipo de evento já semeado no tenant (ordem não é garantida pela API). */
   const tiposResponse = await api.get("/api/tipos-eventos", { headers: auth });
@@ -327,13 +306,12 @@ export async function criarEscalaFutura(): Promise<EscalaFuturaFixture> {
 
   /**
    * Varre todos os eventos com o prefixo único da suíte (o original e os
-   * criados pela UI: cópias e rascunhos) e libera o contexto de API.
+   * criados pela UI: cópias e rascunhos).
    *
    * @returns Promise resolvida quando a limpeza terminar.
    */
   async function limpar(): Promise<void> {
     await excluirPorDescricao(descricao);
-    await api.dispose();
   }
 
   return { id, descricao, tipoNome, criarRascunho, excluirPorDescricao, limpar };

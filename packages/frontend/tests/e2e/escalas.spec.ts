@@ -11,8 +11,8 @@
  * em `afterAll` — o spec não depende de dados fixos do banco de dev.
  */
 
-import { test, expect, type Page, type Locator } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
+import type { Page, Locator } from "@playwright/test";
 import {
   criarEscalaFutura,
   type EscalaFuturaFixture,
@@ -64,9 +64,8 @@ test.describe("Escalas", () => {
     await fixture.limpar();
   });
 
-  /** Autentica e abre `/escalas` antes de cada caso — rota protegida. */
+  /** Abre `/escalas` antes de cada caso — rota protegida. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/escalas");
     await expect(
       page.getByRole("heading", { name: "Escalas", exact: true }),

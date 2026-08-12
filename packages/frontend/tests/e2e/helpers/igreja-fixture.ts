@@ -10,39 +10,33 @@
  * (`DELETE /igrejas/:id`, que na API de igrejas é soft delete).
  *
  * Mesmo padrão de `helpers/eventos-fixture.ts`: usa `/api/*` sobre o baseURL
- * do frontend (porta 8080), que o Vite dev server já proxia para o backend.
+ * do frontend (porta 8080), que o Vite dev server já proxia para o backend, e
+ * o contexto de API compartilhado de `obterSessaoAdmin()` — autenticar aqui
+ * consumiria uma das 10 requisições que o `POST /api/sessions` permite por
+ * 15 min, e este fixture roda a cada teste.
  */
 
-import { expect, request as playwrightRequest } from "@playwright/test";
-
-/** Credenciais do admin semeado, reaproveitadas do restante da suíte E2E. */
-const ADMIN_CREDENTIALS = { email: "admin@louvorflow.com", password: "Admin@123" };
+import { expect } from "@playwright/test";
+import { obterSessaoAdmin } from "./sessao";
 
 /** Igreja de teste criada via API, com a rotina de limpeza. */
 export interface IgrejaVinculoFixture {
   /** UUID da igreja criada (vazia, sem usuários vinculados). */
   id: string;
-  /** Remove os vínculos criados, desativa a igreja e libera o contexto de API. Chamar em `afterEach`. */
+  /** Remove os vínculos criados e desativa a igreja. Chamar em `afterEach`. */
   limpar: () => Promise<void>;
 }
 
 /**
- * Autentica como admin via API e cria uma igreja vazia com nome único para o
- * fluxo de vínculo de usuários. Falhas de login/criação são assertadas na
- * hora (`response.ok()`) — sem isso, uma falha viraria `TypeError` opaco ao
- * ler `body.igreja.id` e deixaria o cleanup com id stale.
+ * Cria uma igreja vazia com nome único para o fluxo de vínculo de usuários,
+ * usando a sessão de API compartilhada. A falha de criação é assertada na hora
+ * (`response.ok()`) — sem isso, viraria `TypeError` opaco ao ler
+ * `body.igreja.id` e deixaria o cleanup com id stale.
  *
  * @returns O id da igreja criada e a função `limpar` para desfazer tudo.
  */
 export async function criarIgrejaParaVinculo(): Promise<IgrejaVinculoFixture> {
-  const api = await playwrightRequest.newContext({
-    baseURL: "http://localhost:8080",
-  });
-
-  const loginResponse = await api.post("/api/sessions", { data: ADMIN_CREDENTIALS });
-  expect(loginResponse.ok(), "login de API do fixture falhou").toBeTruthy();
-  const { token } = await loginResponse.json();
-  const auth = { Authorization: `Bearer ${token}` };
+  const { api, auth } = await obterSessaoAdmin();
 
   const createResponse = await api.post("/api/igrejas", {
     headers: auth,
@@ -53,8 +47,7 @@ export async function criarIgrejaParaVinculo(): Promise<IgrejaVinculoFixture> {
   const id: string = body.igreja.id;
 
   /**
-   * Remove os vínculos feitos pelo teste, desativa a igreja de teste e
-   * libera o contexto de API.
+   * Remove os vínculos feitos pelo teste e desativa a igreja de teste.
    *
    * @returns Promise resolvida quando a limpeza terminar.
    */
@@ -65,7 +58,6 @@ export async function criarIgrejaParaVinculo(): Promise<IgrejaVinculoFixture> {
       await api.delete(`/api/igrejas/${id}/users/${user.id}`, { headers: auth });
     }
     await api.delete(`/api/igrejas/${id}`, { headers: auth });
-    await api.dispose();
   }
 
   return { id, limpar };

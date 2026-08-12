@@ -10,17 +10,15 @@
  * fechamento segue direto, sem veil.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 
 test.describe("Formulários — guarda de alterações não salvas", () => {
   /**
-   * Autentica, abre a página de Escalas e o formulário "Nova Escala".
+   * Abre a página de Escalas e o formulário "Nova Escala".
    * `.first()` porque, com a lista vazia, o EmptyState renderiza um segundo
    * botão "Nova Escala" além do botão do header.
    */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/escalas");
     await page.getByRole("button", { name: "Nova Escala" }).first().click();
     await expect(

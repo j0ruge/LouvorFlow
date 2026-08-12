@@ -4,18 +4,12 @@
  * Verifica que os 4 cards de estatística (Músicas, Escalas, Integrantes,
  * Novas Músicas) exibem contagens reais do servidor, e que as seções de
  * "Próximas Escalas" e "Equipe do Ministério" usam dados reais. `/` é rota
- * protegida — cada teste autentica via `loginAsAdmin` no `beforeEach`.
+ * protegida — a sessão vem do contexto autenticado de `./fixtures`.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 
 test.describe("Dashboard", () => {
-  /** Autentica como admin antes de cada teste — `/` é rota protegida. */
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   /** Os 4 cards de estatística (Músicas, Escalas, Integrantes, Novas Músicas) exibem título e contagem real vindos do servidor. */
   test("deve exibir os 4 cards de estatística com contagens reais", async ({
     page,

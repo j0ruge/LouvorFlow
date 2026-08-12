@@ -6,12 +6,10 @@
  * requerem login como admin com role super-admin.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 
 test.describe("Admin — Igrejas", () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/admin/igrejas");
     await expect(page.getByRole("heading", { name: "Igrejas" })).toBeVisible();
   });

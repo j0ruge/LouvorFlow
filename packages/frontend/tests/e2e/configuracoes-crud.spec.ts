@@ -12,11 +12,9 @@
  * de `admin-igrejas.spec.ts`.
  */
 
-import { test, expect, request as playwrightRequest, type APIRequestContext } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
-
-/** Credenciais do admin semeado, reaproveitadas do restante da suíte E2E. */
-const ADMIN_CREDENTIALS = { email: "admin@louvorflow.com", password: "Admin@123" };
+import { test, expect } from "./fixtures";
+import type { APIRequestContext } from "@playwright/test";
+import { obterSessaoAdmin } from "./helpers/sessao";
 
 test.describe("Configurações — CRUD (ConfigCrudSection)", () => {
   let api: APIRequestContext;
@@ -24,23 +22,14 @@ test.describe("Configurações — CRUD (ConfigCrudSection)", () => {
   /** Nomes de artistas criados durante o teste corrente, para excluir no `afterEach`. */
   let nomesCriados: string[];
 
-  /** Autentica via API uma vez para a suíte, reaproveitando o contexto nos cleanups. */
+  /** Toma a sessão de API compartilhada da suíte (um único login por worker). */
   test.beforeAll(async () => {
-    api = await playwrightRequest.newContext({ baseURL: "http://localhost:8080" });
-    const loginResponse = await api.post("/api/sessions", { data: ADMIN_CREDENTIALS });
-    const { token } = await loginResponse.json();
-    authHeader = { Authorization: `Bearer ${token}` };
+    ({ api, auth: authHeader } = await obterSessaoAdmin());
   });
 
-  /** Libera o contexto de API autenticado criado em `beforeAll` ao final da suíte. */
-  test.afterAll(async () => {
-    await api.dispose();
-  });
-
-  /** Autentica na UI e reseta a lista de nomes a limpar antes de cada teste. */
-  test.beforeEach(async ({ page }) => {
+  /** Reseta a lista de nomes a limpar antes de cada teste. */
+  test.beforeEach(() => {
     nomesCriados = [];
-    await loginAsAdmin(page);
   });
 
   /**

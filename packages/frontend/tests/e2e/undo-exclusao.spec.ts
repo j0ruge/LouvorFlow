@@ -13,17 +13,9 @@
  * que sobrar no `afterEach` (tolerante a 404 quando o teste já excluiu).
  */
 
-import {
-  test,
-  expect,
-  request as playwrightRequest,
-  type APIRequestContext,
-  type Page,
-} from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
-
-/** Credenciais do admin semeado, reaproveitadas do restante da suíte E2E. */
-const ADMIN_CREDENTIALS = { email: "admin@louvorflow.com", password: "Admin@123" };
+import { test, expect } from "./fixtures";
+import type { APIRequestContext, Page } from "@playwright/test";
+import { obterSessaoAdmin } from "./helpers/sessao";
 
 /** Um dia em milissegundos, para posicionar a escala no futuro (aba "Próximas"). */
 const UM_DIA_MS = 24 * 60 * 60 * 1000;
@@ -36,20 +28,12 @@ test.describe("Undo de exclusão — Escalas", () => {
   /** Descrição única da escala do teste corrente (título do card). */
   let descricao: string;
 
-  /** Autentica via API uma vez para a suíte, reaproveitando o contexto nas fixtures. */
+  /** Toma a sessão de API compartilhada da suíte (um único login por worker). */
   test.beforeAll(async () => {
-    api = await playwrightRequest.newContext({ baseURL: "http://localhost:8080" });
-    const loginResponse = await api.post("/api/sessions", { data: ADMIN_CREDENTIALS });
-    const { token } = await loginResponse.json();
-    authHeader = { Authorization: `Bearer ${token}` };
+    ({ api, auth: authHeader } = await obterSessaoAdmin());
   });
 
-  /** Libera o contexto de API autenticado ao final da suíte. */
-  test.afterAll(async () => {
-    await api.dispose();
-  });
-
-  /** Cria uma escala futura via API (aba "Próximas", a default) e autentica na UI. */
+  /** Cria uma escala futura via API (aba "Próximas", a default) antes de cada teste. */
   test.beforeEach(async ({ page }) => {
     descricao = `E2E Undo Escala ${Date.now()}`;
 
@@ -68,7 +52,6 @@ test.describe("Undo de exclusão — Escalas", () => {
     const body = await response.json();
     eventoId = body.evento.id;
 
-    await loginAsAdmin(page);
     await page.goto("/escalas");
   });
 

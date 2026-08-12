@@ -6,7 +6,7 @@
  * a alternância de abas em configurações e a página 404.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Navegação", () => {
   test("deve navegar para todas as páginas do menu lateral", async ({

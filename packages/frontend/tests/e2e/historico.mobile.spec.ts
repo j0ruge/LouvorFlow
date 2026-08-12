@@ -10,8 +10,7 @@
  * `afterAll` — o spec não depende de dados fixos do banco de dev.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 import {
   criarEventosHistorico,
@@ -31,9 +30,8 @@ test.describe("Mobile — Histórico (360×740)", () => {
     await fixture.limpar();
   });
 
-  /** Autentica e abre `/historico` antes de cada caso. */
+  /** Abre `/historico` antes de cada caso. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/historico");
     /**
      * `exact: true`: sem isso, a busca por substring bate também no `<h3>`

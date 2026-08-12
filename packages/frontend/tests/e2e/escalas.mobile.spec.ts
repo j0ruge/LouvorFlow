@@ -16,8 +16,7 @@
  * e removidos em `afterAll` — o spec não depende de dados fixos do banco de dev.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 import {
   criarEventoComMusica,
@@ -39,9 +38,8 @@ test.afterAll(async () => {
 });
 
 test.describe("Mobile — Tom por música na escala (360×740)", () => {
-  /** Autentica e abre diretamente o detalhe da escala de teste antes de cada caso. */
+  /** Abre diretamente o detalhe da escala de teste antes de cada caso. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto(`/escalas/${fixture.eventoId}`);
     await expect(page.getByText("Detalhes da Escala")).toBeVisible({
       timeout: 10_000,
@@ -110,9 +108,8 @@ test.describe("Mobile — Escalas (lista, 360×740)", () => {
     await escalaFixture.limpar();
   });
 
-  /** Autentica e abre `/escalas` antes de cada caso — rota protegida. */
+  /** Abre `/escalas` antes de cada caso — rota protegida. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/escalas");
     await expect(
       page.getByRole("heading", { name: "Escalas", exact: true }),

@@ -11,8 +11,7 @@
  * roda igual num banco limpo.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 import {
   criarEventosHistorico,
   type EventosHistoricoFixture,
@@ -31,9 +30,8 @@ test.describe("Histórico", () => {
     await fixture.limpar();
   });
 
-  /** Autentica e abre `/historico` antes de cada caso — rota protegida. */
+  /** Abre `/historico` antes de cada caso — rota protegida. */
   test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
     await page.goto("/historico");
     /**
      * `exact: true`: sem isso, a busca por substring bate também no `<h3>`

@@ -3,15 +3,30 @@
  *
  * Verifica listagem, navegação para detalhes, edição, exclusão,
  * gestão de versões/categorias/funções e busca com filtragem.
+ *
+ * A música usada nos testes de busca é criada via API em `beforeAll`
+ * (`criarMusicaDeTeste`, `./helpers/musicas-fixture.ts`): a versão anterior
+ * procurava "T031", um dado ad-hoc que nunca esteve no seed — os dois casos
+ * falhavam em qualquer banco que não fosse o de uma máquina específica.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
+import {
+  criarMusicaDeTeste,
+  type MusicaDeTesteFixture,
+} from "./helpers/musicas-fixture";
 
 test.describe("Músicas", () => {
-  /** Autentica antes de cada teste — `/musicas` é rota protegida. */
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
+  let fixture: MusicaDeTesteFixture;
+
+  /** Cria a música de busca via API antes de toda a suíte. */
+  test.beforeAll(async () => {
+    fixture = await criarMusicaDeTeste();
+  });
+
+  /** Remove a música de busca criada via API ao final da suíte. */
+  test.afterAll(async () => {
+    await fixture.limpar();
   });
 
   test("deve listar músicas do servidor", async ({ page }) => {
@@ -39,9 +54,9 @@ test.describe("Músicas", () => {
     await expect(page.getByRole("heading", { name: "Músicas" })).toBeVisible();
 
     const searchInput = page.getByPlaceholder("Buscar músicas por nome...");
-    await searchInput.fill("T031");
+    await searchInput.fill(fixture.termoDeBusca);
 
-    const songs = page.locator("h3").filter({ hasText: "T031" });
+    const songs = page.locator("h3").filter({ hasText: fixture.nome });
     await expect(songs.first()).toBeVisible({ timeout: 5_000 });
   });
 
@@ -49,8 +64,10 @@ test.describe("Músicas", () => {
     await page.goto("/musicas");
     const searchInput = page.getByPlaceholder("Buscar músicas por nome...");
 
-    await searchInput.fill("T031");
-    await expect(page.locator("h3").filter({ hasText: "T031" }).first()).toBeVisible({ timeout: 5_000 });
+    await searchInput.fill(fixture.termoDeBusca);
+    await expect(
+      page.locator("h3").filter({ hasText: fixture.nome }).first(),
+    ).toBeVisible({ timeout: 5_000 });
 
     await searchInput.clear();
 

@@ -5,15 +5,9 @@
  * operações CRUD em cada aba.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 
 test.describe("Configurações", () => {
-  /** Autentica antes de cada teste — `/configuracoes` é rota protegida. */
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   test("deve exibir página com 6 abas", async ({ page }) => {
     await page.goto("/configuracoes");
     await expect(

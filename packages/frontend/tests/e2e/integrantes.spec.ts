@@ -4,7 +4,7 @@
  * Verifica gestão de funções, exibição de badges e busca com filtragem.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test.describe("Integrantes", () => {
   test("deve exibir lista de integrantes", async ({ page }) => {

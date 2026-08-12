@@ -14,8 +14,8 @@
  * (nome único por execução) e a desfaz no `afterEach`.
  */
 
-import { test, expect, type Page } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
+import type { Page } from "@playwright/test";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
 import {
   criarIgrejaParaVinculo,
@@ -48,10 +48,6 @@ async function expectFolhaAncoradaNoFundo(page: Page): Promise<void> {
 }
 
 test.describe("Mobile — Formulários admin (360×740)", () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   /**
    * O formulário de usuário abre como bottom-sheet, exibe a legenda e as três
    * mensagens de validação sem overflow horizontal.
@@ -185,10 +181,9 @@ test.describe("Mobile — IgrejaUsers: Select dentro do Drawer (360×740)", () =
   /** Igreja vazia criada via API para o teste corrente, desfeita no `afterEach`. */
   let fixture: IgrejaVinculoFixture;
 
-  /** Cria a igreja de teste via API e autentica na UI. */
+  /** Cria a igreja de teste via API antes de cada caso. */
   test.beforeEach(async ({ page }) => {
     fixture = await criarIgrejaParaVinculo();
-    await loginAsAdmin(page);
   });
 
   /** Desfaz o que o teste criou: vínculos feitos via UI + a própria igreja. */
