@@ -133,7 +133,11 @@ ensureAuthenticated → ensureTenantContext → can(permissions) → validateReq
 - **`rateLimit({ windowMs, max, message? })`** (`src/middlewares/rateLimit.ts`): Factory de rate limiting em memória, sem dependências externas. Limita requisições por IP numa janela fixa e retorna `429` ao exceder. Aplicado em **todas as rotas públicas que executam `bcrypt` ou consomem token**, para proteger contra brute force, enumeração e exaustão de CPU — janela de 15 min em todas:
   - Convites: `/:token/validate` 30, `/:token/accept` 10
   - Sessões: `POST /sessions` (login) 10, `POST /sessions/refresh-token` 60, `POST /sessions/select-tenant` 60
-  - Senha: `POST /password/forgot` 5 (cada requisição dispara envio de e-mail — sem limite vira mail bomb e vetor de enumeração), `POST /password/reset` 10 Estado por processo (um limiter distribuído seria necessário em deploy multi-instância). **Requer `app.set('trust proxy', 1)`** (configurado em `app.ts`) para que `req.ip` reflita o IP real do cliente atrás do proxy reverso (nginx/Docker); sem isso todos os clientes colapsariam em um único bucket. O valor `1` evita confiar em `X-Forwarded-For` forjado por clientes.
+  - Senha: `POST /password/forgot` 5 (cada requisição dispara envio de e-mail — sem limite vira mail bomb e vetor de enumeração), `POST /password/reset` 10
+
+  Dois desses limites são **configuráveis por env, só para desenvolvimento**: `LOGIN_RATE_LIMIT_MAX` (login, padrão 10) e `TOKEN_EXCHANGE_RATE_LIMIT_MAX` (refresh + select-tenant, padrão 60). Existem porque a suíte E2E faz um login por teste e uma renovação por carga de página, do mesmo IP — com os padrões de produção ela é inatingível num run único. Sem a variável, o valor de produção vale. **Nunca definir em produção.** Ver `.env.example` e `.claude/rules/frontend-react.md` (seção de sessão nos specs E2E).
+
+  Estado por processo (um limiter distribuído seria necessário em deploy multi-instância). **Requer `app.set('trust proxy', 1)`** (configurado em `app.ts`) para que `req.ip` reflita o IP real do cliente atrás do proxy reverso (nginx/Docker); sem isso todos os clientes colapsariam em um único bucket. O valor `1` evita confiar em `X-Forwarded-For` forjado por clientes.
 
 **Isolamento de tenant em rotas de auth (users/roles/permissions)**: além de `is(['admin','super-admin'])`, todas usam `ensureTenantContext`. A guarda de `tenantId` em `is`/`can`/`ensureHasRole` é defesa em profundidade — o vazamento cross-tenant de roles é impedido mesmo se a ordem dos middlewares for alterada.
 

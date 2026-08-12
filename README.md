@@ -140,6 +140,15 @@ cd packages/frontend
 npx playwright test
 ```
 
+A suíte autentica uma vez por teste e cada carga de página renova a sessão, o que
+estoura os limites de requisição de produção. Antes de rodar, defina no
+`packages/backend/.env` (**apenas em desenvolvimento** — ver `.env.example`):
+
+```bash
+LOGIN_RATE_LIMIT_MAX=200
+TOKEN_EXCHANGE_RATE_LIMIT_MAX=2000
+```
+
 ## Uso
 
 Com o servidor rodando, faça requisições para a API REST. A maioria dos endpoints requer autenticação via JWT.
@@ -461,6 +470,8 @@ Toda contribuição é bem-vinda — código, design, documentação ou testes!
 | Especificações           | [`specs/`](./specs/)                            |
 | OpenAPI (Swagger)        | [`packages/backend/docs/openapi.json`](./packages/backend/docs/openapi.json) |
 | Entrevistas com Usuários | [`entrevistas/`](./entrevistas/)                |
+| Backlog e planos abertos | [`TODO.md`](./TODO.md)                          |
+| Melhorias contínuas      | [`KAIZEN_LOG.md`](./KAIZEN_LOG.md)              |
 
 ## Licença
 

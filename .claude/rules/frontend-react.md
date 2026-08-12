@@ -306,7 +306,32 @@ A separação é obrigatória: os specs de desktop usam locators de tabela (`get
 
 Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
 
-> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa apenas lint + testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
+> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa lint, typecheck e testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
+
+### Sessão nos specs E2E: `./fixtures`, nunca `loginAsAdmin` no spec
+
+Todo spec que precisa de sessão importa `test`/`expect` de **`tests/e2e/fixtures.ts`**, não de `@playwright/test`. A `page` chega autenticada; `test.beforeEach(loginAsAdmin)` no spec está proibido (era duplicado em 18 arquivos e esquecido em 3, que batiam em `/login` e falhavam por um motivo que não era o do teste).
+
+**Rodar a suíte exige duas variáveis no `.env` do backend** (só em desenvolvimento — os padrões de produção não mudam):
+
+| Variável | Padrão | Por que a suíte precisa |
+|---|---|---|
+| `LOGIN_RATE_LIMIT_MAX` | 10 / 15 min | um login por teste ≈ 74 logins do mesmo IP por execução |
+| `TOKEN_EXCHANGE_RATE_LIMIT_MAX` | 60 / 15 min | **cada carga de página renova a sessão** — uma execução passa de 60 renovações |
+
+Sem elas a suíte fica **inatingível num run único**: a partir do 10º login tudo responde 429, e a partir da 60ª renovação o frontend trata o 429 como sessão morta, apaga o refresh token e joga o teste em `/login` (o defeito descrito em `docs/superpowers/plans/2026-08-11-renovacao-sessao-corrida-entre-abas.md`, aqui exercitado de verdade). Era esse o motivo de rodar em lotes com `touch packages/backend/index.ts`.
+
+- **Sessão não se reaproveita entre testes.** Tentado e descartado com evidência: o access token vive só em memória, então toda carga de página renova pelo refresh token, e a rotação é de **uso único**. Qualquer `storageState` gravado é um retrato que envelhece — se o teste termina com a renovação em voo (caso real: o teste de 404 do `navigation.spec.ts`), o arquivo guarda um token já consumido e **todos** os testes seguintes caem para `/login`. Compartilhar um `BrowserContext` entre testes tem o mesmo problema e ainda abre mão do isolamento nativo.
+- **Login por teste também é o que combina com o backend**: `authenticate-user` usa `replaceAllByUserId` — todo login novo revoga os refresh tokens anteriores **do mesmo usuário**. Duas sessões simultâneas do admin (ex.: fixture de API autenticando no meio de um teste) derrubam uma à outra.
+- **Fixtures de API** (`helpers/eventos-fixture.ts`, `igreja-fixture.ts`, `musicas-fixture.ts`) tomam o token de **`helpers/sessao.ts`** (`obterSessaoAdmin()`), que reaproveita o access token entre workers via `tests/e2e/.auth/api.json` (fora do git) e sonda a validade antes de usar. Nunca chamar `POST /api/sessions` direto num fixture, e nunca `api.dispose()` — o contexto é compartilhado.
+- **Exceção**: `auth.spec.ts` exercita o próprio login e precisa de contexto limpo — segue importando de `@playwright/test`.
+- **Não chamar `tracing.start()`** em fixture: o runner já instrumenta todo contexto criado por `browser.newContext()`, e a chamada duplicada derruba a suíte com "Tracing has been already started".
+- **`browser.newContext()` não herda o `use` do config**: ao criar contexto à mão, passar `baseURL` explicitamente — sem ele, `page.goto("/login")` falha com "Cannot navigate to invalid URL".
+- **`loginAsAdmin` tolera `/selecionar-igreja`**: se uma execução interrompida deixar uma igreja de teste com o admin vinculado, o login passa a exigir seleção de igreja. O helper escolhe "Igreja Padrão" e segue, para que um resíduo de dados não derrube a suíte.
+
+### Specs E2E não dependem de dado ambiente
+
+Todo spec cria via API o que vai assertar, com nome único por execução (sufixo de timestamp), e remove no `afterAll`/`afterEach` — ver `helpers/`. Buscar por dado que "existe no banco de dev" (como a música `T031`, que nunca esteve no seed) faz o teste passar numa máquina e falhar em todas as outras. Vale também para *mutação*: um spec que adiciona todas as categorias do tenant à primeira música da lista deixa a base alterada para os demais — crie a própria música e apague no fim (`musica-detalhe.spec.ts`).
 
 ## Navegação e Rolagem
 
@@ -374,4 +399,6 @@ Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
 - `npm run dev` — Servidor de desenvolvimento.
 - `npm run build` — Build de produção.
 - `npm run lint` — Verificação ESLint.
+- `npm run typecheck` — Verificação de tipos (`tsc -p tsconfig.app.json --noEmit`), cobrindo `src` e `tests`. Roda no CI junto do lint; o `build` do Vite usa esbuild e **não** faz checagem de tipos, então só este script barra um erro de tipo.
+- `npm run test` — Testes unitários (Vitest).
 - `npm run preview` — Preview do build de produção.
