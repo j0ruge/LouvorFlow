@@ -7,11 +7,33 @@
  */
 
 import { test, expect } from "./fixtures";
+import { expectContrasteAA } from "./helpers/contraste";
+import { criarIgrejaInativa } from "./helpers/igreja-fixture";
 
 test.describe("Admin — Igrejas", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/igrejas");
     await expect(page.getByRole("heading", { name: "Igrejas" })).toBeVisible();
+  });
+
+  /**
+   * Cobre a variante de tabela do badge de status (o card equivalente é
+   * verificado em `admin-igrejas.mobile.spec.ts`). O layout é dual, então a
+   * correção de contraste precisa valer nos dois ramos do JSX.
+   */
+  test("badges de status na tabela devem atingir o contraste mínimo AA", async ({ page }) => {
+    await criarIgrejaInativa();
+    await page.reload();
+
+    const tabela = page.getByRole("table");
+    await expect(tabela).toBeVisible({ timeout: 10_000 });
+
+    /** Escopo na tabela: os cards do mobile seguem no DOM, apenas ocultos. */
+    await expect(tabela.getByText("Inativa").first()).toBeVisible();
+    await expectContrasteAA(page, "Inativa");
+
+    await expect(tabela.getByText("Ativa").first()).toBeVisible();
+    await expectContrasteAA(page, "Ativa");
   });
 
   /** Verifica que a tabela de igrejas é exibida com dados reais. */

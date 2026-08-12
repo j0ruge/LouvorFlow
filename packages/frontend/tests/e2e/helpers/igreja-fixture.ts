@@ -62,3 +62,31 @@ export async function criarIgrejaParaVinculo(): Promise<IgrejaVinculoFixture> {
 
   return { id, limpar };
 }
+
+/**
+ * Cria uma igreja já **desativada**, para os specs que precisam do estado
+ * inativo renderizado na listagem (badge "Inativa").
+ *
+ * O `DELETE /api/igrejas/:id` da API é soft delete: deixa a linha no banco com
+ * `status` inativo, que é exatamente o que a listagem precisa exibir. Por isso
+ * não há `limpar()` — a igreja já nasce no estado final e desativá-la de novo
+ * seria no-op.
+ *
+ * @returns O id da igreja criada e já desativada.
+ */
+export async function criarIgrejaInativa(): Promise<{ id: string }> {
+  const { api, auth } = await obterSessaoAdmin();
+
+  const createResponse = await api.post("/api/igrejas", {
+    headers: auth,
+    data: { name: `E2E Igreja Inativa ${Date.now()}` },
+  });
+  expect(createResponse.ok(), "criação da igreja inativa falhou").toBeTruthy();
+  const body = await createResponse.json();
+  const id: string = body.igreja.id;
+
+  const deleteResponse = await api.delete(`/api/igrejas/${id}`, { headers: auth });
+  expect(deleteResponse.ok(), "desativação da igreja de teste falhou").toBeTruthy();
+
+  return { id };
+}

@@ -235,10 +235,51 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `Escalas.tsx` | F13: 3 abas (`Próximas/Passadas/Rascunhos`) com `flex-1 px-2 sm:px-3` cabem em 360px; 4º botão da fileira de ações (Duplicar) icon-only no mobile (`hidden sm:inline` + `aria-label` interpolando o título); zero-result da busca trunca o termo em 40 chars antes de interpolar (termo sem espaços estouraria 360px) |
 | `History.tsx` | Botão Duplicar (icon-only no mobile) ao lado de Detalhes no slot `acoes` — ambos `w-full sm:w-auto` dividem a largura da linha a 360px |
 | `EmptyState.tsx` | `break-words` na descrição — descrições podem interpolar texto do usuário sem espaços (ex.: termo de busca no zero-result) |
+| `admin/Igrejas.tsx` | Badge "Inativa" (card + tabela) de 1.08:1 para 8.1:1 — `variant="secondary"` + `text-muted-foreground` quebrava o par do variant; par completo `stone` no lugar, coberto por `expectContrasteAA` nos dois layouts |
 
 ### Popover com muitas opções: grid + tile em vez de lista vertical
 
 `MusicaTomPicker.tsx` (irmão de `MusicaVersaoPicker.tsx`, seleção de tom por música na escala) é a referência para overlays com **muitas** opções curtas (tons musicais, poucos caracteres cada): em vez da lista vertical de `RadioGroupItem` + `Label` lado a lado (padrão de `MusicaVersaoPicker.tsx`, adequado para poucas opções com texto longo, como nomes de artista), usa um `grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto` de "tiles" — cada opção é um `Label` estilizado como botão (`min-h-11`, destaque `border-primary bg-primary/10` quando selecionado) envolvendo um `RadioGroupItem` com `className="sr-only"` (o clique no `<label>` visível é repassado ao input oculto pelo comportamento nativo do HTML; testado em e2e com `page.getByText(tom, { exact: true }).click()`, funciona igual com toque). Com o seed padrão de 24 tonalidades, uma lista vertical estouraria a altura do S8 (740px); o grid de 3 colunas cabe em poucas linhas.
+
+### Badge com `variant`: nunca sobrescrever só a cor do texto
+
+Os `variant` do `Badge` são **pares** de fundo e texto (`bg-secondary` +
+`text-secondary-foreground`). Acrescentar `text-muted-foreground` no `className`
+troca metade do par e deixa a outra metade no lugar — o resultado é texto
+acinzentado sobre o fundo do variant, sem nenhum aviso do TypeScript ou do
+ESLint.
+
+Foi o defeito real do badge "Inativa" em `admin/Igrejas.tsx`: `variant="secondary"`
++ `text-muted-foreground` rendia **1.08:1**, praticamente invisível (o mínimo do
+WCAG AA para texto normal é 4.5:1, e os 12px/600 do badge não se qualificam como
+"large text"). Todo teste de presença passava — o texto estava no DOM.
+
+Ao dar cor própria a um badge, defina o **par inteiro** e cancele o hover do
+variant, como já fazia o badge "Ativa" ao lado:
+
+```tsx
+{/* certo — par completo, mesma forma do "Ativa" */}
+<Badge className="bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-200">
+  Inativa
+</Badge>
+
+{/* errado — sobrescreve só o texto e quebra o par do variant */}
+<Badge variant="secondary" className="text-muted-foreground">Inativa</Badge>
+```
+
+Remover apenas o override **não** teria bastado: o par nativo
+`secondary-foreground` sobre `secondary` mede ~4.07:1 neste tema, ainda abaixo de
+AA. Por isso o padrão é o passo fixo da paleta (`stone`, quente como o tema),
+igual ao `green-100`/`green-800` do "Ativa".
+
+**A checagem é objetiva, não visual**: `expectContrasteAA(page, texto)` de
+`tests/e2e/helpers/contraste.ts` mede o contraste real pelo estilo computado — a
+cascata de `variant` + `className` não é decidível lendo o JSX. Em tela de layout
+dual o helper considera **só o elemento renderizado** (`getClientRects().length > 0`):
+cards e tabela coexistem no DOM, e sem esse filtro a medição pegaria a variante
+oculta. Cobertura em `admin-igrejas.spec.ts` (tabela) e
+`admin-igrejas.mobile.spec.ts` (card) — o layout é dual, então a correção precisa
+valer nos dois ramos do JSX.
 
 ### Ações destrutivas exigem confirmação
 
@@ -372,6 +413,18 @@ Sem elas a suíte fica **inatingível num run único**: a partir do 10º login t
 - **`browser.newContext()` não herda o `use` do config**: ao criar contexto à mão, passar `baseURL` explicitamente — sem ele, `page.goto("/login")` falha com "Cannot navigate to invalid URL".
 - **Credenciais num módulo só**: `tests/e2e/helpers/credenciais.ts` exporta `EMAIL_ADMIN`/`SENHA_ADMIN`/`CREDENCIAIS_ADMIN`, lidos de `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` com fallback montado por concatenação. Nunca escrever o par literal num spec ou helper: além de multiplicar o trabalho de rotação (o par estava em `sessao.ts`, `login.ts` e `auth.spec.ts`), um literal na forma `password: "..."` casa com os detectores de segredo (GitGuardian/ggshield/gitleaks) e bloqueia o push. Mesma técnica de `packages/backend/tests/fakes/mock-data.ts` (`SENHA_TESTE`/`HASH_TESTE`).
 - **`loginAsAdmin` tolera `/selecionar-igreja`**: se uma execução interrompida deixar uma igreja de teste com o admin vinculado, o login passa a exigir seleção de igreja. O helper escolhe "Igreja Padrão" e segue, para que um resíduo de dados não derrube a suíte.
+- **`sessao.ts` tolera o mesmo, pelo lado da API** (`selecionarIgrejaPadrao`): com o admin multi-tenant, `POST /api/sessions` responde **200** com `requires_tenant_selection` + `selection_token` e **sem** `token`. O `resposta.ok()` passa, `corpo.token` vira `undefined` e **todo fixture falha depois com 401**, longe da causa — por isso o ramo troca o `selection_token` por um access token em `POST /api/sessions/select-tenant` antes de gravar. Toda leitura de campo numa resposta de login precisa considerar as duas formas; `ok()` não distingue as duas.
+- **`auth.spec.ts` é o único que NÃO tolera** (por desenho: exercita o login cru e assere `toHaveURL("/")`). Quando ele falha com `Received "/selecionar-igreja"`, o defeito está nos **dados**, não no código — ver a query de diagnóstico abaixo.
+- **O resíduo de igrejas é estrutural**: `DELETE /api/igrejas/:id` é *soft delete*, então `limpar()` desativa mas nunca remove a linha — mesmo um run bem-sucedido deixa o tenant no banco. O que quebra o `auth.spec.ts` não é o tenant órfão, e sim o **vínculo** com o admin, que só sobra quando o run é interrompido antes do `afterEach`. Diagnóstico:
+
+  ```sql
+  SELECT t.name FROM tenants t
+    JOIN tenant_users tu ON tu.tenant_id = t.id
+    JOIN users u ON u.id = tu.user_id
+   WHERE u.email = 'admin@louvorflow.com';
+  ```
+
+  Mais de uma linha além de "Igreja Padrão" = a suíte vai flakear.
 
 ### Verificação manual vira spec — sempre
 

@@ -329,7 +329,7 @@ const AdminIgrejas = () => {
                           Ativa
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="flex-shrink-0 text-muted-foreground">
+                        <Badge className="flex-shrink-0 bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-200">
                           Inativa
                         </Badge>
                       )}
@@ -397,7 +397,7 @@ const AdminIgrejas = () => {
                               Ativa
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" className="text-muted-foreground">
+                            <Badge className="bg-stone-200 text-stone-700 border-stone-300 hover:bg-stone-200">
                               Inativa
                             </Badge>
                           )}

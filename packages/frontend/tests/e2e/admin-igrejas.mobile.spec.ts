@@ -9,11 +9,32 @@
 
 import { test, expect } from "./fixtures";
 import { expectSemOverflowHorizontal } from "./helpers/viewport";
+import { expectContrasteAA } from "./helpers/contraste";
+import { criarIgrejaInativa } from "./helpers/igreja-fixture";
 
 test.describe("Mobile — Igrejas (360×740)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/igrejas");
     await expect(page.getByRole("heading", { name: "Igrejas" })).toBeVisible();
+  });
+
+  /**
+   * Os badges de status precisam ser legíveis, não apenas estar presentes.
+   *
+   * Regressão: "Inativa" combinava `variant="secondary"` com
+   * `text-muted-foreground`, e o override anulava o `text-secondary-foreground`
+   * do variant — cinza sobre marrom, 1.08:1. O texto existia no DOM (todo teste
+   * de presença passava) e era invisível na tela.
+   */
+  test("badges de status devem atingir o contraste mínimo AA", async ({ page }) => {
+    await criarIgrejaInativa();
+    await page.reload();
+
+    await expect(page.getByText("Inativa").first()).toBeVisible({ timeout: 10_000 });
+    await expectContrasteAA(page, "Inativa");
+
+    await expect(page.getByText("Ativa").first()).toBeVisible();
+    await expectContrasteAA(page, "Ativa");
   });
 
   /** A tabela de desktop fica oculta e os cards assumem o lugar dela. */

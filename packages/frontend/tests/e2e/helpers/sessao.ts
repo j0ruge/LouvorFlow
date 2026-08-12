@@ -50,6 +50,9 @@ const VALIDADE_MS = 45 * 60 * 1000;
 /** Rota autenticada e barata usada para confirmar que o token gravado ainda vale. */
 const ROTA_DE_SONDAGEM = "/api/tonalidades";
 
+/** Igreja semeada por `seeds/admin.ts`, escolhida quando o admin é multi-tenant. */
+const IGREJA_PADRAO = "Igreja Padrão";
+
 /** Sessão de API autenticada, compartilhada entre fixtures do mesmo worker. */
 export interface SessaoAdmin {
   /** Contexto de requisição do Playwright já apontado para o baseURL. */
@@ -116,8 +119,56 @@ async function autenticar(api: APIRequestContext): Promise<string> {
     `login de API compartilhado falhou (HTTP ${resposta.status()})`,
   ).toBeTruthy();
 
-  const { token } = await resposta.json();
+  const corpo = await resposta.json();
+
+  /**
+   * Admin vinculado a mais de uma igreja não recebe token direto: a API
+   * responde **200** com `requires_tenant_selection` e um `selection_token`.
+   * Sem este ramo, `corpo.token` seria `undefined`, o `ok()` acima passaria e
+   * todo fixture falharia depois com 401 — longe da causa. Acontece sempre que
+   * um resíduo de igreja de teste deixa o admin multi-tenant, o mesmo cenário
+   * que `helpers/login.ts::loginAsAdmin` já trata no lado da UI.
+   */
+  const token = corpo.requires_tenant_selection
+    ? await selecionarIgrejaPadrao(api, corpo)
+    : corpo.token;
+
+  expect(token, "login de API não devolveu access token").toBeTruthy();
   gravarTokenEmDisco(token);
+  return token;
+}
+
+/**
+ * Completa o login multi-tenant escolhendo a igreja semeada por `seeds/admin.ts`.
+ *
+ * @param api - Contexto de requisição já criado.
+ * @param corpo - Corpo da resposta de login com `selection_token` e `tenants`.
+ * @returns O access token emitido para a igreja padrão.
+ */
+async function selecionarIgrejaPadrao(
+  api: APIRequestContext,
+  corpo: {
+    selection_token: string;
+    tenants: Array<{ id: string; name: string }>;
+  },
+): Promise<string> {
+  const padrao = corpo.tenants.find((t) => t.name === IGREJA_PADRAO);
+  expect(
+    padrao,
+    `igreja "${IGREJA_PADRAO}" não está entre as do admin: ${corpo.tenants
+      .map((t) => t.name)
+      .join(", ")}`,
+  ).toBeTruthy();
+
+  const resposta = await api.post("/api/sessions/select-tenant", {
+    data: { selection_token: corpo.selection_token, tenant_id: padrao!.id },
+  });
+  expect(
+    resposta.ok(),
+    `seleção de igreja no login de API falhou (HTTP ${resposta.status()})`,
+  ).toBeTruthy();
+
+  const { token } = await resposta.json();
   return token;
 }
 
