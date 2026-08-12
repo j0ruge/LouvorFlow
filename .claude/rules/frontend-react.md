@@ -373,6 +373,76 @@ Sem elas a suíte fica **inatingível num run único**: a partir do 10º login t
 - **Credenciais num módulo só**: `tests/e2e/helpers/credenciais.ts` exporta `EMAIL_ADMIN`/`SENHA_ADMIN`/`CREDENCIAIS_ADMIN`, lidos de `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` com fallback montado por concatenação. Nunca escrever o par literal num spec ou helper: além de multiplicar o trabalho de rotação (o par estava em `sessao.ts`, `login.ts` e `auth.spec.ts`), um literal na forma `password: "..."` casa com os detectores de segredo (GitGuardian/ggshield/gitleaks) e bloqueia o push. Mesma técnica de `packages/backend/tests/fakes/mock-data.ts` (`SENHA_TESTE`/`HASH_TESTE`).
 - **`loginAsAdmin` tolera `/selecionar-igreja`**: se uma execução interrompida deixar uma igreja de teste com o admin vinculado, o login passa a exigir seleção de igreja. O helper escolhe "Igreja Padrão" e segue, para que um resíduo de dados não derrube a suíte.
 
+### Verificação manual vira spec — sempre
+
+<CRITICAL>
+Todo `curl`/`fetch` de smoke test ou execução avulsa do Playwright usada para
+**atestar** que uma correção funciona DEVE virar um spec permanente antes de a
+task ser considerada concluída. Sem isso a garantia morre junto com o terminal:
+a próxima pessoa (ou a próxima refatoração) não tem como saber que aquele
+comportamento já foi conferido, e a regressão volta silenciosa.
+</CRITICAL>
+
+O caso que mais exige isso é o que **teste unitário não consegue atestar**. Os
+testes de service rodam sobre fakes em memória, então nunca exercitam:
+
+- o `$extends` que injeta `tenant_id` no Prisma real (um fake "passa" com a
+  guarda de tenant removida);
+- o índice único do Postgres e o `P2002` que ele dispara (o unitário só
+  consegue *simular* o erro com `mockRejectedValueOnce`);
+- cascatas de `onDelete`, a cadeia de middlewares e a validação Zod de ponta a
+  ponta.
+
+Para esses, o spec é **no nível da API**, não de UI: `test.beforeAll` toma
+`obterSessaoAdmin()`, o próprio teste cria o que vai assertar e o `afterAll`
+remove. Referência: **`tests/e2e/guardas-tenant.spec.ts`** (guarda de tenant em
+`fk_tipo_evento` e tradução de duplicidade em tonalidades).
+
+**Assertar o corpo do erro, não só o status.** A regra "erro do Prisma nunca
+escapa cru" (ver `backend-api.md`) só é verificável olhando a mensagem: o
+sintoma real do bug era um **500 com o stack trace do Prisma** (caminho do
+arquivo, linha e nome da constraint) no corpo da resposta. Um teste que checa
+apenas `status === 404` não distingue "traduzido corretamente" de "traduzido
+com a mensagem errada", e não pega o vazamento:
+
+```typescript
+expect(corpo.erro).toBe("Tipo de evento não encontrado");
+expect(corpo.erro).not.toContain("prisma");
+expect(corpo.erro).not.toContain("Invalid `");
+expect(corpo.erro).not.toContain("constraint");
+```
+
+**Testar corrida exige contextos separados.** Um `APIRequestContext` multiplexa
+tudo numa conexão só: `Promise.all` sobre o mesmo contexto **não** produz
+concorrência real — as requisições saem em fila e cada uma já enxerga a
+gravação da anterior. Um teste de duplicidade escrito assim vira 1×201 + N×409
+pela checagem prévia e **passa com a barreira removida** (verificado). Para
+uma corrida de verdade, cada requisição ganha o seu próprio contexto:
+
+```typescript
+const contextos = await Promise.all(
+  Array.from({ length: 8 }, () => playwrightRequest.newContext({ baseURL: BASE_URL })),
+);
+try {
+  const respostas = await Promise.all(
+    contextos.map((c) => c.post("/api/tonalidades", { headers: auth, data: { tom } })),
+  );
+  expect(respostas.filter((r) => r.status() >= 500)).toHaveLength(0);
+} finally {
+  await Promise.all(contextos.map((c) => c.dispose()));   // contextos próprios: descartar é correto
+}
+```
+
+Com 8 conexões paralelas e a barreira removida, esta base produziu 1×201, 2×409
+e **5×500 com o stack do Prisma** — a prova de que o teste morde. Descartar
+esses contextos é correto, e não contradiz a regra de nunca chamar
+`api.dispose()`: aquela vale para o contexto **compartilhado** de `sessao.ts`.
+
+**Todo teste novo precisa falhar antes de passar.** Antes de dar a task por
+concluída, remova a correção, rode o spec e confirme que ele quebra; só então
+restaure (`git checkout -- <arquivo>`) e confirme que ele passa. Foi assim que
+a primeira versão deste teste se revelou vacuosa.
+
 ### Specs E2E não dependem de dado ambiente
 
 Todo spec cria via API o que vai assertar, com nome único por execução (sufixo de timestamp), e remove no `afterAll`/`afterEach` — ver `helpers/`. Buscar por dado que "existe no banco de dev" (como a música `T031`, que nunca esteve no seed) faz o teste passar numa máquina e falhar em todas as outras. Vale também para *mutação*: um spec que adiciona todas as categorias do tenant à primeira música da lista deixa a base alterada para os demais — crie a própria música e apague no fim (`musica-detalhe.spec.ts`).

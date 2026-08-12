@@ -85,6 +85,8 @@ Para os **6 domínios de suporte** (artistas, categorias, funções, grupos de f
 
 A FK do Postgres valida **só a existência do id** — ela não conhece `tenant_id`. Um `fk_tipo_evento` vindo do body é aceito pelo banco mesmo apontando para o catálogo de outra igreja, e a resposta devolve o `nome` daquele tenant. Por isso `create`, `update` e `duplicar` de eventos passam por `assertTipoEventoDoTenant` → `eventos.repository.findTipoEventoById`, que resolve o id pelo `getPrisma()` (tenant-scoped) e devolve `null` para id de fora. Mesma guarda de `findIntegranteById` (users) e da revalidação de `fk_tonalidade` em `setMusicaTonalidadeAtomic`. **Regra**: todo FK de catálogo aceito por parâmetro precisa de um `findById` tenant-scoped antes da escrita — não basta confiar na constraint.
 
+**Cobertura**: o teste unitário do service **não** atesta essa guarda — ele roda sobre fakes, que não têm o `$extends` de tenant, então passa igual com a checagem removida. O que trava a regressão é `packages/frontend/tests/e2e/guardas-tenant.spec.ts`, no nível da API, contra o banco real. O mesmo vale para a barreira de duplicidade: o unitário só simula o `P2002` com `mockRejectedValueOnce`; quem prova que o índice único dispara é o e2e. Ver `dev-workflow.md` §3.
+
 Códigos HTTP utilizados: `200`, `201`, `400`, `401`, `403`, `404`, `409`, `500`.
 
 ### Checagem de unicidade nunca basta sozinha
