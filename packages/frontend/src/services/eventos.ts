@@ -87,6 +87,28 @@ export async function updateEvento(
 }
 
 /**
+ * Duplica uma escala existente: cria um novo evento copiando da origem o
+ * repertório (ordem, versões e tons) e a equipe.
+ *
+ * `fk_tipo_evento` e `descricao` são opcionais no backend (omitidos, herdam
+ * da origem); a cópia nasce sempre com status `publicada`.
+ *
+ * @param id - UUID do evento de origem.
+ * @param dados - Dados da cópia (`data` obrigatória; tipo/descrição opcionais).
+ * @returns Resposta da API com mensagem e o evento criado.
+ */
+export async function duplicarEvento(
+  id: string,
+  dados: CreateEventoForm,
+): Promise<EventoCreateResponse> {
+  const data = await apiFetch<unknown>(`/eventos/${id}/duplicar`, {
+    method: "POST",
+    body: JSON.stringify(dados),
+  });
+  return EventoCreateResponseSchema.parse(data);
+}
+
+/**
  * Remove um evento pelo id.
  *
  * @param id - UUID do evento a ser removido.
@@ -217,6 +239,30 @@ export async function setMusicaVersao(
     method: "PATCH",
     body: JSON.stringify({ artistas_musicas_id: artistasMusicasId }),
   });
+  return AssociationResponseSchema.parse(data);
+}
+
+/**
+ * Define ou limpa o tom próprio (override) de uma música numa escala.
+ *
+ * @param eventoId - UUID do evento.
+ * @param musicaId - UUID da música.
+ * @param fkTonalidade - UUID da tonalidade desejada para esta escala, ou `null`
+ * para remover o override e voltar ao tom global da música.
+ * @returns Resposta da API com mensagem (`AssociationResponse`).
+ */
+export async function setMusicaTonalidade(
+  eventoId: string,
+  musicaId: string,
+  fkTonalidade: string | null,
+): Promise<AssociationResponse> {
+  const data = await apiFetch<unknown>(
+    `/eventos/${eventoId}/musicas/${musicaId}/tonalidade`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ fk_tonalidade: fkTonalidade }),
+    },
+  );
   return AssociationResponseSchema.parse(data);
 }
 

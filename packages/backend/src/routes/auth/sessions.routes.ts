@@ -17,25 +17,41 @@ const router: Router = Router();
 /** Janela de contagem dos limitadores das rotas públicas: 15 minutos. */
 const PUBLIC_WINDOW_MS = 15 * 60 * 1000;
 
+/** Limite padrão de tentativas de login por IP na janela — vale para produção. */
+const LOGIN_MAX_PADRAO = 10;
+
 /**
  * Limitador do login: protege o `bcrypt.compare` (cost 12) contra brute force
  * de senha, credential stuffing e exaustão de CPU. O limite acomoda erros
  * legítimos de digitação sem abrir espaço para varredura automatizada.
+ *
+ * `LOGIN_RATE_LIMIT_MAX` existe para a suíte E2E, que roda dezenas de logins
+ * legítimos do mesmo IP e, com o limite de produção, falhava em massa com 429 a
+ * partir do 10º. **Definir apenas em ambiente de desenvolvimento** — sem a
+ * variável o limite segue sendo {@link LOGIN_MAX_PADRAO}.
  */
 const loginLimiter = rateLimit({
     windowMs: PUBLIC_WINDOW_MS,
-    max: 10,
+    max: Number(process.env.LOGIN_RATE_LIMIT_MAX) || LOGIN_MAX_PADRAO,
     message: 'Muitas tentativas de login. Tente novamente em alguns minutos.',
 });
+
+/** Limite padrão de trocas de token por IP na janela — vale para produção. */
+const TOKEN_EXCHANGE_MAX_PADRAO = 60;
 
 /**
  * Limitador das trocas de token públicas (refresh e seleção de tenant):
  * barra a varredura de tokens por força bruta. Mais permissivo que o login,
  * pois um cliente legítimo renova a sessão várias vezes na mesma janela.
+ *
+ * `TOKEN_EXCHANGE_RATE_LIMIT_MAX` existe para a suíte E2E: cada carga de página
+ * renova a sessão, e uma execução completa passa de 60 renovações do mesmo IP em
+ * 15 min. **Definir apenas em ambiente de desenvolvimento** — sem a variável o
+ * limite segue sendo {@link TOKEN_EXCHANGE_MAX_PADRAO}.
  */
 const tokenExchangeLimiter = rateLimit({
     windowMs: PUBLIC_WINDOW_MS,
-    max: 60,
+    max: Number(process.env.TOKEN_EXCHANGE_RATE_LIMIT_MAX) || TOKEN_EXCHANGE_MAX_PADRAO,
     message: 'Muitas requisições. Tente novamente em alguns minutos.',
 });
 

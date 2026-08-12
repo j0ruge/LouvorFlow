@@ -27,6 +27,7 @@ paths:
 packages/frontend/src/
 ├── components/
 │   ├── ui/              # Componentes shadcn/ui (NÃO MODIFICAR DIRETAMENTE)
+│   ├── form/            # Wrappers de ui/form.tsx (ex: FieldLabel, RequiredFieldsLegend) — customização sem tocar em ui/*
 │   ├── AppLayout.tsx    # Layout principal (sidebar + header com UserMenu)
 │   ├── AppSidebar.tsx   # Sidebar com menu domínio + seção admin condicional
 │   ├── ProtectedRoute.tsx # Wrapper: redireciona ao login se não autenticado
@@ -54,6 +55,9 @@ packages/frontend/src/
 │   ├── use-admin.ts     # React Query hooks para CRUD admin
 │   ├── use-igrejas.ts   # React Query hooks para igrejas
 │   ├── use-scroll-restoration.ts # Salva/restaura rolagem do container interno; abre páginas no topo
+│   ├── use-focus-shortcut.ts # Atalho de teclado global (padrão "/") que foca/seleciona um input, com guardas de a11y
+│   ├── use-dirty-form-guard.ts # Máquina de estados da guarda de alterações não salvas (veil "Descartar alterações?")
+│   ├── use-undoable-delete.ts # Exclusão com janela de desfazer client-side (~5s): adia o DELETE, toast com "Desfazer", Set de pendentes filtra a lista
 │   └── ...
 ├── services/
 │   ├── auth.ts          # Chamadas API: login, logout, refresh, profile, password
@@ -100,6 +104,20 @@ Consultar esse arquivo antes de criar novos componentes ou alterar padrões de U
 - **Ícones**: Usar `lucide-react`. Não importar ícones de outras bibliotecas.
 - **Toasts/Notificações**: Usar exclusivamente **Sonner** (`import { toast } from "sonner"`). Não usar o sistema de toast do Radix/shadcn (`useToast`, `toaster.tsx`, `toast.tsx`). O componente `<Toaster />` do Sonner já está montado em `App.tsx`. Futuramente o projeto migrará para React Native com `sonner-native`, que possui a mesma API.
 
+## Formulários — Campos Obrigatórios, Erro de Validação e Destaque de Item Novo
+
+- **Padrão único de formulário em overlay**: `ResponsiveFormDialog` + `ui/form.tsx` (`FormField`/`FormItem`/`FieldLabel`/`FormControl`/`FormMessage`) com resolver Zod — nunca `Dialog*` cru com `register(...)` e `<p>` de erro manual. `<Form {...form}>` fica **por fora** do `ResponsiveFormDialog` (o contexto do react-hook-form atravessa o portal); `useForm` sempre com `defaultValues` (sem eles `formState.isDirty` não é confiável e a guarda de alterações não salvas dispara errado); `RequiredFieldsLegend` como primeiro children; botões na prop `footer` (Cancelar → `guarda.pedirFechamento()`). Telas admin migradas: `Users.tsx`, `Roles.tsx`, `Permissions.tsx`, `Igrejas.tsx` (2 formulários → 2 dialogs + 2 guards) e `IgrejaUsers.tsx`. **Exceção sem RHF**: `IgrejaUsers.tsx` (Select + `useState`) usa o mesmo `ResponsiveFormDialog` com `onSubmit` manual (`preventDefault` + handler da mutation), guard protegendo o estado local (`temAlteracoes: selectedUserId !== ""`) e o indicador de obrigatório replicado sobre `Label` puro (o `FieldLabel` exige o contexto do RHF e quebraria fora dele).
+- **Campo obrigatório**: usar `FieldLabel` (`components/form/FieldLabel.tsx`) no lugar de `FormLabel` puro quando o campo for obrigatório — wrapper que adiciona `required` e renderiza o asterisco decorativo (`aria-hidden`) + texto `sr-only` "(obrigatório)" para leitores de tela. No topo do formulário, incluir `RequiredFieldsLegend` (`components/form/RequiredFieldsLegend.tsx`) explicando a convenção ("* campo obrigatório"). Nenhum dos dois modifica `ui/form.tsx`. Além do rótulo, o **controle** recebe `aria-required` explícito (o `FormControl` entrega `id`/`aria-invalid`/`aria-describedby` de graça, mas não `aria-required`). Um formulário **sem nenhum campo obrigatório** (ex.: `VersaoForm`, onde tudo é opcional) não recebe legenda — "* campo obrigatório" sem nenhum asterisco na tela só confundiria.
+- **Foco no primeiro inválido e limpeza do erro ao digitar** são defaults do react-hook-form (`shouldFocusError` e `reValidateMode: "onChange"`): não reimplementar — apenas cobrir com teste quando a tela for migrada (referência: `src/pages/admin/__tests__/Users.form.test.tsx`).
+- **Dívida conhecida de a11y (registrada, NÃO corrigir de passagem)**: `CreatableCombobox`, `CreatableMultiCombobox`, `IntensidadeSelector` e `DateTimePicker` **descartam silenciosamente** o `id`, `aria-invalid` e `aria-describedby` que o `FormControl` injeta via `Slot` (nenhum aceita/encaminha essas props ao controle interno; `CreatableCombobox` nem é `forwardRef`) — o mesmo vale para um eventual `aria-required`. `shouldFocusError` também não os alcança (não há ref de foco registrada). Consequência: campos com esses controles não anunciam erro/obrigatoriedade a leitores de tela nem recebem foco no primeiro inválido. Corrigir exige refatorar cada componente para `forwardRef` + repasse de props — fora do escopo da fase de campos obrigatórios; tratar como tarefa própria.
+- **Erro de validação nos campos**: `input`/`textarea`/`select`/`button` com `aria-invalid="true"` (já setado automaticamente por `FormControl` de `ui/form.tsx` quando há erro do react-hook-form) recebem borda e `box-shadow` destructive via regra única em `@layer components` (`src/index.css`) — não é necessário aplicar classes destructive manualmente por campo.
+- **Destaque de item recém-criado/atualizado**: classe `motion-safe:animate-highlight-new motion-reduce:ring-2 motion-reduce:ring-primary/40` (animação `highlight-new` de `tailwind.config.ts`, box-shadow âmbar que decai em 2s, roda uma vez). Respeita `prefers-reduced-motion` com o fallback estático em `motion-reduce:`. Primeiro consumidor: `ConfigCrudSection.tsx`. O estado que guarda o alvo do destaque (`recemCriado`) armazena o **nome normalizado** (`normalizeForSearch`), não o id — `onCreate` devolve `Promise<void>` e não expõe o id criado, e o bloqueio de duplicado (abaixo) já garante que o nome normalizado é chave única. `useEffect` dispara `setTimeout(2000)` para limpar o estado, com `clearTimeout` no cleanup (unmount ou nova criação antes do timer anterior expirar). Trade-off aceito: o timer começa quando o `await onCreate(...)` resolve, e o item só ganha a classe quando aparece na lista vinda do componente pai (após o refetch da query); numa rede lenta, parte da janela de 2s passa antes de o item existir no DOM. **Outro trade-off, cosmético e raro**: como o backend só bloqueava duplicado por caixa antes desta checagem client-side existir, um par legado que difere só por acento (ex.: "Adoração" e "Adoracao", cadastrados antes do bloqueio client-side) faz `normalizeForSearch` casar as duas linhas — o destaque acende nas duas por 2s em vez de só na recém-criada. Não há como diferenciar sem o id (que `onCreate` não expõe); aceito porque o cenário é legado e o efeito é puramente visual.
+- **Duplicado no cliente antes da mutation** (`ConfigCrudSection.tsx`, formulário de criação): checagem com `normalizeForSearch` (remove acento E caixa) contra os `items` atuais antes de chamar `onCreate`, complementar ao bloqueio 409 case-insensitive do backend — evita a ida-e-volta de rede para o erro de digitação mais comum. Estado `erroCriacao: string | null`; mensagem renderizada **abaixo do input com `w-full`** (o container é `flex flex-wrap` — sem `w-full` a mensagem não quebra linha a 360px) e associada ao `Input` via `aria-invalid`/`aria-describedby` (a regra CSS global do `aria-invalid="true"` já pinta a borda, sem precisar de classe destructive manual). Erro limpa ao digitar (`onChange`) e ao tentar de novo (`handleCreate` recalcula a cada chamada, inclusive via Enter). **Escopo consciente**: só o formulário de criação valida — o rename inline não tem a mesma checagem (lacuna registrada, não coberta nesta fase). **Concordância de gênero**: `EntityConfig.genero: "m" | "f"` (declarado nas 5 configs de `Settings.tsx`) escolhe o artigo certo na mensagem ("um"/"uma") e no placeholder do formulário ("Novo"/"Nova") — um hedge tipo "um(a)" soa claramente errado para rótulos de gênero fixo como "Categoria"/"Função"/"Tonalidade" ("uma categoria", nunca "um categoria"); só "Artista" tem gênero ambíguo de fato (a pessoa referenciada pode ser de qualquer gênero), e mesmo assim o campo exige escolher um valor fixo — "m" por convenção.
+- **Atalho de foco na busca**: `useFocusShortcut(ref, tecla = "/")` (`hooks/use-focus-shortcut.ts`) foca e seleciona o conteúdo de um input ao pressionar a tecla configurada. Ignora o atalho com foco em campo editável, com modificador (Ctrl/Cmd/Alt — evita colidir com o Ctrl/Cmd+B da sidebar) pressionado, com `event.repeat`, ou quando há `[role="dialog"][data-state="open"]` na página. Helper `isElementoEditavel` exportado para teste isolado. Ligado em `Songs.tsx` (busca de músicas), com dica visual `<kbd>` `hidden sm:flex` sobreposta ao input (mobile não tem teclado físico).
+- **Linha de resultados e filtros ativos removíveis** (`Songs.tsx` + `MusicaFiltros.tsx`): com algum filtro ativo (`hasFilters`), uma linha visível mostra a contagem real via **`meta.total`** — nunca `songs.length`, que é o tamanho da página atual (teto `ITEMS_PER_PAGE`). `role="status"`/`aria-live="polite"`/`aria-atomic="true"` ficam só no `<span>` da contagem (substituindo o antigo anúncio `sr-only` — mantê-lo junto duplicaria o anúncio), nunca no `<div>` que também contém os badges: os badges são botões interativos, e uma live region no container pai re-anunciaria a linha inteira a cada clique num badge (ruído). Ao lado, `MusicaFiltrosAtivos` (badges removíveis + "Limpar filtros") é alimentado por `descreverFiltrosAtivos(props): FiltroAtivo[]`, que resolve cada intensidade/categoria ativa para um rótulo humano (mesma ordem visual dos grupos em `MusicaFiltrosChips`: intensidade antes de categoria) e omite ids de categoria que não existem mais em `categorias` (link antigo, categoria excluída — sem rótulo humano para exibir). O gate de exibição do componente usa a **contagem crua** (`categoriaIds.length + intensidades.length`), nunca `descreverFiltrosAtivos().length`: como `Songs.tsx` mantém na URL qualquer UUID bem-formado de categoria mesmo inexistente, usar a contagem resolvida deixaria o usuário preso num resultado vazio sem badge e sem botão para limpar o filtro inválido — o botão "Limpar filtros" nunca fica `disabled` dentro do componente (o gate acima já cobre o único caso em que ele deveria sumir). Cada badge é o **pill inteiro clicável** (`<button aria-label="Remover filtro X">`), não um badge inerte com "x" aninhado como em `MusicaDetail.tsx`/`IntegranteForm.tsx` — decisão deliberada para atingir uma área de toque maior a 360px (`min-h-[32px] px-3 py-1.5`, "Limpar filtros" com `size="sm"` padrão/36px, sem overrides que encolham); a pista visual de remoção fica no `hover:text-destructive hover:border-destructive/40` em vez do "x" separado. Removeu um filtro (badge ou "Limpar filtros") sempre desmonta o elemento clicado — a prop opcional `aoRemover` dá ao consumidor a chance de mover o foco para outro lugar prévisível (`Songs.tsx` foca `searchRef`, a busca, protagonista da página) sem que `MusicaFiltrosAtivos` precise conhecer esse alvo (Lei de Demeter). `limparTudo()` (CTA do zero-result com filtros) zera `searchInput` explicitamente em vez de confiar no efeito de sincronização com a URL — um debounce de busca ainda pendente reescreveria `q` depois da limpeza (acoplamento temporal); `limparFiltros()` (usado pelo Drawer mobile) permanece intocado, sem tocar em `q`.
+- **Formulário multi-modo: modo DERIVADO de props, nunca booleanos acumulados**: quando um mesmo formulário atende mais de um fluxo (ex.: `EventoForm` com criar/editar/duplicar), o modo é uma união derivada das props (`evento` → `"editar"`; `duplicarDe` → `"duplicar"`; senão `"criar"`), com os textos (título/descrição/CTA) num `Record<Modo, …>` — nunca flags `isEditing`/`isDuplicating` combinadas à mão. Os campos, o select com seus estados de erro e a validação Zod ficam num único componente; cada modo só muda reset (`duplicar` pré-preenche tipo/descrição da origem e deixa `data: ""` — o usuário revisa a data) e branch de submit. **Rascunho de escala (F13)**: em vez de um quarto modo, o modo criação ganha apenas um botão secundário "Salvar rascunho" que submete o MESMO formulário (mesmo resolver Zod) com `status: "rascunho"` — decisão KISS registrada na docstring do `EventoForm`. Rascunhos aparecem SÓ na aba Rascunhos de `Escalas.tsx` (com `Badge variant="outline" className="border-dashed"` e ação "Publicar" = `PUT { status: "publicada" }`, com confirmação "Publicar sem repertório?" quando o rascunho tem zero músicas — o diálogo tem 3 ações e a primeira é um "Cancelar" NEUTRO (`AlertDialogCancel` puro): no touch não há Esc e o Radix ignora tap no backdrop, então todo diálogo de decisão precisa de uma saída que não execute nada); `Dashboard.tsx`, `History.tsx` e as abas Próximas/Passadas filtram por `status === "publicada"`. O schema frontend usa `EventoStatusSchema.default("publicada")` (defensivo para janela de deploy em que o backend ainda não envia o campo).
+- **Guarda de alterações não salvas**: formulários em `ResponsiveFormDialog` usam `useDirtyFormGuard` (`hooks/use-dirty-form-guard.ts`) + `DiscardChangesVeil` (`components/DiscardChangesVeil.tsx`). O hook é uma máquina de estados que **não importa react-hook-form** — só um boolean (`temAlteracoes: form.formState.isDirty`) e callbacks atravessam a fronteira (Lei de Demeter); serve também a páginas sem RHF. **Não incluir `!isPending` em `temAlteracoes`**: o guard fica armado durante submit pendente de propósito — se desarmasse, Esc/backdrop durante o in-flight fechariam sem confirmação e uma mutation que falha perderia o digitado; o caminho feliz não precisa do desarme porque o `onSuccess` fecha via `onOpenChange(false)` do pai (não passa pelo guard) e o `reset()` derruba `temAlteracoes`, fechando o veil sozinho. O callback opcional `aoDescartar` (ex.: limpar rascunho) roda **no máximo uma vez por exibição do veil** — o hook guarda a idempotência contra duplo clique em "Descartar". O hook também é o dono do foco do veil: captura `document.activeElement` no momento do EVENTO (`pedirFechamento`, antes do `inert` roubar o foco — em browser real isso acontece antes de qualquer effect) e restaura no falling edge de `veilAberto`. O formulário passa o guard na prop `dirtyGuard` do `ResponsiveFormDialog` (sem a prop, comportamento intacto) e o botão "Cancelar" do rodapé chama `guarda.pedirFechamento()` em vez de `onOpenChange(false)` — é a quarta saída, que não passa pelo `onOpenChange` do overlay. Com alterações, Esc/backdrop/X/Cancelar exibem o `DiscardChangesVeil` (`role="alertdialog"`, camada `absolute inset-0` dentro do content — **não** um segundo `Dialog`) com o irmão `inert` + `aria-hidden`; no desktop o `<DialogPrimitive.Close>` (o X) do `ui/dialog.tsx` é **irmão** do wrapper inerte e não é alcançado por `inert`/`aria-hidden` — o `FocusScope` do Radix monta a lista de tabbables pela focabilidade real do DOM, então ele virava uma terceira parada invisível no ciclo de Tab do alertdialog (o veil só o cobria por z-index). Com o veil aberto, o content recebe `[&>button]:hidden`, que o tira da árvore de foco de vez; é o único `<button>` filho direto do content (o formulário vive no `<div>` abaixo), então o seletor não pega mais nada. O `DrawerContent` do mobile não renderiza botão de fechar e não precisa da guarda; o wrapper do formulário é um `<div>` **incondicional** (só o spread de atributos inertes é condicional — trocar o tipo de elemento desmontaria a subárvore e apagaria o digitado). No mobile o guard força `dismissible={false}` no `Drawer` (vaul) e intercepta em `onEscapeKeyDown`/`onPointerDownOutside` do `DrawerContent` (com `dismissible` o swipe fecharia sem `resetDrawer()`, e sem `dismissible` o vaul engole o `onOpenChange`); custo aceito: swipe-down inerte com o guard ativo. **Exceção**: `MusicaForm` só liga o guard no modo edição — no modo criação a proteção é o rascunho do `useFormDraft` ("Recuperar rascunho?"); somar o veil ali seria fazer duas perguntas contraditórias. Ligado em `MusicaForm` (edição), `EventoForm`, `IntegranteForm`, `VersaoForm` e nas telas admin: `Users.tsx`, `Roles.tsx`, `Permissions.tsx`, `Igrejas.tsx` (guard de criação e guard de edição — o `aoFechar` do de edição também limpa `editingIgreja`) e `IgrejaUsers.tsx` (sem RHF: `temAlteracoes: selectedUserId !== ""`). Nos formulários de criação com defaults estáticos, o `form.reset()` fica dentro do **`aoFechar`** (não do `aoDescartar`): todo fechamento limpa o formulário — inclusive o fechamento "limpo" após submit inválido, em que `isDirty` é false mas `formState.errors` persistiria (a página não desmonta o form) e reabrir mostraria erros fantasma. É idempotente com o formulário limpo.
+
 ## Segurança — Prevenção de XSS (Cross-Site Scripting)
 
 - **URLs dinâmicas em `href`**: Nunca renderizar URLs vindas da API diretamente em atributos `href` de `<a>`. Protocolos como `javascript:`, `data:` e `vbscript:` permitem execução de código arbitrário ao clicar no link (Stored XSS).
@@ -129,7 +147,7 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 4. **Botões de ação em rows**: Sempre `flex-shrink-0` para não comprimir.
 5. **Container padding**: `p-4 sm:p-6` (AppLayout já implementa — não sobrescrever com `p-6` fixo em subcomponentes).
 6. **Overflow guard**: Containers principais devem ter `overflow-x-hidden`.
-7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal.
+7. **Tabelas de dados**: Usar dual layout — cards empilhados no mobile (`sm:hidden`) + `<Table>` no desktop (`hidden sm:block`). Nunca depender de scroll horizontal. Vale para **toda** lista, inclusive as somente-leitura: `admin/Permissions.tsx` era a exceção e ganhou o dual layout, porque nomes de permissão são tokens `snake_case` sem espaço — não quebram linha e forçavam scroll horizontal a 360px.
 8. **Overlays com conteúdo alto** (calendários, listas longas, filtros): Usar `Drawer` (bottom sheet) no mobile e `Popover` no desktop. Detectar com `useIsMobile()`. Nunca usar Popover no mobile para conteúdo que exceda ~300px de altura — causa overflow/corte. Nunca renderizar conteúdo inline que desloque campos abaixo — preferir overlay. Extrair conteúdo compartilhado em subcomponente para evitar duplicação. Referência: `DateTimePicker.tsx`, `MusicaFiltros.tsx` (filtros da lista de músicas).
 9. **Ícones de confirmação de seleção**: Em botões ao lado de um Select/Combobox que confirmam a escolha (adicionar item selecionado), usar `CornerDownLeft` (↵) em vez de `Plus` (+). Reservar `Plus` apenas para criar novos itens.
 10. **Placeholders em Select/Combobox**: Sempre usar `truncate` no span do placeholder. Textos longos como "Todas as músicas já foram adicionadas" transbordam sobre botões adjacentes em telas estreitas. Referência: `CreatableCombobox.tsx` linha 161.
@@ -208,17 +226,40 @@ O app é usado primariamente em dispositivos móveis. Todo código novo ou modif
 | `CifraclubPlaylistDialog.tsx` | `aria-label` no gatilho icon-only |
 | `MusicaVersaoPicker.tsx` | `truncate max-w-[10rem]` no rótulo do badge (nome de artista é texto livre) |
 | `Songs.tsx` + `MusicaFiltros.tsx` | Filtros colapsáveis no mobile: chips de intensidade/categoria atrás do botão "Filtros" (Drawer bottom-sheet) com contador de ativos e "Limpar filtros"; desktop mantém chips inline; busca protagonista a 360px |
+| `Songs.tsx` + `MusicaFiltros.tsx` | Linha de resultados (`meta.total` + badges removíveis de `MusicaFiltrosAtivos`) em `flex-wrap` — contagem, termo de busca entre aspas e badges quebram linha a 360px em vez de gerar overflow horizontal |
 | `Dashboard.tsx` | `CardHeader` título+botão: `min-w-0`+`truncate` no `CardTitle`, botão `flex-shrink-0` com label `hidden sm:inline` + `aria-label` (ícone puro no mobile); tag de tipo com `truncate max-w-[7rem]` |
 | `admin/IgrejaUsers.tsx` | `line-clamp-2` no `h1` com o nome da igreja (texto livre de até 255 chars) |
+| `Dashboard.tsx` / `History.tsx` / `Escalas.tsx` | Anatomia da linha de evento unificada em `EventoRow.tsx` (`flex-wrap` joga as ações para a própria linha a 360px); `HistorySkeleton` reescrito para o mesmo formato de linha |
+| `admin/Users.tsx` / `admin/Roles.tsx` / `admin/Permissions.tsx` / `admin/Igrejas.tsx` / `admin/IgrejaUsers.tsx` | Formulários migrados de `Dialog` cru para `ResponsiveFormDialog` (bottom-sheet no mobile) com `FieldLabel required` + `RequiredFieldsLegend` + `aria-required` e guarda de alterações não salvas |
+| `MusicaTomPicker.tsx` | Popover com grid de tons (`grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto`, `PopoverContent w-64 max-w-[calc(100vw-2rem)] p-3`) em vez de lista vertical — um tenant com 24 tons (seed padrão) em coluna única estouraria a altura do S8; itens `min-h-11` (44px) |
+| `Escalas.tsx` | F13: 3 abas (`Próximas/Passadas/Rascunhos`) com `flex-1 px-2 sm:px-3` cabem em 360px; 4º botão da fileira de ações (Duplicar) icon-only no mobile (`hidden sm:inline` + `aria-label` interpolando o título); zero-result da busca trunca o termo em 40 chars antes de interpolar (termo sem espaços estouraria 360px) |
+| `History.tsx` | Botão Duplicar (icon-only no mobile) ao lado de Detalhes no slot `acoes` — ambos `w-full sm:w-auto` dividem a largura da linha a 360px |
+| `EmptyState.tsx` | `break-words` na descrição — descrições podem interpolar texto do usuário sem espaços (ex.: termo de busca no zero-result) |
+
+### Popover com muitas opções: grid + tile em vez de lista vertical
+
+`MusicaTomPicker.tsx` (irmão de `MusicaVersaoPicker.tsx`, seleção de tom por música na escala) é a referência para overlays com **muitas** opções curtas (tons musicais, poucos caracteres cada): em vez da lista vertical de `RadioGroupItem` + `Label` lado a lado (padrão de `MusicaVersaoPicker.tsx`, adequado para poucas opções com texto longo, como nomes de artista), usa um `grid grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto` de "tiles" — cada opção é um `Label` estilizado como botão (`min-h-11`, destaque `border-primary bg-primary/10` quando selecionado) envolvendo um `RadioGroupItem` com `className="sr-only"` (o clique no `<label>` visível é repassado ao input oculto pelo comportamento nativo do HTML; testado em e2e com `page.getByText(tom, { exact: true }).click()`, funciona igual com toque). Com o seed padrão de 24 tonalidades, uma lista vertical estouraria a altura do S8 (740px); o grid de 3 colunas cabe em poucas linhas.
 
 ### Ações destrutivas exigem confirmação
 
-Toda ação destrutiva e sem desfazer passa por **`DeleteConfirmDialog`** — nunca dispara direto do `onClick`. Vale também para o que não é "excluir" no nome, mas tem efeito equivalente:
+Toda ação destrutiva passa por **`DeleteConfirmDialog`** — nunca dispara direto do `onClick`. A confirmação permanece **mesmo nas exclusões que ganharam janela de desfazer** (ver seção seguinte). Vale também para o que não é "excluir" no nome, mas tem efeito equivalente:
 
 - **Desativar igreja** (`admin/Igrejas.tsx`): bloqueia login e renovação de sessão de todos os membros daquela igreja. Reativar é inócuo e segue imediato — só o lado destrutivo confirma.
 - **Desvincular usuário de igreja** (`admin/IgrejaUsers.tsx`): remove o vínculo e, em cascata, as roles e permissões daquele usuário no tenant.
 
 A descrição do diálogo deve dizer **o que se perde**, não apenas "esta ação não pode ser desfeita", e identificar o alvo pelo nome.
+
+### Exclusão com desfazer (undo client-side)
+
+As exclusões de **Escalas**, **Integrantes** e das entidades auxiliares de **Configurações** usam `useUndoableDelete` (`hooks/use-undoable-delete.ts`): a confirmação do `DeleteConfirmDialog` **permanece**, mas o DELETE real é adiado ~5s enquanto um toast com a ação "Desfazer" está visível. Regras do padrão:
+
+1. **Mutation silenciosa**: os hooks de delete (`useDeleteEvento`, `useDeleteIntegrante`, `useDeleteArtista` e os 4 deletes de `use-support.ts`) aceitam `{ silent?: boolean }` — com `silent: true` o toast de sucesso do hook é suprimido (o feedback é o toast com "Desfazer"); o `toast.error` permanece. Parâmetro opcional: call sites existentes (ex.: `EventoDetail.tsx`) seguem intactos com o toast padrão.
+2. **`Set` local de pendentes, nunca mutação do cache do React Query**: a lista renderizada filtra por `!estaPendente(id)`. Mexer no cache seria frágil (qualquer `invalidateQueries` de outra mutation traria o item de volta no meio da janela); com o `Set`, o item restaura na posição original de graça — a ordem da lista real nunca foi tocada.
+3. **"Desfazer" não emite segundo toast**: o item reaparecer na lista É o feedback. **Desfazer tardio**: o sonner pausa o countdown do toast no hover, mas o `setTimeout` do hook não — se o clique chegar depois do DELETE ter iniciado (id já fora do Map), o hook emite `toast.error("A exclusão já foi concluída e não pôde ser desfeita.")` e NÃO restaura o item (restaurar causaria flicker no refetch).
+4. **`await` no DELETE antes de desmarcar** (`finally`): evita o item "piscar" de volta entre o DELETE e o refetch. Quando o DELETE inicia (timer ou flush), o toast correspondente é dispensado via `toast.dismiss(toastId)` — sem "Desfazer" morto sobrando na tela.
+5. **Flush no desmonte**: trocar de rota (ou de aba em Configurações — o `TabsContent` desmonta) cancela os timers, dispensa os toasts (o toaster do sonner é global e sobreviveria à navegação) e dispara imediatamente o DELETE dos pendentes. **Risco aceito (D2)**: fechar a aba do navegador dentro da janela perde o DELETE — o item reaparece no próximo load.
+6. **Copy do diálogo**: onde há undo, a descrição diz "Você poderá desfazer nos próximos segundos." em vez de "Essa ação não pode ser desfeita." — ajustado no **ponto de uso**, nunca no `DeleteConfirmDialog` global (telas sem undo, como `admin/IgrejaUsers.tsx`, mantêm a copy de irreversibilidade).
+7. **Undo NÃO se aplica a Igrejas**: desativação é reversível por natureza (botão "Reativar"). Ali a fase F9 corrigiu apenas o toast duplicado — a tela `admin/Igrejas.tsx` **não** toca `toast`; o aviso (com copy específica "desativada"/"reativada"/"atualizada" derivada de `data.status`) vive só em `useUpdateIgreja`.
 
 ### Arraste (dnd-kit) — checklist de acessibilidade
 
@@ -229,6 +270,49 @@ Todo `DndContext` precisa de:
 3. Anúncios que resolvam o **id para um rótulo humano**. Os ids do projeto são UUIDs; anunciar o id cru não diz nada a quem usa leitor de tela. Ver `EventoDetail.tsx` (`acessibilidadeArraste`, que mapeia id → nome da música).
 4. **`aria-label` por item**, interpolando o nome (`Arrastar ${nome} para reordenar`, `Remover ${nome}`) — rótulos genéricos se repetem em todos os cards e não identificam o alvo.
 5. Grip de arraste **`w-11 h-11` (44px) já no mobile**, sem reduzir para `w-8` — 44px é o alvo mínimo de toque, e o mobile é o alvo primário.
+
+### Uma mutation compartilhada exige estado de "em voo" por linha
+
+`mutation.isPending` do React Query é **global à instância da mutation**: usá-lo
+direto no `disabled` de um botão que aparece em N linhas desabilita as N enquanto
+uma única requisição está em voo — e, quando a mesma mutation também serve o
+"Salvar" de um diálogo, desabilita o diálogo junto.
+
+O estado de "em voo" é um **`Set<string>` de ids**, não um `string | null`:
+
+```typescript
+const [emVooIds, setEmVooIds] = useState<ReadonlySet<string>>(() => new Set());
+// ao disparar
+setEmVooIds((atual) => new Set(atual).add(id));
+// disabled da linha
+disabled={emVooIds.has(item.id)}
+```
+
+Um id único parece bastar, mas não basta: nada impede o usuário de acionar a
+linha A e, antes de A liquidar, acionar a linha B — `setEmVooId(B)` apaga A e
+**reabilita o botão de A ainda em voo**, que é exatamente o clique duplicado que
+o guard existia para impedir. No `onSettled`, remova só o próprio id (devolvendo
+o `Set` anterior quando ele já não estiver lá, para não gerar re-render à toa).
+
+Um booleano dedicado é suficiente quando o alvo é **único por natureza** — o
+`salvandoEdicao` do formulário de edição, já que só existe um diálogo aberto por
+vez.
+
+Aplicado em `Escalas.tsx` (`publicandoIds`, Publicar rascunho) e
+`admin/Igrejas.tsx` (`togglingIgrejaIds` para as linhas + `salvandoEdicao` para o
+diálogo, ambos sobre a mesma `useUpdateIgreja`). Vale sobretudo para ações que
+**não** passam por confirmação — o diálogo de confirmação já serializa os
+cliques na prática.
+
+### Erro de query nunca vira zero
+
+Um tile/lista que só olha `isLoading` e cai em `?? 0` / `?? []` renderiza, na
+falha, exatamente o mesmo que renderizaria num ministério legitimamente vazio —
+o usuário não tem como distinguir "não há dados" de "a requisição falhou".
+Destruture `isError` junto de `isLoading` e dê um estado próprio: `Dashboard.tsx`
+mostra "—" com a legenda "Não foi possível carregar" no lugar do número;
+`MusicaTomPicker.tsx` mostra a mensagem com `role="alert"` e um botão
+"Tentar novamente" (`refetch`) em vez de uma grade de tons vazia.
 
 ### Listas com card memoizado: callbacks por ID
 
@@ -265,7 +349,103 @@ A separação é obrigatória: os specs de desktop usam locators de tabela (`get
 
 Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
 
-> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa apenas lint + testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
+> **Pendência conhecida**: os testes e2e ainda não rodam no CI (`ci-frontend.yml` executa lint, typecheck e testes unitários). Subir e2e no CI exige provisionar banco e servidores no workflow.
+
+### Sessão nos specs E2E: `./fixtures`, nunca `loginAsAdmin` no spec
+
+Todo spec que precisa de sessão importa `test`/`expect` de **`tests/e2e/fixtures.ts`**, não de `@playwright/test`. A `page` chega autenticada; `test.beforeEach(loginAsAdmin)` no spec está proibido (era duplicado em 18 arquivos e esquecido em 3, que batiam em `/login` e falhavam por um motivo que não era o do teste).
+
+**Rodar a suíte exige duas variáveis no `.env` do backend** (só em desenvolvimento — os padrões de produção não mudam):
+
+| Variável | Padrão | Por que a suíte precisa |
+|---|---|---|
+| `LOGIN_RATE_LIMIT_MAX` | 10 / 15 min | um login por teste ≈ 74 logins do mesmo IP por execução |
+| `TOKEN_EXCHANGE_RATE_LIMIT_MAX` | 60 / 15 min | **cada carga de página renova a sessão** — uma execução passa de 60 renovações |
+
+Sem elas a suíte fica **inatingível num run único**: a partir do 10º login tudo responde 429, e a partir da 60ª renovação o frontend trata o 429 como sessão morta, apaga o refresh token e joga o teste em `/login` (o defeito descrito em `docs/superpowers/plans/2026-08-11-renovacao-sessao-corrida-entre-abas.md`, aqui exercitado de verdade). Era esse o motivo de rodar em lotes com `touch packages/backend/index.ts`.
+
+- **Sessão não se reaproveita entre testes.** Tentado e descartado com evidência: o access token vive só em memória, então toda carga de página renova pelo refresh token, e a rotação é de **uso único**. Qualquer `storageState` gravado é um retrato que envelhece — se o teste termina com a renovação em voo (caso real: o teste de 404 do `navigation.spec.ts`), o arquivo guarda um token já consumido e **todos** os testes seguintes caem para `/login`. Compartilhar um `BrowserContext` entre testes tem o mesmo problema e ainda abre mão do isolamento nativo.
+- **Login por teste também é o que combina com o backend**: `authenticate-user` usa `replaceAllByUserId` — todo login novo revoga os refresh tokens anteriores **do mesmo usuário**. Duas sessões simultâneas do admin (ex.: fixture de API autenticando no meio de um teste) derrubam uma à outra.
+- **Fixtures de API** (`helpers/eventos-fixture.ts`, `igreja-fixture.ts`, `musicas-fixture.ts`) tomam o token de **`helpers/sessao.ts`** (`obterSessaoAdmin()`), que reaproveita o access token entre workers via `tests/e2e/.auth/api.json` (fora do git) e sonda a validade antes de usar. Nunca chamar `POST /api/sessions` direto num fixture, e nunca `api.dispose()` — o contexto é compartilhado.
+- **Exceção**: `auth.spec.ts` exercita o próprio login e precisa de contexto limpo — segue importando de `@playwright/test`.
+- **Não chamar `tracing.start()`** em fixture: o runner já instrumenta todo contexto criado por `browser.newContext()`, e a chamada duplicada derruba a suíte com "Tracing has been already started".
+- **`browser.newContext()` não herda o `use` do config**: ao criar contexto à mão, passar `baseURL` explicitamente — sem ele, `page.goto("/login")` falha com "Cannot navigate to invalid URL".
+- **Credenciais num módulo só**: `tests/e2e/helpers/credenciais.ts` exporta `EMAIL_ADMIN`/`SENHA_ADMIN`/`CREDENCIAIS_ADMIN`, lidos de `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` com fallback montado por concatenação. Nunca escrever o par literal num spec ou helper: além de multiplicar o trabalho de rotação (o par estava em `sessao.ts`, `login.ts` e `auth.spec.ts`), um literal na forma `password: "..."` casa com os detectores de segredo (GitGuardian/ggshield/gitleaks) e bloqueia o push. Mesma técnica de `packages/backend/tests/fakes/mock-data.ts` (`SENHA_TESTE`/`HASH_TESTE`).
+- **`loginAsAdmin` tolera `/selecionar-igreja`**: se uma execução interrompida deixar uma igreja de teste com o admin vinculado, o login passa a exigir seleção de igreja. O helper escolhe "Igreja Padrão" e segue, para que um resíduo de dados não derrube a suíte.
+
+### Verificação manual vira spec — sempre
+
+<CRITICAL>
+Todo `curl`/`fetch` de smoke test ou execução avulsa do Playwright usada para
+**atestar** que uma correção funciona DEVE virar um spec permanente antes de a
+task ser considerada concluída. Sem isso a garantia morre junto com o terminal:
+a próxima pessoa (ou a próxima refatoração) não tem como saber que aquele
+comportamento já foi conferido, e a regressão volta silenciosa.
+</CRITICAL>
+
+O caso que mais exige isso é o que **teste unitário não consegue atestar**. Os
+testes de service rodam sobre fakes em memória, então nunca exercitam:
+
+- o `$extends` que injeta `tenant_id` no Prisma real (um fake "passa" com a
+  guarda de tenant removida);
+- o índice único do Postgres e o `P2002` que ele dispara (o unitário só
+  consegue *simular* o erro com `mockRejectedValueOnce`);
+- cascatas de `onDelete`, a cadeia de middlewares e a validação Zod de ponta a
+  ponta.
+
+Para esses, o spec é **no nível da API**, não de UI: `test.beforeAll` toma
+`obterSessaoAdmin()`, o próprio teste cria o que vai assertar e o `afterAll`
+remove. Referência: **`tests/e2e/guardas-tenant.spec.ts`** (guarda de tenant em
+`fk_tipo_evento` e tradução de duplicidade em tonalidades).
+
+**Assertar o corpo do erro, não só o status.** A regra "erro do Prisma nunca
+escapa cru" (ver `backend-api.md`) só é verificável olhando a mensagem: o
+sintoma real do bug era um **500 com o stack trace do Prisma** (caminho do
+arquivo, linha e nome da constraint) no corpo da resposta. Um teste que checa
+apenas `status === 404` não distingue "traduzido corretamente" de "traduzido
+com a mensagem errada", e não pega o vazamento:
+
+```typescript
+expect(corpo.erro).toBe("Tipo de evento não encontrado");
+expect(corpo.erro).not.toContain("prisma");
+expect(corpo.erro).not.toContain("Invalid `");
+expect(corpo.erro).not.toContain("constraint");
+```
+
+**Testar corrida exige contextos separados.** Um `APIRequestContext` multiplexa
+tudo numa conexão só: `Promise.all` sobre o mesmo contexto **não** produz
+concorrência real — as requisições saem em fila e cada uma já enxerga a
+gravação da anterior. Um teste de duplicidade escrito assim vira 1×201 + N×409
+pela checagem prévia e **passa com a barreira removida** (verificado). Para
+uma corrida de verdade, cada requisição ganha o seu próprio contexto:
+
+```typescript
+const contextos = await Promise.all(
+  Array.from({ length: 8 }, () => playwrightRequest.newContext({ baseURL: BASE_URL })),
+);
+try {
+  const respostas = await Promise.all(
+    contextos.map((c) => c.post("/api/tonalidades", { headers: auth, data: { tom } })),
+  );
+  expect(respostas.filter((r) => r.status() >= 500)).toHaveLength(0);
+} finally {
+  await Promise.all(contextos.map((c) => c.dispose()));   // contextos próprios: descartar é correto
+}
+```
+
+Com 8 conexões paralelas e a barreira removida, esta base produziu 1×201, 2×409
+e **5×500 com o stack do Prisma** — a prova de que o teste morde. Descartar
+esses contextos é correto, e não contradiz a regra de nunca chamar
+`api.dispose()`: aquela vale para o contexto **compartilhado** de `sessao.ts`.
+
+**Todo teste novo precisa falhar antes de passar.** Antes de dar a task por
+concluída, remova a correção, rode o spec e confirme que ele quebra; só então
+restaure (`git checkout -- <arquivo>`) e confirme que ele passa. Foi assim que
+a primeira versão deste teste se revelou vacuosa.
+
+### Specs E2E não dependem de dado ambiente
+
+Todo spec cria via API o que vai assertar, com nome único por execução (sufixo de timestamp), e remove no `afterAll`/`afterEach` — ver `helpers/`. Buscar por dado que "existe no banco de dev" (como a música `T031`, que nunca esteve no seed) faz o teste passar numa máquina e falhar em todas as outras. Vale também para *mutação*: um spec que adiciona todas as categorias do tenant à primeira música da lista deixa a base alterada para os demais — crie a própria música e apague no fim (`musica-detalhe.spec.ts`).
 
 ## Navegação e Rolagem
 
@@ -298,6 +478,36 @@ Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
     `stopPropagation` por controle: uma única guarda cobre grip, picker e botão de
     remover de uma vez (DRY) e evita navegação inesperada ao acionar Enter/Espaço num
     controle interno (a11y). Ver `EventoDetail.tsx` (`SortableMusicaCard`).
+  - **`EventoRow.tsx`**: implementação compartilhada desse padrão para linhas de
+    evento (escala), adotada por `Dashboard.tsx`, `History.tsx` e `Escalas.tsx` —
+    as três telas renderizavam a mesma entidade (`EventoIndex`) com anatomias
+    divergentes antes desta unificação. Recebe o objeto de domínio inteiro
+    (`evento: EventoIndex`, não primitivos soltos — mesmo padrão de
+    `SortableMusicaCard` recebendo `musica: MusicaEvento`) e expõe slots
+    (`badges`, `acoes`) para que cada tela componha o que é específico dela sem
+    duplicar a anatomia base. Título segue a cadeia
+    `descricao.trim() || tipoEvento?.nome || "Escala"` — `tipoEvento` já aparece
+    como pill na própria linha, então usá-lo como preferência de título
+    duplicaria informação. A cadeia vive no helper exportado
+    **`tituloDoEvento(evento)`** (`EventoRow.tsx`): consumidores que precisam do
+    mesmo título fora da linha (`aria-label` de "Duplicar escala X"/"Publicar
+    rascunho X", descrição do diálogo "Publicar sem repertório?") importam o
+    helper em vez de reimplementar o fallback (DRY) — ver `Escalas.tsx` e
+    `History.tsx`. `role="button"` só aparece quando `onOpen` é
+    informado (`Escalas.tsx` **não** passa `onOpen`: aquele card tem
+    Editar/Excluir destrutivos no rodapé, e linha inteira clicável ao lado de um
+    botão destrutivo convida ao clique acidental — a tela reaproveita a
+    anatomia, não a interação). O componente cuida do `stopPropagation` do slot
+    `acoes` internamente (Tell, Don't Ask), então o consumidor não repete essa
+    lógica em cada botão que passa. Com `onOpen`, a linha também recebe
+    **`aria-label` explícito**, montado com
+    `[titulo, legenda].filter(Boolean).join(", ")` — **nunca** por interpolação
+    direta: `legenda` é opcional e o `Dashboard.tsx` não a passa, então um
+    template literal anunciaria a palavra "undefined". `role="button"` calcula
+    o nome acessível "a partir do conteúdo", então sem rótulo próprio o texto dos
+    botões do slot `acoes` entraria no nome da linha e seria anunciado duas vezes
+    — uma como parte dela, outra ao chegar em cada botão. Combinação real em
+    `History.tsx`, que passa `onOpen` e `acoes` juntos.
 
 ## Convenções de Código
 
@@ -311,4 +521,6 @@ Rodar: `npx playwright test --project=mobile` (exige backend + frontend no ar).
 - `npm run dev` — Servidor de desenvolvimento.
 - `npm run build` — Build de produção.
 - `npm run lint` — Verificação ESLint.
+- `npm run typecheck` — Verificação de tipos (`tsc -p tsconfig.app.json --noEmit`), cobrindo `src` e `tests`. Roda no CI junto do lint; o `build` do Vite usa esbuild e **não** faz checagem de tipos, então só este script barra um erro de tipo.
+- `npm run test` — Testes unitários (Vitest).
 - `npm run preview` — Preview do build de produção.

@@ -6,12 +6,104 @@ import type {
     EventoIndexRaw,
     EventoShowRaw,
     EventoMusicaDetailRaw,
+    EventoStatus,
+    IdTom,
     MusicaEvento,
     VersaoMusicaShowRaw,
     VersaoMusicaEvento,
     CifraclubPlaylistItem,
     CifraclubPlaylistResponse,
 } from '../types/index.js';
+
+/** Mensagem e status HTTP em que um erro conhecido de escrita é traduzido. */
+interface TraducaoDeErro {
+    /** Texto devolvido ao cliente no corpo do `AppError`. */
+    mensagem: string;
+    /** Código HTTP correspondente. */
+    status: number;
+}
+
+/**
+ * Tabela de tradução de um caminho de escrita: sentinelas do repositório e
+ * substrings de constraint reconhecidas no `P2003`.
+ */
+interface MapaDeTraducao {
+    /** Mensagens sentinela lançadas pelo repositório (`throw new Error('X')`) dentro da transação. */
+    sentinelas?: Record<string, TraducaoDeErro>;
+    /** Substrings de nome de constraint, avaliadas na ordem declarada. */
+    fks?: Array<{ contem: string; mensagem: string }>;
+}
+
+/**
+ * Traduz os erros de uma escrita sujeita a corrida em `AppError`.
+ *
+ * Regra do projeto: erro do Prisma nunca escapa cru — o handler genérico de
+ * `app.ts` ecoa `err.message` fora de produção, então um `P2002`/`P2003` não
+ * tratado vira 500 com detalhe interno. As três transações de eventos
+ * (duplicação, versão/tom de música e vínculo de integrante) repetiam a mesma
+ * estrutura variando só a tabela de mensagens; aqui a estrutura mora num lugar
+ * só e cada chamador declara apenas o que é seu (DRY).
+ *
+ * O `P2003` é distinguido por `meta.constraint` (formato do Prisma 6 no
+ * Postgres); `meta.field_name` fica como fallback defensivo para variações de
+ * versão. Constraint não mapeada cai no 404 genérico para não vazar detalhe
+ * interno.
+ *
+ * @param error - Erro capturado da transação
+ * @param mapa - Sentinelas e constraints reconhecidas por este caminho de escrita
+ * @throws {AppError} Erro traduzido, quando reconhecido
+ * @throws {unknown} O erro original, quando não reconhecido
+ */
+function traduzirErroDeEscrita(error: unknown, mapa: MapaDeTraducao): never {
+    if (error instanceof Error) {
+        const sentinela = mapa.sentinelas?.[error.message];
+        if (sentinela) throw new AppError(sentinela.mensagem, sentinela.status);
+    }
+
+    const prismaError = error as { code?: string; meta?: { constraint?: string; field_name?: string } };
+
+    if (error instanceof Error && 'code' in error) {
+        /** P2002 — colisão de unique numa corrida com outra escrita concorrente. */
+        if (prismaError.code === 'P2002') {
+            throw new AppError('Registro duplicado', 409);
+        }
+
+        /** P2003 — FK inválida: distingue qual referência falhou pela constraint. */
+        if (prismaError.code === 'P2003') {
+            const field = String(prismaError.meta?.constraint ?? prismaError.meta?.field_name ?? '');
+            const conhecida = mapa.fks?.find(fk => field.includes(fk.contem));
+            throw new AppError(conhecida?.mensagem ?? 'Recurso referenciado não encontrado', 404);
+        }
+    }
+
+    throw error;
+}
+
+/**
+ * Valida e converte a data de um evento (string ISO 8601) em `Date`.
+ *
+ * Regra única compartilhada por `create`, `update` e `duplicar` — o formato
+ * deve ser parseável e o ano deve estar na faixa 1900–9999 (limite do
+ * `timestamptz` exposto pela API).
+ *
+ * @param data - Data em formato ISO 8601 (ex: `2026-02-14T10:00:00Z`)
+ * @returns `Date` validado
+ * @throws {AppError} 400 — formato inválido ou ano fora da faixa 1900–9999
+ */
+function parseDataEvento(data: string): Date {
+    const timestamp = Date.parse(String(data));
+
+    if (isNaN(timestamp)) {
+        throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
+    }
+
+    const parsedYear = new Date(timestamp).getFullYear();
+    if (parsedYear < 1900 || parsedYear > 9999) {
+        throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
+    }
+
+    return new Date(timestamp);
+}
 
 /**
  * Achata uma versão crua (`Artistas_Musicas` projetada) no formato consumido pela API.
@@ -44,6 +136,28 @@ function flattenVersao(raw: VersaoMusicaShowRaw | null): VersaoMusicaEvento | nu
 }
 
 /**
+ * Resolve o par de tonalidades de uma música escalada.
+ *
+ * `tonalidade` carrega o tom **efetivo** (override da escala ?? tom global da
+ * música) e `tonalidade_musica` preserva o tom global como referência. Resolver
+ * aqui mantém corretos todos os consumidores que leem `tonalidade.tom`
+ * (mensagem de WhatsApp, transposição CifraClub, badge do detalhe) sem tocá-los.
+ *
+ * @param override - Tom próprio da escala (`eventos_musicas.fk_tonalidade`) ou `null`
+ * @param global - Tom global da música (`musicas.fk_tonalidade`) ou `null`
+ * @returns Objeto com `tonalidade` (efetiva) e `tonalidade_musica` (global)
+ */
+function flattenTonalidades(
+    override: IdTom | null,
+    global: IdTom | null,
+): { tonalidade: IdTom | null; tonalidade_musica: IdTom | null } {
+    return {
+        tonalidade: override ?? global,
+        tonalidade_musica: global,
+    };
+}
+
+/**
  * Achata um registro `Eventos_Musicas` projetado em `findEventoMusicaDetail` no formato MusicaEvento.
  *
  * @param raw - Registro cru com a música, tonalidade e versões aninhadas
@@ -54,7 +168,7 @@ function flattenEventoMusicaDetail(raw: EventoMusicaDetailRaw): MusicaEvento {
     return {
         id: musica.id,
         nome: musica.nome,
-        tonalidade: musica.musicas_fk_tonalidade_fkey,
+        ...flattenTonalidades(raw.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
         ordem: raw.ordem,
         versao_selecionada: flattenVersao(raw.eventos_musicas_artistas_musicas_fkey),
         versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
@@ -72,6 +186,7 @@ function formatEventoIndex(e: EventoIndexRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        status: e.status,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => m.eventos_musicas_musicas_id_fkey),
         integrantes: e.Eventos_Users.map(i => {
@@ -95,13 +210,14 @@ function formatEventoShow(e: EventoShowRaw) {
         id: e.id,
         data: e.data,
         descricao: e.descricao,
+        status: e.status,
         tipoEvento: e.eventos_fk_tipo_evento_fkey,
         musicas: e.Eventos_Musicas.map(m => {
             const musica = m.eventos_musicas_musicas_id_fkey;
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ...flattenTonalidades(m.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
                 ordem: m.ordem,
                 versao_selecionada: flattenVersao(m.eventos_musicas_artistas_musicas_fkey),
                 versoes_disponiveis: musica.Artistas_Musicas.map(flattenVersaoObrigatoria),
@@ -140,45 +256,33 @@ class EventosService {
     /**
      * Cria um novo evento vinculado ao tenant informado.
      *
-     * @param body - Dados do evento (data, fk_tipo_evento, descricao)
+     * @param body - Dados do evento (data, fk_tipo_evento, descricao e status opcional — omitido, o banco aplica o DEFAULT `publicada`)
      * @param tenantId - ID do tenant ao qual o evento pertence
-     * @returns Evento criado com tipo de evento populado
+     * @returns Evento criado com tipo de evento populado e status
      */
-    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
-        const { data, fk_tipo_evento, descricao } = body;
+    async create(body: { data?: string; fk_tipo_evento?: string; descricao?: string; status?: EventoStatus }, tenantId: string) {
+        const { data, fk_tipo_evento, descricao, status } = body;
         const errors: string[] = [];
 
         if (!data) errors.push("Data do evento é obrigatória");
         if (!fk_tipo_evento) errors.push("Tipo de evento é obrigatório");
-
-        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
-        const timestamp = data ? Date.parse(String(data)) : NaN;
-
-        if (data && isNaN(timestamp)) {
-            errors.push("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)");
-        }
-
-        if (data && !isNaN(timestamp)) {
-            const parsedYear = new Date(timestamp).getFullYear();
-            if (parsedYear < 1900 || parsedYear > 9999) {
-                errors.push("Ano da data do evento deve estar entre 1900 e 9999");
-            }
-        }
-
         if (errors.length > 0) throw new AppError(errors[0], 400, errors);
 
-        const parsedDate = new Date(data!);
+        const parsedDate = parseDataEvento(data!);
+        await this.assertTipoEventoDoTenant(fk_tipo_evento!);
 
         const evento = await eventosRepository.create({
             data: parsedDate,
             fk_tipo_evento: fk_tipo_evento!,
             descricao: descricao ?? "",
+            status,
         }, tenantId);
 
         return {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            status: evento.status,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
     }
@@ -186,38 +290,31 @@ class EventosService {
     /**
      * Atualiza um evento existente pelo ID com os campos informados.
      *
+     * Publicar uma escala rascunho é este mesmo endpoint com `{ status: 'publicada' }`
+     * — não há endpoint dedicado de publicação (decisão D5).
+     *
      * @param id - UUID do evento a atualizar
-     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`); ausência mantém o valor atual.
-     * @returns Evento atualizado com tipo de evento populado
+     * @param body - Campos a atualizar (`data`, `fk_tipo_evento`, `descricao`, `status`); ausência mantém o valor atual.
+     * @returns Evento atualizado com tipo de evento populado e status
      * @throws {AppError} 400 se o ID/data forem inválidos ou nenhum campo for enviado
      * @throws {AppError} 404 se o evento não existir
      */
-    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }) {
+    async update(id: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string; status?: EventoStatus }) {
         if (!id) throw new AppError("ID de evento não enviado", 400);
 
         const existente = await eventosRepository.findByIdSimple(id);
         if (!existente) throw new AppError("O evento não foi encontrado ou não existe", 404);
 
-        const { data, fk_tipo_evento, descricao } = body;
-
-        /** Parse único reaproveitado nas duas checagens (formato e faixa de ano). */
-        const timestamp = data !== undefined ? Date.parse(String(data)) : NaN;
-
-        if (data !== undefined && isNaN(timestamp)) {
-            throw new AppError("Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)", 400);
-        }
-
-        if (data !== undefined && !isNaN(timestamp)) {
-            const parsedYear = new Date(timestamp).getFullYear();
-            if (parsedYear < 1900 || parsedYear > 9999) {
-                throw new AppError("Ano da data do evento deve estar entre 1900 e 9999", 400);
-            }
-        }
+        const { data, fk_tipo_evento, descricao, status } = body;
 
         const updateData: Prisma.EventosUncheckedUpdateInput = {};
-        if (data !== undefined) updateData.data = new Date(data);
-        if (fk_tipo_evento !== undefined) updateData.fk_tipo_evento = fk_tipo_evento;
+        if (data !== undefined) updateData.data = parseDataEvento(data);
+        if (fk_tipo_evento !== undefined) {
+            await this.assertTipoEventoDoTenant(fk_tipo_evento);
+            updateData.fk_tipo_evento = fk_tipo_evento;
+        }
         if (descricao !== undefined) updateData.descricao = descricao;
+        if (status !== undefined) updateData.status = status;
 
         if (Object.keys(updateData).length === 0) {
             throw new AppError("Ao menos um campo deve ser enviado para atualização", 400);
@@ -229,8 +326,25 @@ class EventosService {
             id: evento.id,
             data: evento.data,
             descricao: evento.descricao,
+            status: evento.status,
             tipoEvento: evento.eventos_fk_tipo_evento_fkey
         };
+    }
+
+    /**
+     * Garante que o tipo de evento informado existe **no tenant ativo**.
+     *
+     * A FK do banco só valida existência do `id`, sem conhecer `tenant_id`: sem
+     * esta checagem, um id de `Tipos_Eventos` de outra igreja seria aceito por
+     * `create`/`update`/`duplicar` e o nome dele voltaria na resposta. Mesma
+     * revalidação que `setMusicaTonalidadeAtomic` já faz para `fk_tonalidade`.
+     *
+     * @param fkTipoEvento - UUID do tipo de evento informado no body
+     * @throws {AppError} 404 — tipo de evento inexistente no tenant ativo
+     */
+    private async assertTipoEventoDoTenant(fkTipoEvento: string) {
+        const tipo = await eventosRepository.findTipoEventoById(fkTipoEvento);
+        if (!tipo) throw new AppError("Tipo de evento não encontrado", 404);
     }
 
     /** Remove um evento existente pelo ID. */
@@ -242,6 +356,90 @@ class EventosService {
 
         await eventosRepository.delete(id);
         return evento;
+    }
+
+    /**
+     * Duplica uma escala existente para uma nova data.
+     *
+     * A cópia é server-side (endpoint dedicado, não composição no cliente) por
+     * três razões: atomicidade (a transação do repositório evita cópia parcial),
+     * fidelidade das funções (copia `Eventos_Users_Funcoes` do evento de origem
+     * direto, sem a revalidação contra funções globais que `addIntegrante` faz
+     * — um integrante que trocou de função desde a escala original não vira 400)
+     * e custo (sem N round-trips serializados no `MAX(ordem)+1` de `createMusica`).
+     *
+     * `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; o
+     * `status` do novo evento fica com o DEFAULT `publicada` do banco.
+     *
+     * @param origemId - UUID do evento a duplicar
+     * @param body - `data` obrigatória (ISO 8601) e sobrescritas opcionais de `fk_tipo_evento`/`descricao`
+     * @param tenantId - ID do tenant ao qual a cópia pertence
+     * @returns Evento criado com tipo de evento populado e status
+     * @throws {AppError} 400 — data ausente/inválida ou ano fora de 1900–9999
+     * @throws {AppError} 404 — evento de origem inexistente no tenant (inclusive se for excluído durante a cópia), ou tipo de evento sobrescrito inexistente no tenant
+     */
+    async duplicar(origemId: string, body: { data?: string; fk_tipo_evento?: string; descricao?: string }, tenantId: string) {
+        if (!body.data) throw new AppError("Data do evento é obrigatória", 400);
+        const parsedDate = parseDataEvento(body.data);
+
+        const origem = await eventosRepository.findByIdSimple(origemId);
+        if (!origem) throw new AppError("Evento não encontrado", 404);
+
+        if (body.fk_tipo_evento !== undefined) {
+            await this.assertTipoEventoDoTenant(body.fk_tipo_evento);
+        }
+
+        /**
+         * O catch traduz erros Prisma da transação de cópia (ex.: `fk_tipo_evento`
+         * sobrescrito inexistente, ou origem alterada por outra requisição entre a
+         * leitura e a gravação) — sem ele escapariam como 500 cru.
+         */
+        try {
+            const evento = await eventosRepository.duplicarEvento(origemId, {
+                data: parsedDate,
+                fk_tipo_evento: body.fk_tipo_evento ?? origem.fk_tipo_evento,
+                descricao: body.descricao ?? origem.descricao,
+            }, tenantId);
+
+            return {
+                id: evento.id,
+                data: evento.data,
+                descricao: evento.descricao,
+                status: evento.status,
+                tipoEvento: evento.eventos_fk_tipo_evento_fkey
+            };
+        } catch (error) {
+            this.handleDuplicarSentinel(error);
+        }
+    }
+
+    /**
+     * Converte erros Prisma conhecidos da transação de duplicação em `AppError`.
+     *
+     * O P2003 distingue qual referência falhou pelos nomes reais das constraints
+     * no banco (verificados via `pg_constraint`): `eventos_fk_tipo_evento_fkey`,
+     * `eventos_musicas_fk_artistas_musicas_fkey`, `eventos_musicas_fk_tonalidade_fkey`,
+     * `eventos_musicas_musicas_id_fkey`, `eventos_users_fk_user_id_fkey` e
+     * `eventos_users_funcoes_funcao_id_fkey`. Constraints não mapeadas (ex.:
+     * `tenant_id`) caem no 404 genérico para não vazar detalhe interno.
+     *
+     * @param error - Erro capturado de `duplicarEvento`
+     * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
+     */
+    private handleDuplicarSentinel(error: unknown): never {
+        traduzirErroDeEscrita(error, {
+            sentinelas: {
+                ORIGEM_NOT_FOUND: { mensagem: 'Evento não encontrado', status: 404 },
+            },
+            fks: [
+                { contem: 'fk_tipo_evento', mensagem: 'Tipo de evento não encontrado' },
+                { contem: 'fk_artistas_musicas', mensagem: 'Versão não encontrada' },
+                { contem: 'fk_tonalidade', mensagem: 'Tonalidade não encontrada' },
+                { contem: 'musicas_id', mensagem: 'Música não encontrada' },
+                { contem: 'fk_user_id', mensagem: 'Integrante não encontrado' },
+                { contem: 'funcao_id', mensagem: 'Função não encontrada' },
+            ],
+        });
     }
 
     // --- CifraClub Playlist ---
@@ -263,7 +461,12 @@ class EventosService {
 
         const playlist: CifraclubPlaylistItem[] = evento.Eventos_Musicas.map(em => {
             const musica = em.eventos_musicas_musicas_id_fkey;
-            const tom = musica.musicas_fk_tonalidade_fkey?.tom ?? null;
+            /** Tom efetivo da escala (override do evento ?? tom global da música). */
+            const { tonalidade } = flattenTonalidades(
+                em.eventos_musicas_fk_tonalidade_fkey,
+                musica.musicas_fk_tonalidade_fkey,
+            );
+            const tom = tonalidade?.tom ?? null;
 
             let cifraclubUrl: string | null = null;
             let artistaNome = '';
@@ -329,7 +532,10 @@ class EventosService {
 
     // --- Musicas ---
 
-    /** Lista as músicas vinculadas a um evento com tonalidade e posição, ordenadas por ordem. */
+    /**
+     * Lista as músicas vinculadas a um evento com tom efetivo e posição, ordenadas por ordem.
+     * `tonalidade` carrega o tom efetivo da escala e `tonalidade_musica` o tom global.
+     */
     async listMusicas(eventoId: string) {
         const evento = await eventosRepository.findByIdSimple(eventoId);
         if (!evento) throw new AppError("Evento não encontrado", 404);
@@ -340,7 +546,7 @@ class EventosService {
             return {
                 id: musica.id,
                 nome: musica.nome,
-                tonalidade: musica.musicas_fk_tonalidade_fkey,
+                ...flattenTonalidades(m.eventos_musicas_fk_tonalidade_fkey, musica.musicas_fk_tonalidade_fkey),
                 ordem: m.ordem
             };
         });
@@ -350,51 +556,31 @@ class EventosService {
      * Converte erros sentinela lançados pelo repositório (dentro das transações atômicas)
      * e erros Prisma de constraint violation para `AppError` com o statusCode correto.
      *
-     * Trata erros sentinela (`VERSAO_NOT_FOUND`, `VERSAO_WRONG_MUSICA`), erros de FK
-     * (`P2003`) distinguindo qual FK falhou via `error.meta.field_name`, e erros de
-     * unique constraint (`P2002`) para corridas de duplicação concorrente.
+     * Trata erros sentinela (`VERSAO_NOT_FOUND`, `VERSAO_WRONG_MUSICA`,
+     * `TONALIDADE_NOT_FOUND`), erros de FK (`P2003`) distinguindo qual FK falhou via
+     * `error.meta.constraint` (formato real do Prisma 6 no Postgres, ex.:
+     * `"eventos_musicas_fk_tonalidade_fkey"`; `error.meta.field_name` é mantido
+     * apenas como fallback defensivo para variações de versão do Prisma), e erros
+     * de unique constraint (`P2002`) para corridas de duplicação concorrente.
      *
      * @param error - Erro capturado de uma operação atômica
      * @throws {AppError} Sempre — re-lança o erro convertido ou propaga desconhecidos
      */
     private handleVersaoSentinel(error: unknown): never {
-        if (error instanceof Error) {
-            if (error.message === 'VERSAO_NOT_FOUND') {
-                throw new AppError('Versão não encontrada', 404);
-            }
-            if (error.message === 'VERSAO_WRONG_MUSICA') {
-                throw new AppError('A versão informada não pertence a esta música', 400);
-            }
-            if (error.message === 'EVENTO_MUSICA_NOT_FOUND') {
-                throw new AppError('Música não encontrada neste evento', 404);
-            }
-        }
-
-        const prismaError = error as { code?: string; meta?: { field_name?: string } };
-
-        // P2002 (unique constraint) — corrida de duplicação concorrente entre
-        // findMusicaDuplicate e createMusica.
-        if (error instanceof Error && 'code' in error && prismaError.code === 'P2002') {
-            throw new AppError('Registro duplicado', 409);
-        }
-
-        // P2003 (FK violation) — distingue qual FK falhou para retornar mensagem adequada.
-        if (error instanceof Error && 'code' in error && prismaError.code === 'P2003') {
-            const field = prismaError.meta?.field_name ?? '';
-            if (field.includes('fk_artistas_musicas')) {
-                throw new AppError('Versão não encontrada', 404);
-            }
-            if (field.includes('evento_id')) {
-                throw new AppError('Evento não encontrado', 404);
-            }
-            if (field.includes('musicas_id')) {
-                throw new AppError('Música não encontrada', 404);
-            }
-            // FK desconhecida — propaga como 404 genérico para não vazar detalhes internos.
-            throw new AppError('Recurso referenciado não encontrado', 404);
-        }
-
-        throw error;
+        traduzirErroDeEscrita(error, {
+            sentinelas: {
+                VERSAO_NOT_FOUND: { mensagem: 'Versão não encontrada', status: 404 },
+                VERSAO_WRONG_MUSICA: { mensagem: 'A versão informada não pertence a esta música', status: 400 },
+                TONALIDADE_NOT_FOUND: { mensagem: 'Tonalidade não encontrada', status: 404 },
+                EVENTO_MUSICA_NOT_FOUND: { mensagem: 'Música não encontrada neste evento', status: 404 },
+            },
+            fks: [
+                { contem: 'fk_artistas_musicas', mensagem: 'Versão não encontrada' },
+                { contem: 'fk_tonalidade', mensagem: 'Tonalidade não encontrada' },
+                { contem: 'evento_id', mensagem: 'Evento não encontrado' },
+                { contem: 'musicas_id', mensagem: 'Música não encontrada' },
+            ],
+        });
     }
 
     /**
@@ -458,6 +644,37 @@ class EventosService {
 
         try {
             await eventosRepository.setMusicaVersaoAtomic(eventoMusica.id, musicaId, artistas_musicas_id);
+        } catch (error) {
+            this.handleVersaoSentinel(error);
+        }
+
+        const detail = await eventosRepository.findEventoMusicaDetail(eventoId, musicaId);
+        if (!detail) throw new AppError("Falha ao recuperar música atualizada", 500);
+        return flattenEventoMusicaDetail(detail);
+    }
+
+    /**
+     * Define ou limpa o tom próprio de uma música em um evento (override do tom global).
+     *
+     * A validação da tonalidade + escrita rodam dentro de uma única transação para
+     * eliminar o TOCTOU entre "tonalidade existe" e "FK gravado". `null` remove o
+     * override e a música volta a seguir o tom global de `musicas.fk_tonalidade`.
+     *
+     * @param eventoId - ID do evento
+     * @param musicaId - ID da música no evento
+     * @param fk_tonalidade - UUID da tonalidade desejada, ou `null` para voltar ao tom global
+     * @returns MusicaEvento formatada com `tonalidade` efetiva e `tonalidade_musica` global
+     * @throws {AppError} 404 — Se o evento, o vínculo evento-música ou a tonalidade não existir
+     */
+    async setMusicaTonalidade(eventoId: string, musicaId: string, fk_tonalidade: string | null) {
+        const evento = await eventosRepository.findByIdSimple(eventoId);
+        if (!evento) throw new AppError("Evento não encontrado", 404);
+
+        const eventoMusica = await eventosRepository.findMusicaDuplicate(eventoId, musicaId);
+        if (!eventoMusica) throw new AppError("Música não encontrada no evento", 404);
+
+        try {
+            await eventosRepository.setMusicaTonalidadeAtomic(eventoMusica.id, fk_tonalidade);
         } catch (error) {
             this.handleVersaoSentinel(error);
         }
@@ -604,28 +821,12 @@ class EventosService {
      * @throws {AppError} Sempre — re-lança convertido ou propaga o desconhecido
      */
     private handleIntegranteSentinel(error: unknown): never {
-        const prismaError = error as { code?: string; meta?: { field_name?: string } };
-
-        if (error instanceof Error && 'code' in error) {
-            /** P2002 — corrida com outra vinculação do mesmo integrante no evento. */
-            if (prismaError.code === 'P2002') {
-                throw new AppError('Registro duplicado', 409);
-            }
-
-            /** P2003 — FK inválida: função ou evento removido entre a validação e a gravação. */
-            if (prismaError.code === 'P2003') {
-                const field = prismaError.meta?.field_name ?? '';
-                if (field.includes('funcao_id')) {
-                    throw new AppError('Função não encontrada', 404);
-                }
-                if (field.includes('evento_id')) {
-                    throw new AppError('Evento não encontrado', 404);
-                }
-                throw new AppError('Recurso referenciado não encontrado', 404);
-            }
-        }
-
-        throw error;
+        traduzirErroDeEscrita(error, {
+            fks: [
+                { contem: 'funcao_id', mensagem: 'Função não encontrada' },
+                { contem: 'evento_id', mensagem: 'Evento não encontrado' },
+            ],
+        });
     }
 
     /** Remove o vínculo entre um evento e um integrante. */

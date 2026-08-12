@@ -38,7 +38,6 @@ import {
   CornerDownLeft,
   X,
   ArrowLeft,
-  Guitar,
   Pencil,
   Trash2,
   GripVertical,
@@ -51,6 +50,7 @@ import {
   useRemoveMusicaFromEvento,
   useReorderMusicas,
   useSetMusicaVersao,
+  useSetMusicaTonalidade,
   useAddIntegranteToEvento,
   useRemoveIntegranteFromEvento,
 } from "@/hooks/use-eventos";
@@ -66,6 +66,7 @@ import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FuncaoSelectDialog } from "@/components/FuncaoSelectDialog";
 import { MusicaVersaoPicker } from "@/components/MusicaVersaoPicker";
+import { MusicaTomPicker } from "@/components/MusicaTomPicker";
 import { EscalaShareActions } from "@/components/EscalaShareActions";
 import { CifraclubPlaylistDialog } from "@/components/CifraclubPlaylistDialog";
 import { handleClickableKeyDown } from "@/lib/utils";
@@ -78,7 +79,8 @@ import type { MusicaEvento } from "@/schemas/evento";
  * Card de música ordenável via drag-and-drop.
  * Exibe badge de posição, grip handle (para usuários com permissão) e botão de remoção.
  * O card inteiro é clicável e navega ao detalhe da música via `onOpen`; o grip,
- * o botão de remoção e o seletor de versão usam `stopPropagation` para não navegar.
+ * o botão de remoção e os seletores de tom e de versão usam `stopPropagation`
+ * para não navegar.
  *
  * @param musica - Música do evento (com versão selecionada e disponíveis).
  * @param canWrite - Se o usuário tem permissão de escrita (exibe grip/remoção).
@@ -105,6 +107,7 @@ function SortableMusicaCardBase({
   onOpen: (musicaId: string) => void;
 }) {
   const setVersao = useSetMusicaVersao(eventoId);
+  const setTonalidade = useSetMusicaTonalidade(eventoId);
   const {
     attributes,
     listeners,
@@ -177,14 +180,22 @@ function SortableMusicaCardBase({
       </div>
       {/* pl-14: alinha com o nome da música acima (grip w-11 + badge w-6 + gaps) */}
       <div className="flex items-center gap-2 mt-1.5 pl-14 flex-wrap">
-        {musica.tonalidade && (
-          <Badge variant="outline" className="text-xs flex-shrink-0">
-            <Guitar className="h-3 w-3 mr-1" />
-            {musica.tonalidade.tom}
-          </Badge>
-        )}
         {/* display:contents não afeta o layout; a propagação de evento segue a
-            árvore DOM, então o stopPropagation evita navegar ao mexer na versão. */}
+            árvore DOM, então o stopPropagation evita navegar ao mexer no tom
+            ou na versão. Sem guard de `musica.tonalidade`: o picker precisa
+            aparecer mesmo quando a música ainda não tem tom nenhum. */}
+        <span className="contents" onClick={(e) => e.stopPropagation()}>
+          <MusicaTomPicker
+            musicaId={musica.id}
+            tonalidadeEfetiva={musica.tonalidade}
+            tonalidadeMusica={musica.tonalidade_musica}
+            onSelect={(fkTonalidade) =>
+              setTonalidade.mutate({ musicaId: musica.id, fkTonalidade })
+            }
+            isPending={setTonalidade.isPending}
+            readOnly={!canWrite}
+          />
+        </span>
         <span className="contents" onClick={(e) => e.stopPropagation()}>
           <MusicaVersaoPicker
             musicaId={musica.id}
@@ -720,6 +731,7 @@ export function EventoDetail() {
           tipoEvento: evento.tipoEvento,
           musicas: evento.musicas.map((m) => ({ id: m.id, nome: m.nome })),
           integrantes: evento.integrantes.map((i) => ({ id: i.id, nome: i.nome })),
+          status: evento.status,
         }}
       />
 

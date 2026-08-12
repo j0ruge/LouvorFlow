@@ -37,6 +37,15 @@ describe('RelatoriosService', () => {
             expect(result.atividadeMensal).toHaveLength(6);
         });
 
+        /** Deve propagar a contagem de músicas novas no mês vinda do repositório. */
+        it('deve propagar novasMusicasNoMes do repositório', async () => {
+            fakeRepo.configure({ novasMusicasNoMes: 8 });
+
+            const result = await relatoriosService.getResumo();
+
+            expect(result.novasMusicasNoMes).toBe(8);
+        });
+
         /** Deve calcular a média arredondada a 1 casa decimal. */
         it('deve calcular a média arredondada a 1 casa decimal', async () => {
             const result = await relatoriosService.getResumo();
@@ -63,6 +72,7 @@ describe('RelatoriosService', () => {
                 totalAssociacoes: 0,
                 topMusicas: [],
                 atividadeMensal: [],
+                novasMusicasNoMes: 0,
             });
 
             const result = await relatoriosService.getResumo();
@@ -72,6 +82,7 @@ describe('RelatoriosService', () => {
             expect(result.mediaPorEvento).toBe(0);
             expect(result.topMusicas).toEqual([]);
             expect(result.atividadeMensal).toEqual([]);
+            expect(result.novasMusicasNoMes).toBe(0);
         });
 
         /** Deve retornar média 0 quando não há eventos (divisão por zero). */
@@ -126,6 +137,51 @@ describe('RelatoriosService', () => {
             expect(result.atividadeMensal[5].mes).toBe('Fev 2026');
         });
 
+        /**
+         * Decisão D5: escala `rascunho` está em preparação e não conta em
+         * nenhum indicador baseado em evento — mesmo com data passada, não
+         * entra em totalEventos, associações, ranking nem atividade mensal.
+         */
+        it('deve ignorar eventos rascunho nos indicadores baseados em evento', async () => {
+            const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            fakeRepo.configure({
+                eventos: [
+                    {
+                        data: ontem,
+                        status: 'publicada',
+                        musicas: [
+                            { id: 'm1', nome: 'Way Maker' },
+                            { id: 'm2', nome: 'Oceans' },
+                        ],
+                    },
+                    {
+                        data: ontem,
+                        status: 'rascunho',
+                        musicas: [
+                            { id: 'm1', nome: 'Way Maker' },
+                            { id: 'm3', nome: 'Só No Rascunho' },
+                        ],
+                    },
+                ],
+            });
+
+            const result = await relatoriosService.getResumo();
+
+            expect(result.totalEventos).toBe(1);
+            expect(result.mediaPorEvento).toBe(2);
+
+            const nomes = result.topMusicas.map(m => m.nome);
+            expect(nomes).toContain('Way Maker');
+            expect(nomes).not.toContain('Só No Rascunho');
+
+            const wayMaker = result.topMusicas.find(m => m.nome === 'Way Maker');
+            expect(wayMaker!.vezes).toBe(1);
+
+            expect(result.atividadeMensal).toHaveLength(1);
+            expect(result.atividadeMensal[0].eventos).toBe(1);
+            expect(result.atividadeMensal[0].musicas).toBe(2);
+        });
+
         /** Deve retornar a estrutura completa do RelatorioResumo. */
         it('deve retornar estrutura completa do RelatorioResumo', async () => {
             const result = await relatoriosService.getResumo();
@@ -135,6 +191,7 @@ describe('RelatoriosService', () => {
             expect(result).toHaveProperty('mediaPorEvento');
             expect(result).toHaveProperty('topMusicas');
             expect(result).toHaveProperty('atividadeMensal');
+            expect(result).toHaveProperty('novasMusicasNoMes');
         });
     });
 });

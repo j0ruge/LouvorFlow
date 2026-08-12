@@ -35,10 +35,13 @@ export function createFakeArtistasRepository() {
 
     findByIdSimple: async (id: string) => data.find(a => a.id === id) ?? null,
 
-    findByNome: async (nome: string) => data.find(a => a.nome === nome) ?? null,
+    /** Busca por nome ignorando caixa, espelhando `mode: 'insensitive'` do Prisma real (acentos continuam distintos). */
+    findByNome: async (nome: string) =>
+      data.find(a => a.nome.toLowerCase() === nome.toLowerCase()) ?? null,
 
+    /** Busca por nome ignorando caixa, excluindo um ID — espelha `mode: 'insensitive'` do Prisma real. */
     findByNomeExcludingId: async (nome: string, excludeId: string) =>
-      data.find(a => a.nome === nome && a.id !== excludeId) ?? null,
+      data.find(a => a.nome.toLowerCase() === nome.toLowerCase() && a.id !== excludeId) ?? null,
 
     create: async (nome: string, _tenantId?: string) => {
       const artista = { id: randomUUID(), nome };

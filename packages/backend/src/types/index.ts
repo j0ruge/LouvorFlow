@@ -32,6 +32,7 @@ export interface AtividadeMensal {
  * @property mediaPorEvento - Média de músicas por evento (1 casa decimal)
  * @property topMusicas - Top 5 músicas por frequência
  * @property atividadeMensal - Atividade dos últimos 6 meses
+ * @property novasMusicasNoMes - Total de músicas com `created_at` no mês corrente
  */
 export interface RelatorioResumo {
     totalMusicas: number;
@@ -39,12 +40,23 @@ export interface RelatorioResumo {
     mediaPorEvento: number;
     topMusicas: MusicaRanking[];
     atividadeMensal: AtividadeMensal[];
+    novasMusicasNoMes: number;
 }
 
 export interface IdNome {
     id: string;
     nome: string;
 }
+
+/**
+ * Status de publicação de uma escala.
+ *
+ * `rascunho` é a escala em preparação (não comunicada à equipe nem contada
+ * como "próxima escala"); `publicada` é o comportamento clássico de todo
+ * evento. União literal idêntica ao enum `EventoStatus` do Prisma —
+ * estruturalmente intercambiável com `$Enums.EventoStatus`.
+ */
+export type EventoStatus = 'rascunho' | 'publicada';
 
 /**
  * Dados de entrada para criação completa de música (música + versão opcional).
@@ -237,6 +249,7 @@ export interface Musica {
  * @property id - Identificador único do evento
  * @property data - Data do evento
  * @property descricao - Descrição do evento
+ * @property status - Status de publicação da escala (`rascunho` | `publicada`)
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id e nome)
  * @property Eventos_Users - Users vinculados (cada item contém id e nome)
@@ -245,6 +258,7 @@ export interface EventoIndexRaw {
     id: string;
     data: Date;
     descricao: string;
+    status: EventoStatus;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: { eventos_musicas_musicas_id_fkey: IdNome }[];
     Eventos_Users: { eventos_users_fk_user_id_fkey: { id: string; name: string } }[];
@@ -292,7 +306,8 @@ export interface VersaoMusicaEvento {
  *
  * @property id - Identificador único da música (UUID)
  * @property nome - Nome da música
- * @property tonalidade - Tonalidade associada ou `null`
+ * @property tonalidade - Tom efetivo nesta escala (override do evento ?? tom global da música) ou `null`
+ * @property tonalidade_musica - Tom global da música ou `null` — difere de `tonalidade` quando a escala definiu tom próprio
  * @property ordem - Posição da música na escala (1..N)
  * @property versao_selecionada - Versão escolhida pelo líder para esta escala ou `null`
  * @property versoes_disponiveis - Lista de todas as versões cadastradas para a música
@@ -301,6 +316,7 @@ export interface MusicaEvento {
     id: string;
     nome: string;
     tonalidade: IdTom | null;
+    tonalidade_musica: IdTom | null;
     ordem: number;
     versao_selecionada: VersaoMusicaEvento | null;
     versoes_disponiveis: VersaoMusicaEvento[];
@@ -314,12 +330,14 @@ export interface MusicaEvento {
  * @property ordem - Posição da música na escala
  * @property eventos_musicas_musicas_id_fkey - Música associada com tonalidade e versões disponíveis
  * @property eventos_musicas_artistas_musicas_fkey - Versão atualmente selecionada ou `null`
+ * @property eventos_musicas_fk_tonalidade_fkey - Tom próprio da música nesta escala ou `null` (usa o tom global)
  */
 export interface EventoMusicaDetailRaw {
     id: string;
     ordem: number;
     eventos_musicas_musicas_id_fkey: EventoShowMusica;
     eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
+    eventos_musicas_fk_tonalidade_fkey: IdTom | null;
 }
 
 /**
@@ -339,6 +357,7 @@ export interface EventoShowIntegranteRaw {
  * @property id - Identificador único do evento
  * @property data - Data do evento
  * @property descricao - Descrição do evento
+ * @property status - Status de publicação da escala (`rascunho` | `publicada`)
  * @property eventos_fk_tipo_evento_fkey - Tipo do evento (id e nome) ou `null`
  * @property Eventos_Musicas - Músicas vinculadas (cada item contém id, nome e tonalidade)
  * @property Eventos_Users - Users vinculados com funções selecionadas para o evento
@@ -347,12 +366,14 @@ export interface EventoShowRaw {
     id: string;
     data: Date;
     descricao: string;
+    status: EventoStatus;
     eventos_fk_tipo_evento_fkey: IdNome | null;
     Eventos_Musicas: {
         id: string;
         ordem: number;
         eventos_musicas_musicas_id_fkey: EventoShowMusica;
         eventos_musicas_artistas_musicas_fkey: VersaoMusicaShowRaw | null;
+        eventos_musicas_fk_tonalidade_fkey: IdTom | null;
     }[];
     Eventos_Users: EventoShowIntegranteRaw[];
 }
@@ -409,6 +430,7 @@ export const EVENTO_INDEX_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    status: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -444,6 +466,7 @@ export const EVENTO_SHOW_SELECT = {
     id: true,
     data: true,
     descricao: true,
+    status: true,
     eventos_fk_tipo_evento_fkey: {
         select: { id: true, nome: true }
     },
@@ -480,6 +503,9 @@ export const EVENTO_SHOW_SELECT = {
                         select: { id: true, nome: true }
                     }
                 }
+            },
+            eventos_musicas_fk_tonalidade_fkey: {
+                select: { id: true, tom: true }
             }
         },
         orderBy: { ordem: 'asc' as const }

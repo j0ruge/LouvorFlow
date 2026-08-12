@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import tonalidadesRepository from '../repositories/tonalidades.repository.js';
 
 class TonalidadesService {
@@ -29,7 +30,10 @@ class TonalidadesService {
         const existente = await tonalidadesRepository.findByTom(tom);
         if (existente) throw new AppError("Já existe uma tonalidade com esse tom", 409);
 
-        return tonalidadesRepository.create(tom, tenantId);
+        return comBarreiraDeDuplicidade(
+            "Já existe uma tonalidade com esse tom",
+            () => tonalidadesRepository.create(tom, tenantId),
+        );
     }
 
     async update(id: string, tom?: string) {
@@ -43,7 +47,10 @@ class TonalidadesService {
         const duplicado = await tonalidadesRepository.findByTomExcludingId(tom, id);
         if (duplicado) throw new AppError("Tom já existe", 409);
 
-        return tonalidadesRepository.update(id, tom);
+        return comBarreiraDeDuplicidade(
+            "Tom já existe",
+            () => tonalidadesRepository.update(id, tom),
+        );
     }
 
     async delete(id: string) {

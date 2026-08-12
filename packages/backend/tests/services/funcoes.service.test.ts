@@ -67,6 +67,14 @@ describe('FuncoesService', () => {
         message: 'Já existe uma função com esse nome',
       });
     });
+
+    /** Decisão D7: duplicidade de nome ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando nome colide apenas na caixa', async () => {
+      await expect(funcoesService.create(MOCK_FUNCOES[0].nome.toUpperCase(), 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma função com esse nome',
+      });
+    });
   });
 
   // ─── update ──────────────────────────────────────────
@@ -100,6 +108,16 @@ describe('FuncoesService', () => {
 
     it('deve lançar AppError 409 quando nome já existe em outra função', async () => {
       await expect(funcoesService.update(MOCK_FUNCOES[0].id, MOCK_FUNCOES[1].nome)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Nome de função já existe',
+      });
+    });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando nome já existe em outra função ignorando caixa', async () => {
+      await expect(
+        funcoesService.update(MOCK_FUNCOES[0].id, MOCK_FUNCOES[1].nome.toUpperCase())
+      ).rejects.toMatchObject({
         statusCode: 409,
         message: 'Nome de função já existe',
       });

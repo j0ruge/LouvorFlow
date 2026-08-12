@@ -34,6 +34,13 @@ export const RelatorioResumoSchema = z.object({
   mediaPorEvento: z.number().min(0),
   topMusicas: z.array(MusicaRankingSchema),
   atividadeMensal: z.array(AtividadeMensalSchema),
+  /**
+   * Total de músicas cadastradas no mês corrente. `.default(0)` é a costura
+   * que permite o frontend ser implantado antes ou depois do backend numa
+   * janela de deploy sem quebrar `useRelatorioResumo` — se o campo ainda não
+   * existir na resposta, o parse não falha e o Dashboard exibe 0.
+   */
+  novasMusicasNoMes: z.number().int().min(0).default(0),
 });
 
 /** Tipo inferido do resumo completo de relatórios. */

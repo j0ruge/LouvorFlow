@@ -75,18 +75,24 @@ export function useUpdateArtista() {
 /**
  * Hook para excluir um artista via mutation.
  *
- * Invalida a query de listagem e exibe toast de sucesso/erro.
+ * Invalida a query de listagem e exibe toast de sucesso/erro. Com
+ * `options.silent`, o toast de sucesso é suprimido — usado pelo fluxo de
+ * exclusão com desfazer (`useUndoableDelete`), em que o feedback é o toast
+ * com a ação "Desfazer". O toast de erro permanece em ambos os modos.
  *
+ * @param options - `silent` suprime o toast de sucesso (padrão: false).
  * @returns Resultado do useMutation para exclusão de artista.
  */
-export function useDeleteArtista() {
+export function useDeleteArtista(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => deleteArtista(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["artistas"] });
-      toast.success(data.msg);
+      if (!options?.silent) {
+        toast.success(data.msg);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);

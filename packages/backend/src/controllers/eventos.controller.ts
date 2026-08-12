@@ -38,6 +38,12 @@ class EventosController {
         res.status(200).json({ msg: "Evento deletado com sucesso", evento });
     }
 
+    /** Duplica uma escala existente para uma nova data, copiando repertório e integrantes com as funções do evento. */
+    async duplicar(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
+        const evento = await eventosService.duplicar(req.params.eventoId, req.body, req.user!.tenantId!);
+        res.status(201).json({ msg: "Escala duplicada com sucesso", evento });
+    }
+
     /** Retorna a playlist CifraClub do evento com URLs enriquecidas (#key=N). */
     async getCifraclubPlaylist(req: Request<{ eventoId: string }>, res: Response): Promise<void> {
         const playlist = await eventosService.getCifraclubPlaylist(req.params.eventoId);
@@ -71,6 +77,16 @@ class EventosController {
             req.body.artistas_musicas_id
         );
         res.status(200).json({ msg: "Versão atualizada" });
+    }
+
+    /** Define ou limpa o tom próprio de uma música no evento (override do tom global). */
+    async setMusicaTonalidade(req: Request<{ eventoId: string; musicaId: string }>, res: Response): Promise<void> {
+        await eventosService.setMusicaTonalidade(
+            req.params.eventoId,
+            req.params.musicaId,
+            req.body.fk_tonalidade
+        );
+        res.status(200).json({ msg: "Tom atualizado" });
     }
 
     /** Remove o vínculo entre um evento e uma música. */

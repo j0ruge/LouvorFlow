@@ -104,6 +104,30 @@ describe('CategoriasService', () => {
         message: 'Já existe uma categoria com esse nome',
       });
     });
+
+    /** Decisão D7: duplicidade de nome ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando nome colide apenas na caixa', async () => {
+      await expect(categoriasService.create('ADORAÇÃO', 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma categoria com esse nome',
+      });
+    });
+
+    /**
+     * Documenta o limite conhecido de `mode: 'insensitive'`: ele normaliza
+     * caixa, não diacríticos. "Adoração" (existente no fixture) e "Adoracao"
+     * (sem acento) diferem só no diacrítico e por isso NÃO colidem no
+     * backend — a barreira de acento é client-side (fase F5,
+     * `normalizeForSearch`). Este não é um bug: é o comportamento real do
+     * Postgres/Prisma, documentado aqui para não ser confundido com uma
+     * falha da checagem de duplicidade.
+     */
+    it('documenta que "Adoracao" (sem acento) não colide com "Adoração" (com acento)', async () => {
+      const result = await categoriasService.create('Adoracao', 'tenant-fake-id');
+
+      expect(result).toHaveProperty('id');
+      expect(result.nome).toBe('Adoracao');
+    });
   });
 
   // ─── update ──────────────────────────────────────────
@@ -143,6 +167,16 @@ describe('CategoriasService', () => {
     /** Deve lançar erro 409 quando o novo nome já pertence a outra categoria. */
     it('deve lançar AppError 409 quando nome já existe em outra categoria', async () => {
       await expect(categoriasService.update(MOCK_CATEGORIAS[0].id, MOCK_CATEGORIAS[1].nome)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Nome da categoria já existe',
+      });
+    });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando nome já existe em outra categoria ignorando caixa', async () => {
+      await expect(
+        categoriasService.update(MOCK_CATEGORIAS[0].id, MOCK_CATEGORIAS[1].nome.toUpperCase())
+      ).rejects.toMatchObject({
         statusCode: 409,
         message: 'Nome da categoria já existe',
       });

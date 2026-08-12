@@ -24,6 +24,18 @@ const safeUrlSchema = z.string()
     );
 
 /**
+ * Schema do campo BPM (batidas por minuto), compartilhado pelos 4 bodies que o
+ * aceitam (criação/atualização completa de música e criação/atualização de
+ * versão). Faixa musicalmente plausível: 30 a 220 BPM. O `preprocess` que
+ * converte `""`/`null` em `undefined` antes da validação numérica é mantido
+ * igual ao dos demais campos opcionais.
+ */
+const bpmSchema = z.preprocess(
+    (val) => (val === "" || val === null ? undefined : val),
+    z.number().int().min(30, 'BPM deve estar entre 30 e 220').max(220, 'BPM deve estar entre 30 e 220').optional(),
+);
+
+/**
  * Valores válidos de intensidade (tempo) de uma versão de música.
  * Fonte única reutilizada tanto nos bodies (criação/edição de música e versão)
  * quanto no filtro de listagem — evita literais duplicados que divergiriam ao
@@ -93,7 +105,7 @@ export const createMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.optional(),
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
+    bpm: bpmSchema,
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
@@ -108,7 +120,7 @@ export const updateMusicaCompleteBodySchema = z.object({
     nome: z.string({ required_error: 'Nome da música é obrigatório' }).min(1, 'Nome da música é obrigatório'),
     fk_tonalidade: uuidSchema.nullable().optional(),
     versao_id: uuidSchema.optional(),
-    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
+    bpm: bpmSchema,
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
@@ -121,7 +133,7 @@ export const updateMusicaCompleteBodySchema = z.object({
 /** Schema de validação para adição de versão (POST /api/musicas/:musicaId/versoes). Artista é opcional. */
 export const addVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
+    bpm: bpmSchema,
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),
@@ -132,7 +144,7 @@ export const addVersaoBodySchema = z.object({
 /** Schema de validação para atualização de versão (PUT /api/musicas/:musicaId/versoes/:versaoId). Aceita artista_id para vincular artista a versões sem artista. */
 export const updateVersaoBodySchema = z.object({
     artista_id: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.string().uuid('ID do artista deve ser um UUID válido').optional()),
-    bpm: z.preprocess((val) => (val === "" || val === null ? undefined : val), z.number().int().positive().optional()),
+    bpm: bpmSchema,
     cifras: z.string().optional(),
     lyrics: z.string().optional(),
     link_versao: z.preprocess((val) => (val === "" || val === null ? undefined : val), safeUrlSchema.optional()),

@@ -3,14 +3,17 @@
  *
  * Carrega dados reais da API via React Query, exibe estados de
  * loading (Skeleton), erro (ErrorState) e vazio (EmptyState),
- * e permite criar, editar e excluir eventos via dialogs.
- * Separa escalas em abas "Próximas" e "Passadas" para navegação elegante.
- * O botão "Ver Detalhes" navega para `/escalas/:id`.
+ * e permite criar, editar, duplicar e excluir eventos via dialogs.
+ * Separa escalas em abas "Próximas", "Passadas" e "Rascunhos" — as duas
+ * primeiras exibem apenas escalas publicadas; rascunhos vivem SÓ na
+ * terceira, com badge próprio e ação "Publicar" (com confirmação quando o
+ * rascunho não tem repertório). O botão "Ver Detalhes" navega para
+ * `/escalas/:id`.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,14 +23,31 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Calendar, Plus, Users, Music, Search } from "lucide-react";
-import { useEventos, useDeleteEvento } from "@/hooks/use-eventos";
+import { Plus, Users, Music, Search, Copy, Send } from "lucide-react";
+import {
+  useEventos,
+  useDeleteEvento,
+  useUpdateEvento,
+} from "@/hooks/use-eventos";
+import { useUndoableDelete } from "@/hooks/use-undoable-delete";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { EventoForm } from "@/components/EventoForm";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { EventoRow, tituloDoEvento } from "@/components/EventoRow";
 import { useCan } from "@/hooks/use-can";
+import { formatDataExtenso } from "@/lib/utils";
 import type { EventoIndex } from "@/schemas/evento";
 
 /**
@@ -77,12 +97,35 @@ function ScaleSkeleton() {
 const Escalas = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingEvento, setEditingEvento] = useState<EventoIndex | null>(null);
+  const [duplicandoEvento, setDuplicandoEvento] = useState<EventoIndex | null>(null);
   const [deletingEvento, setDeletingEvento] = useState<EventoIndex | null>(null);
+  const [publicandoEvento, setPublicandoEvento] = useState<EventoIndex | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: scales, isLoading, isError, error, refetch } = useEventos();
-  const deleteEvento = useDeleteEvento();
+  /** Mutation de atualização, usada para publicar rascunhos (`{ status: "publicada" }`). */
+  const updateEvento = useUpdateEvento();
+  /**
+   * Rascunhos cuja publicação está em voo.
+   *
+   * `updateEvento.isPending` é global à página: usá-lo no `disabled` do botão
+   * desabilitaria "Publicar" de TODOS os rascunhos enquanto um único PUT
+   * estivesse pendente. Mesmo cuidado que o fluxo de exclusão já tinha.
+   *
+   * É um `Set`, e não um id único: nada impede o usuário de publicar A e, antes
+   * de A liquidar, publicar B — com um único id, o `setPublicandoId(B)`
+   * apagaria A e reabilitaria o botão de A ainda em voo.
+   */
+  const [publicandoIds, setPublicandoIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  /** Mutation silenciosa: o feedback de exclusão é o toast com "Desfazer" do useUndoableDelete. */
+  const deleteEvento = useDeleteEvento({ silent: true });
+  /** Exclusão com janela de desfazer: adia o DELETE ~5s e filtra os pendentes da lista. */
+  const { agendar: agendarExclusao, estaPendente } = useUndoableDelete({
+    excluir: deleteEvento.mutateAsync,
+  });
   const { can: canWrite, isLoading: isLoadingPermissao } = useCan("escalas.write");
 
   /**
@@ -104,6 +147,7 @@ const Escalas = () => {
 
     if (canWrite) {
       setEditingEvento(null);
+      setDuplicandoEvento(null);
       setFormOpen(true);
     }
 
@@ -118,14 +162,20 @@ const Escalas = () => {
   }, [searchParams, setSearchParams, canWrite, isLoadingPermissao]);
 
   /**
-   * Separa as escalas em próximas (data >= início do dia) e passadas,
-   * aplicando o filtro de busca. Próximas ordenadas por data ASC.
-   * Passadas ordenadas por data DESC.
+   * Separa as escalas em próximas (data >= início do dia), passadas e
+   * rascunhos, aplicando o filtro de busca. Próximas e rascunhos ordenados
+   * por data ASC; passadas por data DESC. Apenas escalas `publicada` entram
+   * em próximas/passadas — rascunhos vivem SÓ na aba Rascunhos. Escalas com
+   * exclusão pendente (janela de desfazer) são filtradas da exibição sem
+   * tocar no cache — um "Desfazer" as devolve na posição original.
    */
-  const { upcoming, past } = useMemo(() => {
-    if (!scales) return { upcoming: [], past: [] };
+  const { upcoming, past, rascunhos } = useMemo(() => {
+    if (!scales) return { upcoming: [], past: [], rascunhos: [] };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    /** Esconde as escalas com exclusão agendada (aguardando a janela de desfazer). */
+    const visiveis = scales.filter((s) => !estaPendente(s.id));
 
     const q = searchQuery.trim().toLowerCase();
 
@@ -149,36 +199,124 @@ const Escalas = () => {
       });
     }
 
-    const upcomingList = scales
+    /** Só escalas publicadas entram nas abas de linha do tempo. */
+    const publicadas = visiveis.filter((s) => s.status === "publicada");
+
+    const upcomingList = publicadas
       .filter((s) => new Date(s.data) >= today)
       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
-    const pastList = scales
+    const pastList = publicadas
       .filter((s) => new Date(s.data) < today)
       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+    const rascunhosList = visiveis
+      .filter((s) => s.status === "rascunho")
+      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
     return {
       upcoming: applySearch(upcomingList),
       past: applySearch(pastList),
+      rascunhos: applySearch(rascunhosList),
     };
-  }, [scales, searchQuery]);
+  }, [scales, searchQuery, estaPendente]);
 
   /** Abre o formulário em modo edição para o evento informado. */
   function handleEdit(evento: EventoIndex) {
+    setDuplicandoEvento(null);
     setEditingEvento(evento);
+    setFormOpen(true);
+  }
+
+  /** Abre o formulário em modo duplicação para o evento informado. */
+  function handleDuplicar(evento: EventoIndex) {
+    setEditingEvento(null);
+    setDuplicandoEvento(evento);
     setFormOpen(true);
   }
 
   /** Controla a visibilidade do dialog do formulário. */
   function handleFormOpenChange(open: boolean) {
     setFormOpen(open);
-    if (!open) setEditingEvento(null);
+    if (!open) {
+      setEditingEvento(null);
+      setDuplicandoEvento(null);
+    }
   }
 
-  /** Confirma e executa a exclusão do evento selecionado. */
+  /**
+   * Publica um rascunho via PUT `{ status: "publicada" }`.
+   *
+   * @param id - UUID do rascunho a publicar.
+   */
+  function publicar(id: string) {
+    setPublicandoIds((atual) => new Set(atual).add(id));
+    updateEvento.mutate(
+      { id, dados: { status: "publicada" } },
+      {
+        onSettled: () =>
+          setPublicandoIds((atual) => {
+            if (!atual.has(id)) return atual;
+            const proximo = new Set(atual);
+            proximo.delete(id);
+            return proximo;
+          }),
+      },
+    );
+  }
+
+  /**
+   * Ponto de entrada da ação "Publicar" de um rascunho: com repertório,
+   * publica direto; com ZERO músicas, abre o dialog "Publicar sem
+   * repertório?" para o usuário escolher entre adicionar músicas antes ou
+   * publicar assim mesmo.
+   *
+   * @param evento - Rascunho alvo da publicação.
+   */
+  function handlePublicar(evento: EventoIndex) {
+    if (evento.musicas.length === 0) {
+      setPublicandoEvento(evento);
+      return;
+    }
+    publicar(evento.id);
+  }
+
+  /**
+   * Confirma a exclusão do evento selecionado agendando-a com janela de
+   * desfazer: o card some da lista na hora, mas o DELETE real só dispara
+   * quando a janela do toast expirar (ou no desmonte da página).
+   */
   function handleConfirmDelete() {
     if (!deletingEvento) return;
-    deleteEvento.mutate(deletingEvento.id, {
-      onSuccess: () => setDeletingEvento(null),
-    });
+    agendarExclusao(deletingEvento.id, "Escala excluída.");
+    setDeletingEvento(null);
+  }
+
+  /** Indica se há um termo de busca ativo (distingue lista vazia de busca sem resultado). */
+  const temBusca = searchQuery.trim().length > 0;
+
+  /**
+   * Termo de busca truncado para exibição no zero-result: um termo sem
+   * espaços maior que ~40 caracteres estouraria os 360px do mobile.
+   */
+  const termoExibicao =
+    searchQuery.trim().length > 40
+      ? `${searchQuery.trim().slice(0, 40)}…`
+      : searchQuery.trim();
+
+  /**
+   * Renderiza o estado vazio específico de busca sem resultado, com a ação
+   * "Limpar busca" — `upcoming.length === 0` sozinho não distingue "não há
+   * escala futura" de "a busca não achou nada".
+   *
+   * @returns Elemento React com o EmptyState de busca sem resultado.
+   */
+  function renderZeroResultadoBusca() {
+    return (
+      <EmptyState
+        title="Nenhuma escala encontrada"
+        description={`Nenhum resultado para "${termoExibicao}". Ajuste o termo ou limpe a busca.`}
+        actionLabel="Limpar busca"
+        onAction={() => setSearchQuery("")}
+      />
+    );
   }
 
   /**
@@ -196,38 +334,36 @@ const Escalas = () => {
             className="shadow-soft border-0 hover:shadow-medium transition-all duration-300"
           >
             <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-                    <Calendar className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">
-                      {new Date(scale.data)
-                        .toLocaleDateString("pt-BR", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                        .replace(/^./, (c) => c.toUpperCase())}
-                    </CardTitle>
-                    {scale.descricao && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {scale.descricao}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {scale.tipoEvento && (
-                  <Badge
-                    variant="default"
-                    className="bg-primary text-primary-foreground self-start sm:self-auto truncate max-w-[10rem]"
-                  >
-                    {scale.tipoEvento.nome}
-                  </Badge>
-                )}
-              </div>
+              {/* Sem `onOpen`: este card já tem Editar/Excluir no rodapé
+                  (ação destrutiva) — tornar a linha inteira clicável ao lado
+                  de um botão destrutivo convidaria ao clique acidental. */}
+              <EventoRow
+                evento={scale}
+                legenda={formatDataExtenso(scale.data, { capitalizar: true })}
+                badges={
+                  scale.status === "rascunho" ? (
+                    <Badge variant="outline" className="border-dashed">
+                      Rascunho
+                    </Badge>
+                  ) : undefined
+                }
+                acoes={
+                  scale.status === "rascunho" && canWrite ? (
+                    /* `disabled` durante o PUT pendente: double-tap no mobile
+                       dispararia publicações duplicadas (benignas, mas evitáveis). */
+                    <Button
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      onClick={() => handlePublicar(scale)}
+                      disabled={publicandoIds.has(scale.id)}
+                      aria-label={`Publicar rascunho ${tituloDoEvento(scale)}`}
+                    >
+                      <Send className="mr-1 h-4 w-4" />
+                      Publicar
+                    </Button>
+                  ) : undefined
+                }
+              />
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
@@ -281,6 +417,18 @@ const Escalas = () => {
                         onClick={() => setDeletingEvento(scale)}
                       >
                         Excluir
+                      </Button>
+                      {/* 4º botão da fileira: ícone puro no mobile (label
+                          `hidden sm:inline` + aria-label) para a fileira
+                          caber em 360px sem quebrar linha. */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDuplicar(scale)}
+                        aria-label={`Duplicar escala ${tituloDoEvento(scale)}`}
+                      >
+                        <Copy className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Duplicar</span>
                       </Button>
                     </>
                   )}
@@ -362,34 +510,60 @@ const Escalas = () => {
 
       {!isLoading && !isError && scales && scales.length > 0 && (
         <Tabs defaultValue="upcoming" className="w-full">
+          {/* px reduzido no mobile: 3 abas com contagem precisam caber em 360px. */}
           <TabsList className="w-full">
-            <TabsTrigger value="upcoming" className="flex-1">
+            <TabsTrigger value="upcoming" className="flex-1 px-2 sm:px-3">
               Próximas ({upcoming.length})
             </TabsTrigger>
-            <TabsTrigger value="past" className="flex-1">
+            <TabsTrigger value="past" className="flex-1 px-2 sm:px-3">
               Passadas ({past.length})
+            </TabsTrigger>
+            <TabsTrigger value="rascunhos" className="flex-1 px-2 sm:px-3">
+              Rascunhos ({rascunhos.length})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="upcoming" className="mt-4">
             {upcoming.length === 0 ? (
-              <EmptyState
-                title="Nenhuma escala futura agendada"
-                description="Crie uma nova escala para organizar os próximos cultos."
-                actionLabel={canWrite ? "Nova Escala" : undefined}
-                onAction={canWrite ? () => setFormOpen(true) : undefined}
-              />
+              temBusca ? (
+                renderZeroResultadoBusca()
+              ) : (
+                <EmptyState
+                  title="Nenhuma escala futura agendada"
+                  description="Crie uma nova escala para organizar os próximos cultos."
+                  actionLabel={canWrite ? "Nova Escala" : undefined}
+                  onAction={canWrite ? () => setFormOpen(true) : undefined}
+                />
+              )
             ) : (
               renderScaleCards(upcoming)
             )}
           </TabsContent>
           <TabsContent value="past" className="mt-4">
             {past.length === 0 ? (
-              <EmptyState
-                title="Nenhuma escala passada"
-                description="As escalas anteriores aparecerão aqui após suas datas."
-              />
+              temBusca ? (
+                renderZeroResultadoBusca()
+              ) : (
+                <EmptyState
+                  title="Nenhuma escala passada"
+                  description="As escalas anteriores aparecerão aqui após suas datas."
+                />
+              )
             ) : (
               renderScaleCards(past)
+            )}
+          </TabsContent>
+          <TabsContent value="rascunhos" className="mt-4">
+            {rascunhos.length === 0 ? (
+              temBusca ? (
+                renderZeroResultadoBusca()
+              ) : (
+                <EmptyState
+                  title="Nenhum rascunho"
+                  description="Rascunhos são escalas em preparação — ficam visíveis só aqui até serem publicadas."
+                />
+              )
+            ) : (
+              renderScaleCards(rascunhos)
             )}
           </TabsContent>
         </Tabs>
@@ -399,7 +573,58 @@ const Escalas = () => {
         open={formOpen}
         onOpenChange={handleFormOpenChange}
         evento={editingEvento}
+        duplicarDe={duplicandoEvento}
       />
+
+      {/*
+        Confirmação de publicação sem repertório: rascunho com ZERO músicas
+        não publica direto — o usuário escolhe entre ir montar o repertório
+        (`/escalas/:id`) ou publicar assim mesmo. Com músicas, `handlePublicar`
+        publica sem passar por aqui. O "Cancelar" é a saída NEUTRA obrigatória:
+        no touch não há Esc e o Radix ignora tap no backdrop — sem ele, quem
+        tocasse "Publicar" por engano seria obrigado a navegar ou publicar.
+      */}
+      <AlertDialog
+        open={!!publicandoEvento}
+        onOpenChange={(open) => {
+          if (!open) setPublicandoEvento(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Publicar sem repertório?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {publicandoEvento
+                ? `A escala "${tituloDoEvento(publicandoEvento)}" ainda não tem músicas. Você pode adicionar o repertório antes ou publicar assim mesmo.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {/* `gap-2 sm:gap-0`: 3 ações empilham no mobile (flex-col-reverse
+              do próprio AlertDialogFooter) com respiro uniforme; no desktop o
+              space-x-2 padrão assume. */}
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (publicandoEvento) navigate(`/escalas/${publicandoEvento.id}`);
+                setPublicandoEvento(null);
+              }}
+            >
+              Adicionar músicas
+            </Button>
+            <AlertDialogAction
+              onClick={() => {
+                if (publicandoEvento) publicar(publicandoEvento.id);
+                setPublicandoEvento(null);
+              }}
+            >
+              Publicar assim mesmo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DeleteConfirmDialog
         open={!!deletingEvento}
@@ -407,9 +632,11 @@ const Escalas = () => {
           if (!open) setDeletingEvento(null);
         }}
         title="Excluir Escala"
-        description="Os vínculos com músicas e integrantes desta escala serão removidos. Deseja continuar?"
+        description="Os vínculos com músicas e integrantes desta escala serão removidos. Você poderá desfazer nos próximos segundos."
         onConfirm={handleConfirmDelete}
-        isLoading={deleteEvento.isPending}
+        /* Sem isLoading: `agendar` é síncrono (o diálogo fecha antes de
+           qualquer pending) e um DELETE adiado de OUTRO item deixaria o
+           botão em "Excluindo..." por uma request alheia. */
       />
     </div>
   );

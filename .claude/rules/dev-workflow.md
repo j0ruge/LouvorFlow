@@ -33,7 +33,12 @@ Ao concluir a implementação de uma feature:
 1. Executar pelo menos um **smoke test via API** (`curl`/`fetch`) que exercite o caminho crítico da feature.
 2. Comparar o resultado com o comportamento esperado do código-fonte.
 3. Se houver divergência entre código no disco e comportamento da API: **reiniciar processos antes de alterar código**.
-4. Executar `npm test` em ambos os packages (backend + frontend) para garantir que nada foi quebrado.
+4. **Promover o smoke test a spec E2E.** O `curl` que atestou a correção é descartável; a garantia não pode ser. Antes de fechar a task, o mesmo cenário vira um spec no nível da API em `packages/frontend/tests/e2e/` — ver `.claude/rules/frontend-react.md`, seção "Verificação manual vira spec — sempre", e a referência `tests/e2e/guardas-tenant.spec.ts`. Vale sobretudo para o que o teste unitário **não alcança** (escopo de tenant do Prisma real, índice único do banco, cascatas, cadeia de middlewares) — ali o fake passa mesmo com a guarda removida.
+5. Executar `npm test` em ambos os packages (backend + frontend) para garantir que nada foi quebrado.
+
+### Sintoma que justifica a regra
+
+Em 2026-08-12 o smoke test de `POST /api/eventos` com `fk_tipo_evento` de outro tenant devolveu **500 com o stack trace do Prisma** (caminho do arquivo, linha e nome da constraint) — duas vezes: primeiro porque a guarda não existia, depois porque o `tsx watch` estava com 4h de processo e não tinha recarregado a correção (§1). Sem virar spec, nenhum dos dois modos de falha ficaria coberto.
 
 ## 4. Git — CWD Sempre na Raiz do Repositório
 

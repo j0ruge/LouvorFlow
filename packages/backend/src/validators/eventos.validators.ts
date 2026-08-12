@@ -36,6 +36,15 @@ export const setMusicaVersaoBodySchema = z.object({
 });
 
 /**
+ * Schema de validação do body para atualização do tom de uma música no evento.
+ *
+ * @property fk_tonalidade - UUID da tonalidade desejada para esta escala, ou `null` para voltar ao tom global da música
+ */
+export const setMusicaTonalidadeBodySchema = z.object({
+    fk_tonalidade: z.string().uuid('fk_tonalidade deve ser um UUID válido').nullable(),
+});
+
+/**
  * Schema de validação dos params `eventoId` e `musicaId` nas rotas de junção evento-música.
  *
  * @property eventoId - UUID do evento
@@ -70,16 +79,48 @@ export const reorderMusicasBodySchema = z.object({
     }),
 });
 
-/** Schema de validação do body para criação de evento (POST /api/eventos). */
+/**
+ * Schema de validação do body para criação de evento (POST /api/eventos).
+ *
+ * @property data - Data do evento em formato ISO 8601 (obrigatória)
+ * @property fk_tipo_evento - UUID do tipo de evento (obrigatório)
+ * @property descricao - Descrição opcional (padrão vazio)
+ * @property status - Status de publicação opcional; omitido, o banco aplica o DEFAULT `publicada`
+ */
 export const createEventoBodySchema = z.object({
     data: z.string({ required_error: 'Data do evento é obrigatória' }),
     fk_tipo_evento: z.string({ required_error: 'Tipo de evento é obrigatório' }).uuid('fk_tipo_evento deve ser um UUID válido'),
     descricao: z.string().optional().default(''),
+    status: z.enum(['rascunho', 'publicada']).optional(),
 });
 
-/** Schema de validação do body para atualização de evento (PUT /api/eventos/:id). */
+/**
+ * Schema de validação do body para atualização de evento (PUT /api/eventos/:id).
+ *
+ * Publicar uma escala rascunho é este endpoint com `{ status: 'publicada' }`.
+ *
+ * @property data - Nova data ISO 8601 (opcional)
+ * @property fk_tipo_evento - Novo tipo de evento (opcional)
+ * @property descricao - Nova descrição (opcional)
+ * @property status - Novo status de publicação (opcional)
+ */
 export const updateEventoBodySchema = z.object({
     data: z.string().optional(),
+    fk_tipo_evento: z.string().uuid('fk_tipo_evento deve ser um UUID válido').optional(),
+    descricao: z.string().optional(),
+    status: z.enum(['rascunho', 'publicada']).optional(),
+});
+
+/**
+ * Schema de validação do body para duplicação de escala
+ * (POST /api/eventos/:eventoId/duplicar).
+ *
+ * @property data - Data do novo evento em formato ISO 8601 (obrigatória)
+ * @property fk_tipo_evento - UUID do tipo de evento (opcional — omitido herda o da origem)
+ * @property descricao - Descrição (opcional — omitida herda a da origem)
+ */
+export const duplicarEventoBodySchema = z.object({
+    data: z.string({ required_error: 'Data do evento é obrigatória' }),
     fk_tipo_evento: z.string().uuid('fk_tipo_evento deve ser um UUID válido').optional(),
     descricao: z.string().optional(),
 });

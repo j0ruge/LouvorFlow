@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint (ESLint)
+    name: Lint (ESLint + typecheck)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,8 @@ jobs:
       - run: yarn install --frozen-lockfile
 
       - run: yarn workspace vite_react_shadcn_ts run lint
+
+      - run: yarn workspace vite_react_shadcn_ts run typecheck
 
   test:
     name: Test

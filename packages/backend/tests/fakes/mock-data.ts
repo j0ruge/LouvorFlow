@@ -128,21 +128,21 @@ export const MOCK_INTEGRANTES = [
     id: 'fff00001-0000-0000-0000-000000000001',
     name: 'João Silva',
     email: 'joao@igreja.com',
-    password: 'hashed_password_1',
+    password: `${HASH_TESTE}-1`,
     telefone: '11999990001',
   },
   {
     id: 'fff00001-0000-0000-0000-000000000002',
     name: 'Maria Santos',
     email: 'maria@igreja.com',
-    password: 'hashed_password_2',
+    password: `${HASH_TESTE}-2`,
     telefone: null,
   },
   {
     id: 'fff00001-0000-0000-0000-000000000003',
     name: 'Pedro Oliveira',
     email: 'pedro@igreja.com',
-    password: 'hashed_password_3',
+    password: `${HASH_TESTE}-3`,
     telefone: '11999990003',
   },
 ];
@@ -254,32 +254,47 @@ export const MOCK_MUSICAS_FUNCOES = [
 ];
 
 // ─── Eventos ─────────────────────────────────────────────
-export const MOCK_EVENTOS = [
+/**
+ * Eventos mock com status de publicação (`rascunho` | `publicada`).
+ * Todos nascem `publicada` — o comportamento clássico e DEFAULT do banco;
+ * testes de rascunho criam eventos próprios via service.
+ */
+export const MOCK_EVENTOS: {
+  id: string;
+  data: Date;
+  fk_tipo_evento: string;
+  descricao: string;
+  status: 'rascunho' | 'publicada';
+}[] = [
   {
     id: 'hhh00001-0000-0000-0000-000000000001',
     data: new Date('2026-03-01T10:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000001',
     descricao: 'Culto de domingo pela manhã',
+    status: 'publicada',
   },
   {
     id: 'hhh00001-0000-0000-0000-000000000002',
     data: new Date('2026-03-05T19:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000002',
     descricao: 'Ensaio semanal da banda',
+    status: 'publicada',
   },
   {
     id: 'hhh00001-0000-0000-0000-000000000003',
     data: new Date('2026-04-10T08:00:00Z'),
     fk_tipo_evento: 'ddd00001-0000-0000-0000-000000000003',
     descricao: 'Conferência de louvor anual',
+    status: 'publicada',
   },
 ];
 
 // ─── Eventos_Musicas (junction) ──────────────────────────
 /**
- * Vínculos entre eventos e músicas com versão selecionada opcional (`fk_artistas_musicas`).
- * - Linha 1: evento 1 ↔ música 1, com versão selecionada (Aline) — testa selected populado.
- * - Linha 2: evento 1 ↔ música 2, sem versão selecionada — testa selected null.
+ * Vínculos entre eventos e músicas com versão selecionada opcional (`fk_artistas_musicas`)
+ * e tom próprio da escala opcional (`fk_tonalidade`, `null` = usa o tom global da música).
+ * - Linha 1: evento 1 ↔ música 1, com versão selecionada (Aline) e tom próprio A ≠ tom global G — testa selected populado e override de tonalidade.
+ * - Linha 2: evento 1 ↔ música 2, sem versão selecionada e sem override — testa selected null e tom efetivo = global.
  * - Linha 3: evento 3 ↔ música 3, com versão genérica (artista nulo) — testa artista_nome null.
  * - Linha 4: evento 3 ↔ música 4 (sem versões cadastradas) — testa versoes_disponiveis vazio.
  */
@@ -289,11 +304,12 @@ export const MOCK_EVENTOS_MUSICAS: {
   musicas_id: string;
   ordem: number;
   fk_artistas_musicas: string | null;
+  fk_tonalidade: string | null;
 }[] = [
-  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000001' },
-  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002', ordem: 2, fk_artistas_musicas: null },
-  { id: 'jjj00005-0000-0000-0000-000000000003', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000003', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000004' },
-  { id: 'jjj00005-0000-0000-0000-000000000004', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000099', ordem: 2, fk_artistas_musicas: null },
+  { id: 'jjj00005-0000-0000-0000-000000000001', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000001', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000001', fk_tonalidade: 'bbb00001-0000-0000-0000-000000000004' },
+  { id: 'jjj00005-0000-0000-0000-000000000002', evento_id: 'hhh00001-0000-0000-0000-000000000001', musicas_id: 'ggg00001-0000-0000-0000-000000000002', ordem: 2, fk_artistas_musicas: null, fk_tonalidade: null },
+  { id: 'jjj00005-0000-0000-0000-000000000003', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000003', ordem: 1, fk_artistas_musicas: 'jjj00002-0000-0000-0000-000000000004', fk_tonalidade: null },
+  { id: 'jjj00005-0000-0000-0000-000000000004', evento_id: 'hhh00001-0000-0000-0000-000000000003', musicas_id: 'ggg00001-0000-0000-0000-000000000099', ordem: 2, fk_artistas_musicas: null, fk_tonalidade: null },
 ];
 
 // ─── Eventos_Users (junction — ex-Eventos_Integrantes) ───

@@ -20,6 +20,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
 import {
   Select,
   SelectContent,
@@ -46,6 +48,7 @@ import {
   UpdateIntegranteFormSchema,
   type UpdateIntegranteForm,
 } from "@/schemas/integrante";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 
 /** Propriedades do componente IntegranteForm. */
 interface IntegranteFormProps {
@@ -94,6 +97,16 @@ export function IntegranteForm({
 
   const isPending =
     createMutation.isPending || updateMutation.isPending || addFuncao.isPending;
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => onOpenChange(false),
+  });
 
   /** Funções disponíveis para adição (excluindo já atribuídas). */
   const funcoesAtribuidas = integrante?.funcoes ?? [];
@@ -211,12 +224,13 @@ export function IntegranteForm({
         }
         onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[425px]"
+        dirtyGuard={guarda}
         footer={
           <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => guarda.pedirFechamento()}
             >
               Cancelar
             </Button>
@@ -235,14 +249,15 @@ export function IntegranteForm({
           </p>
         ) : (
           <>
+              <RequiredFieldsLegend />
               <FormField
                 control={form.control}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FieldLabel required>Nome</FieldLabel>
                     <FormControl>
-                      <Input placeholder="Nome completo" {...field} />
+                      <Input placeholder="Nome completo" aria-required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -253,11 +268,12 @@ export function IntegranteForm({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>E-mail</FormLabel>
+                    <FieldLabel required>E-mail</FieldLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="email@exemplo.com"
+                        aria-required
                         {...field}
                       />
                     </FormControl>
@@ -270,9 +286,10 @@ export function IntegranteForm({
                 name="senha"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
+                    {/* Senha só é obrigatória na criação — na edição, vazio mantém a atual. */}
+                    <FieldLabel required={!isEditing}>
                       Senha{isEditing ? " (opcional)" : ""}
-                    </FormLabel>
+                    </FieldLabel>
                     <FormControl>
                       <PasswordInput
                         placeholder={
@@ -280,6 +297,7 @@ export function IntegranteForm({
                             ? "Deixe em branco para manter"
                             : "Mínimo 6 caracteres"
                         }
+                        aria-required={!isEditing}
                         {...field}
                       />
                     </FormControl>

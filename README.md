@@ -38,13 +38,13 @@ O problema que resolve: ministérios de louvor costumam gerenciar escalas em pla
 
 ## Funcionalidades
 
-- **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM, letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
-- **Escalas de culto** — Criação, edição e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento.
+- **Gerenciamento de músicas** — Cadastro, edição, exclusão, com tonalidade, cifra, BPM (validado entre 30 e 220), letra e versões por artista. Página de detalhes dedicada com gestão de versões, tags e funções requeridas.
+- **Escalas de culto** — Criação, edição, duplicação e exclusão de escalas com definição das músicas, ministros, cantores e músicos para cada evento. Cada música da escala pode ter **tom próprio** (override que não altera o tom global da música — usado na transposição da playlist CifraClub). Duplicar copia repertório e equipe da escala original (o usuário revisa a data). Escalas podem nascer como **rascunho** ("Salvar rascunho"): ficam visíveis só na aba Rascunhos (fora do Dashboard, Histórico e relatórios) até serem publicadas — publicar sem repertório pede confirmação. Excluir uma escala abre uma janela de ~5s com **"Desfazer"** no toast antes de o DELETE real acontecer (o mesmo vale para integrantes e para as entidades auxiliares de Configurações).
 - **Gerenciamento de integrantes** — Cadastro de membros com atribuição e remoção de funções (voz, guitarra, teclado, etc.).
 - **Convite via link** — Líder gera link com expiração de 2h para convidar integrantes. Envia por WhatsApp ou qualquer canal. Participante abre o link, cria conta e é vinculado à igreja automaticamente, recebendo o papel `integrante` (membro básico, sem permissões administrativas).
 - **Configurações** — Página dedicada com abas para gerenciar entidades auxiliares: Artistas, Tags, Funções, Grupos de funções, Tonalidades e Tipos de Evento.
-- **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes) e próximas escalas.
-- **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce.
+- **Dashboard com dados reais** — Painel com estatísticas do servidor (total de músicas, escalas, integrantes, novas músicas no mês) e próximas escalas.
+- **Busca funcional** — Filtragem por nome nas listagens de músicas e integrantes com debounce. Na página de Músicas, contagem real de resultados, filtros ativos (categoria/intensidade) exibidos como badges removíveis e atalho de teclado `/` para focar a busca.
 - **Relatórios de execução** — Monitoramento das músicas mais tocadas ao longo do tempo.
 - **Integração CifraClub** — Link da cifra cadastrado por música (reaproveitado em todas as escalas); playlist exportável da escala com transposição automática de tom (`#key=N`) e compartilhamento via WhatsApp com links que abrem a cifra já no tom correto.
 - **Compartilhamento** — Envio de escalas via WhatsApp para os envolvidos. Os integrantes saem agrupados por papel (Ministração, Direção Musical, Vocal, Instrumentos, Outros), na ordem definida na aba **Grupos** de Configurações.
@@ -138,6 +138,15 @@ Para rodar os testes E2E (requer backend e frontend em execução):
 ```bash
 cd packages/frontend
 npx playwright test
+```
+
+A suíte autentica uma vez por teste e cada carga de página renova a sessão, o que
+estoura os limites de requisição de produção. Antes de rodar, defina no
+`packages/backend/.env` (**apenas em desenvolvimento** — ver `.env.example`):
+
+```bash
+LOGIN_RATE_LIMIT_MAX=200
+TOKEN_EXCHANGE_RATE_LIMIT_MAX=2000
 ```
 
 ## Uso
@@ -266,14 +275,14 @@ Base URL: `http://localhost:3000/api`
 | Músicas          | `/musicas`          | Sim  | `/versoes`, `/tags`, `/funcoes`        |
 | Integrantes      | `/integrantes`      | Sim  | `/funcoes`                             |
 | Convites         | `/convites`         | Parcial | Gerar, listar, revogar (auth). Validar, aceitar (público) |
-| Eventos          | `/eventos`          | Sim  | `/musicas`, `/integrantes`             |
+| Eventos          | `/eventos`          | Sim  | `/musicas`, `/integrantes`, `POST /:eventoId/duplicar`. Campo `status` (`rascunho`/`publicada`) |
 | Tags             | `/tags`             | Sim  | —                                      |
 | Tonalidades      | `/tonalidades`      | Sim  | —                                      |
 | Funções          | `/funcoes`          | Sim  | —                                      |
 | Grupos de funções | `/funcoes-grupos`  | Sim  | `PATCH /reorder`, `PUT /:id/funcoes`   |
 | Tipos de Eventos | `/tipos-eventos`    | Sim  | —                                      |
 | Igrejas          | `/igrejas`          | Sim  | `/users`. Requer role `super-admin`. O tenant de sistema é recusado com 403 |
-| Relatórios       | `/relatorios`       | —    | `GET /resumo` — totais, ranking e atividade mensal |
+| Relatórios       | `/relatorios`       | —    | `GET /resumo` — totais, ranking, atividade mensal e músicas novas no mês |
 | Sessions         | `/sessions`         | —    | Login, refresh token, logout, `select-tenant`, `switch-tenant`. Rotas públicas com rate limit |
 | Users            | `/users`            | Sim  | Requer role `admin`                    |
 | Roles            | `/roles`            | Sim  | `/permissions`. Requer role `admin`    |
@@ -317,9 +326,13 @@ GET    /api/integrantes/:integranteId/funcoes
 POST   /api/integrantes/:integranteId/funcoes
 DELETE /api/integrantes/:integranteId/funcoes/:funcaoId
 
+# Duplicar escala (server-side, transação única: repertório + equipe com funções do evento)
+POST   /api/eventos/:eventoId/duplicar
+
 # Músicas e integrantes de um evento
 GET    /api/eventos/:eventoId/musicas
 POST   /api/eventos/:eventoId/musicas
+PATCH  /api/eventos/:eventoId/musicas/:musicaId/tonalidade   # Tom da música nesta escala (null = volta ao tom global)
 DELETE /api/eventos/:eventoId/musicas/:musicaId
 GET    /api/eventos/:eventoId/integrantes
 POST   /api/eventos/:eventoId/integrantes
@@ -457,6 +470,8 @@ Toda contribuição é bem-vinda — código, design, documentação ou testes!
 | Especificações           | [`specs/`](./specs/)                            |
 | OpenAPI (Swagger)        | [`packages/backend/docs/openapi.json`](./packages/backend/docs/openapi.json) |
 | Entrevistas com Usuários | [`entrevistas/`](./entrevistas/)                |
+| Backlog e planos abertos | [`TODO.md`](./TODO.md)                          |
+| Melhorias contínuas      | [`KAIZEN_LOG.md`](./KAIZEN_LOG.md)              |
 
 ## Licença
 

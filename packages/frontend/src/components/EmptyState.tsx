@@ -42,7 +42,10 @@ export function EmptyState({
       <h3 className="font-display text-lg font-bold text-foreground">
         {title}
       </h3>
-      <p className="text-sm text-muted-foreground mt-1 max-w-[42ch]">
+      {/* `break-words`: descrições podem interpolar texto do usuário sem
+          espaços (ex.: termo de busca no zero-result) — sem quebra forçada,
+          um token longo estouraria os 360px do mobile. */}
+      <p className="text-sm text-muted-foreground mt-1 max-w-[42ch] break-words">
         {description}
       </p>
       {actionLabel && onAction && (

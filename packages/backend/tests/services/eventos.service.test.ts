@@ -9,6 +9,7 @@ import {
   MOCK_EVENTOS_MUSICAS,
   MOCK_EVENTOS_INTEGRANTES,
   MOCK_ARTISTAS_MUSICAS,
+  MOCK_TONALIDADES,
   NON_EXISTENT_ID,
   TENANT_A_ID,
   TENANT_B_ID,
@@ -22,12 +23,21 @@ vi.mock('../../src/repositories/eventos.repository.js', () => ({
 
 const { default: eventosService } = await import('../../src/services/eventos.service.js');
 
+/** Suíte do service de eventos (escalas) sobre repositórios falsos. */
 describe('EventosService', () => {
   beforeEach(() => {
     fakeRepo.reset();
+    /**
+     * Restaura os spies antes de cada teste: um `mockRejectedValueOnce` que o
+     * teste dono não chegou a consumir (porque uma validação anterior
+     * curto-circuitou) sobreviveria no fake e seria consumido pelo teste
+     * seguinte, deslocando as falhas em cascata.
+     */
+    vi.restoreAllMocks();
   });
 
   // ─── listAll ────────────────────────────────────────────
+  /** Listagem de eventos com tipo, músicas e integrantes achatados. */
   describe('listAll', () => {
     it('deve retornar eventos formatados com tipoEvento, musicas e integrantes', async () => {
       const result = await eventosService.listAll();
@@ -36,9 +46,16 @@ describe('EventosService', () => {
       expect(result[0]).toHaveProperty('musicas');
       expect(result[0]).toHaveProperty('integrantes');
     });
+
+    /** Cada evento listado expõe o status de publicação da escala (decisão D5). */
+    it('deve expor o campo status nos eventos listados', async () => {
+      const result = await eventosService.listAll();
+      expect(result[0].status).toBe('publicada');
+    });
   });
 
   // ─── getById ────────────────────────────────────────────
+  /** Detalhe de um evento, incluindo validação de ID e ausência. */
   describe('getById', () => {
     it('deve retornar evento detalhado pelo id', async () => {
       const result = await eventosService.getById(MOCK_EVENTOS[0].id);
@@ -46,6 +63,12 @@ describe('EventosService', () => {
       expect(result).toHaveProperty('tipoEvento');
       expect(result.musicas[0]).toHaveProperty('tonalidade');
       expect(result.integrantes[0]).toHaveProperty('funcoes');
+    });
+
+    /** O detalhe do evento expõe o status de publicação da escala (decisão D5). */
+    it('deve expor o campo status no detalhe do evento', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      expect(result.status).toBe('publicada');
     });
 
     it('deve lançar AppError 400 quando id não é enviado', async () => {
@@ -117,9 +140,26 @@ describe('EventosService', () => {
         cifraclub_url: null,
       });
     });
+
+    /** `tonalidade` deve carregar o tom efetivo (override da escala) e `tonalidade_musica` o tom global. */
+    it('deve retornar tonalidade efetiva (override) e tonalidade_musica global quando a escala tem tom próprio', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      const comOverride = result.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001');
+      expect(comOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(comOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+    });
+
+    /** Sem override, `tonalidade` deve cair no tom global da música (efetivo = global). */
+    it('deve retornar tonalidade igual ao tom global quando a escala não tem override', async () => {
+      const result = await eventosService.getById(MOCK_EVENTOS[0].id);
+      const semOverride = result.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(semOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+      expect(semOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+    });
   });
 
   // ─── create ─────────────────────────────────────────────
+  /** Criação de evento: obrigatoriedades, data, status e escopo de tenant. */
   describe('create', () => {
     it('deve criar evento com dados válidos', async () => {
       const result = await eventosService.create({
@@ -174,10 +214,55 @@ describe('EventosService', () => {
         message: 'Data do evento é inválida (use formato ISO 8601, ex: 2026-02-14T10:00:00Z)',
       });
     });
+
+    /** D5: sem `status` no body, o evento nasce `publicada` (DEFAULT do banco, espelhado no fake). */
+    it('deve criar evento com status publicada por padrão', async () => {
+      const resultado = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+      }, 'tenant-fake-id');
+      expect(resultado.status).toBe('publicada');
+    });
+
+    /** F13 cria escalas em preparação: `status: 'rascunho'` opcional aceito no create. */
+    it('deve criar evento com status rascunho quando enviado', async () => {
+      const resultado = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+        status: 'rascunho',
+      }, 'tenant-fake-id');
+      expect(resultado.status).toBe('rascunho');
+    });
+
+    /**
+     * A FK do banco valida só existência do id, sem conhecer `tenant_id`: sem a
+     * checagem no service, o id de um `Tipos_Eventos` de outra igreja seria
+     * gravado e o nome dele voltaria na resposta.
+     */
+    it('deve lançar AppError 404 quando fk_tipo_evento não existe no tenant', async () => {
+      await expect(eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: NON_EXISTENT_ID,
+      }, 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
   });
 
   // ─── update ─────────────────────────────────────────────
+  /** Atualização de evento, incluindo transição de rascunho para publicada. */
   describe('update', () => {
+    /** Mesma guarda de tenant do `create`, no caminho de atualização. */
+    it('deve lançar AppError 404 quando fk_tipo_evento não existe no tenant', async () => {
+      await expect(
+        eventosService.update(MOCK_EVENTOS[0].id, { fk_tipo_evento: NON_EXISTENT_ID })
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
+
     it('deve atualizar evento com dados válidos', async () => {
       const result = await eventosService.update(MOCK_EVENTOS[0].id, { descricao: 'Descrição atualizada' });
       expect(result.descricao).toBe('Descrição atualizada');
@@ -211,9 +296,224 @@ describe('EventosService', () => {
         message: 'Ao menos um campo deve ser enviado para atualização',
       });
     });
+
+    /** Publicar = PUT com `{ status: 'publicada' }` (D5) — transição rascunho → publicada sem endpoint dedicado. */
+    it('deve transicionar status de rascunho para publicada via update', async () => {
+      const rascunho = await eventosService.create({
+        data: '2026-05-01T10:00:00Z',
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id,
+        status: 'rascunho',
+      }, 'tenant-fake-id');
+      expect(rascunho.status).toBe('rascunho');
+
+      const publicada = await eventosService.update(rascunho.id, { status: 'publicada' });
+      expect(publicada.status).toBe('publicada');
+    });
+  });
+
+  // ─── duplicar ───────────────────────────────────────────
+  /** Duplicação de escala: validações, corridas e tradução de erro do Prisma. */
+  describe('duplicar', () => {
+    /** Data da cópia usada em todos os cenários de duplicação. */
+    const NOVA_DATA = '2026-06-07T10:00:00Z';
+
+    /** Origem inexistente deve retornar 404 antes de qualquer escrita. */
+    it('deve lançar AppError 404 quando o evento de origem não existe', async () => {
+      await expect(
+        eventosService.duplicar(NON_EXISTENT_ID, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Data ausente é rejeitada com 400 sem tocar o banco. */
+    it('deve lançar AppError 400 quando data não é enviada', async () => {
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, {}, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Data do evento é obrigatória',
+      });
+    });
+
+    /** `parseDataEvento` compartilhado: ano fora de 1900–9999 é rejeitado também na duplicação. */
+    it('deve lançar AppError 400 quando o ano da data está fora de 1900–9999', async () => {
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: '1899-12-31T00:00:00Z' }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Ano da data do evento deve estar entre 1900 e 9999',
+      });
+    });
+
+    /** O repertório copiado preserva ordem, tom próprio da escala (override) e versão selecionada. */
+    it('deve copiar o repertório preservando ordem, tom próprio e versão selecionada', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const detalhe = await eventosService.getById(copia!.id);
+
+      expect(detalhe.musicas).toHaveLength(2);
+
+      const primeira = detalhe.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001')!;
+      expect(primeira.ordem).toBe(1);
+      expect(primeira.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(primeira.versao_selecionada).toMatchObject({ id: 'jjj00002-0000-0000-0000-000000000001' });
+
+      const segunda = detalhe.musicas.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002')!;
+      expect(segunda.ordem).toBe(2);
+      expect(segunda.versao_selecionada).toBeNull();
+      expect(segunda.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+    });
+
+    /** As funções copiadas são as escolhidas para o evento de origem, não as funções globais atuais do integrante. */
+    it('deve copiar integrantes com as funções do evento, não as funções globais', async () => {
+      /** Vincula o user 1 (duas funções globais) ao evento 3 com apenas UMA função selecionada. */
+      const funcaoEscolhida = MOCK_INTEGRANTES_FUNCOES[0].funcao_id;
+      await eventosService.addIntegrante(MOCK_EVENTOS[2].id, MOCK_INTEGRANTES[0].id, [funcaoEscolhida], TENANT_A_ID);
+
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[2].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const integrantes = await eventosService.listIntegrantes(copia!.id);
+
+      const copiado = integrantes.find(i => i.id === MOCK_INTEGRANTES[0].id);
+      expect(copiado).toBeDefined();
+      expect(copiado!.funcoes).toHaveLength(1);
+      expect(copiado!.funcoes[0].id).toBe(funcaoEscolhida);
+    });
+
+    /** `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; o status da cópia nasce `publicada`. */
+    it('deve herdar fk_tipo_evento e descricao da origem quando omitidos', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID);
+
+      expect(copia!.tipoEvento).toEqual({ id: MOCK_EVENTOS[0].fk_tipo_evento, nome: MOCK_TIPOS_EVENTOS[0].nome });
+      expect(copia!.descricao).toBe(MOCK_EVENTOS[0].descricao);
+      expect(copia!.status).toBe('publicada');
+      expect(new Date(copia!.data).toISOString()).toBe(new Date(NOVA_DATA).toISOString());
+    });
+
+    /** `fk_tipo_evento` e `descricao` enviados sobrescrevem os herdados da origem. */
+    it('deve sobrescrever fk_tipo_evento e descricao quando enviados', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[0].id, {
+        data: NOVA_DATA,
+        fk_tipo_evento: MOCK_TIPOS_EVENTOS[1].id,
+        descricao: 'Cópia ajustada',
+      }, TENANT_A_ID);
+
+      expect(copia!.tipoEvento).toEqual({ id: MOCK_TIPOS_EVENTOS[1].id, nome: MOCK_TIPOS_EVENTOS[1].nome });
+      expect(copia!.descricao).toBe('Cópia ajustada');
+    });
+
+    /** Origem sem músicas nem integrantes: a duplicação cria apenas o evento. */
+    it('deve criar apenas o evento quando a origem não tem músicas nem integrantes', async () => {
+      const copia = await eventosService.duplicar(MOCK_EVENTOS[1].id, { data: NOVA_DATA }, TENANT_A_ID);
+      const detalhe = await eventosService.getById(copia!.id);
+
+      expect(detalhe.musicas).toEqual([]);
+      expect(detalhe.integrantes).toEqual([]);
+    });
+
+    /** Deve traduzir P2002 (unique constraint) em AppError 409 para corridas de escrita concorrente. */
+    it('deve traduzir erro Prisma P2002 para AppError 409 "Registro duplicado"', async () => {
+      const p2002Error = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['tenant_id', 'evento_id', 'musicas_id'] },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2002Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Registro duplicado',
+      });
+    });
+
+    /**
+     * Sobrescrever `fk_tipo_evento` com um id fora do catálogo do tenant deve
+     * parar em 404 **antes** da transação — a FK do banco valida só existência
+     * do id, então sem essa checagem o tipo de outra igreja seria aceito.
+     */
+    it('deve lançar AppError 404 quando fk_tipo_evento sobrescrito não existe no tenant', async () => {
+      const duplicarSpy = vi.spyOn(fakeRepo, 'duplicarEvento');
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: NON_EXISTENT_ID }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+      expect(duplicarSpy).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Origem excluída entre a validação do service e a transação vira 404, não
+     * uma cópia vazia com 201 — o repositório lança o sentinela `ORIGEM_NOT_FOUND`.
+     */
+    it('deve lançar AppError 404 quando a origem é removida durante a cópia', async () => {
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(new Error('ORIGEM_NOT_FOUND'));
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /**
+     * Deve traduzir P2003 na FK de tipo de evento (removido entre a validação e
+     * a gravação) para AppError 404. O mock replica o formato real do Prisma 6
+     * no Postgres: `meta.constraint` com o nome da constraint do banco.
+     */
+    it('deve traduzir erro Prisma P2003 em fk_tipo_evento para AppError 404 "Tipo de evento não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos', constraint: 'eventos_fk_tipo_evento_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA, fk_tipo_evento: MOCK_TIPOS_EVENTOS[0].id }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tipo de evento não encontrado',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de user (integrante removido durante a cópia) para AppError 404. */
+    it('deve traduzir erro Prisma P2003 em fk_user_id para AppError 404 "Integrante não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Users', constraint: 'eventos_users_fk_user_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Integrante não encontrado',
+      });
+    });
+
+    /** Constraint não mapeada (ex.: tenant_id) cai no 404 genérico, sem vazar detalhe interno. */
+    it('deve traduzir P2003 de constraint desconhecida para AppError 404 "Recurso referenciado não encontrado"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos', constraint: 'eventos_tenant_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'duplicarEvento').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.duplicar(MOCK_EVENTOS[0].id, { data: NOVA_DATA }, TENANT_A_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Recurso referenciado não encontrado',
+      });
+    });
   });
 
   // ─── getCifraclubPlaylist ───────────────────────────────
+  /** Montagem da playlist CifraClub com o tom efetivo de cada música. */
   describe('getCifraclubPlaylist', () => {
     /** Deve montar a playlist com stats coerentes (total = com_link + sem_link). */
     it('deve montar a playlist com stats coerentes', async () => {
@@ -248,9 +548,33 @@ describe('EventosService', () => {
         message: 'Evento não encontrado',
       });
     });
+
+    /**
+     * Regressão do `#key=N`: a transposição deve usar o tom do evento (override)
+     * e não o tom global da música. A música 1 tem tom global G (índice 10) mas
+     * tom próprio A na escala (índice cromático 0) — a URL deve terminar em #key=0.
+     */
+    it('deve aplicar #key com o tom do evento quando a escala tem tom próprio', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const comOverride = result.playlist.find(p => p.musica_id === 'ggg00001-0000-0000-0000-000000000001');
+      expect(comOverride).toBeDefined();
+      expect(comOverride!.tom).toBe('A');
+      expect(comOverride!.tom_final).toBe('A');
+      expect(comOverride!.tom_ajustado).toBe(true);
+      expect(comOverride!.cifraclub_url).toMatch(/#key=0$/);
+    });
+
+    /** Sem override, a transposição continua usando o tom global da música. */
+    it('deve aplicar o tom global no #key quando a escala não tem tom próprio', async () => {
+      const result = await eventosService.getCifraclubPlaylist(MOCK_EVENTOS[0].id);
+      const semOverride = result.playlist.find(p => p.musica_id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(semOverride).toBeDefined();
+      expect(semOverride!.tom).toBe('D');
+    });
   });
 
   // ─── delete ─────────────────────────────────────────────
+  /** Remoção de evento e validação de existência. */
   describe('delete', () => {
     it('deve remover um evento existente', async () => {
       const result = await eventosService.delete(MOCK_EVENTOS[0].id);
@@ -275,6 +599,7 @@ describe('EventosService', () => {
   });
 
   // ─── listMusicas ────────────────────────────────────────
+  /** Listagem do repertório de um evento, ordenado por posição. */
   describe('listMusicas', () => {
     it('deve retornar músicas do evento com tonalidade', async () => {
       const result = await eventosService.listMusicas(MOCK_EVENTOS[0].id);
@@ -282,6 +607,17 @@ describe('EventosService', () => {
       expect(result[0]).toHaveProperty('id');
       expect(result[0]).toHaveProperty('nome');
       expect(result[0]).toHaveProperty('tonalidade');
+      expect(result[0]).toHaveProperty('tonalidade_musica');
+    });
+
+    /** `tonalidade` deve carregar o tom efetivo (override) e `tonalidade_musica` o tom global. */
+    it('deve retornar tonalidade efetiva e tonalidade_musica global na listagem', async () => {
+      const result = await eventosService.listMusicas(MOCK_EVENTOS[0].id);
+      const comOverride = result.find(m => m.id === 'ggg00001-0000-0000-0000-000000000001');
+      const semOverride = result.find(m => m.id === 'ggg00001-0000-0000-0000-000000000002');
+      expect(comOverride!.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000004', tom: 'A' });
+      expect(comOverride!.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+      expect(semOverride!.tonalidade).toEqual(semOverride!.tonalidade_musica);
     });
 
     it('deve lançar AppError 404 quando evento não existe', async () => {
@@ -293,6 +629,7 @@ describe('EventosService', () => {
   });
 
   // ─── addMusica ──────────────────────────────────────────
+  /** Vínculo de música ao evento, com versão opcional e duplicidade. */
   describe('addMusica', () => {
     /** Deve vincular música ao evento com ordem automática (próxima posição). */
     it('deve vincular música ao evento com ordem automática', async () => {
@@ -397,8 +734,69 @@ describe('EventosService', () => {
       });
     });
 
-    /** Deve traduzir P2003 em fk_artistas_musicas para AppError 404 "Versão não encontrada". */
+    /**
+     * Deve traduzir P2003 na FK de versão para AppError 404 "Versão não encontrada".
+     * O mock replica o formato real do Prisma 6 no Postgres: `meta.constraint`
+     * com o nome da constraint do banco (não existe `meta.field_name`).
+     */
     it('deve traduzir erro Prisma P2003 em fk_artistas_musicas para AppError 404 "Versão não encontrada"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_fk_artistas_musicas_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id', 'versao-fake')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Versão não encontrada',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de evento (formato real `meta.constraint`) para AppError 404 "Evento não encontrado". */
+    it('deve traduzir erro Prisma P2003 em evento_id para AppError 404 "Evento não encontrado"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_evento_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Deve traduzir P2003 na FK de música (formato real `meta.constraint`) para AppError 404 "Música não encontrada". */
+    it('deve traduzir erro Prisma P2003 em musicas_id para AppError 404 "Música não encontrada"', async () => {
+      const eventoId = MOCK_EVENTOS[1].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id;
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_musicas_id_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Música não encontrada',
+      });
+    });
+
+    /**
+     * Fallback defensivo: versões do Prisma que reportem `meta.field_name`
+     * (em vez de `meta.constraint`) também devem ser traduzidas corretamente.
+     */
+    it('deve traduzir P2003 via fallback meta.field_name para AppError 404 "Versão não encontrada"', async () => {
       const eventoId = MOCK_EVENTOS[1].id;
       const musicaId = MOCK_MUSICAS_BASE[0].id;
       const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
@@ -412,42 +810,6 @@ describe('EventosService', () => {
       ).rejects.toMatchObject({
         statusCode: 404,
         message: 'Versão não encontrada',
-      });
-    });
-
-    /** Deve traduzir P2003 em evento_id para AppError 404 "Evento não encontrado". */
-    it('deve traduzir erro Prisma P2003 em evento_id para AppError 404 "Evento não encontrado"', async () => {
-      const eventoId = MOCK_EVENTOS[1].id;
-      const musicaId = MOCK_MUSICAS_BASE[0].id;
-      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
-        code: 'P2003',
-        meta: { field_name: 'evento_id' },
-      });
-      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
-
-      await expect(
-        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
-      ).rejects.toMatchObject({
-        statusCode: 404,
-        message: 'Evento não encontrado',
-      });
-    });
-
-    /** Deve traduzir P2003 em musicas_id para AppError 404 "Música não encontrada". */
-    it('deve traduzir erro Prisma P2003 em musicas_id para AppError 404 "Música não encontrada"', async () => {
-      const eventoId = MOCK_EVENTOS[1].id;
-      const musicaId = MOCK_MUSICAS_BASE[0].id;
-      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
-        code: 'P2003',
-        meta: { field_name: 'musicas_id' },
-      });
-      vi.spyOn(fakeRepo, 'createMusica').mockRejectedValueOnce(p2003Error);
-
-      await expect(
-        eventosService.addMusica(eventoId, musicaId, 'tenant-fake-id')
-      ).rejects.toMatchObject({
-        statusCode: 404,
-        message: 'Música não encontrada',
       });
     });
 
@@ -471,6 +833,7 @@ describe('EventosService', () => {
   });
 
   // ─── setMusicaVersao ────────────────────────────────────
+  /** Troca da versão selecionada de uma música na escala. */
   describe('setMusicaVersao', () => {
     /** Deve atualizar a versão selecionada e retornar MusicaEvento formatada. */
     it('deve definir versão e retornar MusicaEvento com versao_selecionada preenchida', async () => {
@@ -589,7 +952,99 @@ describe('EventosService', () => {
 
   });
 
+  // ─── setMusicaTonalidade ────────────────────────────────
+  /** Tom próprio da música na escala (override do tom global). */
+  describe('setMusicaTonalidade', () => {
+    /** Deve definir o tom próprio da escala e retornar tonalidade efetiva ≠ tom global. */
+    it('deve definir o tom da escala e retornar tonalidade efetiva com tonalidade_musica global', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaId = MOCK_MUSICAS_BASE[1].id; // tom global D, sem override
+      const tonalidadeE = MOCK_TONALIDADES[4]; // E
+
+      const result = await eventosService.setMusicaTonalidade(eventoId, musicaId, tonalidadeE.id);
+      expect(result.id).toBe(musicaId);
+      expect(result.tonalidade).toEqual({ id: tonalidadeE.id, tom: 'E' });
+      expect(result.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000002', tom: 'D' });
+    });
+
+    /** Enviar `null` deve remover o override e a música volta ao tom global. */
+    it('deve voltar ao tom global quando fk_tonalidade é null', async () => {
+      const eventoId = MOCK_EVENTOS[0].id;
+      const musicaId = MOCK_MUSICAS_BASE[0].id; // tem override A no mock
+
+      const result = await eventosService.setMusicaTonalidade(eventoId, musicaId, null);
+      expect(result.tonalidade).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+      expect(result.tonalidade_musica).toEqual({ id: 'bbb00001-0000-0000-0000-000000000001', tom: 'G' });
+    });
+
+    /** Deve lançar AppError 404 quando o evento não existe no tenant ativo. */
+    it('deve lançar AppError 404 quando evento não existe', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(NON_EXISTENT_ID, MOCK_MUSICAS_BASE[0].id, null)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Evento não encontrado',
+      });
+    });
+
+    /** Deve lançar AppError 404 quando o vínculo evento-música não existe. */
+    it('deve lançar AppError 404 quando eventos_musicas não existe para o par', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, NON_EXISTENT_ID, null)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Música não encontrada no evento',
+      });
+    });
+
+    /** Deve lançar AppError 404 quando a tonalidade não existe no tenant ativo. */
+    it('deve lançar AppError 404 quando tonalidade não existe', async () => {
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, NON_EXISTENT_ID)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    /**
+     * Deve traduzir P2003 em fk_tonalidade (corrida com deleção da tonalidade) para 404.
+     * O mock replica o formato real do Prisma 6 no Postgres (`meta.constraint`).
+     */
+    it('deve traduzir erro Prisma P2003 em fk_tonalidade para AppError 404 "Tonalidade não encontrada"', async () => {
+      const p2003Error = Object.assign(new Error('Foreign key constraint failed'), {
+        code: 'P2003',
+        meta: { modelName: 'Eventos_Musicas', constraint: 'eventos_musicas_fk_tonalidade_fkey' },
+      });
+      vi.spyOn(fakeRepo, 'setMusicaTonalidadeAtomic').mockRejectedValueOnce(p2003Error);
+
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, MOCK_TONALIDADES[0].id)
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: 'Tonalidade não encontrada',
+      });
+    });
+
+    /**
+     * Cobre a guard contra race condition: se o vínculo evento-música some entre
+     * `setMusicaTonalidadeAtomic` e `findEventoMusicaDetail`, o serviço lança
+     * AppError 500 em vez de quebrar com `detail!`.
+     */
+    it('deve lançar AppError 500 quando findEventoMusicaDetail retorna null após setMusicaTonalidadeAtomic', async () => {
+      vi.spyOn(fakeRepo, 'findEventoMusicaDetail').mockResolvedValueOnce(null);
+
+      await expect(
+        eventosService.setMusicaTonalidade(MOCK_EVENTOS[0].id, MOCK_MUSICAS_BASE[0].id, null)
+      ).rejects.toMatchObject({
+        statusCode: 500,
+        message: 'Falha ao recuperar música atualizada',
+      });
+    });
+  });
+
   // ─── removeMusica ───────────────────────────────────────
+  /** Remoção de música do evento e reindexação das posições. */
   describe('removeMusica', () => {
     /** Deve remover música vinculada e recalcular ordem das restantes. */
     it('deve remover música vinculada', async () => {
@@ -616,6 +1071,7 @@ describe('EventosService', () => {
   });
 
   // ─── reorderMusicas ────────────────────────────────────
+  /** Reordenação do repertório do evento. */
   describe('reorderMusicas', () => {
     /** Deve reordenar músicas do evento com IDs na nova ordem. */
     it('deve reordenar músicas de um evento existente', async () => {
@@ -659,6 +1115,7 @@ describe('EventosService', () => {
   });
 
   // ─── listIntegrantes ────────────────────────────────────
+  /** Listagem dos integrantes escalados com suas funções. */
   describe('listIntegrantes', () => {
     it('deve retornar integrantes do evento com funções', async () => {
       const result = await eventosService.listIntegrantes(MOCK_EVENTOS[0].id);
@@ -677,6 +1134,7 @@ describe('EventosService', () => {
   });
 
   // ─── addIntegrante ──────────────────────────────────────
+  /** Vínculo de integrante ao evento, com funções e escopo de tenant. */
   describe('addIntegrante', () => {
     /** Deve vincular integrante ao evento usando todas as funções globais quando funcao_ids não é fornecido. */
     it('deve vincular integrante ao evento com todas as funções quando funcao_ids não fornecido', async () => {
@@ -756,6 +1214,7 @@ describe('EventosService', () => {
   });
 
   // ─── removeIntegrante ───────────────────────────────────
+  /** Remoção do vínculo entre evento e integrante. */
   describe('removeIntegrante', () => {
     it('deve remover integrante vinculado', async () => {
       const existing = MOCK_EVENTOS_INTEGRANTES[0];

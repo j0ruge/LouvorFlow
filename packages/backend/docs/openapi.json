@@ -217,7 +217,7 @@
       },
       "post": {
         "summary": "Cadastrar artista",
-        "description": "Cria um novo artista. O nome deve ser único.",
+        "description": "Cria um novo artista. O nome deve ser único (comparação ignora caixa; acentos continuam distintos — \"Ávine\" e \"Avine\" são nomes diferentes).",
         "tags": [
           "Artistas"
         ],
@@ -320,7 +320,7 @@
       },
       "put": {
         "summary": "Atualizar artista",
-        "description": "Atualiza o nome de um artista existente.",
+        "description": "Atualiza o nome de um artista existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Artistas"
         ],
@@ -2015,6 +2015,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000001",
                     "data": "2026-02-16T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Manhã",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2044,6 +2045,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000002",
                     "data": "2026-02-18T19:30:00.000Z",
                     "descricao": "Culto de Quarta - Oração",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000002",
                       "nome": "Culto de Quarta"
@@ -2113,6 +2115,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000003",
                     "data": "2026-02-23T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Noite",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2131,6 +2134,20 @@
           "403": {
             "$ref": "#/components/responses/ForbiddenError"
           },
+          "404": {
+            "description": "Tipo de evento não encontrado no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Tipo de evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
@@ -2145,7 +2162,7 @@
     "/eventos/{id}": {
       "get": {
         "summary": "Buscar evento por ID",
-        "description": "Retorna os dados completos de um evento, incluindo músicas com tonalidade e integrantes com as funções selecionadas para o evento (via eventos_users_funcoes).",
+        "description": "Retorna os dados completos de um evento, incluindo músicas com tom efetivo da escala (`tonalidade` = override do evento ?? tom global; `tonalidade_musica` = tom global de referência) e integrantes com as funções selecionadas para o evento (via eventos_users_funcoes).",
         "tags": [
           "Eventos"
         ],
@@ -2166,6 +2183,7 @@
                   "id": "22222222-bbbb-4000-9000-000000000001",
                   "data": "2026-02-16T19:00:00.000Z",
                   "descricao": "Culto de Domingo - Manhã",
+                  "status": "publicada",
                   "tipoEvento": {
                     "id": "33333333-cccc-4000-a000-000000000001",
                     "nome": "Culto de Domingo"
@@ -2176,6 +2194,10 @@
                       "nome": "Rendido Estou",
                       "ordem": 1,
                       "tonalidade": {
+                        "id": "c3d4e5f6-3333-4000-c000-000000000001",
+                        "tom": "A"
+                      },
+                      "tonalidade_musica": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000007",
                         "tom": "G"
                       }
@@ -2185,6 +2207,10 @@
                       "nome": "Ninguém Explica Deus",
                       "ordem": 2,
                       "tonalidade": {
+                        "id": "c3d4e5f6-3333-4000-c000-000000000004",
+                        "tom": "D"
+                      },
+                      "tonalidade_musica": {
                         "id": "c3d4e5f6-3333-4000-c000-000000000004",
                         "tom": "D"
                       }
@@ -2274,6 +2300,7 @@
                     "id": "22222222-bbbb-4000-9000-000000000001",
                     "data": "2026-02-16T19:00:00.000Z",
                     "descricao": "Culto de Domingo - Manhã (Especial de Louvor)",
+                    "status": "publicada",
                     "tipoEvento": {
                       "id": "33333333-cccc-4000-a000-000000000001",
                       "nome": "Culto de Domingo"
@@ -2293,7 +2320,18 @@
             "$ref": "#/components/responses/ForbiddenError"
           },
           "404": {
-            "$ref": "#/components/responses/NotFoundError"
+            "description": "Evento não encontrado, ou `fk_tipo_evento` inexistente no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Tipo de evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -2352,10 +2390,94 @@
         ]
       }
     },
+    "/eventos/{eventoId}/duplicar": {
+      "post": {
+        "summary": "Duplicar escala",
+        "description": "Cria uma nova escala copiando da origem o repertório (ordem, tom próprio da escala e versão selecionada) e os integrantes com as funções escolhidas para o evento (não as funções globais atuais de cada integrante). Executa em transação única no servidor — sem risco de cópia parcial. `fk_tipo_evento` e `descricao` omitidos herdam os valores da origem; a cópia nasce com status `publicada`.",
+        "tags": [
+          "Eventos"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventoDuplicarInput"
+              },
+              "example": {
+                "data": "2026-03-01T19:00:00.000Z",
+                "descricao": "Culto de Domingo - Noite (cópia)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Escala duplicada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventoCreateResponse"
+                },
+                "example": {
+                  "msg": "Escala duplicada com sucesso",
+                  "evento": {
+                    "id": "22222222-bbbb-4000-9000-000000000004",
+                    "data": "2026-03-01T19:00:00.000Z",
+                    "descricao": "Culto de Domingo - Noite (cópia)",
+                    "status": "publicada",
+                    "tipoEvento": {
+                      "id": "33333333-cccc-4000-a000-000000000001",
+                      "nome": "Culto de Domingo"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "description": "Evento de origem não encontrado (inclusive se removido durante a cópia), ou `fk_tipo_evento` sobrescrito inexistente no tenant ativo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "erro": "Evento não encontrado",
+                  "codigo": 404
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/eventos/{eventoId}/musicas": {
       "get": {
         "summary": "Listar músicas de um evento",
-        "description": "Retorna as músicas escaladas para um evento com suas tonalidades.",
+        "description": "Retorna as músicas escaladas para um evento. `tonalidade` carrega o tom efetivo da escala (override do evento ou, na ausência dele, o tom global da música) e `tonalidade_musica` o tom global de referência.",
         "tags": [
           "Eventos - Músicas"
         ],
@@ -2381,6 +2503,10 @@
                     "nome": "Rendido Estou",
                     "ordem": 1,
                     "tonalidade": {
+                      "id": "c3d4e5f6-3333-4000-c000-000000000001",
+                      "tom": "A"
+                    },
+                    "tonalidade_musica": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000007",
                       "tom": "G"
                     }
@@ -2390,6 +2516,10 @@
                     "nome": "Ninguém Explica Deus",
                     "ordem": 2,
                     "tonalidade": {
+                      "id": "c3d4e5f6-3333-4000-c000-000000000004",
+                      "tom": "D"
+                    },
+                    "tonalidade_musica": {
                       "id": "c3d4e5f6-3333-4000-c000-000000000004",
                       "tom": "D"
                     }
@@ -2584,6 +2714,79 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/eventos/{eventoId}/musicas/{musicaId}/tonalidade": {
+      "patch": {
+        "summary": "Atualizar tom de uma música no evento",
+        "description": "Define ou limpa o tom próprio da música nesta escala (override do tom global). Enviar `fk_tonalidade: null` remove o override e a música volta a usar o tom global de `musicas.fk_tonalidade`.",
+        "tags": [
+          "Eventos - Músicas"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventoIdParam"
+          },
+          {
+            "$ref": "#/components/parameters/MusicaIdParam"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fk_tonalidade": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "UUID da tonalidade desejada para esta escala, ou null para voltar ao tom global da música"
+                  }
+                },
+                "required": [
+                  "fk_tonalidade"
+                ]
+              },
+              "example": {
+                "fk_tonalidade": "c3d4e5f6-3333-4000-c000-000000000001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tom atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "Tom atualizado"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -2933,7 +3136,7 @@
       },
       "post": {
         "summary": "Cadastrar categoria",
-        "description": "Cria uma nova categoria. O nome deve ser único.",
+        "description": "Cria uma nova categoria. O nome deve ser único (comparação ignora caixa; acentos continuam distintos — \"Adoração\" e \"Adoracao\" são nomes diferentes).",
         "tags": [
           "Categorias"
         ],
@@ -3035,6 +3238,7 @@
       },
       "put": {
         "summary": "Atualizar categoria",
+        "description": "Atualiza o nome de uma categoria existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Categorias"
         ],
@@ -3230,7 +3434,7 @@
       },
       "post": {
         "summary": "Cadastrar tonalidade",
-        "description": "Cria uma nova tonalidade. O tom deve ser único.",
+        "description": "Cria uma nova tonalidade. O tom deve ser único (comparação ignora caixa).",
         "tags": [
           "Tonalidades"
         ],
@@ -3332,6 +3536,7 @@
       },
       "put": {
         "summary": "Atualizar tonalidade",
+        "description": "Atualiza o tom de uma tonalidade existente. A checagem de tom duplicado ignora caixa.",
         "tags": [
           "Tonalidades"
         ],
@@ -3503,7 +3708,7 @@
       },
       "post": {
         "summary": "Cadastrar função",
-        "description": "Cria uma nova função/instrumento. O nome deve ser único.",
+        "description": "Cria uma nova função/instrumento. O nome deve ser único (comparação ignora caixa; acentos continuam distintos).",
         "tags": [
           "Funções"
         ],
@@ -3605,6 +3810,7 @@
       },
       "put": {
         "summary": "Atualizar função",
+        "description": "Atualiza o nome de uma função existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Funções"
         ],
@@ -4192,7 +4398,7 @@
       },
       "post": {
         "summary": "Cadastrar tipo de evento",
-        "description": "Cria um novo tipo de evento. O nome deve ser único.",
+        "description": "Cria um novo tipo de evento. O nome deve ser único (comparação ignora caixa; acentos continuam distintos).",
         "tags": [
           "Tipos de Eventos"
         ],
@@ -4294,6 +4500,7 @@
       },
       "put": {
         "summary": "Atualizar tipo de evento",
+        "description": "Atualiza o nome de um tipo de evento existente. A checagem de nome duplicado ignora caixa; acentos continuam distintos.",
         "tags": [
           "Tipos de Eventos"
         ],
@@ -6368,7 +6575,7 @@
     "/relatorios/resumo": {
       "get": {
         "summary": "Resumo de relatórios",
-        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas e atividade mensal.",
+        "description": "Métricas agregadas do tenant ativo: totais de músicas e escalas, média de músicas por escala, ranking das mais tocadas, atividade mensal e quantidade de músicas novas no mês corrente. Os indicadores baseados em evento (total de escalas, média, ranking e atividade mensal) consideram apenas escalas com status `publicada` — rascunhos são escalas em preparação e não contam.",
         "tags": [
           "Relatórios"
         ],
@@ -6617,7 +6824,9 @@
           },
           "bpm": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string",
@@ -6658,7 +6867,9 @@
           },
           "bpm": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string",
@@ -6883,6 +7094,16 @@
           },
           "tonalidade": {
             "nullable": true,
+            "description": "Tom efetivo nesta escala: o tom próprio definido para o evento ou, na ausência de override, o tom global da música",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tonalidade"
+              }
+            ]
+          },
+          "tonalidade_musica": {
+            "nullable": true,
+            "description": "Tom global da música (referência). Difere de `tonalidade` quando a escala definiu um tom próprio",
             "allOf": [
               {
                 "$ref": "#/components/schemas/Tonalidade"
@@ -7063,6 +7284,14 @@
           "descricao": {
             "type": "string"
           },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
+          },
           "tipoEvento": {
             "nullable": true,
             "allOf": [
@@ -7088,6 +7317,7 @@
           "id",
           "data",
           "descricao",
+          "status",
           "musicas",
           "integrantes"
         ]
@@ -7105,6 +7335,14 @@
           },
           "descricao": {
             "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
           },
           "tipoEvento": {
             "nullable": true,
@@ -7131,6 +7369,7 @@
           "id",
           "data",
           "descricao",
+          "status",
           "musicas",
           "integrantes"
         ]
@@ -7150,6 +7389,14 @@
             "type": "string",
             "default": "",
             "description": "Opcional. Quando omitida, o evento é criado com descrição vazia."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão. Opcional; omitido, o evento é criado como `publicada`."
           }
         },
         "required": [
@@ -7170,8 +7417,38 @@
           },
           "descricao": {
             "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rascunho",
+              "publicada"
+            ],
+            "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão. Publicar uma escala rascunho é enviar `{ \"status\": \"publicada\" }` neste endpoint."
           }
         }
+      },
+      "EventoDuplicarInput": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Data do novo evento em formato ISO 8601."
+          },
+          "fk_tipo_evento": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Opcional. Quando omitido, herda o tipo de evento da origem."
+          },
+          "descricao": {
+            "type": "string",
+            "description": "Opcional. Quando omitida, herda a descrição da origem."
+          }
+        },
+        "required": [
+          "data"
+        ]
       },
       "EventoCreateResponse": {
         "type": "object",
@@ -7192,6 +7469,14 @@
               },
               "descricao": {
                 "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "rascunho",
+                  "publicada"
+                ],
+                "description": "Status de publicação da escala. `rascunho` é a escala em preparação (não comunicada à equipe nem contada como próxima escala); `publicada` é o comportamento clássico e o padrão."
               },
               "tipoEvento": {
                 "$ref": "#/components/schemas/IdNome"
@@ -8085,7 +8370,8 @@
           },
           "bpm": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string"
@@ -8150,7 +8436,8 @@
           },
           "bpm": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 30,
+            "maximum": 220
           },
           "cifras": {
             "type": "string"
@@ -8260,6 +8547,10 @@
             "items": {
               "$ref": "#/components/schemas/AtividadeMensal"
             }
+          },
+          "novasMusicasNoMes": {
+            "type": "integer",
+            "description": "Total de músicas cadastradas no mês corrente (created_at >= primeiro dia do mês, em UTC)"
           }
         },
         "required": [
@@ -8267,7 +8558,8 @@
           "totalEventos",
           "mediaPorEvento",
           "topMusicas",
-          "atividadeMensal"
+          "atividadeMensal",
+          "novasMusicasNoMes"
         ]
       }
     },

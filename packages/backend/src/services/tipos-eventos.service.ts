@@ -1,4 +1,5 @@
 import { AppError } from '../errors/AppError.js';
+import { comBarreiraDeDuplicidade } from '../utils/duplicidade.js';
 import tiposEventosRepository from '../repositories/tipos-eventos.repository.js';
 
 class TiposEventosService {
@@ -29,7 +30,10 @@ class TiposEventosService {
         const existente = await tiposEventosRepository.findByNome(nome);
         if (existente) throw new AppError("Já existe um tipo de evento com esse nome", 409);
 
-        return tiposEventosRepository.create(nome, tenantId);
+        return comBarreiraDeDuplicidade(
+            "Já existe um tipo de evento com esse nome",
+            () => tiposEventosRepository.create(nome, tenantId),
+        );
     }
 
     async update(id: string, nome?: string) {
@@ -43,7 +47,10 @@ class TiposEventosService {
         const duplicado = await tiposEventosRepository.findByNomeExcludingId(nome, id);
         if (duplicado) throw new AppError("Nome do tipo de evento já existe", 409);
 
-        return tiposEventosRepository.update(id, nome);
+        return comBarreiraDeDuplicidade(
+            "Nome do tipo de evento já existe",
+            () => tiposEventosRepository.update(id, nome),
+        );
     }
 
     async delete(id: string) {

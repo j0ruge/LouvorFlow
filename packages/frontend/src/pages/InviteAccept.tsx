@@ -75,9 +75,14 @@ const InviteAccept = () => {
   /**
    * Processa o envio do formulário de cadastro via convite.
    *
+   * Declarada como arrow function **depois** da guarda `if (!token)`: o
+   * TypeScript só preserva o estreitamento de uma `const` capturada em funções
+   * criadas após o ponto de estreitamento — numa `function` hoisted o `token`
+   * volta a ser `string | undefined` e a chamada da mutation não compila.
+   *
    * @param dados - Dados validados do formulário.
    */
-  async function onSubmit(dados: AcceptForm) {
+  const onSubmit = async (dados: AcceptForm) => {
     setSubmitError(null);
     acceptMutation.mutate(
       { token, body: dados },
@@ -91,7 +96,7 @@ const InviteAccept = () => {
         },
       },
     );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">

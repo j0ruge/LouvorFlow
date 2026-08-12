@@ -1,9 +1,9 @@
 /**
  * Página de administração de usuários.
  *
- * Lista todos os usuários em uma tabela com nome, e-mail e badges de roles.
- * Permite criar novos usuários via dialog e acessar o gerenciamento de ACL
- * de cada usuário.
+ * Lista todos os usuários em uma tabela com nome, e-mail e badges de papéis.
+ * Permite criar novos usuários via `ResponsiveFormDialog` (Drawer no mobile,
+ * Dialog no desktop) e acessar o gerenciamento de acessos de cada usuário.
  */
 
 import { useState } from "react";
@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -27,14 +26,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 import { useUsers, useCreateUser } from "@/hooks/use-admin";
 import { CreateUserFormSchema, type CreateUserForm } from "@/schemas/auth";
+import { formatRoleLabel } from "@/lib/utils";
 
 /**
  * Componente da página de administração de usuários.
@@ -48,13 +52,27 @@ const AdminUsers = () => {
   const { data: users, isLoading } = useUsers();
   const createMutation = useCreateUser();
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<CreateUserForm>({
+  const form = useForm<CreateUserForm>({
     resolver: zodResolver(CreateUserFormSchema),
+    defaultValues: { name: "", email: "", password: "" },
+  });
+
+  /**
+   * Guarda de alterações não salvas: fechar por Esc/backdrop/X/Cancelar com
+   * o formulário sujo exibe o veil de confirmação em vez de descartar tudo.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   *
+   * O `reset()` vive no `aoFechar` (não no `aoDescartar`): todo fechamento
+   * limpa o formulário — inclusive o fechamento "limpo" após um submit
+   * inválido, em que `isDirty` é false mas `formState.errors` persistiria e
+   * reabrir mostraria erros fantasma. Idempotente com o formulário limpo.
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: form.formState.isDirty,
+    aoFechar: () => {
+      form.reset();
+      setDialogOpen(false);
+    },
   });
 
   /**
@@ -65,7 +83,7 @@ const AdminUsers = () => {
   function onSubmit(dados: CreateUserForm) {
     createMutation.mutate(dados, {
       onSuccess: () => {
-        reset();
+        form.reset();
         setDialogOpen(false);
       },
     });
@@ -83,77 +101,13 @@ const AdminUsers = () => {
           </p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft">
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="user-name">Nome</Label>
-                <Input
-                  id="user-name"
-                  placeholder="Nome completo"
-                  {...register("name")}
-                />
-                {errors.name && (
-                  <p className="text-xs text-destructive">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="user-email">E-mail</Label>
-                <Input
-                  id="user-email"
-                  type="email"
-                  placeholder="email@exemplo.com"
-                  {...register("email")}
-                />
-                {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="user-password">Senha</Label>
-                <PasswordInput
-                  id="user-password"
-                  placeholder="Mínimo 6 caracteres"
-                  {...register("password")}
-                />
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-gradient-primary hover:opacity-90 transition-opacity"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : null}
-                  Criar
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button
+          className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-soft"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Usuário
+        </Button>
       </div>
 
       <Card className="shadow-soft border-0">
@@ -202,19 +156,19 @@ const AdminUsers = () => {
                     <div className="flex flex-wrap gap-1">
                       {user.roles.map((role) => (
                         <Badge key={role.id} variant="outline" className="text-xs">
-                          {role.name}
+                          {formatRoleLabel(role.name)}
                         </Badge>
                       ))}
                       {user.roles.length === 0 && (
                         <span className="text-xs text-muted-foreground">
-                          Sem roles
+                          Sem papel definido
                         </span>
                       )}
                     </div>
                     <Button variant="outline" size="sm" className="w-full" asChild>
                       <Link to={`/admin/usuarios/${user.id}/acl`}>
                         <Shield className="mr-1 h-3 w-3" />
-                        Gerenciar ACL
+                        Gerenciar acessos
                       </Link>
                     </Button>
                   </div>
@@ -228,7 +182,7 @@ const AdminUsers = () => {
                     <TableRow>
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
-                      <TableHead>Roles</TableHead>
+                      <TableHead>Papéis</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -241,12 +195,12 @@ const AdminUsers = () => {
                           <div className="flex flex-wrap gap-1">
                             {user.roles.map((role) => (
                               <Badge key={role.id} variant="outline" className="text-xs">
-                                {role.name}
+                                {formatRoleLabel(role.name)}
                               </Badge>
                             ))}
                             {user.roles.length === 0 && (
                               <span className="text-xs text-muted-foreground">
-                                Sem roles
+                                Sem papel definido
                               </span>
                             )}
                           </div>
@@ -255,7 +209,7 @@ const AdminUsers = () => {
                           <Button variant="outline" size="sm" asChild>
                             <Link to={`/admin/usuarios/${user.id}/acl`}>
                               <Shield className="mr-1 h-3 w-3" />
-                              Gerenciar ACL
+                              Gerenciar acessos
                             </Link>
                           </Button>
                         </TableCell>
@@ -268,6 +222,94 @@ const AdminUsers = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog de criação de usuário (Drawer no mobile, Dialog no desktop) */}
+      <Form {...form}>
+        <ResponsiveFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          title="Criar Novo Usuário"
+          description="Preencha os dados do novo usuário do sistema."
+          onSubmit={form.handleSubmit(onSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guarda}
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => guarda.pedirFechamento()}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-primary hover:opacity-90 transition-opacity"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Criar
+              </Button>
+            </>
+          }
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome completo"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>E-mail</FieldLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Senha</FieldLabel>
+                <FormControl>
+                  <PasswordInput
+                    placeholder="Mínimo 6 caracteres"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
     </div>
   );
 };

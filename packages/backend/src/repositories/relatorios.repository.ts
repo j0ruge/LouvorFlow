@@ -29,24 +29,32 @@ class RelatoriosRepository {
     /**
      * Conta o total de eventos realizados (com data ≤ hoje).
      *
-     * @returns Total de eventos passados.
+     * Considera apenas escalas `publicada` — um rascunho (decisão D5: escala em
+     * preparação) com data passada não é um evento realizado e não deve inflar
+     * o resumo.
+     *
+     * @returns Total de eventos passados publicados.
      */
     async countEventosRealizados(): Promise<number> {
         return getPrisma().eventos.count({
-            where: { data: { lte: new Date() } },
+            where: { data: { lte: new Date() }, status: 'publicada' },
         });
     }
 
     /**
      * Conta o total de associações evento-música cujo evento tem data ≤ hoje.
      *
-     * @returns Total de associações de eventos passados.
+     * Considera apenas escalas `publicada` (decisão D5) — associações de
+     * rascunhos não contam como músicas tocadas.
+     *
+     * @returns Total de associações de eventos passados publicados.
      */
     async countAssociacoesEventoMusica(): Promise<number> {
         return getPrisma().eventos_Musicas.count({
             where: {
                 eventos_musicas_evento_id_fkey: {
                     data: { lte: new Date() },
+                    status: 'publicada',
                 },
             },
         });
@@ -57,7 +65,8 @@ class RelatoriosRepository {
      *
      * Busca pelo menos {@link limit} músicas, incluindo todas as empatadas
      * na última posição do corte. Ordena por contagem decrescente e, em caso
-     * de empate, por nome ascendente (ordem alfabética).
+     * de empate, por nome ascendente (ordem alfabética). Considera apenas
+     * escalas `publicada` (decisão D5) — aparições em rascunhos não contam.
      *
      * @param limit - Quantidade mínima de músicas no ranking (empates na
      *   fronteira podem elevar o total retornado).
@@ -69,6 +78,7 @@ class RelatoriosRepository {
             where: {
                 eventos_musicas_evento_id_fkey: {
                     data: { lte: new Date() },
+                    status: 'publicada',
                 },
             },
             _count: { musicas_id: true },
@@ -109,8 +119,9 @@ class RelatoriosRepository {
     /**
      * Retorna contagem de eventos e músicas por mês para os últimos N meses.
      *
-     * Considera apenas eventos com data ≤ hoje. Ordenado cronologicamente
-     * em ordem ascendente (mais antigo primeiro).
+     * Considera apenas eventos `publicada` com data ≤ hoje (rascunhos são
+     * escalas em preparação — decisão D5 — e não contam como atividade).
+     * Ordenado cronologicamente em ordem ascendente (mais antigo primeiro).
      *
      * @param meses - Quantidade de meses para trás a partir do mês atual.
      * @returns Lista de atividade mensal com nome do mês, eventos e músicas.
@@ -125,6 +136,7 @@ class RelatoriosRepository {
                     gte: inicioMes,
                     lte: hoje,
                 },
+                status: 'publicada',
             },
             select: {
                 id: true,
@@ -155,6 +167,29 @@ class RelatoriosRepository {
                 eventos: dados.eventos,
                 musicas: dados.musicas,
             }));
+    }
+
+    /**
+     * Conta o total de músicas cadastradas no mês corrente.
+     *
+     * O corte (primeiro dia do mês) é montado em **UTC**, não no fuso do
+     * servidor. `Musicas.created_at` é `@db.Timestamp(6)` — sem timezone: o
+     * Postgres guarda os dígitos que `now()` produziu e o Prisma serializa um
+     * `Date` do JS pela sua representação UTC. Com `new Date(ano, mes, 1)` local
+     * o corte sairia deslocado do fuso do processo (num servidor em UTC-3, as
+     * três primeiras horas do dia 1º ficariam de fora). Note que isso difere de
+     * {@link getAtividadeMensal}, que filtra `Eventos.data` — um
+     * `@db.Timestamptz`, convertido para instante real pelo próprio Postgres.
+     *
+     * @returns Total de músicas cujo `created_at` cai no mês corrente (UTC).
+     */
+    async countMusicasCriadasNoMes(): Promise<number> {
+        const hoje = new Date();
+        const primeiroDiaDoMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
+
+        return getPrisma().musicas.count({
+            where: { created_at: { gte: primeiroDiaDoMes } },
+        });
     }
 }
 

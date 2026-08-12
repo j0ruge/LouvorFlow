@@ -107,10 +107,19 @@ export default {
             height: "0",
           },
         },
+        "highlight-new": {
+          "0%": {
+            boxShadow: "0 0 0 3px hsl(var(--primary) / 0.4)",
+          },
+          "100%": {
+            boxShadow: "0 0 0 3px hsl(var(--primary) / 0)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "highlight-new": "highlight-new 2s ease-out 1",
       },
     },
   },

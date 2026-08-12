@@ -10,12 +10,23 @@ import { SortableContext } from "@dnd-kit/sortable";
 import { SortableMusicaCard } from "@/components/EventoDetail";
 import type { MusicaEvento } from "@/schemas/evento";
 
-/** Música de teste sem tonalidade e sem versões (picker renderiza null). */
+/**
+ * Mock de `@/hooks/use-support`: o card agora renderiza `MusicaTomPicker`,
+ * que chama `useTonalidades()` internamente. Sem o mock, o teste dispararia
+ * um fetch real (a lista de tons não é relevante para os cenários de
+ * navegação/stopPropagation cobertos aqui).
+ */
+vi.mock("@/hooks/use-support", () => ({
+  useTonalidades: () => ({ data: [], isLoading: false }),
+}));
+
+/** Música de teste sem tom e sem versões (ambos os pickers renderizam o estado "sem seleção"). */
 const musica: MusicaEvento = {
   id: "musica-1",
   nome: "Oceans",
   ordem: 1,
   tonalidade: null,
+  tonalidade_musica: null,
   versao_selecionada: null,
   versoes_disponiveis: [],
 };

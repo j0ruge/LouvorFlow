@@ -1,8 +1,8 @@
 /**
- * Página de gerenciamento de permissões de uma role.
+ * Página de gerenciamento de permissões de um papel.
  *
- * Exibe o nome da role e lista todas as permissões disponíveis
- * com checkboxes indicando quais estão atribuídas à role.
+ * Exibe o nome do papel e lista todas as permissões disponíveis
+ * com checkboxes indicando quais estão atribuídas ao papel.
  * Permite salvar as alterações via API.
  */
 
@@ -20,12 +20,12 @@ import { RolePermissionsFormSchema } from "@/schemas/auth";
 import { toast } from "sonner";
 
 /**
- * Componente da página de gerenciamento de permissões de uma role.
+ * Componente da página de gerenciamento de permissões de um papel.
  *
- * Carrega a role atual e todas as permissões disponíveis,
+ * Carrega o papel atual e todas as permissões disponíveis,
  * permitindo atribuir ou remover permissões via checkboxes.
  *
- * @returns Elemento JSX com a página de gerenciamento de permissões da role.
+ * @returns Elemento JSX com a página de gerenciamento de permissões do papel.
  */
 const RolePermissions = () => {
   const { roleId } = useParams<{ roleId: string }>();
@@ -34,12 +34,19 @@ const RolePermissions = () => {
   const setPermissionsMutation = useSetRolePermissions();
 
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
-  const [initialized, setInitialized] = useState(false);
+  /**
+   * Papel já semeado nos checkboxes — guarda o `roleId`, não um booleano.
+   *
+   * O React Router reaproveita a instância do componente quando só o parâmetro
+   * da URL muda: com um latch booleano, ir de `/roles/A/permissoes` para
+   * `/roles/B/permissoes` sem desmontar manteria as permissões de A na tela.
+   */
+  const [inicializadoPara, setInicializadoPara] = useState<string | null>(null);
 
   const isLoading = isLoadingRoles || isLoadingPermissions;
 
   /**
-   * Busca a role atual dentro da lista de roles carregadas.
+   * Busca o papel atual dentro da lista de papéis carregados.
    */
   const currentRole = useMemo(
     () => roles?.find((r) => r.id === roleId) ?? null,
@@ -47,15 +54,17 @@ const RolePermissions = () => {
   );
 
   /**
-   * Inicializa os checkboxes com as permissões atuais da role.
-   * Apenas na primeira carga — refetches não sobrescrevem edições em andamento.
+   * Inicializa os checkboxes com as permissões atuais do papel.
+   *
+   * Uma vez por papel — refetches não sobrescrevem edições em andamento, mas
+   * trocar de papel na mesma instância do componente re-semeia.
    */
   useEffect(() => {
-    if (currentRole && !initialized) {
+    if (currentRole && roleId && inicializadoPara !== roleId) {
       setSelectedPermissions(currentRole.permissions.map((p) => p.id));
-      setInitialized(true);
+      setInicializadoPara(roleId);
     }
-  }, [currentRole, initialized]);
+  }, [currentRole, roleId, inicializadoPara]);
 
   /**
    * Alterna a seleção de uma permissão.
@@ -71,7 +80,7 @@ const RolePermissions = () => {
   }
 
   /**
-   * Salva as permissões atualizadas da role, validando via schema Zod.
+   * Salva as permissões atualizadas do papel, validando via schema Zod.
    */
   function handleSave() {
     if (!roleId) return;
@@ -96,7 +105,7 @@ const RolePermissions = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/admin/roles">
-            <Button variant="ghost" size="icon" aria-label="Voltar para lista de roles">
+            <Button variant="ghost" size="icon" aria-label="Voltar para lista de papéis">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
@@ -120,16 +129,16 @@ const RolePermissions = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link to="/admin/roles">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Voltar para lista de papéis">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Permissões de {currentRole?.name ?? "Role"}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent line-clamp-2">
+            Permissões de {currentRole?.name ?? "Papel"}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerencie as permissões atribuídas a esta role
+            Gerencie as permissões atribuídas a este papel
           </p>
         </div>
       </div>
@@ -141,7 +150,7 @@ const RolePermissions = () => {
             <h2 className="text-lg font-medium">Permissões Disponíveis</h2>
           </div>
           <p className="text-sm text-muted-foreground">
-            Marque as permissões que esta role deve possuir.
+            Marque as permissões que este papel deve possuir.
           </p>
         </CardHeader>
         <CardContent>

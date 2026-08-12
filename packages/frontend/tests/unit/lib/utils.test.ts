@@ -12,6 +12,7 @@ import type React from "react";
 import { describe, it, expect, vi } from "vitest";
 import {
   formatDateBlock,
+  formatDataExtenso,
   handleClickableKeyDown,
   getInitials,
   isSafeRedirect,
@@ -212,5 +213,50 @@ describe("normalizeForSearch", () => {
   /** String vazia retorna vazia. */
   it("aceita string vazia", () => {
     expect(normalizeForSearch("")).toBe("");
+  });
+});
+
+/**
+ * Suíte de formatação de data por extenso em PT-BR, com foco na regra de
+ * fuso horário que precisa espelhar `formatDateBlock` — caso contrário o
+ * bloco de data grande e a linha por extenso mostrariam dias diferentes em
+ * fusos ocidentais (ex: Brasil).
+ */
+describe("formatDataExtenso", () => {
+  /** ISO com componente de hora explícito é lido no fuso local, como formatDateBlock. */
+  it("usa o fuso local para ISO com horário explícito", () => {
+    expect(formatDataExtenso("2026-04-25T14:00:00")).toBe("25 de abril");
+  });
+
+  /** Date-only usa getters UTC — não pode deslocar para o dia 26 em fusos ocidentais. */
+  it("usa UTC para date-only ISO (YYYY-MM-DD), evitando deslocar um dia", () => {
+    expect(formatDataExtenso("2026-03-27")).toBe("27 de março");
+  });
+
+  /** Por padrão (capitalizar ausente/false), o mês fica em minúsculas — forma correta em texto corrido. */
+  it("mantém o mês em minúsculas quando capitalizar não é informado", () => {
+    expect(formatDataExtenso("2026-03-27")).toBe("27 de março");
+    expect(formatDataExtenso("2026-03-27", { capitalizar: false })).toBe("27 de março");
+  });
+
+  /** Com capitalizar=true, apenas o nome do mês é capitalizado (o dia já é numérico). */
+  it("capitaliza o nome do mês quando capitalizar=true", () => {
+    expect(formatDataExtenso("2026-03-27", { capitalizar: true })).toBe("27 de Março");
+  });
+
+  /** Data inválida retorna string vazia em vez de "Invalid Date" no DOM. */
+  it("retorna string vazia para data inválida", () => {
+    expect(formatDataExtenso("not a date")).toBe("");
+  });
+
+  /**
+   * `null`/`undefined` não podem cair no construtor `Date` sem guarda prévia:
+   * `new Date(null)` resolve para o epoch (1970-01-01) em vez de "Invalid Date",
+   * o que produziria silenciosamente "31 de dezembro" (fuso ocidental) em vez
+   * do fallback esperado de string vazia.
+   */
+  it("retorna string vazia para null/undefined em vez de cair no epoch", () => {
+    expect(formatDataExtenso(null as unknown as string)).toBe("");
+    expect(formatDataExtenso(undefined as unknown as string)).toBe("");
   });
 });

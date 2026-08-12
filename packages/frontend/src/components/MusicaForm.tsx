@@ -31,6 +31,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,7 @@ import {
 } from "@/schemas/musica";
 import type { Musica } from "@/schemas/musica";
 import { useFormDraft } from "@/hooks/use-form-draft";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 
 /** Valores padrão (vazios) para o formulário de criação de música. */
 const MUSICA_FORM_DEFAULTS: CreateMusicaCompleteForm = {
@@ -115,6 +118,24 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
   const createFuncaoMutation = useCreateFuncao();
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  /**
+   * Guarda de alterações não salvas — **só no modo edição**. No modo criação
+   * a proteção continua sendo o rascunho do `useFormDraft` (salvo ao fechar e
+   * oferecido no AlertDialog "Recuperar rascunho?"); somar o veil ali seria
+   * fazer duas perguntas contraditórias ao usuário.
+   *
+   * Sem `!isPending` de propósito: com submit in-flight o guard desarmaria
+   * (Esc/backdrop fechariam sem confirmação) e uma mutation que falha
+   * perderia tudo que foi digitado. O caminho feliz não precisa disso — o
+   * `onSuccess` fecha via `onOpenChange(false)` do pai (não passa pelo
+   * guard) e o `form.reset()` derruba `temAlteracoes`, fechando o veil
+   * sozinho.
+   */
+  const guarda = useDirtyFormGuard({
+    temAlteracoes: isEditing && form.formState.isDirty,
+    aoFechar: () => handleOpenChange(false),
+  });
 
   /** Opções do combobox de tonalidades mapeadas para { value, label }. */
   const tonalidadeOptions = useMemo(
@@ -315,12 +336,13 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
         }
         onSubmit={form.handleSubmit(onSubmit)}
         contentClassName="sm:max-w-[600px]"
+        dirtyGuard={guarda}
         footer={
           <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleOpenChange(false)}
+              onClick={() => guarda.pedirFechamento()}
             >
               Cancelar
             </Button>
@@ -330,15 +352,17 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
           </>
         }
       >
-              {/* Nome */}
+              <RequiredFieldsLegend />
+
+              {/* Nome — único campo obrigatório (decisão D6: Artista continua opcional) */}
               <FormField
                 control={form.control}
                 name="nome"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome</FormLabel>
+                    <FieldLabel required>Nome</FieldLabel>
                     <FormControl>
-                      <Input placeholder="Nome da música" {...field} />
+                      <Input placeholder="Nome da música" aria-required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -420,6 +444,9 @@ export function MusicaForm({ open, onOpenChange, musica }: MusicaFormProps) {
                     <FormControl>
                       <Input
                         type="number"
+                        min={30}
+                        max={220}
+                        inputMode="numeric"
                         placeholder="Ex: 120"
                         {...field}
                         value={field.value ?? ""}

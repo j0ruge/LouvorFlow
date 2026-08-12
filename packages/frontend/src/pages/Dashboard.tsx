@@ -2,8 +2,9 @@
  * Página principal do Dashboard.
  *
  * Exibe dados reais do servidor: total de músicas, escalas, integrantes,
- * e próximas escalas. Layout fiel ao handoff de design (Sora + tiles
- * âmbar + bloco de data nas próximas escalas).
+ * novas músicas cadastradas no mês (via `useRelatorioResumo`) e próximas
+ * escalas. Layout fiel ao handoff de design (Sora + tiles âmbar + bloco de
+ * data nas próximas escalas).
  */
 
 import { useMemo } from "react";
@@ -22,11 +23,9 @@ import {
 import { useMusicas } from "@/hooks/use-musicas";
 import { useEventos } from "@/hooks/use-eventos";
 import { useIntegrantes } from "@/hooks/use-integrantes";
-import {
-  formatDateBlock,
-  getInitials,
-  handleClickableKeyDown,
-} from "@/lib/utils";
+import { useRelatorioResumo } from "@/hooks/use-relatorios";
+import { cn, getInitials } from "@/lib/utils";
+import { EventoRow } from "@/components/EventoRow";
 
 /**
  * Componente da página de Dashboard com dados reais.
@@ -35,12 +34,18 @@ import {
  */
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { data: musicasData, isLoading: musicasLoading } = useMusicas({
-    page: 1,
-    limit: 1,
-  });
-  const { data: eventos, isLoading: eventosLoading } = useEventos();
-  const { data: integrantes, isLoading: integrantesLoading } = useIntegrantes();
+  const {
+    data: musicasData,
+    isLoading: musicasLoading,
+    isError: musicasError,
+  } = useMusicas({ page: 1, limit: 1 });
+  const { data: eventos, isLoading: eventosLoading, isError: eventosError } = useEventos();
+  const {
+    data: integrantes,
+    isLoading: integrantesLoading,
+    isError: integrantesError,
+  } = useIntegrantes();
+  const { data: resumo, isLoading: resumoLoading, isError: resumoError } = useRelatorioResumo();
 
   /** Total de músicas extraído dos metadados de paginação. */
   const totalMusicas = musicasData?.meta.total ?? 0;
@@ -59,21 +64,41 @@ const Dashboard = () => {
     [integrantes],
   );
 
-  /** Total de escalas. */
-  const totalEscalas = eventos?.length ?? 0;
+  /**
+   * Escalas publicadas — rascunhos ficam fora do Dashboard por inteiro
+   * (tile "Escalas" E lista de próximas), coerente com os relatórios do
+   * backend, que também os excluem. Derivar a lista uma vez mantém o tile e
+   * a lista sempre alinhados ao mesmo critério.
+   */
+  const escalasPublicadas = useMemo(
+    () => eventos?.filter((e) => e.status === "publicada") ?? [],
+    [eventos],
+  );
 
-  /** Próximas escalas filtradas por data futura e ordenadas. */
+  /** Total de escalas publicadas exibido no tile "Escalas". */
+  const totalEscalas = escalasPublicadas.length;
+
+  /**
+   * Próximas escalas: apenas publicadas (rascunhos vivem só na aba
+   * Rascunhos de Escalas), com data futura, ordenadas por data ASC.
+   */
   const proximasEscalas = useMemo(() => {
-    if (!eventos) return [];
     const agora = new Date();
-    return eventos
+    return escalasPublicadas
       .filter((e) => new Date(e.data) >= agora)
       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
       .slice(0, 4);
-  }, [eventos]);
+  }, [escalasPublicadas]);
 
-  const isLoading = musicasLoading || eventosLoading || integrantesLoading;
-
+  /**
+   * Um `isLoading` por stat (em vez de um agregado cobrindo os 4 cards):
+   * cada card revela o valor assim que a própria query resolve, sem ficar
+   * preso atrás da mais lenta das quatro.
+   *
+   * O `isError` acompanha pelo mesmo motivo de granularidade — e porque sem
+   * ele o fallback `?? 0` renderizaria um zero indistinguível de "este
+   * ministério realmente não tem nenhum", escondendo a falha da requisição.
+   */
   const stats = [
     {
       title: "Músicas",
@@ -83,6 +108,8 @@ const Dashboard = () => {
       tintGradient: "from-primary to-primary-light",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: musicasLoading,
+      isError: musicasError,
     },
     {
       title: "Escalas",
@@ -92,6 +119,8 @@ const Dashboard = () => {
       tintGradient: "from-secondary to-accent",
       iconBg: "bg-accent/10",
       iconColor: "text-accent",
+      isLoading: eventosLoading,
+      isError: eventosError,
     },
     {
       title: "Integrantes",
@@ -101,15 +130,19 @@ const Dashboard = () => {
       tintGradient: "from-accent to-primary",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: integrantesLoading,
+      isError: integrantesError,
     },
     {
-      title: "Eventos",
-      value: proximasEscalas.length,
+      title: "Novas Músicas",
+      value: resumo?.novasMusicasNoMes ?? 0,
       icon: TrendingUp,
-      description: "Futuros agendados",
+      description: "Adicionadas no mês",
       tintGradient: "from-primary-light to-secondary",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
+      isLoading: resumoLoading,
+      isError: resumoError,
     },
   ];
 
@@ -153,15 +186,27 @@ const Dashboard = () => {
             <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground pr-10">
               {stat.title}
             </h3>
-            {isLoading ? (
+            {stat.isLoading ? (
               <Skeleton className="h-8 w-16 mt-1.5" />
+            ) : stat.isError ? (
+              <div
+                className="font-display text-3xl font-bold leading-none text-muted-foreground mt-1"
+                aria-hidden="true"
+              >
+                —
+              </div>
             ) : (
               <div className="font-display text-3xl font-bold leading-none text-foreground tabular-nums mt-1">
                 {stat.value}
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              {stat.description}
+            <p
+              className={cn(
+                "text-xs mt-1",
+                stat.isError ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {stat.isError ? "Não foi possível carregar" : stat.description}
             </p>
           </div>
         ))}
@@ -200,47 +245,13 @@ const Dashboard = () => {
               </p>
             ) : (
               <div className="flex flex-col gap-2.5">
-                {proximasEscalas.map((scale) => {
-                  const { dia, mes } = formatDateBlock(scale.data);
-                  return (
-                    <div
-                      key={scale.id}
-                      className="flex items-center gap-3 p-3 bg-gradient-card border border-border rounded-xl hover:border-primary/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/escalas/${scale.id}`)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={handleClickableKeyDown(() =>
-                        navigate(`/escalas/${scale.id}`),
-                      )}
-                    >
-                      {/* Bloco de data âmbar */}
-                      <div className="w-[52px] flex-shrink-0 text-center py-1.5 rounded-[10px] bg-primary/10 text-primary">
-                        <div className="font-display text-xl font-bold leading-none tabular-nums">
-                          {dia}
-                        </div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.08em] mt-[3px]">
-                          {mes}
-                        </div>
-                      </div>
-                      {/* Corpo */}
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-foreground leading-tight truncate">
-                          {scale.descricao || "Evento"}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-[3px] truncate">
-                          {scale.musicas.length} músicas ·{" "}
-                          {scale.integrantes.length} integrantes
-                        </div>
-                      </div>
-                      {/* Tag */}
-                      {scale.tipoEvento && (
-                        <span className="ml-auto flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light truncate max-w-[7rem]">
-                          {scale.tipoEvento.nome}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                {proximasEscalas.map((scale) => (
+                  <EventoRow
+                    key={scale.id}
+                    evento={scale}
+                    onOpen={(id) => navigate(`/escalas/${id}`)}
+                  />
+                ))}
               </div>
             )}
           </CardContent>

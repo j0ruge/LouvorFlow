@@ -19,11 +19,9 @@ import {
   PowerOff,
   Loader2,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -35,12 +33,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { FieldLabel } from "@/components/form/FieldLabel";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 import {
   useIgrejas,
   useCreateIgreja,
@@ -65,13 +67,27 @@ const AdminIgrejas = () => {
   /** Igreja aguardando confirmação de desativação (null = nenhum diálogo aberto). */
   const [deactivatingIgreja, setDeactivatingIgreja] = useState<Igreja | null>(null);
   /**
-   * Igreja cuja alternância de status está em voo.
+   * Igrejas cuja alternância de status está em voo.
    *
    * `updateMutation.isPending` sozinho é global: desabilitaria o botão de todas
    * as linhas (e também o "Salvar" do diálogo de edição, que usa a mesma
    * mutation) enquanto uma única linha era alternada.
+   *
+   * É um `Set`, e não um id único: "Reativar" não passa por confirmação, então
+   * nada impede reativar A e, antes de A liquidar, reativar B — com um único
+   * id, B apagaria A e reabilitaria o botão de A ainda em voo.
    */
-  const [togglingIgrejaId, setTogglingIgrejaId] = useState<string | null>(null);
+  const [togglingIgrejaIds, setTogglingIgrejaIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  /**
+   * Salvamento do formulário de edição em voo.
+   *
+   * Pelo mesmo motivo do `togglingIgrejaIds`, e na direção oposta: o "Salvar"
+   * do diálogo não pode ler `updateMutation.isPending` cru, ou uma alternância
+   * de status de outra linha o deixaria desabilitado.
+   */
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   const {
     data: todasIgrejas,
@@ -109,7 +125,42 @@ const AdminIgrejas = () => {
   });
 
   /**
+   * Guarda de alterações não salvas do dialog de criação: fechar por
+   * Esc/backdrop/X/Cancelar com o formulário sujo exibe o veil de confirmação.
+   * Permanece armado durante submit pendente (ver comentário no MusicaForm).
+   *
+   * O `reset()` vive no `aoFechar` (não no `aoDescartar`): todo fechamento
+   * limpa o formulário — inclusive o fechamento "limpo" após um submit
+   * inválido, em que `isDirty` é false mas `formState.errors` persistiria e
+   * reabrir mostraria erros fantasma. Idempotente com o formulário limpo.
+   */
+  const guardaCriacao = useDirtyFormGuard({
+    temAlteracoes: createForm.formState.isDirty,
+    aoFechar: () => {
+      createForm.reset();
+      setCreateDialogOpen(false);
+    },
+  });
+
+  /**
+   * Guarda de alterações não salvas do dialog de edição. O `aoFechar` absorve
+   * a limpeza que antes vivia no `onOpenChange` do Dialog: além de fechar,
+   * reseta o formulário e limpa `editingIgreja`.
+   */
+  const guardaEdicao = useDirtyFormGuard({
+    temAlteracoes: editForm.formState.isDirty,
+    aoFechar: () => {
+      editForm.reset();
+      setEditingIgreja(null);
+      setEditDialogOpen(false);
+    },
+  });
+
+  /**
    * Processa o envio do formulário de criação de nova igreja.
+   *
+   * Os toasts de sucesso/erro vivem no hook (`useCreateIgreja`) — repeti-los
+   * aqui duplicava o aviso na tela. Este callback cuida só do estado local.
    *
    * @param dados - Dados validados do formulário (nome da igreja).
    */
@@ -118,10 +169,6 @@ const AdminIgrejas = () => {
       onSuccess: () => {
         createForm.reset();
         setCreateDialogOpen(false);
-        toast.success("Igreja criada com sucesso.");
-      },
-      onError: (err) => {
-        toast.error(err instanceof Error ? err.message : "Erro ao criar igreja.");
       },
     });
   }
@@ -129,10 +176,14 @@ const AdminIgrejas = () => {
   /**
    * Processa o envio do formulário de edição de uma igreja existente.
    *
+   * Os toasts de sucesso/erro vivem no hook (`useUpdateIgreja`) — repeti-los
+   * aqui duplicava o aviso na tela. Este callback cuida só do estado local.
+   *
    * @param dados - Dados validados do formulário (nome da igreja).
    */
   function onEditSubmit(dados: CreateIgrejaForm) {
     if (!editingIgreja) return;
+    setSalvandoEdicao(true);
     updateMutation.mutate(
       { id: editingIgreja.id, data: dados },
       {
@@ -140,11 +191,8 @@ const AdminIgrejas = () => {
           editForm.reset();
           setEditDialogOpen(false);
           setEditingIgreja(null);
-          toast.success("Igreja atualizada com sucesso.");
         },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Erro ao atualizar igreja.");
-        },
+        onSettled: () => setSalvandoEdicao(false),
       },
     );
   }
@@ -163,26 +211,26 @@ const AdminIgrejas = () => {
   /**
    * Aplica a mudança de status de uma igreja.
    *
+   * Os toasts vivem no hook (`useUpdateIgreja`), que escolhe a copy
+   * específica ("desativada"/"reativada") a partir de `data.status` —
+   * repeti-los aqui duplicava o aviso na tela.
+   *
    * @param igreja - Igreja a ter o status alternado.
    * @param newStatus - Novo status a persistir.
    */
   function aplicarStatus(igreja: Igreja, newStatus: "active" | "inactive") {
-    setTogglingIgrejaId(igreja.id);
+    setTogglingIgrejaIds((atual) => new Set(atual).add(igreja.id));
     updateMutation.mutate(
       { id: igreja.id, data: { status: newStatus } },
       {
-        onSuccess: () => {
-          toast.success(
-            newStatus === "inactive"
-              ? "Igreja desativada com sucesso."
-              : "Igreja reativada com sucesso.",
-          );
-          setDeactivatingIgreja(null);
-        },
-        onError: (err) => {
-          toast.error(err instanceof Error ? err.message : "Erro ao alterar status.");
-        },
-        onSettled: () => setTogglingIgrejaId(null),
+        onSuccess: () => setDeactivatingIgreja(null),
+        onSettled: () =>
+          setTogglingIgrejaIds((atual) => {
+            if (!atual.has(igreja.id)) return atual;
+            const proximo = new Set(atual);
+            proximo.delete(igreja.id);
+            return proximo;
+          }),
       },
     );
   }
@@ -310,9 +358,9 @@ const AdminIgrejas = () => {
                         size="sm"
                         className="w-full"
                         onClick={() => handleToggleStatus(igreja)}
-                        disabled={togglingIgrejaId === igreja.id}
+                        disabled={togglingIgrejaIds.has(igreja.id)}
                       >
-                        {togglingIgrejaId === igreja.id ? (
+                        {togglingIgrejaIds.has(igreja.id) ? (
                           <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                         ) : igreja.status === "active" ? (
                           <PowerOff className="mr-1 h-3 w-3" />
@@ -375,9 +423,9 @@ const AdminIgrejas = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => handleToggleStatus(igreja)}
-                              disabled={togglingIgrejaId === igreja.id}
+                              disabled={togglingIgrejaIds.has(igreja.id)}
                             >
-                              {togglingIgrejaId === igreja.id ? (
+                              {togglingIgrejaIds.has(igreja.id) ? (
                                 <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                               ) : igreja.status === "active" ? (
                                 <PowerOff className="mr-1 h-3 w-3" />
@@ -398,34 +446,22 @@ const AdminIgrejas = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de criação */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Igreja</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="create-name">Nome</Label>
-              <Input
-                id="create-name"
-                placeholder="Nome da igreja ou organização"
-                {...createForm.register("name")}
-              />
-              {createForm.formState.errors.name && (
-                <p className="text-xs text-destructive">
-                  {createForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
+      {/* Dialog de criação (Drawer no mobile, Dialog no desktop) */}
+      <Form {...createForm}>
+        <ResponsiveFormDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          title="Nova Igreja"
+          description="Preencha os dados da nova igreja ou organização."
+          onSubmit={createForm.handleSubmit(onCreateSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guardaCriacao}
+          footer={
+            <>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  createForm.reset();
-                  setCreateDialogOpen(false);
-                }}
+                onClick={() => guardaCriacao.pedirFechamento()}
               >
                 Cancelar
               </Button>
@@ -439,66 +475,82 @@ const AdminIgrejas = () => {
                 ) : null}
                 Criar
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog de edição */}
-      <Dialog
-        open={editDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            editForm.reset();
-            setEditingIgreja(null);
+            </>
           }
-          setEditDialogOpen(open);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Igreja</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome</Label>
-              <Input
-                id="edit-name"
-                placeholder="Nome da igreja ou organização"
-                {...editForm.register("name")}
-              />
-              {editForm.formState.errors.name && (
-                <p className="text-xs text-destructive">
-                  {editForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={createForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome da igreja ou organização"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
+
+      {/* Dialog de edição (Drawer no mobile, Dialog no desktop) */}
+      <Form {...editForm}>
+        <ResponsiveFormDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          title="Editar Igreja"
+          description="Altere o nome da igreja ou organização."
+          onSubmit={editForm.handleSubmit(onEditSubmit)}
+          contentClassName="sm:max-w-[425px]"
+          dirtyGuard={guardaEdicao}
+          footer={
+            <>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  editForm.reset();
-                  setEditDialogOpen(false);
-                  setEditingIgreja(null);
-                }}
+                onClick={() => guardaEdicao.pedirFechamento()}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 className="bg-gradient-primary hover:opacity-90 transition-opacity"
-                disabled={updateMutation.isPending}
+                disabled={salvandoEdicao}
               >
-                {updateMutation.isPending ? (
+                {salvandoEdicao ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
                 Salvar
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </>
+          }
+        >
+          <RequiredFieldsLegend />
+          <FormField
+            control={editForm.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FieldLabel required>Nome</FieldLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Nome da igreja ou organização"
+                    aria-required
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </ResponsiveFormDialog>
+      </Form>
 
       {/* Confirmação de desativação — bloqueia o acesso de todos os membros */}
       <DeleteConfirmDialog
@@ -515,7 +567,12 @@ const AdminIgrejas = () => {
         onConfirm={() => {
           if (deactivatingIgreja) aplicarStatus(deactivatingIgreja, "inactive");
         }}
-        isLoading={updateMutation.isPending}
+        /* Mesma razão do `disabled` das linhas: `updateMutation.isPending` é
+           compartilhado, e a alternância de outra igreja deixaria este diálogo
+           em "carregando" por uma requisição alheia. */
+        isLoading={
+          deactivatingIgreja ? togglingIgrejaIds.has(deactivatingIgreja.id) : false
+        }
       />
     </div>
   );

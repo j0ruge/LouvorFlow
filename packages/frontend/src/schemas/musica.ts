@@ -86,8 +86,19 @@ export const UpdateMusicaFormSchema = z.object({
 /** Tipo inferido dos dados do formulário de edição de música. */
 export type UpdateMusicaForm = z.infer<typeof UpdateMusicaFormSchema>;
 
-/** Schema do campo BPM para formulários de versão. */
-const bpmFormField = z.coerce.number().min(1, "BPM deve ser maior que 0").optional().or(z.literal(""));
+/**
+ * Schema do campo BPM para formulários de versão. Faixa musicalmente
+ * plausível: 30 a 220 BPM. A coerção de `""` resulta em `0`, que falha o
+ * `.min(30)` e cai no ramo `z.literal("")` da união — preservando o campo
+ * vazio como valor válido (BPM opcional).
+ */
+const bpmFormField = z.coerce
+  .number()
+  .int()
+  .min(30, "BPM deve estar entre 30 e 220")
+  .max(220, "BPM deve estar entre 30 e 220")
+  .optional()
+  .or(z.literal(""));
 
 /**
  * Schema do campo link_versao / cifraclub_url para formulários de versão.

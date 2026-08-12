@@ -41,6 +41,17 @@ function listVersoesShowByMusica(musicaId: string) {
     .filter(Boolean);
 }
 
+/**
+ * Constrói a projeção `{ id, tom }` de uma tonalidade a partir do ID.
+ * Retorna `null` se o ID não existir ou for nulo — espelha o select
+ * `{ id, tom }` das projeções reais de tonalidade.
+ */
+function buildTonalidadeShow(tonalidadeId: string | null | undefined) {
+  if (!tonalidadeId) return null;
+  const tonalidade = MOCK_TONALIDADES.find(t => t.id === tonalidadeId);
+  return tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null;
+}
+
 /** Representa um registro na tabela eventos_users_funcoes (funções selecionadas por evento). */
 interface EventoUserFuncao {
   id: string;
@@ -89,6 +100,7 @@ export function createFakeEventosRepository() {
     id: evento.id,
     data: evento.data,
     descricao: evento.descricao,
+    status: evento.status,
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
@@ -119,23 +131,24 @@ export function createFakeEventosRepository() {
     id: evento.id,
     data: evento.data,
     descricao: evento.descricao,
+    status: evento.status,
     eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
     Eventos_Musicas: eventosMusicas
       .filter(em => em.evento_id === evento.id)
       .sort((a, b) => a.ordem - b.ordem)
       .map(em => {
         const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-        const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
         return {
           id: em.id,
           ordem: em.ordem,
           eventos_musicas_musicas_id_fkey: {
             id: musica.id,
             nome: musica.nome,
-            musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+            musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
             Artistas_Musicas: listVersoesShowByMusica(musica.id),
           },
           eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
+          eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
         };
       }),
     Eventos_Users: eventosIntegrantes
@@ -168,21 +181,32 @@ export function createFakeEventosRepository() {
 
     findByIdSimple: async (id: string) => eventosData.find(e => e.id === id) ?? null,
 
-    /** Cria um evento em memória (parâmetro _tenantId ignorado no fake). */
-    create: async (data: { data: Date; fk_tipo_evento: string; descricao: string }, _tenantId?: string) => {
+    /**
+     * Cria um evento em memória (parâmetro _tenantId ignorado no fake).
+     * `status` omitido assume `publicada` — espelha o DEFAULT do banco.
+     */
+    create: async (
+      data: { data: Date; fk_tipo_evento: string; descricao: string; status?: 'rascunho' | 'publicada' },
+      _tenantId?: string,
+    ) => {
       const evento = {
         id: randomUUID(),
-        ...data,
+        data: data.data,
+        fk_tipo_evento: data.fk_tipo_evento,
+        descricao: data.descricao,
+        status: data.status ?? ('publicada' as const),
       };
       eventosData.push(evento);
       return {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        status: evento.status,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
       };
     },
 
+    /** Atualiza um evento em memória e devolve a projeção de escrita (com status). */
     update: async (id: string, updateData: Record<string, unknown>) => {
       const evento = eventosData.find(e => e.id === id);
       if (!evento) return null;
@@ -191,7 +215,75 @@ export function createFakeEventosRepository() {
         id: evento.id,
         data: evento.data,
         descricao: evento.descricao,
+        status: evento.status,
         eventos_fk_tipo_evento_fkey: getTipoEvento(evento.fk_tipo_evento),
+      };
+    },
+
+    /**
+     * Duplica uma escala em memória espelhando a transação do repositório real:
+     * cria o novo evento (status DEFAULT `publicada`), copia o repertório
+     * (ordem, versão selecionada e tom próprio) e os integrantes com as funções
+     * do evento de origem (`eventos_users_funcoes`), não as globais.
+     *
+     * @param origemId - ID do evento a copiar
+     * @param dados - Dados do novo evento já resolvidos pelo service
+     * @param _tenantId - Ignorado no fake
+     * @returns Projeção de escrita do evento criado (com status e tipo populado)
+     * @throws Error "ORIGEM_NOT_FOUND" — origem ausente do dataset
+     */
+    duplicarEvento: async (
+      origemId: string,
+      dados: { data: Date; fk_tipo_evento: string; descricao: string },
+      _tenantId?: string,
+    ) => {
+      /**
+       * Espelha a revalidação da origem dentro da transação real: se o evento
+       * sumir entre a checagem do service e a cópia, o repositório lança o
+       * sentinela em vez de devolver uma escala vazia.
+       */
+      if (!eventosData.some(e => e.id === origemId)) {
+        throw new Error('ORIGEM_NOT_FOUND');
+      }
+
+      const novo = {
+        id: randomUUID(),
+        data: dados.data,
+        fk_tipo_evento: dados.fk_tipo_evento,
+        descricao: dados.descricao,
+        status: 'publicada' as const,
+      };
+      eventosData.push(novo);
+
+      for (const em of eventosMusicas.filter(m => m.evento_id === origemId)) {
+        eventosMusicas.push({
+          id: randomUUID(),
+          evento_id: novo.id,
+          musicas_id: em.musicas_id,
+          ordem: em.ordem,
+          fk_artistas_musicas: em.fk_artistas_musicas,
+          fk_tonalidade: em.fk_tonalidade,
+        });
+      }
+
+      for (const ei of eventosIntegrantes.filter(i => i.evento_id === origemId)) {
+        const novoVinculo = { id: randomUUID(), evento_id: novo.id, fk_user_id: ei.fk_user_id };
+        eventosIntegrantes.push(novoVinculo);
+        for (const euf of eventosUsersFuncoes.filter(f => f.evento_user_id === ei.id)) {
+          eventosUsersFuncoes.push({
+            id: randomUUID(),
+            evento_user_id: novoVinculo.id,
+            funcao_id: euf.funcao_id,
+          });
+        }
+      }
+
+      return {
+        id: novo.id,
+        data: novo.data,
+        descricao: novo.descricao,
+        status: novo.status,
+        eventos_fk_tipo_evento_fkey: getTipoEvento(novo.fk_tipo_evento),
       };
     },
 
@@ -208,22 +300,25 @@ export function createFakeEventosRepository() {
 
     // --- Musicas (eventos_musicas) ---
 
-    /** Retorna as músicas vinculadas a um evento, ordenadas pelo campo ordem. */
+    /**
+     * Retorna as músicas vinculadas a um evento, ordenadas pelo campo ordem,
+     * projetando o tom global da música e o tom próprio da escala (override).
+     */
     findMusicas: async (eventoId: string) =>
       eventosMusicas
         .filter(em => em.evento_id === eventoId)
         .sort((a, b) => a.ordem - b.ordem)
         .map(em => {
           const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-          const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
           return {
             id: em.id,
             ordem: em.ordem,
             eventos_musicas_musicas_id_fkey: {
               id: musica.id,
               nome: musica.nome,
-              musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+              musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
             },
+            eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
           };
         }),
 
@@ -242,6 +337,7 @@ export function createFakeEventosRepository() {
         musicas_id: musicasId,
         ordem: maxOrdem + 1,
         fk_artistas_musicas: artistas_musicas_id ?? null,
+        fk_tonalidade: null,
       };
       eventosMusicas.push(record);
       return record;
@@ -325,6 +421,24 @@ export function createFakeEventosRepository() {
     },
 
     /**
+     * Valida e persiste atomicamente o tom próprio de uma música na escala.
+     * Espelha o repositório real: tonalidade inexistente e vínculo removido
+     * viram sentinelas traduzidas pelo service.
+     *
+     * @param eventoMusicaId - ID do registro em eventos_musicas
+     * @param fk_tonalidade - UUID da tonalidade ou `null` para voltar ao tom global
+     */
+    setMusicaTonalidadeAtomic: async (eventoMusicaId: string, fk_tonalidade: string | null) => {
+      if (fk_tonalidade !== null) {
+        const tonalidade = MOCK_TONALIDADES.find(t => t.id === fk_tonalidade);
+        if (!tonalidade) throw new Error('TONALIDADE_NOT_FOUND');
+      }
+      const record = eventosMusicas.find(em => em.id === eventoMusicaId);
+      if (!record) throw new Error('EVENTO_MUSICA_NOT_FOUND');
+      record.fk_tonalidade = fk_tonalidade;
+    },
+
+    /**
      * Projeta uma única música no formato de detalhe de evento, sem recarregar o evento inteiro.
      * Usado por addMusica/setMusicaVersao para responder apenas a música afetada.
      *
@@ -336,22 +450,37 @@ export function createFakeEventosRepository() {
       const em = eventosMusicas.find(x => x.evento_id === eventoId && x.musicas_id === musicasId);
       if (!em) return null;
       const musica = MOCK_MUSICAS_BASE.find(m => m.id === em.musicas_id)!;
-      const tonalidade = MOCK_TONALIDADES.find(t => t.id === musica.fk_tonalidade);
       return {
         id: em.id,
         ordem: em.ordem,
         eventos_musicas_musicas_id_fkey: {
           id: musica.id,
           nome: musica.nome,
-          musicas_fk_tonalidade_fkey: tonalidade ? { id: tonalidade.id, tom: tonalidade.tom } : null,
+          musicas_fk_tonalidade_fkey: buildTonalidadeShow(musica.fk_tonalidade),
           Artistas_Musicas: listVersoesShowByMusica(musica.id),
         },
         eventos_musicas_artistas_musicas_fkey: buildVersaoShow(em.fk_artistas_musicas),
+        eventos_musicas_fk_tonalidade_fkey: buildTonalidadeShow(em.fk_tonalidade),
       };
     },
 
     findMusicaById: async (musicasId: string) =>
       MOCK_MUSICAS_BASE.find(m => m.id === musicasId) ?? null,
+
+    /**
+     * Busca um tipo de evento pelo ID no catálogo mock do tenant.
+     *
+     * O dataset mock representa um único tenant, então "não existe no catálogo"
+     * é o equivalente ao `null` que o filtro de tenant do `getPrisma()` devolve
+     * para um id de outra igreja.
+     *
+     * @param id - UUID do tipo de evento
+     * @returns Objeto com o id, ou `null` se não existir no catálogo
+     */
+    findTipoEventoById: async (id: string) => {
+      const tipo = MOCK_TIPOS_EVENTOS.find(te => te.id === id);
+      return tipo ? { id: tipo.id } : null;
+    },
 
     /**
      * Busca uma versão (Artistas_Musicas) pelo ID nos dados mock.

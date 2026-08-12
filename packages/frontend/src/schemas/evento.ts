@@ -37,7 +37,15 @@ export type VersaoMusica = z.infer<typeof VersaoMusicaSchema>;
 export const MusicaEventoSchema = z.object({
   id: z.string().uuid(),
   nome: z.string(),
+  /** Tom efetivo nesta escala: override do evento ?? tom global da música (`tonalidade_musica`). */
   tonalidade: TonalidadeSchema.nullable(),
+  /**
+   * Tom global de referência da música, independente de override na escala.
+   * Padrão defensivo (`nullable().default(null)`, mesmo padrão de `cifraclub_url`
+   * acima): evita quebrar o parse da resposta inteira caso o backend ainda não
+   * envie este campo durante uma janela de deploy.
+   */
+  tonalidade_musica: TonalidadeSchema.nullable().default(null),
   ordem: z.number().int(),
   versao_selecionada: VersaoMusicaSchema.nullable(),
   versoes_disponiveis: z.array(VersaoMusicaSchema),
@@ -56,6 +64,17 @@ export const IntegranteEventoSchema = z.object({
 /** Tipo inferido de integrante no contexto de evento. */
 export type IntegranteEvento = z.infer<typeof IntegranteEventoSchema>;
 
+/**
+ * Schema do status de publicação de uma escala.
+ *
+ * `rascunho` é a escala em preparação (visível apenas na aba Rascunhos);
+ * `publicada` é a escala visível nas listas normais e nos relatórios.
+ */
+export const EventoStatusSchema = z.enum(["rascunho", "publicada"]);
+
+/** Tipo inferido do status de publicação da escala. */
+export type EventoStatus = z.infer<typeof EventoStatusSchema>;
+
 /** Schema de evento na listagem (índice). */
 export const EventoIndexSchema = z.object({
   id: z.string().uuid(),
@@ -64,6 +83,13 @@ export const EventoIndexSchema = z.object({
   tipoEvento: IdNomeSchema.nullable(),
   musicas: z.array(IdNomeSchema),
   integrantes: z.array(IdNomeSchema),
+  /**
+   * Status de publicação. Padrão defensivo (`default("publicada")`, mesmo
+   * padrão de `tonalidade_musica` acima): numa janela de deploy em que o
+   * backend ainda não envia o campo, o parse da resposta inteira não quebra
+   * e toda escala é tratada como publicada (comportamento pré-feature).
+   */
+  status: EventoStatusSchema.default("publicada"),
 });
 
 /** Tipo inferido de evento na listagem. */
@@ -77,6 +103,8 @@ export const EventoShowSchema = z.object({
   tipoEvento: IdNomeSchema.nullable(),
   musicas: z.array(MusicaEventoSchema),
   integrantes: z.array(IntegranteEventoSchema),
+  /** Status de publicação — mesmo padrão defensivo do `EventoIndexSchema`. */
+  status: EventoStatusSchema.default("publicada"),
 });
 
 /** Tipo inferido do detalhe completo de evento. */
@@ -119,6 +147,12 @@ export const CreateEventoFormSchema = z.object({
   ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento"),
   descricao: z.string().optional().default(""),
+  /**
+   * Status inicial opcional — o backend aplica o DEFAULT `publicada` quando
+   * omitido. Usado pelo botão "Salvar rascunho" do EventoForm, que submete o
+   * mesmo formulário de criação com `status: "rascunho"`.
+   */
+  status: EventoStatusSchema.optional(),
 });
 
 /** Tipo inferido dos dados do formulário de criação de evento. */
@@ -136,6 +170,11 @@ export const UpdateEventoFormSchema = z.object({
   ),
   fk_tipo_evento: z.string().uuid("Selecione um tipo de evento").optional(),
   descricao: z.string().optional(),
+  /**
+   * Novo status de publicação (opcional). Publicar um rascunho é o
+   * `PUT /eventos/:id` com `{ status: "publicada" }`.
+   */
+  status: EventoStatusSchema.optional(),
 });
 
 /** Tipo inferido dos dados do formulário de edição de evento. */

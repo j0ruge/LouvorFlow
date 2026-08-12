@@ -67,6 +67,14 @@ describe('TiposEventosService', () => {
         message: 'Já existe um tipo de evento com esse nome',
       });
     });
+
+    /** Decisão D7: duplicidade de nome ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando nome colide apenas na caixa', async () => {
+      await expect(tiposEventosService.create(MOCK_TIPOS_EVENTOS[0].nome.toUpperCase(), 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe um tipo de evento com esse nome',
+      });
+    });
   });
 
   // ─── update ──────────────────────────────────────────
@@ -100,6 +108,16 @@ describe('TiposEventosService', () => {
 
     it('deve lançar AppError 409 quando nome já existe em outro tipo', async () => {
       await expect(tiposEventosService.update(MOCK_TIPOS_EVENTOS[0].id, MOCK_TIPOS_EVENTOS[1].nome)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Nome do tipo de evento já existe',
+      });
+    });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando nome já existe em outro tipo ignorando caixa', async () => {
+      await expect(
+        tiposEventosService.update(MOCK_TIPOS_EVENTOS[0].id, MOCK_TIPOS_EVENTOS[1].nome.toUpperCase())
+      ).rejects.toMatchObject({
         statusCode: 409,
         message: 'Nome do tipo de evento já existe',
       });

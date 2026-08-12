@@ -122,10 +122,38 @@ describe('preprocessamento de campos opcionais vazios', () => {
         expect(result.success).toBe(true);
     });
 
-    /** bpm precisa ser inteiro positivo. */
-    it.each([0, -5, 1.5])('recusa bpm inválido: %p', (bpm) => {
+    /** bpm precisa ser inteiro dentro da faixa 30-220 (fase F4). */
+    it.each([0, -5, 1.5, 29, 221])('recusa bpm inválido: %p', (bpm) => {
         const result = addVersaoBodySchema.safeParse({ bpm });
         expect(result.success).toBe(false);
+    });
+});
+
+/**
+ * Verifica a faixa de BPM (30-220 batidas por minuto) compartilhada pelos 4
+ * bodies que aceitam o campo, via `bpmSchema` extraído em `musicas.validators.ts`.
+ */
+describe('faixa de bpm (30-220)', () => {
+    /** Os limites da faixa (30 e 220) são aceitos nos 4 schemas que expõem bpm. */
+    it.each([
+        { nome: 'createMusicaCompleteBodySchema', schema: createMusicaCompleteBodySchema, base: { nome: 'Oceans' } },
+        { nome: 'updateMusicaCompleteBodySchema', schema: updateMusicaCompleteBodySchema, base: { nome: 'Oceans' } },
+        { nome: 'addVersaoBodySchema', schema: addVersaoBodySchema, base: {} },
+        { nome: 'updateVersaoBodySchema', schema: updateVersaoBodySchema, base: {} },
+    ])('$nome aceita bpm nos limites 30 e 220', ({ schema, base }) => {
+        expect(schema.safeParse({ ...base, bpm: 30 }).success).toBe(true);
+        expect(schema.safeParse({ ...base, bpm: 220 }).success).toBe(true);
+    });
+
+    /** Fora dos limites (29 e 221), os 4 schemas recusam o bpm. */
+    it.each([
+        { nome: 'createMusicaCompleteBodySchema', schema: createMusicaCompleteBodySchema, base: { nome: 'Oceans' } },
+        { nome: 'updateMusicaCompleteBodySchema', schema: updateMusicaCompleteBodySchema, base: { nome: 'Oceans' } },
+        { nome: 'addVersaoBodySchema', schema: addVersaoBodySchema, base: {} },
+        { nome: 'updateVersaoBodySchema', schema: updateVersaoBodySchema, base: {} },
+    ])('$nome recusa bpm fora dos limites (29 e 221)', ({ schema, base }) => {
+        expect(schema.safeParse({ ...base, bpm: 29 }).success).toBe(false);
+        expect(schema.safeParse({ ...base, bpm: 221 }).success).toBe(false);
     });
 });
 

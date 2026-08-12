@@ -152,4 +152,39 @@ describe('MusicaEventoSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  /**
+   * Deve preencher `tonalidade_musica` com `null` quando o campo está ausente
+   * na resposta — padrão defensivo (igual a `cifraclub_url`) que evita quebrar
+   * o parse da resposta inteira caso o backend ainda não envie o campo numa
+   * janela de deploy (F10 introduziu `tonalidade_musica` no backend; F11 lê o campo).
+   */
+  it('deve aplicar default null em tonalidade_musica quando o campo está ausente', () => {
+    const result = MusicaEventoSchema.safeParse({
+      id: VALID_UUID,
+      nome: 'Teste',
+      tonalidade: { id: VALID_UUID_TONALIDADE, tom: 'G' },
+      ordem: 1,
+      versao_selecionada: null,
+      versoes_disponiveis: [],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tonalidade_musica).toBeNull();
+    }
+  });
+
+  /** Deve aceitar tonalidade_musica preenchido e distinto do tom efetivo (override ativo na escala). */
+  it('deve aceitar tonalidade_musica preenchido e distinto de tonalidade', () => {
+    const result = MusicaEventoSchema.safeParse({
+      id: VALID_UUID,
+      nome: 'Teste',
+      tonalidade: { id: VALID_UUID_TONALIDADE, tom: 'D' },
+      tonalidade_musica: { id: VALID_UUID_2, tom: 'G' },
+      ordem: 1,
+      versao_selecionada: null,
+      versoes_disponiveis: [],
+    });
+    expect(result.success).toBe(true);
+  });
 });

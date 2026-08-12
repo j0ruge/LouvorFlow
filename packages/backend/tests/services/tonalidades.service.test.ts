@@ -13,6 +13,8 @@ const { default: tonalidadesService } = await import('../../src/services/tonalid
 describe('TonalidadesService', () => {
   beforeEach(() => {
     fakeRepo.reset();
+    /** Evita que um `...Once` não consumido vaze do teste dono para o seguinte. */
+    vi.restoreAllMocks();
   });
 
   // ─── listAll ─────────────────────────────────────────
@@ -67,6 +69,14 @@ describe('TonalidadesService', () => {
         message: 'Já existe uma tonalidade com esse tom',
       });
     });
+
+    /** Decisão D7: duplicidade de tom ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando tom colide apenas na caixa', async () => {
+      await expect(tonalidadesService.create(MOCK_TONALIDADES[0].tom.toLowerCase(), 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma tonalidade com esse tom',
+      });
+    });
   });
 
   // ─── update ──────────────────────────────────────────
@@ -104,6 +114,16 @@ describe('TonalidadesService', () => {
         message: 'Tom já existe',
       });
     });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando tom já existe em outra tonalidade ignorando caixa', async () => {
+      await expect(
+        tonalidadesService.update(MOCK_TONALIDADES[0].id, MOCK_TONALIDADES[1].tom.toLowerCase())
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Tom já existe',
+      });
+    });
   });
 
   // ─── delete ──────────────────────────────────────────
@@ -124,6 +144,42 @@ describe('TonalidadesService', () => {
       await expect(tonalidadesService.delete(NON_EXISTENT_ID)).rejects.toMatchObject({
         statusCode: 404,
         message: 'A tonalidade não foi encontrada ou não existe',
+      });
+    });
+  });
+
+  // ─── barreira de duplicidade (corrida) ───────────────
+  /**
+   * Corrida com outra requisição: as duas passam pela checagem prévia e a
+   * perdedora bate no índice único do banco. O `P2002` resultante precisa
+   * chegar ao cliente como o mesmo 409 da checagem, nunca cru.
+   */
+  describe('barreira de duplicidade', () => {
+    /** Monta um erro no formato que o Prisma 6 emite ao violar um índice único. */
+    function erroP2002() {
+      return Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['tenant_id', 'tom'] },
+      });
+    }
+
+    it('deve traduzir P2002 do create em AppError 409', async () => {
+      vi.spyOn(fakeRepo, 'create').mockRejectedValueOnce(erroP2002());
+
+      await expect(tonalidadesService.create('Gb', 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe uma tonalidade com esse tom',
+      });
+    });
+
+    it('deve traduzir P2002 do update em AppError 409', async () => {
+      vi.spyOn(fakeRepo, 'update').mockRejectedValueOnce(erroP2002());
+
+      await expect(
+        tonalidadesService.update(MOCK_TONALIDADES[0].id, 'Gb'),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Tom já existe',
       });
     });
   });

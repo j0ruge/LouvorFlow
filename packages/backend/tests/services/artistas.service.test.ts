@@ -80,8 +80,32 @@ describe('ArtistasService', () => {
       });
     });
 
+    /**
+     * Documenta o limite conhecido de `mode: 'insensitive'`: ele normaliza
+     * caixa, não diacríticos. "Ávine Vinny" e "Avine Vinny" diferem só no
+     * acento e por isso NÃO colidem no backend — a barreira de acento é
+     * client-side (fase F5, `normalizeForSearch`). Este não é um bug: é o
+     * comportamento real e esperado do Postgres/Prisma documentado aqui.
+     */
+    it('documenta que nomes que diferem apenas por acento não colidem no backend', async () => {
+      await artistasService.create('Ávine Vinny', 'tenant-fake-id');
+
+      const semAcento = await artistasService.create('Avine Vinny', 'tenant-fake-id');
+
+      expect(semAcento).toHaveProperty('id');
+      expect(semAcento.nome).toBe('Avine Vinny');
+    });
+
     it('deve lançar AppError 409 quando nome é duplicado', async () => {
       await expect(artistasService.create('Aline Barros', 'tenant-fake-id')).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Já existe um artista com esse nome',
+      });
+    });
+
+    /** Decisão D7: duplicidade de nome ignora caixa (mode: 'insensitive' do Prisma). O índice único do banco é case-sensitive; a barreira é esta checagem no repositório. */
+    it('deve lançar AppError 409 quando nome colide apenas na caixa', async () => {
+      await expect(artistasService.create('ALINE BARROS', 'tenant-fake-id')).rejects.toMatchObject({
         statusCode: 409,
         message: 'Já existe um artista com esse nome',
       });
@@ -118,6 +142,16 @@ describe('ArtistasService', () => {
 
     it('deve lançar AppError 409 quando nome pertence a outro artista', async () => {
       await expect(artistasService.update(MOCK_ARTISTAS[0].id, MOCK_ARTISTAS[1].nome)).rejects.toMatchObject({
+        statusCode: 409,
+        message: 'Nome do artista já existe',
+      });
+    });
+
+    /** Decisão D7: a checagem de duplicidade no update também ignora caixa. */
+    it('deve lançar AppError 409 quando nome pertence a outro artista ignorando caixa', async () => {
+      await expect(
+        artistasService.update(MOCK_ARTISTAS[0].id, MOCK_ARTISTAS[1].nome.toUpperCase())
+      ).rejects.toMatchObject({
         statusCode: 409,
         message: 'Nome do artista já existe',
       });

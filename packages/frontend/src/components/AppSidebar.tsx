@@ -3,9 +3,9 @@
  *
  * Renderiza o menu de navegação com itens de domínio (acessíveis a todos
  * os usuários autenticados) e uma seção "Administração" condicional
- * (visível apenas para usuários com role "admin"). O item "Configurações"
+ * (visível apenas para usuários com papel "admin"). O item "Configurações"
  * fica na seção Administração e é gateado por `configuracoes.write`. O item
- * "Igrejas" é exibido adicionalmente apenas para usuários com role
+ * "Igrejas" é exibido adicionalmente apenas para usuários com papel
  * "super-admin". TenantSwitcher fica no rodapé como tile.
  */
 
@@ -56,7 +56,7 @@ const menuItems = [
 /** Itens base do menu de administração (visíveis apenas para admins). */
 const adminItems = [
   { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
-  { title: "Roles", url: "/admin/roles", icon: Shield },
+  { title: "Papéis", url: "/admin/roles", icon: Shield },
   { title: "Permissões", url: "/admin/permissoes", icon: Key },
 ];
 

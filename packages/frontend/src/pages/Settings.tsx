@@ -70,30 +70,36 @@ const Settings = () => {
     });
   }, []);
 
+  /**
+   * As 5 mutations de exclusão abaixo são silenciosas (`{ silent: true }`):
+   * o feedback de exclusão é o toast com a ação "Desfazer" do
+   * `useUndoableDelete` dentro do `ConfigCrudSection` — o toast padrão do
+   * hook duplicaria o aviso. O toast de erro permanece nos hooks.
+   */
   const artistas = useArtistas();
   const createArtista = useCreateArtista();
   const updateArtista = useUpdateArtista();
-  const deleteArtista = useDeleteArtista();
+  const deleteArtista = useDeleteArtista({ silent: true });
 
   const categorias = useCategorias();
   const createCategoria = useCreateCategoria();
   const updateCategoria = useUpdateCategoria();
-  const deleteCategoria = useDeleteCategoria();
+  const deleteCategoria = useDeleteCategoria({ silent: true });
 
   const funcoes = useFuncoes();
   const createFuncao = useCreateFuncao();
   const updateFuncao = useUpdateFuncao();
-  const deleteFuncao = useDeleteFuncao();
+  const deleteFuncao = useDeleteFuncao({ silent: true });
 
   const tonalidades = useTonalidades();
   const createTonalidade = useCreateTonalidade();
   const updateTonalidade = useUpdateTonalidade();
-  const deleteTonalidade = useDeleteTonalidade();
+  const deleteTonalidade = useDeleteTonalidade({ silent: true });
 
   const tiposEventos = useTiposEventos();
   const createTipoEvento = useCreateTipoEvento();
   const updateTipoEvento = useUpdateTipoEvento();
-  const deleteTipoEvento = useDeleteTipoEvento();
+  const deleteTipoEvento = useDeleteTipoEvento({ silent: true });
 
   return (
     <div className="space-y-6">
@@ -139,6 +145,7 @@ const Settings = () => {
               <ConfigCrudSection<Artista>
                 config={{
                   label: "Artista",
+                  genero: "m",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhum artista cadastrado",
@@ -161,7 +168,6 @@ const Settings = () => {
                 }}
                 isCreating={createArtista.isPending}
                 isUpdating={updateArtista.isPending}
-                isDeleting={deleteArtista.isPending}
                 readOnly={!canWrite}
               />
             </TabsContent>
@@ -170,6 +176,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Categoria",
+                  genero: "f",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma categoria cadastrada",
@@ -192,7 +199,6 @@ const Settings = () => {
                 }}
                 isCreating={createCategoria.isPending}
                 isUpdating={updateCategoria.isPending}
-                isDeleting={deleteCategoria.isPending}
                 readOnly={!canWrite}
               />
             </TabsContent>
@@ -201,6 +207,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Função",
+                  genero: "f",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma função cadastrada",
@@ -220,7 +227,6 @@ const Settings = () => {
                 }}
                 isCreating={createFuncao.isPending}
                 isUpdating={updateFuncao.isPending}
-                isDeleting={deleteFuncao.isPending}
                 readOnly={!canWrite}
               />
             </TabsContent>
@@ -233,6 +239,7 @@ const Settings = () => {
               <ConfigCrudSection<Tonalidade>
                 config={{
                   label: "Tonalidade",
+                  genero: "f",
                   getName: (item) => item.tom,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhuma tonalidade cadastrada",
@@ -255,7 +262,6 @@ const Settings = () => {
                 }}
                 isCreating={createTonalidade.isPending}
                 isUpdating={updateTonalidade.isPending}
-                isDeleting={deleteTonalidade.isPending}
                 readOnly={!canWrite}
               />
             </TabsContent>
@@ -264,6 +270,7 @@ const Settings = () => {
               <ConfigCrudSection<IdNome>
                 config={{
                   label: "Tipo de Evento",
+                  genero: "m",
                   getName: (item) => item.nome,
                   getId: (item) => item.id,
                   emptyTitle: "Nenhum tipo de evento cadastrado",
@@ -286,7 +293,6 @@ const Settings = () => {
                 }}
                 isCreating={createTipoEvento.isPending}
                 isUpdating={updateTipoEvento.isPending}
-                isDeleting={deleteTipoEvento.isPending}
                 readOnly={!canWrite}
               />
             </TabsContent>

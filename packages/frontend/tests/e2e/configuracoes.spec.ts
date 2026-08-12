@@ -5,15 +5,9 @@
  * operações CRUD em cada aba.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "./helpers/login";
+import { test, expect } from "./fixtures";
 
 test.describe("Configurações", () => {
-  /** Autentica antes de cada teste — `/configuracoes` é rota protegida. */
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
   test("deve exibir página com 6 abas", async ({ page }) => {
     await page.goto("/configuracoes");
     await expect(
@@ -44,7 +38,7 @@ test.describe("Configurações", () => {
     await page.getByRole("tab", { name: "Artistas" }).click();
 
     await expect(
-      page.getByPlaceholder("Novo(a) artista..."),
+      page.getByPlaceholder("Novo artista..."),
     ).toBeVisible();
   });
 
@@ -53,7 +47,7 @@ test.describe("Configurações", () => {
     await page.getByRole("tab", { name: "Funções" }).click();
 
     await expect(
-      page.getByPlaceholder("Novo(a) função..."),
+      page.getByPlaceholder("Nova função..."),
     ).toBeVisible();
   });
 
@@ -72,7 +66,7 @@ test.describe("Configurações", () => {
     await page.getByRole("tab", { name: "Tonalidades" }).click();
 
     await expect(
-      page.getByPlaceholder("Novo(a) tonalidade..."),
+      page.getByPlaceholder("Nova tonalidade..."),
     ).toBeVisible();
   });
 
@@ -83,7 +77,7 @@ test.describe("Configurações", () => {
     await page.getByRole("tab", { name: "Tipos de Evento" }).click();
 
     await expect(
-      page.getByPlaceholder("Novo(a) tipo de evento..."),
+      page.getByPlaceholder("Novo tipo de evento..."),
     ).toBeVisible();
   });
 });

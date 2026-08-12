@@ -8,8 +8,8 @@
  * system de extrair conteúdo de overlay em subcomponente (evita duplicação).
  */
 
-import { SlidersHorizontal } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { SlidersHorizontal, X } from "lucide-react";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -26,7 +26,7 @@ import {
   INTENSIDADE_OPTIONS,
   type Intensidade,
 } from "@/components/intensidade-options";
-import { handleClickableKeyDown } from "@/lib/utils";
+import { cn, handleClickableKeyDown } from "@/lib/utils";
 
 /** Propriedades dos chips de filtro (compartilhadas entre inline e drawer). */
 export interface MusicaFiltrosProps {
@@ -199,5 +199,148 @@ export function MusicaFiltrosDrawer({
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/** Um filtro de chip atualmente ativo, resolvido para exibição removível. */
+export interface FiltroAtivo {
+  /** Chave estável (`categoria:<id>` / `intensidade:<value>`) para uso em `key` de lista. */
+  chave: string;
+  /** Rótulo humano exibido no badge (nome da categoria ou label da intensidade). */
+  rotulo: string;
+  /** Remove apenas este filtro, preservando os demais. */
+  remover: () => void;
+}
+
+/**
+ * Resolve os filtros de chips atualmente ativos (intensidades + categorias)
+ * para uma lista de badges removíveis com rótulo humano.
+ *
+ * IDs de categoria que não existem mais em `categorias` (link antigo,
+ * categoria excluída) são omitidos do retorno — não há rótulo humano para
+ * eles. Por isso esta lista **não** deve ser usada para decidir se há
+ * filtros ativos (gate de exibição de `MusicaFiltrosAtivos`): ver a
+ * contagem crua usada lá.
+ *
+ * @param props - Categorias disponíveis, seleções atuais e callbacks de toggle.
+ * @returns Filtros ativos resolvidos, intensidades seguidas de categorias —
+ *   mesma ordem visual dos grupos em `MusicaFiltrosChips`.
+ */
+export function descreverFiltrosAtivos({
+  categorias,
+  categoriaIds,
+  intensidades,
+  onToggleCategoria,
+  onToggleIntensidade,
+}: MusicaFiltrosProps): FiltroAtivo[] {
+  const intensidadesAtivas: FiltroAtivo[] = intensidades.map((value) => {
+    const opcao = INTENSIDADE_OPTIONS.find((opt) => opt.value === value);
+    return {
+      chave: `intensidade:${value}`,
+      rotulo: opcao?.label ?? value,
+      remover: () => onToggleIntensidade(value),
+    };
+  });
+
+  const categoriasAtivas: FiltroAtivo[] = categoriaIds.flatMap((id) => {
+    const categoria = categorias.find((c) => c.id === id);
+    if (!categoria) return [];
+    return [
+      {
+        chave: `categoria:${id}`,
+        rotulo: categoria.nome,
+        remover: () => onToggleCategoria(id),
+      },
+    ];
+  });
+
+  return [...intensidadesAtivas, ...categoriasAtivas];
+}
+
+/** Propriedades de `MusicaFiltrosAtivos`. */
+export interface MusicaFiltrosAtivosProps extends MusicaFiltrosProps {
+  /** Remove todos os filtros de chips ativos (categorias e intensidades). */
+  onLimpar: () => void;
+  /**
+   * Callback opcional disparado depois de remover um filtro (badge
+   * individual ou "Limpar filtros"). O botão acionado desmonta nesse
+   * instante — remover o único filtro restante zera `ativos` e o
+   * componente inteiro retorna `null` — então o foco cairia em `<body>`
+   * sem essa notificação. O componente não conhece o destino do foco (Lei
+   * de Demeter): quem usa (`Songs.tsx`) decide focar a busca através deste
+   * hook, sem que `MusicaFiltrosAtivos` precise referenciar `searchRef`.
+   */
+  aoRemover?: () => void;
+}
+
+/**
+ * Badges removíveis dos filtros de chips atualmente ativos, com botão
+ * "Limpar filtros" ao lado.
+ *
+ * Renderizado junto da linha de resultados em `Songs.tsx`. O gate de
+ * exibição usa a contagem **crua** de filtros
+ * (`categoriaIds.length + intensidades.length`), não
+ * `descreverFiltrosAtivos().length`: `Songs.tsx` mantém na URL qualquer
+ * UUID bem-formado de categoria (mesmo inexistente), e usar a contagem
+ * resolvida deixaria o usuário preso num resultado vazio sem badges e sem
+ * botão para limpar o filtro inválido. Cada badge é o pill inteiro
+ * clicável (não um badge inerte com "x" aninhado, como em `MusicaDetail.tsx`)
+ * — decisão deliberada: aumenta a área de toque a 360px (item crítico de
+ * mobile-first) às custas de destoar do padrão de badge de dado; a pista
+ * `hover:text-destructive` compensa a affordance de remoção.
+ *
+ * @param props - Filtros ativos, categorias disponíveis e callbacks de toggle/limpar/foco.
+ * @returns Elemento React com os badges removíveis, ou `null` sem filtros ativos.
+ */
+export function MusicaFiltrosAtivos(props: MusicaFiltrosAtivosProps) {
+  const { onLimpar, aoRemover, categoriaIds, intensidades } = props;
+  const ativos = categoriaIds.length + intensidades.length;
+  if (ativos === 0) return null;
+
+  const filtros = descreverFiltrosAtivos(props);
+
+  /**
+   * Remove um filtro específico e avisa o consumidor via `aoRemover` — o
+   * badge clicado (e possivelmente o componente inteiro, se era o último
+   * filtro) desmonta em seguida.
+   *
+   * @param filtro - Filtro a remover.
+   */
+  function removerFiltro(filtro: FiltroAtivo) {
+    filtro.remover();
+    aoRemover?.();
+  }
+
+  /**
+   * Limpa todos os filtros e avisa o consumidor via `aoRemover` — mesmo
+   * motivo de `removerFiltro`: o componente sempre desmonta ao zerar os
+   * filtros ativos.
+   */
+  function limparTodosOsFiltros() {
+    onLimpar();
+    aoRemover?.();
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {filtros.map((filtro) => (
+        <button
+          key={filtro.chave}
+          type="button"
+          onClick={() => removerFiltro(filtro)}
+          aria-label={`Remover filtro ${filtro.rotulo}`}
+          className={cn(
+            badgeVariants({ variant: "secondary" }),
+            "min-h-[32px] cursor-pointer gap-1.5 px-3 py-1.5 hover:border-destructive/40 hover:bg-secondary/70 hover:text-destructive",
+          )}
+        >
+          {filtro.rotulo}
+          <X className="h-3 w-3" />
+        </button>
+      ))}
+      <Button variant="ghost" size="sm" onClick={limparTodosOsFiltros}>
+        Limpar filtros
+      </Button>
+    </div>
   );
 }

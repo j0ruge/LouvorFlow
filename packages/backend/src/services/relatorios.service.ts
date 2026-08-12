@@ -12,20 +12,22 @@ class RelatoriosService {
     /**
      * Retorna o resumo completo de relatórios com todas as métricas agregadas.
      *
-     * Chama os 5 métodos do repositório, calcula a média de músicas por
+     * Chama os 6 métodos do repositório, calcula a média de músicas por
      * evento (arredondada a 1 casa decimal) e formata o resultado conforme
      * contrato da API.
      *
-     * @returns Objeto RelatorioResumo com totais, ranking e atividade mensal.
+     * @returns Objeto RelatorioResumo com totais, ranking, atividade mensal
+     *   e a contagem de músicas novas no mês corrente.
      */
     async getResumo(): Promise<RelatorioResumo> {
-        const [totalMusicas, totalEventos, totalAssociacoes, topMusicas, atividadeMensal] =
+        const [totalMusicas, totalEventos, totalAssociacoes, topMusicas, atividadeMensal, novasMusicasNoMes] =
             await Promise.all([
                 relatoriosRepository.countMusicas(),
                 relatoriosRepository.countEventosRealizados(),
                 relatoriosRepository.countAssociacoesEventoMusica(),
                 relatoriosRepository.getTopMusicas(5),
                 relatoriosRepository.getAtividadeMensal(6),
+                relatoriosRepository.countMusicasCriadasNoMes(),
             ]);
 
         const mediaPorEvento = totalEventos === 0
@@ -38,6 +40,7 @@ class RelatoriosService {
             mediaPorEvento,
             topMusicas,
             atividadeMensal,
+            novasMusicasNoMes,
         };
     }
 }

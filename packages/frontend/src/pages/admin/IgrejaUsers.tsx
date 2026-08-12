@@ -23,19 +23,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RequiredFieldsLegend } from "@/components/form/RequiredFieldsLegend";
+import { ResponsiveFormDialog } from "@/components/ResponsiveFormDialog";
+import { useDirtyFormGuard } from "@/hooks/use-dirty-form-guard";
 import {
   useIgreja,
   useIgrejaUsers,
@@ -88,6 +84,21 @@ const IgrejaUsers = () => {
   const addMutation = useAddUserToIgreja();
   const removeMutation = useRemoveUserFromIgreja();
 
+  /**
+   * Guarda de alterações não salvas do dialog de vinculação. A tela não usa
+   * react-hook-form: o boolean protegido é o estado local de seleção
+   * (`selectedUserId !== ""`) — exatamente o que o usuário perderia ao fechar
+   * sem vincular. O `aoFechar` centraliza a limpeza da seleção que antes
+   * vivia no `onOpenChange` do Dialog.
+   */
+  const guardaVinculo = useDirtyFormGuard({
+    temAlteracoes: selectedUserId !== "",
+    aoFechar: () => {
+      setSelectedUserId("");
+      setAddDialogOpen(false);
+    },
+  });
+
   const isLoading = isLoadingIgreja || isLoadingUsers;
   // Falha em `useUsers()` não bloqueia a página: o estado de erro é
   // tratado defensivamente dentro do dialog "Vincular Usuário", já que
@@ -127,7 +138,7 @@ const IgrejaUsers = () => {
    * Abre a confirmação de desvinculação de um usuário.
    *
    * A desvinculação é destrutiva e sem desfazer — remove o vínculo e, junto
-   * com ele, as roles e permissões daquele usuário na igreja. Por isso passa
+   * com ele, os papéis e permissões daquele usuário na igreja. Por isso passa
    * por confirmação explícita, como as demais ações destrutivas do projeto.
    *
    * @param usuario - Usuário a ser desvinculado.
@@ -340,70 +351,32 @@ const IgrejaUsers = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de vinculação de usuário */}
-      <Dialog
+      {/* Dialog de vinculação de usuário (Drawer no mobile, Dialog no desktop) */}
+      <ResponsiveFormDialog
         open={addDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) setSelectedUserId("");
-          setAddDialogOpen(open);
+        onOpenChange={setAddDialogOpen}
+        title="Vincular Usuário"
+        description="Selecione o usuário que passará a ter acesso a esta igreja."
+        onSubmit={(event) => {
+          // Sem react-hook-form aqui: o submit nativo do <form> do
+          // ResponsiveFormDialog é interceptado e delega ao handler da mutation.
+          event.preventDefault();
+          handleAddUser();
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Vincular Usuário</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="select-user">Selecionar Usuário</Label>
-              {isLoadingAllUsers ? (
-                <Skeleton className="h-10 w-full" />
-              ) : isErrorAllUsers ? (
-                <div className="flex items-center gap-2 text-sm text-destructive">
-                  <span>{errorAllUsers?.message ?? 'Erro ao carregar usuários.'}</span>
-                  <Button variant="link" size="sm" onClick={() => refetchAllUsers()}>
-                    Tentar novamente
-                  </Button>
-                </div>
-              ) : (
-                <Select
-                  value={selectedUserId}
-                  onValueChange={setSelectedUserId}
-                >
-                  <SelectTrigger id="select-user">
-                    <SelectValue placeholder="Selecione um usuário..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableUsers.length === 0 ? (
-                      <SelectItem value="__empty__" disabled>
-                        Nenhum usuário disponível
-                      </SelectItem>
-                    ) : (
-                      availableUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name} — {user.email}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
+        contentClassName="sm:max-w-[425px]"
+        dirtyGuard={guardaVinculo}
+        footer={
+          <>
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setSelectedUserId("");
-                setAddDialogOpen(false);
-              }}
+              onClick={() => guardaVinculo.pedirFechamento()}
             >
               Cancelar
             </Button>
             <Button
-              type="button"
+              type="submit"
               className="bg-gradient-primary hover:opacity-90 transition-opacity"
-              onClick={handleAddUser}
               disabled={!selectedUserId || addMutation.isPending}
             >
               {addMutation.isPending ? (
@@ -411,11 +384,62 @@ const IgrejaUsers = () => {
               ) : null}
               Vincular
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        }
+      >
+        <RequiredFieldsLegend />
+        <div className="space-y-2">
+          {/*
+            A tela não usa react-hook-form, então o indicador de obrigatório é
+            o mesmo markup do FieldLabel (asterisco decorativo + texto sr-only),
+            aplicado sobre o Label puro — FieldLabel exige o contexto do RHF.
+          */}
+          <Label htmlFor="select-user">
+            Selecionar Usuário
+            <span aria-hidden className="ml-0.5 text-destructive">
+              *
+            </span>
+            <span className="sr-only"> (obrigatório)</span>
+          </Label>
+          {isLoadingAllUsers ? (
+            <Skeleton className="h-10 w-full" />
+          ) : isErrorAllUsers ? (
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <span>{errorAllUsers?.message ?? 'Erro ao carregar usuários.'}</span>
+              {/* `type="button"` explícito: o conteúdo agora vive dentro do
+                  <form> do ResponsiveFormDialog, onde o padrão do HTML seria
+                  submit — recarregar a lista dispararia o envio do formulário. */}
+              <Button type="button" variant="link" size="sm" onClick={() => refetchAllUsers()}>
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            <Select
+              value={selectedUserId}
+              onValueChange={setSelectedUserId}
+            >
+              <SelectTrigger id="select-user" aria-required>
+                <SelectValue placeholder="Selecione um usuário..." />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUsers.length === 0 ? (
+                  <SelectItem value="__empty__" disabled>
+                    Nenhum usuário disponível
+                  </SelectItem>
+                ) : (
+                  availableUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} — {user.email}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </ResponsiveFormDialog>
 
-      {/* Confirmação de desvínculo — remove também roles e permissões na igreja */}
+      {/* Confirmação de desvínculo — remove também papéis e permissões na igreja */}
       <DeleteConfirmDialog
         open={confirmingRemoval !== null}
         onOpenChange={(open) => {
@@ -424,7 +448,7 @@ const IgrejaUsers = () => {
         title="Desvincular usuário?"
         description={
           confirmingRemoval
-            ? `${confirmingRemoval.name} (${confirmingRemoval.email}) perderá o acesso a esta igreja, junto com as roles e permissões que tinha nela. Esta ação não pode ser desfeita.`
+            ? `${confirmingRemoval.name} (${confirmingRemoval.email}) perderá o acesso a esta igreja, junto com os papéis e permissões que tinha nela. Esta ação não pode ser desfeita.`
             : ""
         }
         onConfirm={() => {

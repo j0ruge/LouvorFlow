@@ -15,9 +15,11 @@ import {
     addIntegranteBodySchema,
     addMusicaBodySchema,
     createEventoBodySchema,
+    duplicarEventoBodySchema,
     eventoIdParamSchema,
     eventoMusicaParamsSchema,
     reorderMusicasBodySchema,
+    setMusicaTonalidadeBodySchema,
     setMusicaVersaoBodySchema,
     updateEventoBodySchema,
 } from '../validators/eventos.validators.js';
@@ -30,6 +32,16 @@ router.get('/:id', ensureAuthenticated, ensureTenantContext, eventosController.s
 router.post('/', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), validateRequest({ body: createEventoBodySchema }), eventosController.create);
 router.put('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), validateRequest({ body: updateEventoBodySchema }), eventosController.update);
 router.delete('/:id', ensureAuthenticated, ensureTenantContext, can(['escalas.write']), eventosController.delete);
+
+// Duplicar escala (server-side: transação única copia repertório e equipe)
+router.post(
+    '/:eventoId/duplicar',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoIdParamSchema, body: duplicarEventoBodySchema }),
+    eventosController.duplicar,
+);
 
 // CifraClub playlist
 router.get(
@@ -65,6 +77,14 @@ router.patch(
     can(['escalas.write']),
     validateRequest({ params: eventoMusicaParamsSchema, body: setMusicaVersaoBodySchema }),
     eventosController.setMusicaVersao,
+);
+router.patch(
+    '/:eventoId/musicas/:musicaId/tonalidade',
+    ensureAuthenticated,
+    ensureTenantContext,
+    can(['escalas.write']),
+    validateRequest({ params: eventoMusicaParamsSchema, body: setMusicaTonalidadeBodySchema }),
+    eventosController.setMusicaTonalidade,
 );
 router.delete(
     '/:eventoId/musicas/:musicaId',
