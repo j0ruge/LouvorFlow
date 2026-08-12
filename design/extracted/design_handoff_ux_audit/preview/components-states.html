@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Estados & Feedback" subtitle="Empty w/ CTA · Error w/ retry · Toast · Erro de campo" viewport="700x460" -->
+<html lang="en">
+<head><meta charset="utf-8"><link rel="stylesheet" href="_card.css">
+<style>
+  .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; border:1px dashed hsl(35 18% 87%); border-radius:12px; background:hsl(38 30% 99%); text-align:center; gap:10px }
+  .empty .icon { width:40px;height:40px; color:hsl(30 12% 45%); opacity:0.7 }
+  .empty h3 { margin:0; font-size:16px; font-weight:600; color:hsl(30 15% 18%) }
+  .empty p { margin:0; font-size:13px; color:hsl(30 12% 45%); max-width:280px; line-height:1.5 }
+  .btn-primary { background:linear-gradient(135deg,hsl(38 80% 52%),hsl(350 45% 42%)); color:#fff; border:0; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:500; margin-top:6px; cursor:pointer; font-family:inherit }
+  .error { border-color:hsla(0,84%,60%,0.3); background:hsla(0,84%,60%,0.04) }
+  .error .icon { color:hsl(0 84% 60%); opacity:1 }
+  .toast { display:flex; align-items:center; gap:10px; background:hsl(30 15% 18%); color:hsl(38 30% 96%); padding:12px 14px; border-radius:12px; font-size:13.5px; font-weight:500; box-shadow:0 4px 25px -5px hsl(30 40% 30% / 0.12) }
+  .toast svg { width:16px; height:16px; color:hsl(38 80% 52%); flex-shrink:0 }
+  .toast .t-msg { flex:1 }
+  .toast .t-undo { border:0; background:transparent; color:hsl(38 85% 62%); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; padding:4px 8px; border-radius:6px }
+  .field { display:flex; flex-direction:column; gap:6px; flex:1 }
+  .field label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:hsl(30 12% 45%) }
+  .field label .req { color:hsl(0 72% 51%); margin-left:2px }
+  .field input { height:40px; padding:0 14px; border-radius:10px; border:1px solid hsl(35 18% 87%); background:hsl(38 30% 99%); font-family:inherit; font-size:14px; color:hsl(30 15% 18%) }
+  .field.err input { border-color:hsl(0 72% 51%); box-shadow:0 0 0 3px hsla(0,72%,51%,0.12) }
+  .field .f-err { font-size:12px; font-weight:500; color:hsl(0 72% 51%) }
+  .lbl { font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:hsl(30 12% 45%); font-family:ui-monospace,monospace; margin:0 0 8px }
+</style>
+</head>
+<body>
+<div class="card-root">
+  <div class="row" style="gap:12px">
+    <div class="empty" style="flex:1">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+      <h3>Nenhuma música cadastrada</h3>
+      <p>Comece adicionando músicas ao catálogo do ministério.</p>
+      <button class="btn-primary">+ Nova Música</button>
+    </div>
+    <div class="empty error" style="flex:1">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <h3>Erro ao carregar músicas</h3>
+      <p>Não foi possível conectar ao servidor. Tente novamente em alguns instantes.</p>
+      <button class="btn-primary" style="background:hsl(0 84% 60%)">Tentar novamente</button>
+    </div>
+  </div>
+  <div class="row" style="gap:12px;margin-top:14px;align-items:flex-start">
+    <div style="flex:1">
+      <p class="lbl">Toast · sucesso + desfazer (4s)</p>
+      <div class="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span class="t-msg">Escala excluída.</span><button class="t-undo">Desfazer</button></div>
+    </div>
+    <div style="flex:1">
+      <p class="lbl">Erro por campo · obrigatório</p>
+      <div class="field err"><label>Título<span class="req">*</span></label><input value="" placeholder="Ex.: Lugar Secreto"/><span class="f-err">Informe o título da música.</span></div>
+    </div>
+  </div>
+</div>
+</body></html>

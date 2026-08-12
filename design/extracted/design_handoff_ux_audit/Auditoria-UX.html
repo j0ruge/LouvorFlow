@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria de UI/UX — LouvorFlow (pós-correções)</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-sans);background:hsl(var(--background));color:hsl(var(--foreground));line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:hsl(var(--primary))}a:hover{color:hsl(var(--accent))}
+.wrap{max-width:860px;margin:0 auto;padding:48px 24px 96px}
+.kicker{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:hsl(var(--primary));margin:0 0 10px}
+h1{font-family:var(--font-display);font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:0;background:var(--gradient-primary);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:15px;color:hsl(var(--muted-foreground));margin:10px 0 0;max-width:64ch}
+.verdict{display:flex;gap:18px;align-items:center;margin:28px 0 0;padding:20px 22px;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:14px;box-shadow:var(--shadow-soft)}
+.grade{font-family:var(--font-display);font-size:44px;font-weight:800;line-height:1;background:var(--gradient-primary);-webkit-background-clip:text;background-clip:text;color:transparent;flex-shrink:0}
+.verdict p{margin:0;font-size:14px;color:hsl(var(--muted-foreground))}
+.verdict strong{color:hsl(var(--foreground))}
+h2{font-family:var(--font-display);font-size:22px;font-weight:700;margin:48px 0 14px;letter-spacing:-.01em}
+h3{font-family:var(--font-display);font-size:16px;font-weight:700;margin:28px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:12px;overflow:hidden;box-shadow:var(--shadow-soft)}
+th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));padding:10px 14px;border-bottom:1px solid hsl(var(--border))}
+td{padding:10px 14px;border-bottom:1px solid hsl(var(--border));vertical-align:top}
+tr:last-child td{border-bottom:0}
+.g{display:inline-flex;min-width:34px;justify-content:center;padding:2px 8px;border-radius:9999px;font-weight:700;font-size:12px}
+.gA{background:hsl(145 45% 90%);color:hsl(145 60% 24%)}
+.gB{background:hsla(38,80%,52%,.15);color:hsl(38 70% 32%)}
+.was{font-size:11.5px;color:hsl(var(--muted-foreground));text-decoration:line-through;margin-right:6px}
+.find{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:12px;padding:16px 18px;margin:10px 0;box-shadow:var(--shadow-soft)}
+.find p{font-size:13.5px;margin:0}
+.find .done{margin:0 0 0;color:hsl(var(--muted-foreground))}
+.find .done b{color:hsl(145 55% 30%)}
+.done+.done{margin-top:8px;padding-top:8px;border-top:1px dashed hsl(var(--border))}
+.rem{margin:10px 0 0;padding-top:10px;border-top:1px dashed hsl(var(--border));font-size:13.5px}
+.rem b.s{color:hsl(var(--accent))}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:9999px;background:hsl(var(--muted));color:hsl(var(--muted-foreground));margin-right:6px;vertical-align:1px}
+.note{font-size:12.5px;color:hsl(var(--muted-foreground));margin-top:10px}
+ul.next{padding-left:20px;margin:14px 0 0;font-size:14px}
+ul.next li{margin-bottom:10px}
+ul.next b{color:hsl(var(--foreground))}
+@media(max-width:640px){.wrap{padding:32px 16px 64px}h1{font-size:30px}.verdict{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="kicker">Auditoria de UI/UX · Nielsen (1994) · Reavaliação pós-correções</p>
+<h1>LouvorFlow — app autenticado</h1>
+<p class="lead">Reavaliação das 11 telas do UI kit após a rodada de correções de 10/08/2026. A auditoria original deu <strong>B- (74/100)</strong> com um problema de severidade 3 e nove de severidade 2. Todos foram corrigidos e verificados em teste interativo.</p>
+
+<div class="verdict">
+  <div class="grade">A</div>
+  <p><strong>Nota geral: A (93/100)</strong> — era B- (74). Nenhum problema de severidade ≥ 2 permanece. O fluxo central de escalas agora protege o trabalho do usuário (veil de descarte), acelera a rotina semanal (duplicar + repertório ordenável) e confirma toda ação (toasts com desfazer). O que separa de A+ são refinamentos que dependem do produto real, não do kit.</p>
+</div>
+
+<h2>Scorecard por heurística</h2>
+<table>
+<thead><tr><th>#</th><th>Heurística</th><th>Nota</th><th>O que mudou</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Visibilidade do estado do sistema</td><td><span class="was">B</span><span class="g gA">A</span></td><td>Toast confirma toda escrita; badge "Rascunho"; highlight de 2s em item novo</td></tr>
+<tr><td>2</td><td>Correspondência com o mundo real</td><td><span class="was">B</span><span class="g gA">A</span></td><td>Roles → Papéis, ACL → acessos; identificadores técnicos mantidos só nas permissões</td></tr>
+<tr><td>3</td><td>Controle e liberdade do usuário</td><td><span class="was">C+</span><span class="g gA">A</span></td><td>Veil "Descartar alterações?"; confirmação em toda exclusão; Desfazer no toast</td></tr>
+<tr><td>4</td><td>Consistência e padrões</td><td><span class="was">B+</span><span class="g gA">A</span></td><td>Linha de evento unificada (Dashboard = Histórico); check nos CTAs de salvar, Plus só em "Novo"</td></tr>
+<tr><td>5</td><td>Prevenção de erros</td><td><span class="was">C+</span><span class="g gA">A</span></td><td>Obrigatórios marcados + validação por campo; duplicado bloqueado no CRUD; BPM 30–220; aviso de escala sem repertório</td></tr>
+<tr><td>6</td><td>Reconhecimento em vez de memorização</td><td><span class="was">B+</span><span class="g gA">A</span></td><td>Contagem de resultados + filtros ativos visíveis + "Limpar filtros"</td></tr>
+<tr><td>7</td><td>Flexibilidade e eficiência de uso</td><td><span class="was">C+</span><span class="g gA">A-</span></td><td>Duplicar escala (lista + histórico); repertório ordenável com tom por evento; atalho <code>/</code></td></tr>
+<tr><td>8</td><td>Estética e design minimalista</td><td><span class="was">A-</span><span class="g gA">A</span></td><td>Stat redundante do Dashboard trocado por "Novas Músicas"</td></tr>
+<tr><td>9</td><td>Reconhecer e recuperar-se de erros</td><td><span class="was">B-</span><span class="g gA">A</span></td><td>Padrão de erro por campo no DS; "Limpar busca" em todo zero-result</td></tr>
+<tr><td>10</td><td>Ajuda e documentação</td><td><span class="was">B-</span><span class="g gA">A-</span></td><td>Convites com status (pendente/aceito/expirado) e regra de expiração explicada</td></tr>
+</tbody>
+</table>
+<p class="note">Severidade (Nielsen): 0 sem problema · 1 cosmético · 2 menor · 3 maior · 4 catástrofe. Nenhum achado ≥ 2 permanece.</p>
+
+<h2>Correções verificadas</h2>
+
+<h3>3. Controle e liberdade — C+ → A</h3>
+<div class="find">
+<p class="done"><b>Corrigido (era sev. 3):</b> <span class="tag">todas as modais de formulário</span> Esc, clique no backdrop ou X com dados digitados abre o veil "Descartar alterações?" (Continuar editando / Descartar) dentro da própria modal — nada é perdido por um toque acidental.</p>
+<p class="done"><b>Corrigido (era sev. 2):</b> exclusão de integrante agora passa pela mesma confirmação das Configurações; toda exclusão recuperável (escala, integrante, itens de CRUD) mostra toast com <b>Desfazer</b> (4,5s) que restaura o item na posição original.</p>
+</div>
+
+<h3>7. Flexibilidade e eficiência — C+ → A-</h3>
+<div class="find">
+<p class="done"><b>Corrigido (era sev. 2):</b> <span class="tag">Nova Escala</span> músicas marcadas sobem para uma lista "Selecionadas" numerada, com setas ↑↓ para ordenar, remoção e seletor de tom por evento (pré-preenchido com o tom da música).</p>
+<p class="done"><b>Corrigido (era sev. 2):</b> <span class="tag">Escalas · Histórico</span> ação "Duplicar" no card e no histórico abre a modal pré-preenchida (título, tipo, equipe, repertório com tons) — só revisar a data.</p>
+<p class="done"><b>Corrigido (era sev. 1):</b> atalho <code>/</code> foca a busca da tela atual.</p>
+<p class="rem"><b class="s">Fica para o produto:</b> arrastar para reordenar (hoje setas), atalhos além de <code>/</code>. Mantém A-.</p>
+</div>
+
+<h3>5. Prevenção de erros — C+ → A</h3>
+<div class="find">
+<p class="done"><b>Corrigido (era sev. 2):</b> obrigatórios marcados (asterisco + legenda) em todas as modais; validação no submit com mensagem por campo, foco no primeiro inválido e erro limpo ao digitar; criar escala sem repertório pede confirmação ("Adicionar músicas" / "Criar assim mesmo") sem bloquear.</p>
+<p class="done"><b>Corrigido (era sev. 1):</b> CRUD das Configurações rejeita duplicado (mensagem inline, case-insensitive); BPM com min 30 / max 220.</p>
+</div>
+
+<h3>1. Visibilidade do estado — B → A</h3>
+<div class="find">
+<p class="done"><b>Corrigido (era sev. 2):</b> toda ação de escrita confirma com toast (inferior central, 4,5s): "Escala criada.", "Música salva no repertório.", "Integrante salvo.", exclusões com Desfazer. Padrão documentado no card <a href="preview/components-states.html">Estados & Feedback</a> do design system.</p>
+<p class="done"><b>Corrigido (era sev. 1):</b> "Salvar rascunho" leva à lista de Escalas com badge "Rascunho" e data "a definir"; item recém-criado recebe highlight de 2s.</p>
+</div>
+
+<h3>2. Mundo real · 4. Consistência · 6. Reconhecimento · 8. Estética · 9. Erros · 10. Ajuda</h3>
+<div class="find">
+<p class="done"><b>2 (era sev. 2):</b> admin em português — "Papéis", "Novo Papel", "Sem papel definido", "Gerenciar acessos"; <code>musicas.write</code> permanece como identificador.</p>
+<p class="done"><b>4 (era sev. 2):</b> Dashboard e Histórico usam a mesma linha de evento (bloco de data + título + meta + badge); CTAs de salvar usam check, Plus ficou exclusivo de "Novo X".</p>
+<p class="done"><b>6 (era sev. 1):</b> Músicas mostra "N músicas · termo buscado" + badges dos filtros ativos + "Limpar filtros" acima dos resultados.</p>
+<p class="done"><b>8 (era sev. 1):</b> stat "Eventos" (redundante com "Escalas") trocado por "Novas Músicas · adicionadas no mês".</p>
+<p class="done"><b>9 (era sev. 2 + 1):</b> padrão <code>.field.error</code> no DS (borda destructive + mensagem 12px); todo zero-result ganhou "Limpar busca" / "Limpar busca e filtros".</p>
+<p class="done"><b>10 (era sev. 1):</b> modal Convites lista status (Pendente / Aceito / Expirado) e explica a expiração de 7 dias; Gerar Convite explica o vínculo com a igreja e oferece copiar link.</p>
+</div>
+
+<h2>Para chegar a A+ (depende do produto real)</h2>
+<ul class="next">
+<li><b>Drag-and-drop no repertório</b> — as setas cumprem o papel; arrastar é o refinamento natural na implementação.</li>
+<li><b>Persistência real de rascunhos e undo server-side</b> — o kit demonstra o padrão; o produto precisa garantir o comportamento com dados reais.</li>
+<li><b>Envio de convite por e-mail</b> — hoje o fluxo é por link copiado; e-mail direto reduziria um passo.</li>
+</ul>
+
+<p class="note">Reavaliação de 10/08/2026 sobre <a href="ui_kits/louvorflow/index.html">ui_kits/louvorflow/index.html</a>, testada interativamente (modais, validação, duplicar, toasts, undo). Auditoria original: B- (74/100), 1× sev. 3, 9× sev. 2. Referência: Nielsen, J. (1994) — 10 Usability Heuristics.</p>
+</div>
+</body>
+</html>
